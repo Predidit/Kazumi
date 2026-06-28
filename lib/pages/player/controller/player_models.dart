@@ -7,8 +7,9 @@ class PlaybackInitParams {
   final int episode;
   final int danmakuEpisodeNumber;
   final String pageUrl;
+  final String stableId;
 
-  /// 集数排序号，语义同 EpisodeRef.sortNumber（在线解析自标题、离线为 episodeNumber）。
+  /// 集数排序号，语义同 EpisodeRef.sortNumber（在线优先 Bangumi sort，离线为 episodeNumber）。
   final int? sortNumber;
   final Map<String, String> httpHeaders;
   final bool adBlockerEnabled;
@@ -32,10 +33,76 @@ class PlaybackInitParams {
     required this.referer,
     required this.currentRoad,
     this.pageUrl = '',
+    this.stableId = '',
     this.sortNumber,
     this.coverUrl,
     this.bangumiName,
   });
+}
+
+class SyncPlayEpisodeIdentity {
+  const SyncPlayEpisodeIdentity({
+    required this.bangumiId,
+    this.road,
+    this.episode,
+    this.stableId = '',
+  });
+
+  final int bangumiId;
+  final int? road;
+  final int? episode;
+  final String stableId;
+
+  bool get hasStableId => stableId.isNotEmpty;
+
+  static String fileNameFor({
+    required int bangumiId,
+    required int road,
+    required int episode,
+    required String stableId,
+  }) {
+    final id = stableId.trim();
+    if (id.isEmpty) {
+      return legacyFileNameFor(bangumiId: bangumiId, episode: episode);
+    }
+    return 'kazumi-v2:$bangumiId:$road:${Uri.encodeComponent(id)}';
+  }
+
+  static String legacyFileNameFor({
+    required int bangumiId,
+    required int episode,
+  }) {
+    return '$bangumiId[$episode]';
+  }
+
+  static SyncPlayEpisodeIdentity? parse(String name) {
+    final stableMatch =
+        RegExp(r'^kazumi-v2:(\d+):(-?\d+):(.+)$').firstMatch(name);
+    if (stableMatch != null) {
+      try {
+        return SyncPlayEpisodeIdentity(
+          bangumiId: int.parse(stableMatch.group(1)!),
+          road: int.parse(stableMatch.group(2)!),
+          stableId: Uri.decodeComponent(stableMatch.group(3)!),
+        );
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final legacyMatch = RegExp(r'^(\d+)\[(\d+)\]$').firstMatch(name);
+    if (legacyMatch == null) {
+      return null;
+    }
+    try {
+      return SyncPlayEpisodeIdentity(
+        bangumiId: int.parse(legacyMatch.group(1)!),
+        episode: int.parse(legacyMatch.group(2)!),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 enum DanmakuDestination {

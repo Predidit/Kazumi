@@ -74,8 +74,13 @@ class _DownloadPageState extends State<DownloadPage> {
         return const SizedBox.shrink();
       }
 
-      final episodes = record.episodes.values.toList()
-        ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+      final episodes = record.episodes.entries.toList()
+        ..sort((a, b) {
+          final compare = a.value.episodeNumber.compareTo(
+            b.value.episodeNumber,
+          );
+          return compare != 0 ? compare : a.key.compareTo(b.key);
+        });
       final completedCount = downloadController.completedCount(record);
 
       return Card(
@@ -137,16 +142,22 @@ class _DownloadPageState extends State<DownloadPage> {
                 ],
               ),
             ),
-            ...episodes.map((ep) => _buildEpisodeTile(record, ep)),
+            ...episodes.map(
+              (entry) => _buildEpisodeTile(record, entry.key, entry.value),
+            ),
           ],
         ),
       );
     });
   }
 
-  Widget _buildEpisodeTile(DownloadRecord record, DownloadEpisode episode) {
+  Widget _buildEpisodeTile(
+    DownloadRecord record,
+    int downloadKey,
+    DownloadEpisode episode,
+  ) {
     final statusIcon = _getStatusIcon(episode);
-    final statusText = _getStatusText(record, episode);
+    final statusText = _getStatusText(record, downloadKey, episode);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -189,7 +200,7 @@ class _DownloadPageState extends State<DownloadPage> {
             ),
             const SizedBox(width: 8),
           ],
-          ..._getActionButtons(record, episode),
+          ..._getActionButtons(record, downloadKey, episode),
         ],
       ),
     );
@@ -229,7 +240,11 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
 
-  String _getStatusText(DownloadRecord record, DownloadEpisode episode) {
+  String _getStatusText(
+    DownloadRecord record,
+    int downloadKey,
+    DownloadEpisode episode,
+  ) {
     switch (episode.status) {
       case DownloadStatus.completed:
         return '已完成  ${formatBytes(episode.totalBytes)}';
@@ -237,7 +252,7 @@ class _DownloadPageState extends State<DownloadPage> {
         final speed = downloadController.getSpeed(
           record.bangumiId,
           record.pluginName,
-          episode.episodeNumber,
+          downloadKey,
         );
         final speedText = speed > 0 ? ' · ${formatSpeed(speed)}' : '';
         return '${(episode.progressPercent * 100).toStringAsFixed(0)}%  '
@@ -256,7 +271,10 @@ class _DownloadPageState extends State<DownloadPage> {
   }
 
   List<Widget> _getActionButtons(
-      DownloadRecord record, DownloadEpisode episode) {
+    DownloadRecord record,
+    int downloadKey,
+    DownloadEpisode episode,
+  ) {
     final buttons = <Widget>[];
 
     switch (episode.status) {
@@ -275,7 +293,7 @@ class _DownloadPageState extends State<DownloadPage> {
           onPressed: () => downloadController.pauseDownload(
             record.bangumiId,
             record.pluginName,
-            episode.episodeNumber,
+            downloadKey,
           ),
           tooltip: '暂停',
           visualDensity: VisualDensity.compact,
@@ -287,7 +305,7 @@ class _DownloadPageState extends State<DownloadPage> {
           onPressed: () => downloadController.retryDownload(
             bangumiId: record.bangumiId,
             pluginName: record.pluginName,
-            episodeNumber: episode.episodeNumber,
+            downloadKey: downloadKey,
           ),
           tooltip: '继续',
           visualDensity: VisualDensity.compact,
@@ -299,7 +317,7 @@ class _DownloadPageState extends State<DownloadPage> {
           onPressed: () => downloadController.retryDownload(
             bangumiId: record.bangumiId,
             pluginName: record.pluginName,
-            episodeNumber: episode.episodeNumber,
+            downloadKey: downloadKey,
           ),
           tooltip: '重试',
           visualDensity: VisualDensity.compact,
@@ -313,7 +331,7 @@ class _DownloadPageState extends State<DownloadPage> {
             downloadController.priorityDownload(
               bangumiId: record.bangumiId,
               pluginName: record.pluginName,
-              episodeNumber: episode.episodeNumber,
+              downloadKey: downloadKey,
             );
             KazumiDialog.showToast(message: '已插队优先下载');
           },
@@ -327,7 +345,7 @@ class _DownloadPageState extends State<DownloadPage> {
 
     buttons.add(IconButton(
       icon: const Icon(Icons.delete_outline, size: 20),
-      onPressed: () => _confirmDeleteEpisode(record, episode),
+      onPressed: () => _confirmDeleteEpisode(record, downloadKey, episode),
       tooltip: '删除',
       visualDensity: VisualDensity.compact,
     ));
@@ -336,11 +354,7 @@ class _DownloadPageState extends State<DownloadPage> {
   }
 
   void _playEpisode(DownloadRecord record, DownloadEpisode episode) {
-    final localPath = downloadController.getLocalVideoPath(
-      record.bangumiId,
-      record.pluginName,
-      episode.episodeNumber,
-    );
+    final localPath = downloadController.getLocalVideoPathForEpisode(episode);
     if (localPath == null) {
       KazumiDialog.showToast(message: '本地文件不存在');
       return;
@@ -374,6 +388,7 @@ class _DownloadPageState extends State<DownloadPage> {
       bangumiItem: bangumiItem,
       pluginName: record.pluginName,
       episodeNumber: episode.episodeNumber,
+      stableId: episode.stableId,
       road: episode.road,
       downloadedEpisodes: downloadedEpisodes,
     );
@@ -381,7 +396,11 @@ class _DownloadPageState extends State<DownloadPage> {
     Modular.to.pushNamed('/video/');
   }
 
-  void _confirmDeleteEpisode(DownloadRecord record, DownloadEpisode episode) {
+  void _confirmDeleteEpisode(
+    DownloadRecord record,
+    int downloadKey,
+    DownloadEpisode episode,
+  ) {
     KazumiDialog.show(
       builder: (context) => AlertDialog(
         title: const Text('删除下载'),
@@ -400,7 +419,7 @@ class _DownloadPageState extends State<DownloadPage> {
               downloadController.deleteEpisode(
                 record.bangumiId,
                 record.pluginName,
-                episode.episodeNumber,
+                downloadKey,
               );
               KazumiDialog.dismiss();
             },

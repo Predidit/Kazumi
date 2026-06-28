@@ -8,8 +8,8 @@ abstract class IDownloadRepository {
   Future<void> putRecord(DownloadRecord record);
   Future<void> deleteRecord(String key);
   Future<void> updateEpisode(
-      String recordKey, int episodeNumber, DownloadEpisode episode);
-  Future<void> deleteEpisode(String recordKey, int episodeNumber);
+      String recordKey, int downloadKey, DownloadEpisode episode);
+  Future<void> deleteEpisode(String recordKey, int downloadKey);
   bool getForceAdBlocker();
 
   /// 获取指定番剧的下载记录
@@ -18,13 +18,13 @@ abstract class IDownloadRepository {
   /// [pluginName] 插件名称
   DownloadRecord? getRecordByBangumiId(int bangumiId, String pluginName);
 
-  /// 获取指定集数的下载信息
+  /// 获取指定本地下载 key 的下载信息
   ///
   /// [bangumiId] 番剧 ID
   /// [pluginName] 插件名称
-  /// [episodeNumber] 集数编号
+  /// [downloadKey] `DownloadRecord.episodes` 的本地 key；旧记录可等同集数编号
   DownloadEpisode? getEpisode(
-      int bangumiId, String pluginName, int episodeNumber);
+      int bangumiId, String pluginName, int downloadKey);
 
   /// 获取已完成下载的集数列表
   ///
@@ -33,14 +33,9 @@ abstract class IDownloadRepository {
   /// 返回所有已完成下载的集数
   List<DownloadEpisode> getCompletedEpisodes(int bangumiId, String pluginName);
 
-  /// 通过集数页面 URL 查找下载记录
-  ///
-  /// [bangumiId] 番剧 ID
-  /// [pluginName] 插件名称
-  /// [episodePageUrl] 集数页面 URL
-  /// 当 URL 为空时返回 null（兼容旧数据）
-  DownloadEpisode? getEpisodeByUrl(
-      int bangumiId, String pluginName, String episodePageUrl);
+  /// 通过订阅规则产出的稳定集身份查找下载记录。
+  DownloadEpisode? getEpisodeByStableId(
+      int bangumiId, String pluginName, String stableId);
 }
 
 class DownloadRepository implements IDownloadRepository {
@@ -137,29 +132,29 @@ class DownloadRepository implements IDownloadRepository {
 
   @override
   Future<void> updateEpisode(
-      String recordKey, int episodeNumber, DownloadEpisode episode) async {
+      String recordKey, int downloadKey, DownloadEpisode episode) async {
     try {
       // Update in-memory cache
       _progressCache.putIfAbsent(recordKey, () => {});
-      _progressCache[recordKey]![episodeNumber] = episode;
+      _progressCache[recordKey]![downloadKey] = episode;
 
       // Only persist to Hive when status changes (not on every progress update)
       // This dramatically reduces disk I/O and prevents corruption on crash
-      final statusKey = '${recordKey}_$episodeNumber';
+      final statusKey = '${recordKey}_$downloadKey';
       final lastStatus = _lastPersistedStatus[statusKey];
       final shouldPersist = lastStatus != episode.status;
 
       if (shouldPersist) {
         final record = _downloadsBox.get(recordKey);
         if (record == null) return;
-        record.episodes[episodeNumber] = episode;
+        record.episodes[downloadKey] = episode;
         await _downloadsBox.put(recordKey, record);
         await _downloadsBox.flush();
         _lastPersistedStatus[statusKey] = episode.status;
       }
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        'DownloadRepository: update episode failed. key=$recordKey, ep=$episodeNumber',
+        'DownloadRepository: update episode failed. key=$recordKey, downloadKey=$downloadKey',
         error: e,
         stackTrace: stackTrace,
       );
@@ -168,14 +163,14 @@ class DownloadRepository implements IDownloadRepository {
   }
 
   /// Get episode with in-memory progress if available
-  DownloadEpisode? getEpisodeWithProgress(String recordKey, int episodeNumber) {
+  DownloadEpisode? getEpisodeWithProgress(String recordKey, int downloadKey) {
     // Check in-memory cache first
-    final cached = _progressCache[recordKey]?[episodeNumber];
+    final cached = _progressCache[recordKey]?[downloadKey];
     if (cached != null) return cached;
 
     // Fall back to Hive
     final record = getRecord(recordKey);
-    return record?.episodes[episodeNumber];
+    return record?.episodes[downloadKey];
   }
 
   @override
@@ -184,11 +179,11 @@ class DownloadRepository implements IDownloadRepository {
   }
 
   @override
-  Future<void> deleteEpisode(String recordKey, int episodeNumber) async {
+  Future<void> deleteEpisode(String recordKey, int downloadKey) async {
     try {
       final record = _downloadsBox.get(recordKey);
       if (record == null) return;
-      record.episodes.remove(episodeNumber);
+      record.episodes.remove(downloadKey);
       if (record.episodes.isEmpty) {
         await _downloadsBox.delete(recordKey);
         _progressCache.remove(recordKey);
@@ -196,13 +191,13 @@ class DownloadRepository implements IDownloadRepository {
             .removeWhere((k, v) => k.startsWith('${recordKey}_'));
       } else {
         await _downloadsBox.put(recordKey, record);
-        _progressCache[recordKey]?.remove(episodeNumber);
-        _lastPersistedStatus.remove('${recordKey}_$episodeNumber');
+        _progressCache[recordKey]?.remove(downloadKey);
+        _lastPersistedStatus.remove('${recordKey}_$downloadKey');
       }
       await _downloadsBox.flush();
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        'DownloadRepository: delete episode failed. key=$recordKey, ep=$episodeNumber',
+        'DownloadRepository: delete episode failed. key=$recordKey, downloadKey=$downloadKey',
         error: e,
         stackTrace: stackTrace,
       );
@@ -218,9 +213,9 @@ class DownloadRepository implements IDownloadRepository {
 
   @override
   DownloadEpisode? getEpisode(
-      int bangumiId, String pluginName, int episodeNumber) {
+      int bangumiId, String pluginName, int downloadKey) {
     final record = getRecordByBangumiId(bangumiId, pluginName);
-    return record?.episodes[episodeNumber];
+    return record?.episodes[downloadKey];
   }
 
   @override
@@ -235,13 +230,13 @@ class DownloadRepository implements IDownloadRepository {
   }
 
   @override
-  DownloadEpisode? getEpisodeByUrl(
-      int bangumiId, String pluginName, String episodePageUrl) {
-    if (episodePageUrl.isEmpty) return null;
+  DownloadEpisode? getEpisodeByStableId(
+      int bangumiId, String pluginName, String stableId) {
+    if (stableId.isEmpty) return null;
     final record = getRecordByBangumiId(bangumiId, pluginName);
     if (record == null) return null;
     for (final episode in record.episodes.values) {
-      if (episode.episodePageUrl == episodePageUrl) {
+      if (episode.stableId == stableId) {
         return episode;
       }
     }

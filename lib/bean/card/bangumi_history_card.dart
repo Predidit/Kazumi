@@ -143,7 +143,19 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     }
 
     DownloadEpisode? targetEpisode;
-    if (widget.historyItem.episodePageUrl.isNotEmpty) {
+    final progressStableId = _lastWatchProgress(widget.historyItem)?.stableId;
+    final stableId = widget.historyItem.stableId.trim().isNotEmpty
+        ? widget.historyItem.stableId.trim()
+        : progressStableId ?? '';
+    if (stableId.isNotEmpty) {
+      for (final episode in downloadedEpisodes) {
+        if (episode.stableId == stableId) {
+          targetEpisode = episode;
+          break;
+        }
+      }
+    }
+    if (targetEpisode == null && widget.historyItem.episodePageUrl.isNotEmpty) {
       for (final episode in downloadedEpisodes) {
         if (episode.episodePageUrl == widget.historyItem.episodePageUrl) {
           targetEpisode = episode;
@@ -159,10 +171,8 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       return false;
     }
 
-    final localPath = downloadController.getLocalVideoPath(
-      widget.historyItem.bangumiItem.id,
-      widget.historyItem.adapterName,
-      targetEpisode.episodeNumber,
+    final localPath = downloadController.getLocalVideoPathForEpisode(
+      targetEpisode,
     );
     if (localPath == null) {
       return false;
@@ -172,10 +182,44 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       bangumiItem: widget.historyItem.bangumiItem,
       pluginName: widget.historyItem.adapterName,
       episodeNumber: targetEpisode.episodeNumber,
+      stableId: targetEpisode.stableId,
       road: targetEpisode.road,
       downloadedEpisodes: downloadedEpisodes,
     );
     return true;
+  }
+
+  Progress? _lastWatchProgress(History history) {
+    final topStableId = history.stableId.trim();
+    if (topStableId.isNotEmpty) {
+      for (final progress in history.progresses.values) {
+        if (progress.stableId == topStableId) {
+          return progress;
+        }
+      }
+    }
+
+    final topUrl = history.episodePageUrl.trim();
+    if (topUrl.isNotEmpty) {
+      for (final progress in history.progresses.values) {
+        if (progress.episodePageUrl == topUrl) {
+          return progress;
+        }
+      }
+    }
+
+    final keyedProgress = history.progresses[history.lastWatchEpisode];
+    if (keyedProgress != null &&
+        keyedProgress.episode == history.lastWatchEpisode) {
+      return keyedProgress;
+    }
+
+    for (final progress in history.progresses.values) {
+      if (progress.episode == history.lastWatchEpisode) {
+        return progress;
+      }
+    }
+    return null;
   }
 
   DownloadEpisode? _episodeByNumber(

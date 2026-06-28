@@ -21,7 +21,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
   final DownloadController downloadController =
       Modular.get<DownloadController>();
 
-  final Set<int> _selectedEpisodes = {};
+  final Set<int> _selectedListIndexes = {};
 
   Road get currentRoadData => videoPageController.roadList[widget.road];
   int get episodeCount => currentRoadData.data.length;
@@ -33,11 +33,15 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
       videoPageController.currentPlugin.name,
     );
     final downloadedUrls = <String>{};
+    final downloadedStableIds = <String>{};
     if (record != null) {
       for (final entry in record.episodes.entries) {
         if (entry.value.status == DownloadStatus.completed ||
             entry.value.status == DownloadStatus.downloading ||
             entry.value.status == DownloadStatus.pending) {
+          if (entry.value.stableId.isNotEmpty) {
+            downloadedStableIds.add(entry.value.stableId);
+          }
           if (entry.value.episodePageUrl.isNotEmpty) {
             downloadedUrls.add(entry.value.episodePageUrl);
           }
@@ -64,7 +68,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    '已选 ${_selectedEpisodes.length} 集',
+                    '已选 ${_selectedListIndexes.length} 集',
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(context).colorScheme.primary,
@@ -81,11 +85,15 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        _selectedEpisodes.clear();
+                        _selectedListIndexes.clear();
                         for (int i = 1; i <= episodeCount; i++) {
-                          final url = currentRoadData.data[i - 1].pageUrl;
-                          if (!downloadedUrls.contains(url)) {
-                            _selectedEpisodes.add(i);
+                          final identity = currentRoadData.data[i - 1];
+                          if (!isDownloadedEpisodeIdentity(
+                            identity,
+                            downloadedStableIds: downloadedStableIds,
+                            downloadedUrls: downloadedUrls,
+                          )) {
+                            _selectedListIndexes.add(i);
                           }
                         }
                       });
@@ -95,7 +103,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        _selectedEpisodes.clear();
+                        _selectedListIndexes.clear();
                       });
                     },
                     child: const Text('取消全选'),
@@ -117,11 +125,15 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                 ),
                 itemCount: episodeCount,
                 itemBuilder: (context, index) {
-                  final episodeNumber = index + 1;
-                  final episodeUrl = currentRoadData.data[index].pageUrl;
-                  final isDownloaded = downloadedUrls.contains(episodeUrl);
-                  final isSelected = _selectedEpisodes.contains(episodeNumber);
-                  final identifier = currentRoadData.data[index].title;
+                  final listIndex = index + 1;
+                  final identity = currentRoadData.data[index];
+                  final isDownloaded = isDownloadedEpisodeIdentity(
+                    identity,
+                    downloadedStableIds: downloadedStableIds,
+                    downloadedUrls: downloadedUrls,
+                  );
+                  final isSelected = _selectedListIndexes.contains(listIndex);
+                  final identifier = identity.title;
 
                   return Material(
                     color: isDownloaded
@@ -140,9 +152,9 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                           : () {
                               setState(() {
                                 if (isSelected) {
-                                  _selectedEpisodes.remove(episodeNumber);
+                                  _selectedListIndexes.remove(listIndex);
                                 } else {
-                                  _selectedEpisodes.add(episodeNumber);
+                                  _selectedListIndexes.add(listIndex);
                                 }
                               });
                             },
@@ -208,10 +220,10 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                     SizedBox(
                       width: 140,
                       child: FilledButton(
-                        onPressed: _selectedEpisodes.isEmpty
+                        onPressed: _selectedListIndexes.isEmpty
                             ? null
                             : () => _startBatchDownload(context),
-                        child: Text('开始下载(${_selectedEpisodes.length})'),
+                        child: Text('开始下载(${_selectedListIndexes.length})'),
                       ),
                     ),
                   ],
@@ -230,11 +242,16 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
     final plugin = videoPageController.currentPlugin;
     final bangumiItem = videoPageController.bangumiItem;
 
-    final sortedEpisodes = _selectedEpisodes.toList()..sort();
+    final sortedListIndexes = _selectedListIndexes.toList()..sort();
 
-    for (final episodeNumber in sortedEpisodes) {
-      final episodePageUrl = currentRoadData.data[episodeNumber - 1].pageUrl;
-      final identifier = currentRoadData.data[episodeNumber - 1].title;
+    for (final listIndex in sortedListIndexes) {
+      final identity = currentRoadData.data[listIndex - 1];
+      final episodePageUrl = identity.pageUrl;
+      final identifier = identity.title;
+      final episodeNumber = downloadEpisodeNumberForSelection(
+        listIndex: listIndex,
+        identity: identity,
+      );
 
       downloadController.startDownload(
         bangumiId: bangumiItem.id,
@@ -247,11 +264,30 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
         episodeName: identifier,
         road: widget.road,
         episodePageUrl: episodePageUrl,
+        stableId: identity.stableId,
       );
     }
 
     KazumiDialog.showToast(
-      message: '已添加 ${sortedEpisodes.length} 集到下载队列，可在下载管理中查看',
+      message: '已添加 ${sortedListIndexes.length} 集到下载队列，可在下载管理中查看',
     );
   }
+}
+
+bool isDownloadedEpisodeIdentity(
+  EpisodeIdentity identity, {
+  required Set<String> downloadedStableIds,
+  required Set<String> downloadedUrls,
+}) {
+  return (identity.stableId.isNotEmpty &&
+          downloadedStableIds.contains(identity.stableId)) ||
+      downloadedUrls.contains(identity.pageUrl);
+}
+
+int downloadEpisodeNumberForSelection({
+  required int listIndex,
+  required EpisodeIdentity identity,
+}) {
+  final ordinal = identity.ordinal;
+  return ordinal != null && ordinal > 0 ? ordinal : listIndex;
 }

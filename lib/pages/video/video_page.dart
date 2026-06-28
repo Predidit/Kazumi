@@ -22,7 +22,6 @@ import 'package:kazumi/pages/download/download_episode_sheet.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
 
 class VideoPage extends StatefulWidget {
@@ -183,27 +182,23 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.historyOffset = 0;
     _showTabBodyImmediately(locateEpisode: false);
 
-    // 规则 baseURL 变更后迁移历史中过期的 pageURL，避免后续写入产生重复进度。
-    // 同步执行，保证下面 lastWatching 读取到迁移后的 URL。
-    videoPageController.migrateStaleOnlineEpisodePageUrls();
+    // 同步迁移存量历史身份，保证下面 lastWatching 读取到 stableId 后再定位。
+    videoPageController.migrateStaleOnlineEpisodeIdentity();
+    unawaited(downloadController.migrateEpisodeStableIds(
+      bangumiId: videoPageController.bangumiItem.id,
+      pluginName: videoPageController.currentPlugin.name,
+      roadList: videoPageController.roadList,
+    ));
 
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
     if (progress != null) {
-      // 优先用规则产出的稳定身份定位；存量进度无 stableId 时，从其 pageUrl
-      // 推导同口径的相对 path 兜底（与 EpisodeIdentity.stableId 一致）。
-      final storedStableId = progress.stableId.isNotEmpty
-          ? progress.stableId
-          : stableEpisodeIdFromUrl(
-              videoPageController.currentPlugin.baseUrl,
-              progress.episodePageUrl,
-            );
-      final pageUrlSelection = findEpisodeSelectionByStableId(
+      final stableIdSelection = findEpisodeSelectionByStableId(
         videoPageController.roadList,
-        storedStableId,
+        progress.stableId,
       );
-      final fallbackSelection = pageUrlSelection ??
+      final fallbackSelection = stableIdSelection ??
           ((progress.road >= 0 &&
                   videoPageController.roadList.length > progress.road &&
                   progress.episode > 0 &&
@@ -998,19 +993,19 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
-  DownloadEpisode? _getEpisodeFromRecords(
-      int episodeNumber, String episodePageUrl) {
+  DownloadEpisode? _getEpisodeFromRecords(int episodeNumber, String stableId) {
     final bangumiId = videoPageController.bangumiItem.id;
     final pluginName = videoPageController.currentPlugin.name;
 
     for (final record in downloadController.records) {
       if (record.bangumiId == bangumiId && record.pluginName == pluginName) {
-        if (episodePageUrl.isNotEmpty) {
+        if (stableId.isNotEmpty) {
           for (final episode in record.episodes.values) {
-            if (episode.episodePageUrl == episodePageUrl) {
+            if (episode.stableId == stableId) {
               return episode;
             }
           }
+          return null;
         }
         return record.episodes[episodeNumber];
       }
@@ -1018,10 +1013,10 @@ class _VideoPageState extends State<VideoPage>
     return null;
   }
 
-  Widget _buildDownloadStatusIcon(int episodeNumber, String episodePageUrl) {
+  Widget _buildDownloadStatusIcon(int episodeNumber, String stableId) {
     // 离线模式下不显示下载状态图标
     if (videoPageController.isOfflineMode) return const SizedBox.shrink();
-    final episode = _getEpisodeFromRecords(episodeNumber, episodePageUrl);
+    final episode = _getEpisodeFromRecords(episodeNumber, stableId);
     if (episode == null) return const SizedBox.shrink();
     switch (episode.status) {
       case DownloadStatus.completed:
@@ -1065,6 +1060,7 @@ class _VideoPageState extends State<VideoPage>
           for (var episodeItem in road.data) {
             int count0 = count;
             final urlItem = episodeItem.pageUrl;
+            final stableId = episodeItem.stableId;
             final episodeName =
                 episodeItem.title.isNotEmpty ? episodeItem.title : '第$count0集';
             cardList.add(Container(
@@ -1124,7 +1120,7 @@ class _VideoPageState extends State<VideoPage>
                                           .colorScheme
                                           .onSurface),
                             )),
-                            _buildDownloadStatusIcon(count0, urlItem),
+                            _buildDownloadStatusIcon(count0, stableId),
                             const SizedBox(width: 2),
                           ],
                         ),

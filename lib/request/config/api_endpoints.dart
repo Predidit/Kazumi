@@ -16,7 +16,7 @@ class ApiEndpoints {
 
   /// 规则仓库
   static const String pluginShop =
-      'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
+      'https://cdn.gh-proxy.org/https://raw.githubusercontent.com/Predidit/KazumiRules/refs/heads/main/';
 
   /// 在线升级
   static const String latestApp =

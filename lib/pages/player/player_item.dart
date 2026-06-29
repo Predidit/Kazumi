@@ -1709,11 +1709,11 @@ class _PlayerItemState extends State<PlayerItem>
         GStorage.getSetting(SettingsKeys.brightnessVolumeGesture);
     playerControllerLayerDisappearTime =
         GStorage.getSetting(SettingsKeys.playerControllerLayerDisappearTime);
+    longPressPlaySpeed =
+        GStorage.getSetting(SettingsKeys.defaultShortcutForwardPlaySpeed);
     unawaited(_bindAudioService());
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
-    longPressPlaySpeed =
-      GStorage.getSetting(SettingsKeys.defaultShortcutForwardPlaySpeed);
     displayVideoController();
   }
 

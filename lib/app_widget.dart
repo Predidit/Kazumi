@@ -13,7 +13,10 @@ import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/desktop_title_bar.dart';
 import 'package:kazumi/utils/theme.dart';
+
+import 'bean/appbar/windows_title_bar.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -347,6 +350,18 @@ class _AppWidgetState extends State<AppWidget>
           darkTheme: effectiveDarkTheme,
           themeMode: themeProvider.themeMode,
           routerConfig: Modular.routerConfig,
+          builder: (context, child) {
+            Widget body = child ?? const SizedBox.shrink();
+            if (Platform.isWindows && DesktopTitleBar.isVisible()) {
+              body = WindowsTitleBar(
+                title: 'Kazumi',
+                icon: SizedBox(width: 20, height: 20,
+                    child: Image.asset('assets/images/logo/logo_windows.ico')),
+                child: body,
+              );
+            }
+            return body;
+          },
         );
       },
     );

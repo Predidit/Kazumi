@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/desktop_title_bar.dart';
 
 class EmbeddedNativeControlArea extends StatefulWidget {
   /// The widget won't draw anything, just a placeholder for native window control.
@@ -20,10 +20,8 @@ class EmbeddedNativeControlArea extends StatefulWidget {
 }
 
 class _EmbeddedNativeControlAreaState extends State<EmbeddedNativeControlArea> {
-  bool showWindowButton = GStorage.getSetting(SettingsKeys.showWindowButton);
-
   EdgeInsets get getInsets {
-    if (!showWindowButton) {
+    if (!DesktopTitleBar.isVisible()) {
       return EdgeInsets.zero;
     }
     if (!widget.requireOffset) {

@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/utils/desktop_title_bar.dart';
 import 'package:kazumi/utils/device.dart';
 
 class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -41,7 +41,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       this.needTopOffset = true});
 
   bool showWindowButton() {
-    return GStorage.getSetting(SettingsKeys.showWindowButton);
+    return DesktopTitleBar.isVisible();
   }
 
   @override
@@ -50,11 +50,10 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (actions != null) {
       acs.addAll(actions!);
     }
+    if (isDesktop() && DesktopTitleBar.shouldShowCloseButton()) {
+      acs.add(CloseButton(onPressed: () => windowManager.close()));
+    }
     if (isDesktop()) {
-      // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
-      if (!showWindowButton()) {
-        acs.add(CloseButton(onPressed: () => windowManager.close()));
-      }
       acs.add(const SizedBox(width: 8));
     }
     return GestureDetector(

@@ -306,6 +306,12 @@ class SettingsKeys {
     false,
     group: SettingGroup.theme,
   );
+  /// One-time migration marker for Windows custom title bar semantics.
+  static const windowsCustomTitleBarMigrated = SettingKey<bool>(
+    'windowsCustomTitleBarMigrated',
+    false,
+    group: SettingGroup.theme,
+  );
   static const useDynamicColor = SettingKey<bool>(
     _SettingBoxKey.useDynamicColor,
     false,

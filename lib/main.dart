@@ -14,6 +14,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:kazumi/utils/desktop_title_bar.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/webview_feature_service.dart';
 
@@ -63,8 +64,7 @@ void main() async {
         }));
     return;
   }
-  bool showWindowButton =
-      await GStorage.getSetting(SettingsKeys.showWindowButton);
+  await DesktopTitleBar.migrateLegacySettingsIfNeeded();
   if (isDesktop()) {
     await windowManager.ensureInitialized();
     final lowResolution = await isLowResolution();
@@ -72,11 +72,8 @@ void main() async {
       size: lowResolution ? const Size(840, 600) : const Size(1280, 860),
       center: true,
       skipTaskbar: false,
-      // macOS always hide title bar regardless of showWindowButton setting
-      titleBarStyle: (Platform.isMacOS || !showWindowButton)
-          ? TitleBarStyle.hidden
-          : TitleBarStyle.normal,
-      windowButtonVisibility: showWindowButton,
+      titleBarStyle: DesktopTitleBar.nativeTitleBarStyle,
+      windowButtonVisibility: DesktopTitleBar.nativeWindowButtonVisibility,
       title: 'Kazumi',
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {

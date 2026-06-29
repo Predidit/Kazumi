@@ -526,7 +526,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 ),
                 SettingsTile(
                   title:
-                      Text('默认方向键倍速', style: TextStyle(fontFamily: fontFamily)),
+                      Text('默认方向键/长按倍速', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultShortcutForwardPlaySpeed,
                     min: 1.25,

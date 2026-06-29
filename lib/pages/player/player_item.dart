@@ -1855,7 +1855,9 @@ class _PlayerItemState extends State<PlayerItem>
                           playerController.panel.showPlaySpeed = true;
                         });
                         lastPlayerSpeed = playerController.playback.playerSpeed;
-                        setPlaybackSpeed(2.0);
+                        setPlaybackSpeed(
+                          GStorage.getSetting(SettingsKeys.defaultShortcutForwardPlaySpeed),
+                        );
                       },
                       onLongPressEnd: (_) {
                         if (playerController.panel.lockPanel) {

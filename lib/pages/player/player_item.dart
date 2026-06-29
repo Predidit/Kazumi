@@ -136,6 +136,7 @@ class _PlayerItemState extends State<PlayerItem>
   late final Animation<double> _screenshotFeedbackAnimation;
 
   double lastPlayerSpeed = 1.0;
+  late double longPressPlaySpeed;
   int episodeNum = 0;
   bool? _lastPipPlaying;
   bool? _lastPipDanmakuEnabled;
@@ -1708,6 +1709,8 @@ class _PlayerItemState extends State<PlayerItem>
         GStorage.getSetting(SettingsKeys.brightnessVolumeGesture);
     playerControllerLayerDisappearTime =
         GStorage.getSetting(SettingsKeys.playerControllerLayerDisappearTime);
+    longPressPlaySpeed =
+        GStorage.getSetting(SettingsKeys.defaultShortcutForwardPlaySpeed);
     unawaited(_bindAudioService());
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
@@ -1855,7 +1858,7 @@ class _PlayerItemState extends State<PlayerItem>
                           playerController.panel.showPlaySpeed = true;
                         });
                         lastPlayerSpeed = playerController.playback.playerSpeed;
-                        setPlaybackSpeed(2.0);
+                        setPlaybackSpeed(longPressPlaySpeed);
                       },
                       onLongPressEnd: (_) {
                         if (playerController.panel.lockPanel) {

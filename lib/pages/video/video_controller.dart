@@ -971,7 +971,9 @@ abstract class _VideoPageController with Store {
             await plugin.querychapterRoads(url, cancelToken: cancelToken));
       }
     }
+    _throwIfQueryRoadsCancelled(cancelToken);
     await _refreshBangumiEpisodeSorts();
+    _throwIfQueryRoadsCancelled(cancelToken);
     KazumiLogger()
         .i('VideoPageController: road list length ${roadList.length}');
     if (roadList.isNotEmpty) {
@@ -988,6 +990,17 @@ abstract class _VideoPageController with Store {
     _bangumiSortByListIndex
       ..clear()
       ..addAll(bangumiSortByListIndex(episodes));
+  }
+
+  void _throwIfQueryRoadsCancelled(CancelToken? cancelToken) {
+    if (cancelToken == null || !cancelToken.isCancelled) {
+      return;
+    }
+    throw cancelToken.cancelError ??
+        DioException.requestCancelled(
+          requestOptions: RequestOptions(),
+          reason: 'query roads cancelled',
+        );
   }
 
   void toggleSortOrder() {

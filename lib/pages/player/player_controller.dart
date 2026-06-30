@@ -11,6 +11,7 @@ import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_panel_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
+import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -249,11 +250,9 @@ class PlayerController {
     return true;
   }
 
-  Future<void> setShader(int type,
-      {bool synchronized = true, Player? player}) async {
+  Future<void> setShader(SuperResolutionMode mode, {Player? player}) async {
     await playback.setShader(
-      type,
-      synchronized: synchronized,
+      mode,
       player: player,
     );
   }

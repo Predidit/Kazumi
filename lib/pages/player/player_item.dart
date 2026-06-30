@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
+import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/player_pointer_interaction.dart';
 import 'package:kazumi/pages/player/player_screenshot_feedback_overlay.dart';
@@ -680,12 +681,11 @@ class _PlayerItemState extends State<PlayerItem>
     _screenshotFeedbackController.forward(from: 0);
   }
 
-  // 启用超分辨率（质量档）时弹出提示
-  Future<void> handleSuperResolutionChange(int shaderIndex) async {
+  Future<void> handleSuperResolutionChange(SuperResolutionMode mode) async {
     if (!mounted) return;
 
     // mediacodec_embed 不支持超分辨率
-    if (Platform.isAndroid && shaderIndex != 1) {
+    if (Platform.isAndroid && mode != SuperResolutionMode.off) {
       final String androidVideoRenderer =
           GStorage.getSetting(SettingsKeys.androidVideoRenderer);
 
@@ -709,11 +709,12 @@ class _PlayerItemState extends State<PlayerItem>
       }
     }
 
-    final bool isHighMode = shaderIndex == 3;
-    final bool alreadyShown =
-        GStorage.getSetting(SettingsKeys.superResolutionWarn);
+    final bool requiresPerformanceWarning = mode == SuperResolutionMode.quality;
+    final bool warningDisabled = GStorage.getSetting(
+      SettingsKeys.disableSuperResolutionWarning,
+    );
 
-    if (isHighMode && !alreadyShown) {
+    if (requiresPerformanceWarning && !warningDisabled) {
       bool confirmed = false;
 
       await KazumiDialog.show(builder: (context) {
@@ -746,7 +747,9 @@ class _PlayerItemState extends State<PlayerItem>
                 onPressed: () async {
                   if (dontAskAgain) {
                     await GStorage.putSetting(
-                        SettingsKeys.superResolutionWarn, true);
+                      SettingsKeys.disableSuperResolutionWarning,
+                      true,
+                    );
                   }
                   KazumiDialog.dismiss();
                 },
@@ -757,7 +760,9 @@ class _PlayerItemState extends State<PlayerItem>
                   confirmed = true;
                   if (dontAskAgain) {
                     await GStorage.putSetting(
-                        SettingsKeys.superResolutionWarn, true);
+                      SettingsKeys.disableSuperResolutionWarning,
+                      true,
+                    );
                   }
                   KazumiDialog.dismiss();
                 },
@@ -769,10 +774,10 @@ class _PlayerItemState extends State<PlayerItem>
       });
 
       if (confirmed) {
-        playerController.setShader(shaderIndex);
+        playerController.setShader(mode);
       }
     } else {
-      playerController.setShader(shaderIndex);
+      playerController.setShader(mode);
     }
   }
 

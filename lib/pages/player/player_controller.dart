@@ -8,6 +8,7 @@ import 'package:kazumi/services/player/external_playback_launcher.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
+import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_panel_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
 import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
@@ -153,8 +154,9 @@ class PlayerController {
     playback.resetForInit();
     debug.playerLogLevel = GStorage.getSetting(SettingsKeys.playerLogLevel);
     playback.playerSpeed = GStorage.getSetting(SettingsKeys.defaultPlaySpeed);
-    panel.aspectRatioType =
-        GStorage.getSetting(SettingsKeys.defaultAspectRatioType);
+    panel.aspectRatioMode = PlayerAspectRatio.fromStorageValue(
+      GStorage.getSetting(SettingsKeys.defaultAspectRatioType),
+    );
 
     playback.buttonSkipTime = GStorage.getSetting(SettingsKeys.buttonSkipTime);
     playback.arrowKeySkipTime =

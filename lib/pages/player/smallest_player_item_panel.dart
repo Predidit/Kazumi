@@ -4,6 +4,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
+import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -558,32 +559,28 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             },
             menuChildren: [
               SubmenuButton(
-                menuChildren: List<MenuItemButton>.generate(
-                  3,
-                  (int index) => MenuItemButton(
-                    onPressed: () =>
-                        playerController.panel.aspectRatioType = index + 1,
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          index + 1 == 1
-                              ? '自动'
-                              : index + 1 == 2
-                                  ? '裁切填充'
-                                  : '拉伸填充',
-                          style: TextStyle(
-                              color: index + 1 ==
-                                      playerController.panel.aspectRatioType
-                                  ? Theme.of(context).colorScheme.primary
-                                  : null),
+                menuChildren: [
+                  for (final aspectRatioMode in PlayerAspectRatio.values)
+                    MenuItemButton(
+                      onPressed: () => playerController.panel.aspectRatioMode =
+                          aspectRatioMode,
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            aspectRatioMode.label,
+                            style: TextStyle(
+                                color: aspectRatioMode ==
+                                        playerController.panel.aspectRatioMode
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                ],
                 child: Container(
                   height: 48,
                   constraints: BoxConstraints(minWidth: 112),

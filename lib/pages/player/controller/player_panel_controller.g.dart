@@ -9,19 +9,19 @@ part of 'player_panel_controller.dart';
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
 mixin _$PlayerPanelController on _PlayerPanelController, Store {
-  late final _$aspectRatioTypeAtom =
-      Atom(name: '_PlayerPanelController.aspectRatioType', context: context);
+  late final _$aspectRatioModeAtom =
+      Atom(name: '_PlayerPanelController.aspectRatioMode', context: context);
 
   @override
-  int get aspectRatioType {
-    _$aspectRatioTypeAtom.reportRead();
-    return super.aspectRatioType;
+  PlayerAspectRatio get aspectRatioMode {
+    _$aspectRatioModeAtom.reportRead();
+    return super.aspectRatioMode;
   }
 
   @override
-  set aspectRatioType(int value) {
-    _$aspectRatioTypeAtom.reportWrite(value, super.aspectRatioType, () {
-      super.aspectRatioType = value;
+  set aspectRatioMode(PlayerAspectRatio value) {
+    _$aspectRatioModeAtom.reportWrite(value, super.aspectRatioMode, () {
+      super.aspectRatioMode = value;
     });
   }
 
@@ -202,7 +202,7 @@ mixin _$PlayerPanelController on _PlayerPanelController, Store {
   @override
   String toString() {
     return '''
-aspectRatioType: ${aspectRatioType},
+aspectRatioMode: ${aspectRatioMode},
 brightness: ${brightness},
 lockPanel: ${lockPanel},
 showVideoController: ${showVideoController},

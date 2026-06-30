@@ -4,6 +4,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
+import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
@@ -923,20 +924,20 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       );
                     },
                     menuChildren: [
-                      for (final entry in aspectRatioTypeMap.entries)
+                      for (final aspectRatioMode in PlayerAspectRatio.values)
                         MenuItemButton(
                           onPressed: () => playerController
-                              .panel.aspectRatioType = entry.key,
+                              .panel.aspectRatioMode = aspectRatioMode,
                           child: Container(
                             height: 48,
                             constraints: BoxConstraints(minWidth: 112),
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                entry.value,
+                                aspectRatioMode.label,
                                 style: TextStyle(
-                                  color: entry.key ==
-                                          playerController.panel.aspectRatioType
+                                  color: aspectRatioMode ==
+                                          playerController.panel.aspectRatioMode
                                       ? Theme.of(context).colorScheme.primary
                                       : null,
                                 ),

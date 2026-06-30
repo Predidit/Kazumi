@@ -748,25 +748,13 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
               ),
               MenuItemButton(
                 onPressed: () {
-                  showModalBottomSheet(
-                    isScrollControlled: true,
-                    constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-                        maxWidth: (isDesktop() || isTablet())
-                            ? MediaQuery.of(context).size.width * 9 / 16
-                            : MediaQuery.of(context).size.width),
-                    clipBehavior: Clip.antiAlias,
+                  showDanmakuSettingsSheet(
                     context: context,
-                    builder: (context) {
-                      return DanmakuSettingsSheet(
-                        danmakuController:
-                            playerController.danmaku.canvasController,
-                        onUpdateDanmakuSpeed:
-                            playerController.updateDanmakuSpeed,
-                        onTimelineOffsetChanged: playerController
-                            .danmaku.clearAndInvalidateScheduledDanmakus,
-                      );
-                    },
+                    danmakuController:
+                        playerController.danmaku.canvasController,
+                    onUpdateDanmakuSpeed: playerController.updateDanmakuSpeed,
+                    onTimelineOffsetChanged: playerController
+                        .danmaku.clearAndInvalidateScheduledDanmakus,
                   );
                 },
                 child: Container(

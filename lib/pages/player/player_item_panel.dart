@@ -714,38 +714,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 IconButton(
                                   onPressed: () {
                                     widget.keyboardFocus.requestFocus();
-                                    showModalBottomSheet(
-                                        isScrollControlled: true,
-                                        constraints: BoxConstraints(
-                                            maxHeight: MediaQuery.of(context)
-                                                    .size
-                                                    .height *
-                                                3 /
-                                                4,
-                                            maxWidth:
-                                                (isDesktop() || isTablet())
-                                                    ? MediaQuery.of(context)
-                                                            .size
-                                                            .width *
-                                                        9 /
-                                                        16
-                                                    : MediaQuery.of(context)
-                                                        .size
-                                                        .width),
-                                        clipBehavior: Clip.antiAlias,
-                                        context: context,
-                                        builder: (context) {
-                                          return DanmakuSettingsSheet(
-                                            danmakuController: playerController
-                                                .danmaku.canvasController,
-                                            onUpdateDanmakuSpeed:
-                                                playerController
-                                                    .updateDanmakuSpeed,
-                                            onTimelineOffsetChanged:
-                                                playerController.danmaku
-                                                    .clearAndInvalidateScheduledDanmakus,
-                                          );
-                                        });
+                                    showDanmakuSettingsSheet(
+                                      context: context,
+                                      danmakuController: playerController
+                                          .danmaku.canvasController,
+                                      onUpdateDanmakuSpeed:
+                                          playerController.updateDanmakuSpeed,
+                                      onTimelineOffsetChanged: playerController
+                                          .danmaku
+                                          .clearAndInvalidateScheduledDanmakus,
+                                    );
                                   },
                                   color: Colors.white,
                                   icon: cachedDanmakuSettingIcon!,
@@ -773,31 +751,15 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     if (playerController.danmaku.danmakuOn) ...[
                       IconButton(
                         onPressed: () {
-                          showModalBottomSheet(
-                              isScrollControlled: true,
-                              constraints: BoxConstraints(
-                                  maxHeight:
-                                      MediaQuery.of(context).size.height *
-                                          3 /
-                                          4,
-                                  maxWidth: (isDesktop() || isTablet())
-                                      ? MediaQuery.of(context).size.width *
-                                          9 /
-                                          16
-                                      : MediaQuery.of(context).size.width),
-                              clipBehavior: Clip.antiAlias,
-                              context: context,
-                              builder: (context) {
-                                return DanmakuSettingsSheet(
-                                  danmakuController:
-                                      playerController.danmaku.canvasController,
-                                  onUpdateDanmakuSpeed:
-                                      playerController.updateDanmakuSpeed,
-                                  onTimelineOffsetChanged: playerController
-                                      .danmaku
-                                      .clearAndInvalidateScheduledDanmakus,
-                                );
-                              });
+                          showDanmakuSettingsSheet(
+                            context: context,
+                            danmakuController:
+                                playerController.danmaku.canvasController,
+                            onUpdateDanmakuSpeed:
+                                playerController.updateDanmakuSpeed,
+                            onTimelineOffsetChanged: playerController
+                                .danmaku.clearAndInvalidateScheduledDanmakus,
+                          );
                         },
                         color: Colors.white,
                         icon: cachedDanmakuSettingIcon!,

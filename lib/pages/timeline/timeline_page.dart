@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -109,9 +110,7 @@ class _TimelinePageState extends State<TimelinePage>
     double? compactHeightFactor,
   }) {
     final mediaSize = MediaQuery.sizeOf(context);
-    final maxWidth = mediaSize.width >= LayoutBreakpoint.medium['width']!
-        ? mediaSize.width * 9 / 16
-        : mediaSize.width;
+    final adaptiveConstraints = adaptiveBottomSheetConstraints(context);
     final maxHeight = compactHeightFactor != null
         ? (mediaSize.height >= LayoutBreakpoint.compact['height']!
             ? mediaSize.height * compactHeightFactor
@@ -119,7 +118,7 @@ class _TimelinePageState extends State<TimelinePage>
         : double.infinity;
 
     return BoxConstraints(
-      maxWidth: maxWidth,
+      maxWidth: adaptiveConstraints.maxWidth,
       maxHeight: maxHeight,
     );
   }
@@ -186,7 +185,6 @@ class _TimelinePageState extends State<TimelinePage>
     BuildContext context, {
     required Widget header,
     required Widget body,
-    bool showDragHandle = false,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -198,24 +196,8 @@ class _TimelinePageState extends State<TimelinePage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showDragHandle) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-          ],
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              showDragHandle ? 12 : 16,
-              16,
-              8,
-            ),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: header,
           ),
           Flexible(child: body),
@@ -839,7 +821,7 @@ class _TimelinePageState extends State<TimelinePage>
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () async {
+          onPressed: () {
             KazumiDialog.showBottomSheet(
               backgroundColor: Theme.of(context).colorScheme.surface,
               shape: const RoundedRectangleBorder(

@@ -11,6 +11,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
@@ -499,68 +500,58 @@ class _VideoPageState extends State<VideoPage>
     }
   }
 
-  void showMobileDanmakuInput() {
+  Future<void> showMobileDanmakuInput() async {
     String danmakuText = '';
-    showModalBottomSheet(
-      shape: const BeveledRectangleBorder(),
-      isScrollControlled: true,
+    final message = await showAdaptiveBottomSheet<String>(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 8,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Container(
-                      constraints: const BoxConstraints(maxHeight: 34),
-                      child: TextField(
-                        style: const TextStyle(fontSize: 15),
-                        autofocus: true,
-                        textAlignVertical: TextAlignVertical.center,
-                        onChanged: (value) => danmakuText = value,
-                        decoration: const InputDecoration(
-                          filled: true,
-                          floatingLabelBehavior: FloatingLabelBehavior.never,
-                          hintText: '发个友善的弹幕见证当下',
-                          hintStyle: TextStyle(fontSize: 14),
-                          alignLabelWithHint: true,
-                          contentPadding:
-                              EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                          border: OutlineInputBorder(
-                            borderSide: BorderSide.none,
-                            borderRadius: BorderRadius.all(Radius.circular(20)),
-                          ),
-                        ),
-                        onSubmitted: (msg) {
-                          showDanmakuDestinationPickerAndSend(msg);
-                          Navigator.pop(context);
-                        },
-                      ),
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            12,
+            16,
+            16 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  autofocus: true,
+                  textInputAction: TextInputAction.send,
+                  onChanged: (value) => danmakuText = value,
+                  onSubmitted: (message) {
+                    Navigator.of(context).pop(message);
+                  },
+                  decoration: const InputDecoration(
+                    filled: true,
+                    hintText: '发个友善的弹幕见证当下',
+                    prefixIcon: Icon(Icons.chat_bubble_outline_rounded),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.all(Radius.circular(20)),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      showDanmakuDestinationPickerAndSend(danmakuText);
-                    },
-                    icon: Icon(
-                      Icons.send_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  )
-                ],
+                ),
               ),
-            );
-          },
+              const SizedBox(width: 12),
+              IconButton.filled(
+                tooltip: '发送',
+                onPressed: () {
+                  Navigator.of(context).pop(danmakuText);
+                },
+                icon: const Icon(Icons.send_rounded),
+              ),
+            ],
+          ),
         );
       },
     );
+
+    if (!mounted || message == null) {
+      return;
+    }
+    showDanmakuDestinationPickerAndSend(message);
   }
 
   void showDanmakuDestinationPickerAndSend(String msg) async {
@@ -574,27 +565,47 @@ class _VideoPageState extends State<VideoPage>
     }
 
     final DanmakuDestination? result =
-        await showModalBottomSheet<DanmakuDestination>(
+        await showAdaptiveBottomSheet<DanmakuDestination>(
       context: context,
-      shape: const BeveledRectangleBorder(),
       builder: (context) {
-        return SafeArea(
-          left: false,
-          right: false,
+        final theme = Theme.of(context);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  '发送弹幕至',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               ListTile(
+                leading: const Icon(Icons.groups_rounded),
                 title: const Text('发送到聊天室'),
+                subtitle: const Text('同步观看成员均可看到'),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 onTap: () =>
                     Navigator.of(context).pop(DanmakuDestination.chatRoom),
               ),
+              const SizedBox(height: 4),
               ListTile(
+                leading: const Icon(Icons.cloud_upload_rounded),
                 title: const Text('发送到远程弹幕库'),
+                subtitle: const Text('作为视频弹幕发送'),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 onTap: () =>
                     Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
               ),
-              const SizedBox(height: 8),
             ],
           ),
         );
@@ -1240,9 +1251,8 @@ class _VideoPageState extends State<VideoPage>
                           child: FloatingActionButton(
                             child: const Icon(Icons.download_rounded),
                             onPressed: () {
-                              showModalBottomSheet(
+                              showAdaptiveBottomSheet<void>(
                                 context: context,
-                                isScrollControlled: true,
                                 builder: (context) =>
                                     DownloadEpisodeSheet(road: visibleRoad),
                               );

@@ -170,15 +170,15 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 
 使用本项目需遵守所在地法律法规, 不得进行任何侵犯第三方知识产权的行为。因使用本项目而产生的数据和缓存应在24小时内清除, 超出 24 小时的使用需获得相关权利人的授权。
 
-## 隐私政策 (Privacy policy)
+## 隐私政策
 
 我们不收集任何用户数据, 不使用任何遥测组件。
 
-## 代码签名策略 (Code signing policy)
-提交者: [Contributors](https://github.com/Predidit/Kazumi/graphs/contributors)
-审阅者: [Owner](https://github.com/Predidit)
+## 代码签名策略
+提交者: [贡献者](https://github.com/Predidit/Kazumi/graphs/contributors)
+审阅者: [所有者](https://github.com/Predidit)
 
-## 赞助 (Sponsors)
+## 赞助
 | ![signpath](https://signpath.org/assets/favicon-50x50.png) | Windows 上的免费代码签名由 [SignPath.io](https://about.signpath.io/) 提供，证书由 [SignPath Foundation](https://signpath.org/) 颁发 |
 |------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 | <img src="https://kilo.ai/favicon.ico" width="50"> | **自动 PR 审查由 [Kilo Code](https://kilo.ai/) 提供，由 [Kilo OSS Program](https://kilo.ai/oss) 赞助** |
@@ -195,6 +195,8 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 特别感谢 [Anime4K](https://github.com/bloc97/Anime4K) 本项目使用 Anime4K 进行实时超分。
 
 特别感谢 [SyncPlay](https://github.com/Syncplay/syncplay) 本项目使用 SyncPlay 协议并通过 SyncPlay 公共服务器实现一起看功能。
+
+特别感谢 [所有贡献者](hhttps://github.com/Predidit/Kazumi/graphs/contributors) 本项目因为你们变得更好
 
 特别感谢 [trace.moe](https://trace.moe) 本项目使用了 trace.moe 提供的图片识别番剧功能。
 

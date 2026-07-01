@@ -5,16 +5,9 @@
   <img src="assets/images/logo/logo_rounded.png" width=200></img>
 
   <a href="https://t.me/kazumi_app"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"></img></a>
-  <a href="https://github.com/Predidit/Kazumi/issues"><img src="https://img.shields.io/badge/Github_Issue-161B22?style=for-the-badge&logo=Github&logoColor=white"></img></a>
 
   <img src="https://img.shields.io/badge/Flutter-03A9F4?style=for-the-badge&logo=flutter&logoColor=white"></img>
   <img src="https://img.shields.io/badge/Dart-00B4AB?style=for-the-badge&logo=Dart&logoColor=white"></img>
-
-  <img src="https://custom-icon-badges.demolab.com/badge/Windows-0078D6?&style=for-the-badge&logo=windows11&logoColor=white" /></img>
-  <img src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" /></img>
-  <img src="https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=apple&logoColor=F0F0F0" /></img>
-  <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" /></img>
-    <img src="https://img.shields.io/badge/IOS-000000?style=for-the-badge&logo=apple&logoColor=white" /></img>
 
   <a href="https://trendshift.io/repositories/11432"><img src="https://trendshift.io/api/badge/trendshift/repositories/11432/yearly?language=Dart"></img></a>
   <a href="https://hellogithub.com/repository/Predidit/Kazumi" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=68d824ea55ee4b07aba6fe1dd61ac939&claim_uid=J9Qu6aDd8LT1nU0"/></img></a>

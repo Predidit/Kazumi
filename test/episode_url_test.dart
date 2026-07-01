@@ -135,11 +135,40 @@ void main() {
       expect(b, a);
     });
 
-    test('保留有意义的 query', () {
+    test('只保留能区分集数的白名单 query', () {
       expect(
         stableEpisodeIdFromUrl('https://www.example.com', '/play?id=123&ep=4'),
         '/play?id=123&ep=4',
       );
+    });
+
+    test('token/timestamp query 与 fragment 不参与稳定身份', () {
+      final a = stableEpisodeIdFromUrl(
+        'https://www.example.com',
+        '/play/123?token=abc&t=1000#section-a',
+      );
+      final b = stableEpisodeIdFromUrl(
+        'https://www.example.com',
+        '/play/123?token=def&t=2000#section-b',
+      );
+
+      expect(a, '/play/123');
+      expect(b, a);
+    });
+
+    test('白名单 id 参数仍能区分同 path 的不同集', () {
+      final first = stableEpisodeIdFromUrl(
+        'https://www.example.com',
+        '/play?id=1&token=abc',
+      );
+      final second = stableEpisodeIdFromUrl(
+        'https://www.example.com',
+        '/play?id=2&token=abc',
+      );
+
+      expect(first, '/play?id=1');
+      expect(second, '/play?id=2');
+      expect(first, isNot(second));
     });
 
     test('空输入返回空串', () {

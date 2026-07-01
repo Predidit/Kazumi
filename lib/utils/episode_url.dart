@@ -54,8 +54,7 @@ String normalizeEpisodeUrl(String baseUrl, String raw) {
   }
 
   final bool hasQuery = resolved.hasQuery && resolved.query.isNotEmpty;
-  final bool hasFragment =
-      resolved.hasFragment && resolved.fragment.isNotEmpty;
+  final bool hasFragment = resolved.hasFragment && resolved.fragment.isNotEmpty;
 
   final normalized = Uri(
     scheme: resolved.scheme,
@@ -69,7 +68,13 @@ String normalizeEpisodeUrl(String baseUrl, String raw) {
   return normalized.toString();
 }
 
-/// 由 URL 提取“与域名无关”的稳定身份 key（`path[?query][#fragment]`）。
+const Set<String> _stableEpisodeIdQueryWhitelist = {
+  'id',
+  'ep',
+  'episode',
+};
+
+/// 由 URL 提取“与域名无关”的稳定身份 key（`path[?query]`）。
 ///
 /// 这是订阅规则在源站未暴露显式 episode id 时的 `stableId` 兜底来源。相比直接用
 /// 归一化后的绝对 URL，剥离 scheme/host 后得到的相对部分在源站**换域名 / 镜像轮换**
@@ -78,7 +83,9 @@ String normalizeEpisodeUrl(String baseUrl, String raw) {
 ///
 /// 行为：
 /// - 先用 [normalizeEpisodeUrl] 归一化（统一 https、去尾斜杠、去空 query）。
-/// - 能解析出 host 时返回 `path[?query][#fragment]`（path 为空时回退为 `/`）。
+/// - 能解析出 host 时返回 `path[?query]`（path 为空时回退为 `/`）。
+/// - fragment 一律丢弃；query 只保留少量能区分集数的白名单参数。
+///   对依赖其它参数识别集数的站点，规则应优先配置 `episodeId`。
 /// - 无法解析为绝对 URL（baseUrl 缺失/非法）时，原样返回归一化结果，
 ///   保证即便降级也仍是一个稳定字符串。
 String stableEpisodeIdFromUrl(String baseUrl, String raw) {
@@ -91,9 +98,17 @@ String stableEpisodeIdFromUrl(String baseUrl, String raw) {
   }
 
   final path = uri.path.isEmpty ? '/' : uri.path;
-  final query =
-      uri.hasQuery && uri.query.isNotEmpty ? '?${uri.query}' : '';
-  final fragment =
-      uri.hasFragment && uri.fragment.isNotEmpty ? '#${uri.fragment}' : '';
-  return '$path$query$fragment';
+  final queryParameters = <String, String>{};
+  for (final key in uri.queryParameters.keys) {
+    if (_stableEpisodeIdQueryWhitelist.contains(key)) {
+      final value = uri.queryParameters[key];
+      if (value != null && value.isNotEmpty) {
+        queryParameters[key] = value;
+      }
+    }
+  }
+  if (queryParameters.isEmpty) {
+    return path;
+  }
+  return Uri(path: path, queryParameters: queryParameters).toString();
 }

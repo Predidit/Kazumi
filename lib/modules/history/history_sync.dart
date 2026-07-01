@@ -57,6 +57,7 @@ class HistorySyncEvent {
     this.lastWatchEpisodeName,
     this.entryKind,
     this.episodePageUrl,
+    this.stableId,
     this.carriesWatchState = false,
   });
 
@@ -75,6 +76,7 @@ class HistorySyncEvent {
   final String? lastWatchEpisodeName;
   final String? entryKind;
   final String? episodePageUrl;
+  final String? stableId;
   final bool carriesWatchState;
 
   String get version => HistorySyncVersion.of(
@@ -91,6 +93,7 @@ class HistorySyncEvent {
     required int progressMs,
     required int updatedAt,
     String? episodePageUrl,
+    String? stableId,
   }) {
     return HistorySyncEvent(
       eventId: '$deviceId:$seq',
@@ -106,6 +109,7 @@ class HistorySyncEvent {
       progressMs: progressMs,
       entryKind: history.entryKind,
       episodePageUrl: episodePageUrl ?? history.episodePageUrl,
+      stableId: stableId,
     );
   }
 
@@ -130,6 +134,7 @@ class HistorySyncEvent {
       lastWatchEpisodeName: history.lastWatchEpisodeName,
       entryKind: history.entryKind,
       episodePageUrl: history.episodePageUrl,
+      stableId: history.stableId,
       carriesWatchState: true,
     );
   }
@@ -185,6 +190,7 @@ class HistorySyncEvent {
       lastWatchEpisodeName: json['lastWatchEpisodeName'] as String?,
       entryKind: json['entryKind'] as String?,
       episodePageUrl: json['episodePageUrl'] as String?,
+      stableId: json['stableId'] as String?,
       carriesWatchState: (json['carriesWatchState'] as bool?) ??
           (json.containsKey('lastSrc') ||
               json.containsKey('lastWatchEpisodeName')),
@@ -210,6 +216,7 @@ class HistorySyncEvent {
         'lastWatchEpisodeName': lastWatchEpisodeName,
       if (entryKind != null) 'entryKind': entryKind,
       if (episodePageUrl != null) 'episodePageUrl': episodePageUrl,
+      if (stableId != null) 'stableId': stableId,
       if (carriesWatchState) 'carriesWatchState': carriesWatchState,
     };
   }
@@ -457,16 +464,19 @@ class HistorySyncState {
         );
 
     final episodePageUrl = event.episodePageUrl ?? '';
+    final stableId = event.stableId ?? '';
     final progressMatch = _HistoryEpisodeMatcher.find(
       current,
       episode: episode,
       episodePageUrl: episodePageUrl,
+      stableId: stableId,
     );
     final progressBucket = progressMatch?.bucket ??
         _HistoryEpisodeMatcher.bucketForNewProgress(
           current,
           episode: episode,
           episodePageUrl: episodePageUrl,
+          stableId: stableId,
         );
     final episodeVersions = progressVersions.putIfAbsent(entityKey, () => {});
     final progressVersion = episodeVersions[progressBucket];
@@ -479,12 +489,16 @@ class HistorySyncState {
             progressMs,
             updatedAtMs: event.updatedAt,
             episodePageUrl: episodePageUrl,
+            stableId: stableId,
           );
       progress.episode = episode;
       progress.road = road;
       progress.progress = Duration(milliseconds: progressMs);
       progress.updatedAtMs = event.updatedAt;
       progress.episodePageUrl = episodePageUrl;
+      if (stableId.isNotEmpty) {
+        progress.stableId = stableId;
+      }
       current.progresses[progressBucket] = progress;
       episodeVersions[progressBucket] = event.version;
     }
@@ -532,6 +546,7 @@ class HistorySyncState {
           event.lastWatchEpisodeName ?? '',
           entryKind: entryKind,
           episodePageUrl: event.episodePageUrl ?? '',
+          stableId: event.stableId ?? '',
         );
 
     final itemVersion = itemVersions[entityKey];
@@ -550,6 +565,7 @@ class HistorySyncState {
       }
       current.entryKind = entryKind;
       current.episodePageUrl = event.episodePageUrl ?? '';
+      current.stableId = event.stableId ?? '';
       itemVersions[entityKey] = event.version;
     }
     histories[entityKey] = current;
@@ -691,11 +707,27 @@ class _HistoryEpisodeMatcher {
     History history, {
     required int episode,
     String episodePageUrl = '',
+    String stableId = '',
   }) {
+    final id = stableId.trim();
+    if (id.isNotEmpty) {
+      for (final entry in history.progresses.entries) {
+        if (entry.value.stableId == id) {
+          return _HistoryEpisodeMatch(
+            bucket: entry.key,
+            progress: entry.value,
+          );
+        }
+      }
+    }
+
     final pageUrl = episodePageUrl.trim();
     if (pageUrl.isNotEmpty) {
       for (final entry in history.progresses.entries) {
-        if (entry.value.episodePageUrl == pageUrl) {
+        if (entry.value.episodePageUrl == pageUrl &&
+            (id.isEmpty ||
+                entry.value.stableId.isEmpty ||
+                entry.value.stableId == id)) {
           return _HistoryEpisodeMatch(
             bucket: entry.key,
             progress: entry.value,
@@ -706,7 +738,8 @@ class _HistoryEpisodeMatcher {
       final legacyProgress = history.progresses[episode];
       if (legacyProgress != null &&
           legacyProgress.episode == episode &&
-          legacyProgress.episodePageUrl.isEmpty) {
+          legacyProgress.episodePageUrl.isEmpty &&
+          legacyProgress.stableId.isEmpty) {
         return _HistoryEpisodeMatch(
           bucket: episode,
           progress: legacyProgress,
@@ -714,13 +747,19 @@ class _HistoryEpisodeMatcher {
       }
       for (final entry in history.progresses.entries) {
         final progress = entry.value;
-        if (progress.episode == episode && progress.episodePageUrl.isEmpty) {
+        if (progress.episode == episode &&
+            progress.episodePageUrl.isEmpty &&
+            progress.stableId.isEmpty) {
           return _HistoryEpisodeMatch(
             bucket: entry.key,
             progress: progress,
           );
         }
       }
+      return null;
+    }
+
+    if (id.isNotEmpty) {
       return null;
     }
 
@@ -744,13 +783,16 @@ class _HistoryEpisodeMatcher {
     History history, {
     required int episode,
     String episodePageUrl = '',
+    String stableId = '',
   }) {
     final pageUrl = episodePageUrl.trim();
+    final id = stableId.trim();
     final existing = history.progresses[episode];
     if (existing == null) {
       return episode;
     }
     if (existing.episode == episode &&
+        (id.isEmpty || existing.stableId.isEmpty || existing.stableId == id) &&
         (pageUrl.isEmpty ||
             existing.episodePageUrl.isEmpty ||
             existing.episodePageUrl == pageUrl)) {
@@ -828,6 +870,7 @@ class HistorySyncCodec {
       json['lastWatchEpisodeName'] as String? ?? '',
       entryKind: json['entryKind'] as String? ?? HistoryEntryKind.online,
       episodePageUrl: json['episodePageUrl'] as String? ?? '',
+      stableId: json['stableId'] as String? ?? '',
     );
     history.progresses = {
       for (final entry
@@ -849,6 +892,7 @@ class HistorySyncCodec {
       'lastWatchEpisodeName': history.lastWatchEpisodeName,
       'entryKind': history.entryKind,
       'episodePageUrl': history.episodePageUrl,
+      'stableId': history.stableId,
       'progresses': {
         for (final entry in history.progresses.entries)
           entry.key.toString(): progressToJson(entry.value),
@@ -863,6 +907,7 @@ class HistorySyncCodec {
       (json['progressMs'] as num).toInt(),
       updatedAtMs: (json['updatedAtMs'] as num?)?.toInt() ?? 0,
       episodePageUrl: json['episodePageUrl'] as String? ?? '',
+      stableId: json['stableId'] as String? ?? '',
     );
   }
 
@@ -873,6 +918,7 @@ class HistorySyncCodec {
       'progressMs': progress.progress.inMilliseconds,
       'updatedAtMs': progress.updatedAtMs,
       'episodePageUrl': progress.episodePageUrl,
+      'stableId': progress.stableId,
     };
   }
 

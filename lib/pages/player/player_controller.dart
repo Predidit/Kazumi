@@ -36,6 +36,7 @@ class PlayerController {
   late final PlayerSyncPlayController syncplay = PlayerSyncPlayController(
     bangumiId: () => bangumiId,
     currentEpisode: () => currentEpisode,
+    currentEpisodeStableId: () => currentEpisodeStableId,
     currentRoad: () => currentRoad,
     playing: () => playback.playing,
     currentPosition: () => playback.currentPosition,
@@ -54,6 +55,7 @@ class PlayerController {
   late int bangumiId;
   late int currentEpisode;
   late int currentDanmakuEpisodeNumber;
+  late String currentEpisodeStableId;
   late int currentRoad;
   late String referer;
   String? coverUrl;
@@ -134,8 +136,7 @@ class PlayerController {
     if (stored.round() == clamped.round()) {
       return;
     }
-    unawaited(
-        GStorage.putSetting<double>(SettingsKeys.defaultVolume, clamped));
+    unawaited(GStorage.putSetting<double>(SettingsKeys.defaultVolume, clamped));
   }
 
   Future<bool> init(PlaybackInitParams params) async {
@@ -144,6 +145,7 @@ class PlayerController {
     bangumiId = params.bangumiId;
     currentEpisode = params.episode;
     currentDanmakuEpisodeNumber = params.danmakuEpisodeNumber;
+    currentEpisodeStableId = params.stableId;
     currentRoad = params.currentRoad;
     referer = params.referer;
 
@@ -239,7 +241,7 @@ class PlayerController {
 
     if (syncplay.syncplayController?.isConnected ?? false) {
       if (syncplay.syncplayController!.currentFileName !=
-          "$bangumiId[$currentEpisode]") {
+          syncplay.currentSyncPlayFileName()) {
         setSyncPlayPlayingBangumi(
             forceSyncPlaying: true, forceSyncPosition: 0.0);
       }
@@ -378,11 +380,14 @@ class PlayerController {
       String username,
       Future<void> Function(int episode, {int currentRoad, int offset})
           changeEpisode,
+      Future<void> Function(String stableId, {int currentRoad, int offset})
+          changeEpisodeByStableId,
       {bool enableTLS = true}) async {
     await syncplay.createRoom(
       room,
       username,
       changeEpisode,
+      changeEpisodeByStableId,
       enableTLS: enableTLS,
     );
   }

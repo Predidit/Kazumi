@@ -350,6 +350,29 @@ class _PlayerItemState extends State<PlayerItem>
     widget.changeEpisode(targetEpisode, currentRoad: currentRoad);
   }
 
+  Future<void> _changeEpisodeByStableId(
+    String stableId, {
+    int currentRoad = 0,
+    int offset = 0,
+  }) async {
+    final selection = findEpisodeSelectionByStableId(
+      videoPageController.roadList,
+      stableId,
+      preferredRoad: currentRoad,
+    );
+    if (selection == null) {
+      KazumiDialog.showToast(message: 'SyncPlay: 未找到同步集数');
+      KazumiLogger()
+          .w('SyncPlay: stable episode id not found. stableId=$stableId');
+      return;
+    }
+    await widget.changeEpisode(
+      selection.episode,
+      currentRoad: selection.road,
+      offset: offset,
+    );
+  }
+
   //快退快捷键动作
   Future<void> handleShortcutRewind() async {
     int skipTime = playerController.playback.arrowKeySkipTime;
@@ -1569,7 +1592,11 @@ class _PlayerItemState extends State<PlayerItem>
               if (formKey.currentState!.validate()) {
                 KazumiDialog.dismiss();
                 playerController.createSyncPlayRoom(
-                    room, username, widget.changeEpisode);
+                  room,
+                  username,
+                  widget.changeEpisode,
+                  _changeEpisodeByStableId,
+                );
               }
             },
             child: const Text('确定'),

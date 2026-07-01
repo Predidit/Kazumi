@@ -91,13 +91,28 @@ class VideoEpisodeSelection {
 /// 协议/列表顺序无关，源站换域名或列表重排后仍能命中同一集。
 VideoEpisodeSelection? findEpisodeSelectionByStableId(
   List<Road> roadList,
-  String stableId,
-) {
+  String stableId, {
+  int? preferredRoad,
+}) {
   final id = stableId.trim();
   if (id.isEmpty) {
     return null;
   }
+  if (preferredRoad != null &&
+      preferredRoad >= 0 &&
+      preferredRoad < roadList.length) {
+    final episodeIndex = roadList[preferredRoad].indexOfStableId(id);
+    if (episodeIndex >= 0) {
+      return VideoEpisodeSelection(
+        episode: episodeIndex + 1,
+        road: preferredRoad,
+      );
+    }
+  }
   for (var roadIndex = 0; roadIndex < roadList.length; roadIndex++) {
+    if (roadIndex == preferredRoad) {
+      continue;
+    }
     final episodeIndex = roadList[roadIndex].indexOfStableId(id);
     if (episodeIndex >= 0) {
       return VideoEpisodeSelection(
@@ -107,6 +122,64 @@ VideoEpisodeSelection? findEpisodeSelectionByStableId(
     }
   }
   return null;
+}
+
+/// 用历史进度恢复播放选集。
+///
+/// 新进度必须通过 [stableId] 命中；只有没有 stableId 的存量进度才允许按
+/// `(road, episode)` 下标恢复，避免稳定身份失配后误绑到重排后的列表位置。
+VideoEpisodeSelection? findEpisodeSelectionForHistoryProgress(
+  List<Road> roadList, {
+  required String stableId,
+  required int episode,
+  required int road,
+}) {
+  final stableSelection = findEpisodeSelectionByStableId(
+    roadList,
+    stableId,
+    preferredRoad: road,
+  );
+  if (stableId.trim().isNotEmpty) {
+    return stableSelection;
+  }
+  if (road >= 0 &&
+      roadList.length > road &&
+      episode > 0 &&
+      roadList[road].data.length >= episode) {
+    return VideoEpisodeSelection(
+      episode: episode,
+      road: road,
+    );
+  }
+  return null;
+}
+
+int? bangumiEpisodeSortNumber(EpisodeInfo episode) {
+  final sort = episode.episode;
+  if (sort <= 0) {
+    return null;
+  }
+  final rounded = sort.round();
+  return sort == rounded ? rounded : null;
+}
+
+Map<int, int> bangumiSortByListIndex(List<EpisodeInfo> episodes) {
+  final result = <int, int>{};
+  for (var index = 0; index < episodes.length; index++) {
+    final sortNumber = bangumiEpisodeSortNumber(episodes[index]);
+    if (sortNumber != null) {
+      result[index + 1] = sortNumber;
+    }
+  }
+  return result;
+}
+
+int episodeSortNumberForPlayback({
+  required int listIndex,
+  int? anchoredSortNumber,
+  int? ruleOrdinal,
+}) {
+  return ruleOrdinal ?? anchoredSortNumber ?? listIndex;
 }
 
 abstract class _VideoPageController with Store {
@@ -168,9 +241,12 @@ abstract class _VideoPageController with Store {
   bool isOfflineMode = false;
 
   PlaybackHistoryIdentity? _playbackHistoryIdentity;
+  OfflineRoadListSnapshot? _offlineSnapshot;
   final Map<int, DownloadEpisode> _offlineEpisodesByNumber = {};
+  final Map<String, List<DownloadEpisode>> _offlineEpisodesByStableId = {};
   final Map<int, int> _offlineDisplayRoadToOriginalRoad = {};
   final Map<int, int> _offlineOriginalRoadToDisplayRoad = {};
+  final Map<int, int> _bangumiSortByListIndex = {};
 
   /// 和 bangumiItem 中的标题不同，此标题来自于视频源
   String title = '';
@@ -205,6 +281,7 @@ abstract class _VideoPageController with Store {
     required BangumiItem bangumiItem,
     required String pluginName,
     required int episodeNumber,
+    required String stableId,
     required int road,
     required List<DownloadEpisode> downloadedEpisodes,
   }) {
@@ -217,8 +294,9 @@ abstract class _VideoPageController with Store {
 
     _buildOfflineRoadList(downloadedEpisodes);
 
-    final target = _findOfflineEpisodeByNumber(
-      episodeNumber,
+    final target = _findOfflineEpisodeByIdentity(
+      stableId: stableId,
+      episodeNumber: episodeNumber,
       preferredOriginalRoad: road,
     );
     final selected = VideoEpisodeSelection(
@@ -238,15 +316,18 @@ abstract class _VideoPageController with Store {
       _playbackHistoryIdentity = null;
     }
     KazumiLogger().i(
-        'VideoPageController: initialized for offline playback, episode $episodeNumber (position: ${selected.episode})');
+        'VideoPageController: initialized for offline playback, stableId=$stableId, episode $episodeNumber (position: ${selected.episode})');
   }
 
   void _buildOfflineRoadList(List<DownloadEpisode> episodes) {
     final snapshot = buildOfflineRoadListSnapshot(episodes);
+    _offlineSnapshot = snapshot;
     roadList.clear();
     roadList.addAll(snapshot.roads);
     _offlineEpisodesByNumber.clear();
     _offlineEpisodesByNumber.addAll(snapshot.episodesByNumber);
+    _offlineEpisodesByStableId.clear();
+    _offlineEpisodesByStableId.addAll(snapshot.episodesByStableId);
     _offlineDisplayRoadToOriginalRoad.clear();
     _offlineDisplayRoadToOriginalRoad
         .addAll(snapshot.displayRoadToOriginalRoad);
@@ -259,6 +340,8 @@ abstract class _VideoPageController with Store {
     isOfflineMode = false;
     _offlinePluginName = '';
     _offlineEpisodesByNumber.clear();
+    _offlineEpisodesByStableId.clear();
+    _offlineSnapshot = null;
     _offlineDisplayRoadToOriginalRoad.clear();
     _offlineOriginalRoadToDisplayRoad.clear();
     _playbackHistoryIdentity = null;
@@ -269,15 +352,30 @@ abstract class _VideoPageController with Store {
   PlaybackHistoryIdentity? get currentHistoryIdentity =>
       _playbackHistoryIdentity;
 
-  ({int listIndex, int roadIndex})? _findOfflineEpisodeByNumber(
-    int episodeNumber, {
+  ({int listIndex, int roadIndex})? _findOfflineEpisodeByIdentity({
+    required String stableId,
+    required int episodeNumber,
     required int preferredOriginalRoad,
   }) {
-    if (episodeNumber <= 0 || roadList.isEmpty) {
+    if (roadList.isEmpty) {
       return null;
     }
     final preferredDisplayRoad =
         _offlineOriginalRoadToDisplayRoad[preferredOriginalRoad];
+    final stableSelection = findEpisodeSelectionByStableId(
+      roadList,
+      stableId,
+      preferredRoad: preferredDisplayRoad,
+    );
+    if (stableSelection != null) {
+      return (
+        listIndex: stableSelection.episode,
+        roadIndex: stableSelection.road,
+      );
+    }
+    if (episodeNumber <= 0) {
+      return null;
+    }
     final roadIndices = <int>[
       if (preferredDisplayRoad != null) preferredDisplayRoad,
       for (var i = 0; i < roadList.length; i++)
@@ -290,6 +388,36 @@ abstract class _VideoPageController with Store {
       }
     }
     return null;
+  }
+
+  DownloadEpisode? _offlineDownloadEpisodeForIdentity(
+    EpisodeIdentity identity,
+    int displayRoad,
+  ) {
+    final snapshotMatch = _offlineSnapshot?.episodeForIdentity(
+      identity,
+      displayRoad,
+    );
+    if (snapshotMatch != null) {
+      return snapshotMatch;
+    }
+    final preferredOriginalRoad =
+        _offlineDisplayRoadToOriginalRoad[displayRoad] ?? displayRoad;
+    if (identity.stableId.isNotEmpty) {
+      final candidates = _offlineEpisodesByStableId[identity.stableId];
+      if (candidates != null && candidates.isNotEmpty) {
+        for (final episode in candidates) {
+          if (episode.road == preferredOriginalRoad) {
+            return episode;
+          }
+        }
+        return candidates.first;
+      }
+    }
+    final episodeNumber = identity.ordinal;
+    return episodeNumber == null
+        ? null
+        : _offlineEpisodesByNumber[episodeNumber];
   }
 
   ({int listIndex, int roadIndex})? _findOfflineEpisodeInDisplayRoad(
@@ -325,10 +453,10 @@ abstract class _VideoPageController with Store {
         0;
   }
 
-  /// 规则 baseURL 变更后，历史进度中的 pageURL 会因旧 baseURL 归一化而失配，
-  /// 触发 fallback 播放并在写入时新建重复条目。此处在在线视频页打开时，
-  /// 依据当前 roadList 把历史里过期的 pageURL 就地迁移为最新 URL。
-  void migrateStaleOnlineEpisodePageUrls() {
+  /// 规则身份升级或 baseURL 变更后，历史进度可能缺少 stableId，或仍持有旧
+  /// pageURL。在线视频页打开时，依据当前 roadList 把存量历史就地迁移到规则
+  /// 抓取阶段产出的身份，后续播放器只消费 [Progress.stableId]。
+  void migrateStaleOnlineEpisodeIdentity() {
     if (isOfflineMode || roadList.isEmpty) {
       return;
     }
@@ -345,6 +473,17 @@ abstract class _VideoPageController with Store {
           return '';
         }
         return data[idx].pageUrl;
+      },
+      resolveCurrentStableId: (road, episode) {
+        if (road < 0 || road >= roadList.length) {
+          return '';
+        }
+        final data = roadList[road].data;
+        final idx = episode - 1;
+        if (idx < 0 || idx >= data.length) {
+          return '';
+        }
+        return data[idx].stableId;
       },
     );
   }
@@ -387,6 +526,7 @@ abstract class _VideoPageController with Store {
     return EpisodeRef.online(
       listIndex: episode,
       identity: roadData.data[index],
+      anchoredSortNumber: _bangumiSortByListIndex[episode],
     );
   }
 
@@ -405,7 +545,8 @@ abstract class _VideoPageController with Store {
     if (episodeNumber == null) {
       return null;
     }
-    final downloadEpisode = _offlineEpisodesByNumber[episodeNumber];
+    final downloadEpisode =
+        _offlineDownloadEpisodeForIdentity(identity, targetRoad);
     final resolvedTitle = downloadEpisode?.episodeName.isNotEmpty == true
         ? downloadEpisode!.episodeName
         : (identity.title.isNotEmpty ? identity.title : '第$episodeNumber集');
@@ -522,10 +663,10 @@ abstract class _VideoPageController with Store {
       return;
     }
 
-    final localPath = _getLocalVideoPath(
+    final localPath = _getLocalVideoPathForEpisode(
       bangumiItem.id,
       _offlinePluginName,
-      resolvedEpisode.historyEpisodeNumber,
+      resolvedEpisode,
     );
     if (localPath == null) {
       loading = false;
@@ -557,12 +698,14 @@ abstract class _VideoPageController with Store {
       episode: resolvedEpisode.listIndex,
       danmakuEpisodeNumber: resolvedEpisode.danmakuEpisodeNumber,
       pageUrl: resolvedEpisode.pageUrl,
+      stableId: resolvedEpisode.stableId,
       sortNumber: resolvedEpisode.sortNumber,
       httpHeaders: {},
       adBlockerEnabled: false,
       episodeTitle: resolvedEpisode.displayTitle,
       referer: '',
       currentRoad: resolvedEpisode.roadIndex,
+      downloadRoad: resolvedEpisode.originalRoadIndex,
       coverUrl: bangumiItem.images['large'],
       bangumiName:
           bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
@@ -593,6 +736,8 @@ abstract class _VideoPageController with Store {
         params.bangumiId,
         params.pluginName,
         _danmakuEpisodeForPlayback(params),
+        stableId: params.stableId,
+        road: params.downloadRoad ?? params.currentRoad,
       );
       if (session.isActive && danmakuSession.isActive) {
         if (result.hasDanmakus) {
@@ -622,10 +767,34 @@ abstract class _VideoPageController with Store {
     _danmakuSessions.cancel();
   }
 
-  String? _getLocalVideoPath(
-      int bangumiId, String pluginName, int episodeNumber) {
-    final episode =
-        downloadRepository.getEpisode(bangumiId, pluginName, episodeNumber);
+  String? _getLocalVideoPathForEpisode(
+    int bangumiId,
+    String pluginName,
+    EpisodeRef episodeRef,
+  ) {
+    DownloadEpisode? episode;
+    if (episodeRef.stableId.isNotEmpty) {
+      final candidates = _offlineEpisodesByStableId[episodeRef.stableId];
+      if (candidates != null) {
+        for (final candidate in candidates) {
+          if (candidate.road == episodeRef.originalRoadIndex) {
+            episode = candidate;
+            break;
+          }
+        }
+      }
+      episode ??= downloadRepository.getEpisodeByStableId(
+        bangumiId,
+        pluginName,
+        episodeRef.stableId,
+        road: episodeRef.originalRoadIndex,
+      );
+    }
+    episode ??= downloadRepository.getEpisode(
+      bangumiId,
+      pluginName,
+      episodeRef.historyEpisodeNumber,
+    );
     return downloadManager.getLocalVideoPath(episode);
   }
 
@@ -671,6 +840,7 @@ abstract class _VideoPageController with Store {
         episode: resolvedEpisode.listIndex,
         danmakuEpisodeNumber: resolvedEpisode.danmakuEpisodeNumber,
         pageUrl: resolvedEpisode.pageUrl,
+        stableId: resolvedEpisode.stableId,
         sortNumber: resolvedEpisode.sortNumber,
         httpHeaders: {
           'user-agent': currentPlugin.userAgent.isEmpty
@@ -794,18 +964,43 @@ abstract class _VideoPageController with Store {
     final PluginsController pluginsController =
         Modular.get<PluginsController>();
     roadList.clear();
+    _bangumiSortByListIndex.clear();
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {
         roadList.addAll(
             await plugin.querychapterRoads(url, cancelToken: cancelToken));
       }
     }
+    _throwIfQueryRoadsCancelled(cancelToken);
+    await _refreshBangumiEpisodeSorts();
+    _throwIfQueryRoadsCancelled(cancelToken);
     KazumiLogger()
         .i('VideoPageController: road list length ${roadList.length}');
     if (roadList.isNotEmpty) {
       KazumiLogger().i(
           'VideoPageController: first road episode count ${roadList[0].data.length}');
     }
+  }
+
+  Future<void> _refreshBangumiEpisodeSorts() async {
+    if (roadList.isEmpty || bangumiItem.id <= 0) {
+      return;
+    }
+    final episodes = await BangumiApi.getBangumiEpisodesByID(bangumiItem.id);
+    _bangumiSortByListIndex
+      ..clear()
+      ..addAll(bangumiSortByListIndex(episodes));
+  }
+
+  void _throwIfQueryRoadsCancelled(CancelToken? cancelToken) {
+    if (cancelToken == null || !cancelToken.isCancelled) {
+      return;
+    }
+    throw cancelToken.cancelError ??
+        DioException.requestCancelled(
+          requestOptions: RequestOptions(),
+          reason: 'query roads cancelled',
+        );
   }
 
   void toggleSortOrder() {
@@ -854,14 +1049,37 @@ class OfflineRoadListSnapshot {
   const OfflineRoadListSnapshot({
     required this.roads,
     required this.episodesByNumber,
+    required this.episodesByStableId,
     required this.displayRoadToOriginalRoad,
     required this.originalRoadToDisplayRoad,
   });
 
   final List<Road> roads;
   final Map<int, DownloadEpisode> episodesByNumber;
+  final Map<String, List<DownloadEpisode>> episodesByStableId;
   final Map<int, int> displayRoadToOriginalRoad;
   final Map<int, int> originalRoadToDisplayRoad;
+
+  DownloadEpisode? episodeForIdentity(
+    EpisodeIdentity identity,
+    int displayRoad,
+  ) {
+    final preferredOriginalRoad =
+        displayRoadToOriginalRoad[displayRoad] ?? displayRoad;
+    if (identity.stableId.isNotEmpty) {
+      final candidates = episodesByStableId[identity.stableId];
+      if (candidates != null && candidates.isNotEmpty) {
+        for (final episode in candidates) {
+          if (episode.road == preferredOriginalRoad) {
+            return episode;
+          }
+        }
+        return candidates.first;
+      }
+    }
+    final episodeNumber = identity.ordinal;
+    return episodeNumber == null ? null : episodesByNumber[episodeNumber];
+  }
 }
 
 OfflineRoadListSnapshot buildOfflineRoadListSnapshot(
@@ -869,9 +1087,13 @@ OfflineRoadListSnapshot buildOfflineRoadListSnapshot(
 ) {
   final groupedEpisodes = <int, List<DownloadEpisode>>{};
   final episodesByNumber = <int, DownloadEpisode>{};
+  final episodesByStableId = <String, List<DownloadEpisode>>{};
 
   for (final episode in episodes) {
     episodesByNumber[episode.episodeNumber] = episode;
+    if (episode.stableId.isNotEmpty) {
+      episodesByStableId.putIfAbsent(episode.stableId, () => []).add(episode);
+    }
     groupedEpisodes.putIfAbsent(episode.road, () => []).add(episode);
   }
 
@@ -892,9 +1114,9 @@ OfflineRoadListSnapshot buildOfflineRoadListSnapshot(
           : '播放列表${displayRoad + 1}',
       data: roadEpisodes
           .map((e) => EpisodeIdentity(
-                // 离线身份：源站无显式 id，用 episodePageUrl 的归一化相对 path 作为
-                // stableId，与在线侧兜底口径一致，便于 online/offline 进度互通。
-                stableId: stableEpisodeIdFromUrl('', e.episodePageUrl),
+                // 新下载记录直接复用规则产出的 stableId；旧记录缺失时保持空值，
+                // 只通过旧集号路径兼容，不再从 URL 反推身份。
+                stableId: e.stableId,
                 pageUrl: e.episodePageUrl,
                 title: e.episodeName.isNotEmpty
                     ? e.episodeName
@@ -909,6 +1131,7 @@ OfflineRoadListSnapshot buildOfflineRoadListSnapshot(
   return OfflineRoadListSnapshot(
     roads: roads,
     episodesByNumber: episodesByNumber,
+    episodesByStableId: episodesByStableId,
     displayRoadToOriginalRoad: displayRoadToOriginalRoad,
     originalRoadToDisplayRoad: originalRoadToDisplayRoad,
   );
@@ -950,17 +1173,22 @@ class EpisodeRef {
   factory EpisodeRef.online({
     required int listIndex,
     required EpisodeIdentity identity,
+    int? anchoredSortNumber,
   }) {
-    final ordinal = identity.ordinal;
+    final sortNumber = episodeSortNumberForPlayback(
+      listIndex: listIndex,
+      anchoredSortNumber: anchoredSortNumber,
+      ruleOrdinal: identity.ordinal,
+    );
     return EpisodeRef(
       listIndex: listIndex,
       roadIndex: identity.roadIndex,
       displayTitle: identity.title,
       pageUrl: identity.pageUrl,
       stableId: identity.stableId,
-      sortNumber: ordinal,
+      sortNumber: sortNumber,
       historyEpisodeNumber: listIndex,
-      danmakuEpisodeNumber: ordinal ?? listIndex,
+      danmakuEpisodeNumber: sortNumber,
       originalRoadIndex: identity.roadIndex,
     );
   }

@@ -984,7 +984,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     );
   }
 
+  String get _currentEpisodeTitle {
+    final resolvedEpisode =
+        videoPageController.resolveEpisode(videoPageController.selectedEpisode);
+    return resolvedEpisode?.displayTitle ?? '';
+  }
+
   Widget get topControlWidget {
+    final currentEpisodeTitle = _currentEpisodeTitle;
+    final title = currentEpisodeTitle.isEmpty
+        ? ' ${videoPageController.title}'
+        : ' ${videoPageController.title} [$currentEpisodeTitle]';
+
     return EmbeddedNativeControlArea(
       requireOffset: !videoPageController.isFullscreen,
       child: SafeArea(
@@ -1012,7 +1023,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               Expanded(
                 child: dtb.DragToMoveArea(
                   child: Text(
-                    ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.selectedEpisode.road].data[videoPageController.selectedEpisode.episode - 1].title}]',
+                    title,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize:

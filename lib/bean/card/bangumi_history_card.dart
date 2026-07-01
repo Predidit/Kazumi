@@ -142,27 +142,23 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       return false;
     }
 
-    DownloadEpisode? targetEpisode;
-    if (widget.historyItem.episodePageUrl.isNotEmpty) {
-      for (final episode in downloadedEpisodes) {
-        if (episode.episodePageUrl == widget.historyItem.episodePageUrl) {
-          targetEpisode = episode;
-          break;
-        }
-      }
-    }
-    targetEpisode ??= _episodeByNumber(
+    final lastWatchProgress = _lastWatchProgress(widget.historyItem);
+    final progressStableId = lastWatchProgress?.stableId;
+    final stableId = widget.historyItem.stableId.trim().isNotEmpty
+        ? widget.historyItem.stableId.trim()
+        : progressStableId ?? '';
+    final targetEpisode = downloadedEpisodeForHistoryPlayback(
       downloadedEpisodes,
-      widget.historyItem.lastWatchEpisode,
+      episodeNumber: widget.historyItem.lastWatchEpisode,
+      stableId: stableId,
+      preferredRoad: lastWatchProgress?.road,
     );
     if (targetEpisode == null) {
       return false;
     }
 
-    final localPath = downloadController.getLocalVideoPath(
-      widget.historyItem.bangumiItem.id,
-      widget.historyItem.adapterName,
-      targetEpisode.episodeNumber,
+    final localPath = downloadController.getLocalVideoPathForEpisode(
+      targetEpisode,
     );
     if (localPath == null) {
       return false;
@@ -172,19 +168,32 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       bangumiItem: widget.historyItem.bangumiItem,
       pluginName: widget.historyItem.adapterName,
       episodeNumber: targetEpisode.episodeNumber,
+      stableId: targetEpisode.stableId,
       road: targetEpisode.road,
       downloadedEpisodes: downloadedEpisodes,
     );
     return true;
   }
 
-  DownloadEpisode? _episodeByNumber(
-    List<DownloadEpisode> episodes,
-    int episodeNumber,
-  ) {
-    for (final episode in episodes) {
-      if (episode.episodeNumber == episodeNumber) {
-        return episode;
+  Progress? _lastWatchProgress(History history) {
+    final topStableId = history.stableId.trim();
+    if (topStableId.isNotEmpty) {
+      for (final progress in history.progresses.values) {
+        if (progress.stableId == topStableId) {
+          return progress;
+        }
+      }
+    }
+
+    final keyedProgress = history.progresses[history.lastWatchEpisode];
+    if (keyedProgress != null &&
+        keyedProgress.episode == history.lastWatchEpisode) {
+      return keyedProgress;
+    }
+
+    for (final progress in history.progresses.values) {
+      if (progress.episode == history.lastWatchEpisode) {
+        return progress;
       }
     }
     return null;

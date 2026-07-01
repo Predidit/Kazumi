@@ -636,6 +636,7 @@ void main() {
 
       final history = repository.getHistory('plugin', item)!;
       expect(history.progresses, hasLength(1));
+      expect(history.stableId, '/play/1');
       final progress = history.progresses.values.single;
       expect(progress.progress.inSeconds, 42);
       expect(progress.stableId, '/play/1');
@@ -670,6 +671,87 @@ void main() {
 
       expect(progress, isNotNull);
       expect(progress!.progress.inSeconds, 15);
+    });
+
+    test('getLastWatchingProgress matches by top-level stableId', () async {
+      final repository = buildRepository();
+      final item = _item(34);
+
+      final history = History(
+        item,
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        'https://example.com/source',
+        'EP1',
+        episodePageUrl: 'https://old.example.com/play/1',
+        stableId: '/play/1',
+      );
+      history.progresses[3] = Progress(
+        1,
+        0,
+        25 * 1000,
+        episodePageUrl: 'https://new.example.com/play/1',
+        stableId: '/play/1',
+      );
+      await historiesBox.put(history.key, history);
+
+      final progress = repository.getLastWatchingProgress(item, 'plugin');
+
+      expect(progress, isNotNull);
+      expect(progress!.progress.inSeconds, 25);
+      expect(progress.stableId, '/play/1');
+    });
+
+    test('keeps different stableIds separate even when page url matches',
+        () async {
+      final repository = buildRepository();
+      final item = _item(33);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EPA',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://example.com/shared',
+          stableId: 'source-a',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EPB',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://example.com/shared',
+          stableId: 'source-b',
+        ),
+        progress: const Duration(seconds: 20),
+      );
+
+      final progresses =
+          repository.getHistory('plugin', item)!.progresses.values;
+      expect(progresses, hasLength(2));
+      expect(
+        progresses
+            .singleWhere((progress) => progress.stableId == 'source-a')
+            .progress
+            .inSeconds,
+        10,
+      );
+      expect(
+        progresses
+            .singleWhere((progress) => progress.stableId == 'source-b')
+            .progress
+            .inSeconds,
+        20,
+      );
     });
 
     test('backfills stableId onto a legacy progress matched by page url',
@@ -808,6 +890,43 @@ void main() {
       expect(resumed, isNotNull);
       expect(resumed!.episode, 1);
       expect(resumed.episodePageUrl, 'https://new.example.com/play/1');
+      expect(resumed.progress.inSeconds, 10);
+    });
+
+    test('backfills stableId from current episode identity without url rewrite',
+        () async {
+      final repository = buildRepository();
+      final item = _item(25);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://example.com/play/1',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+
+      repository.migrateProgressPageUrls(
+        adapterName: 'plugin',
+        bangumiItem: item,
+        resolveCurrentPageUrl: (road, episode) =>
+            'https://example.com/play/$episode',
+        resolveCurrentStableId: (road, episode) =>
+            road == 0 && episode == 1 ? '/play/1' : '',
+      );
+
+      final history = repository.getHistory('plugin', item)!;
+      expect(history.stableId, '/play/1');
+      expect(history.progresses[1]!.stableId, '/play/1');
+
+      final resumed = repository.getLastWatchingProgress(item, 'plugin');
+      expect(resumed, isNotNull);
+      expect(resumed!.stableId, '/play/1');
       expect(resumed.progress.inSeconds, 10);
     });
 
@@ -960,6 +1079,7 @@ Future<void> _noopHistorySync({
   required int progressMs,
   required int updatedAt,
   required String episodePageUrl,
+  required String stableId,
 }) async {}
 
 Future<void> _noopDeleteSync(History history) async {}

@@ -14,6 +14,7 @@ typedef HistoryProgressSyncAppender = Future<void> Function({
   required int progressMs,
   required int updatedAt,
   required String episodePageUrl,
+  required String stableId,
 });
 
 typedef HistoryDeleteSyncAppender = Future<void> Function(History history);
@@ -109,6 +110,7 @@ abstract class IHistoryRepository {
     required BangumiItem bangumiItem,
     String entryKind = HistoryEntryKind.online,
     required String Function(int road, int episode) resolveCurrentPageUrl,
+    String Function(int road, int episode)? resolveCurrentStableId,
   });
 
   /// 获取隐私模式设置
@@ -145,6 +147,7 @@ class HistoryRepository implements IHistoryRepository {
     required int progressMs,
     required int updatedAt,
     required String episodePageUrl,
+    required String stableId,
   }) async {
     final historySyncService = HistorySyncService();
     await historySyncService.appendSafely(
@@ -155,6 +158,7 @@ class HistoryRepository implements IHistoryRepository {
         progressMs: progressMs,
         updatedAt: updatedAt,
         episodePageUrl: episodePageUrl,
+        stableId: stableId,
       ),
     );
   }
@@ -260,6 +264,7 @@ class HistoryRepository implements IHistoryRepository {
             identity.episodeTitle,
             entryKind: identity.entryKind,
             episodePageUrl: identity.episodePageUrl,
+            stableId: identity.stableId,
           );
 
       // 更新历史记录
@@ -273,6 +278,7 @@ class HistoryRepository implements IHistoryRepository {
         history.lastWatchEpisodeName = identity.episodeTitle;
       }
       history.episodePageUrl = identity.episodePageUrl;
+      history.stableId = identity.stableId;
 
       // 更新观看进度
       final progressMatch = _HistoryEpisodeMatcher.find(
@@ -319,6 +325,7 @@ class HistoryRepository implements IHistoryRepository {
         progressMs: progress.inMilliseconds,
         updatedAt: nowMs,
         episodePageUrl: prog.episodePageUrl,
+        stableId: prog.stableId,
       );
     } catch (e, stackTrace) {
       KazumiLogger().e(
@@ -343,6 +350,7 @@ class HistoryRepository implements IHistoryRepository {
       final progressMatch = _HistoryEpisodeMatcher.find(
         history,
         episode: history.lastWatchEpisode,
+        stableId: history.stableId,
         episodePageUrl: history.episodePageUrl,
       );
       final resolvedMatch =
@@ -356,6 +364,7 @@ class HistoryRepository implements IHistoryRepository {
         history,
         resolvedMatch,
         episodePageUrl: history.episodePageUrl,
+        stableId: history.stableId,
       );
       return resolvedMatch?.progress;
     } catch (e, stackTrace) {
@@ -461,6 +470,7 @@ class HistoryRepository implements IHistoryRepository {
           progressMs: 0,
           updatedAt: nowMs,
           episodePageUrl: progressMatch.progress.episodePageUrl,
+          stableId: progressMatch.progress.stableId,
         );
       }
     } catch (e, stackTrace) {
@@ -492,6 +502,7 @@ class HistoryRepository implements IHistoryRepository {
     required BangumiItem bangumiItem,
     String entryKind = HistoryEntryKind.online,
     required String Function(int road, int episode) resolveCurrentPageUrl,
+    String Function(int road, int episode)? resolveCurrentStableId,
   }) {
     try {
       final history = _findHistory(adapterName, bangumiItem, entryKind);
@@ -503,26 +514,34 @@ class HistoryRepository implements IHistoryRepository {
       // 必须使用 Progress 值的 road/episode，而非 map key，因为
       // bucketForNewProgress 会递增寻找空桶，key 可能不等于 episode。
       final plannedRewrites = <int, String>{};
+      final plannedStableIds = <int, String>{};
       for (final entry in history.progresses.entries) {
         final progress = entry.value;
         final currentUrl = progress.episodePageUrl.trim();
-        if (currentUrl.isEmpty) {
-          continue;
+        if (currentUrl.isNotEmpty) {
+          final newUrl =
+              resolveCurrentPageUrl(progress.road, progress.episode).trim();
+          if (newUrl.isNotEmpty && newUrl != currentUrl) {
+            plannedRewrites[entry.key] = newUrl;
+          }
         }
-        final newUrl =
-            resolveCurrentPageUrl(progress.road, progress.episode).trim();
-        if (newUrl.isEmpty || newUrl == currentUrl) {
-          continue;
+
+        final currentStableId = progress.stableId.trim();
+        if (currentStableId.isEmpty && resolveCurrentStableId != null) {
+          final newStableId =
+              resolveCurrentStableId(progress.road, progress.episode).trim();
+          if (newStableId.isNotEmpty) {
+            plannedStableIds[entry.key] = newStableId;
+          }
         }
-        plannedRewrites[entry.key] = newUrl;
       }
 
-      if (plannedRewrites.isEmpty) {
+      if (plannedRewrites.isEmpty && plannedStableIds.isEmpty) {
         return;
       }
 
-      // 在变更前记录顶层 URL 对应的桶，便于结束后同步迁移
-      // history.episodePageUrl（getLastWatchingProgress 会优先用它匹配）。
+      // 在变更前记录顶层 URL / lastWatch 对应的桶，便于结束后同步迁移
+      // history.episodePageUrl / stableId（getLastWatchingProgress 会优先用它们匹配）。
       final topUrl = history.episodePageUrl.trim();
       int? topBucketKey;
       if (topUrl.isNotEmpty) {
@@ -533,6 +552,7 @@ class HistoryRepository implements IHistoryRepository {
           }
         }
       }
+      topBucketKey ??= _lastWatchProgressBucket(history);
 
       // Phase 2: 应用重写并解决目标 URL 冲突。
       var changed = false;
@@ -578,10 +598,27 @@ class HistoryRepository implements IHistoryRepository {
         changed = true;
       });
 
+      for (final entry in plannedStableIds.entries) {
+        if (removedBuckets.contains(entry.key)) {
+          continue;
+        }
+        final progress = history.progresses[entry.key];
+        if (progress == null || progress.stableId.isNotEmpty) {
+          continue;
+        }
+        progress.stableId = entry.value;
+        changed = true;
+      }
+
       if (topBucketKey != null) {
         final newTopUrl = plannedRewrites[topBucketKey];
         if (newTopUrl != null && newTopUrl != topUrl) {
           history.episodePageUrl = newTopUrl;
+          changed = true;
+        }
+        final newTopStableId = plannedStableIds[topBucketKey];
+        if (newTopStableId != null && history.stableId.isEmpty) {
+          history.stableId = newTopStableId;
           changed = true;
         }
       }
@@ -596,6 +633,20 @@ class HistoryRepository implements IHistoryRepository {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  int? _lastWatchProgressBucket(History history) {
+    final keyedProgress = history.progresses[history.lastWatchEpisode];
+    if (keyedProgress != null &&
+        keyedProgress.episode == history.lastWatchEpisode) {
+      return history.lastWatchEpisode;
+    }
+    for (final entry in history.progresses.entries) {
+      if (entry.value.episode == history.lastWatchEpisode) {
+        return entry.key;
+      }
+    }
+    return null;
   }
 
   @override
@@ -695,7 +746,10 @@ class _HistoryEpisodeMatcher {
     final pageUrl = episodePageUrl.trim();
     if (pageUrl.isNotEmpty) {
       for (final entry in history.progresses.entries) {
-        if (entry.value.episodePageUrl == pageUrl) {
+        if (entry.value.episodePageUrl == pageUrl &&
+            (id.isEmpty ||
+                entry.value.stableId.isEmpty ||
+                entry.value.stableId == id)) {
           return _HistoryEpisodeMatch(
             bucket: entry.key,
             progress: entry.value,

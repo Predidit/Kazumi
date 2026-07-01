@@ -442,6 +442,81 @@ void main() {
       expect(progress.progress.inSeconds, 20);
     });
 
+    test('matches progress by stableId when page url changes', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 2,
+            progressMs: 10 * 1000,
+            episodePageUrl: 'https://old.example.com/play/1',
+            stableId: '/play/1',
+          ),
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 1,
+            progressMs: 20 * 1000,
+            episodePageUrl: 'https://new.example.com/play/1',
+            stableId: '/play/1',
+          ),
+        ],
+      );
+
+      final progress = merged.histories.single.progresses.values.single;
+      expect(progress.episode, 1);
+      expect(progress.stableId, '/play/1');
+      expect(progress.episodePageUrl, 'https://new.example.com/play/1');
+      expect(progress.progress.inSeconds, 20);
+    });
+
+    test('keeps different stableIds separate even when page url matches', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 1,
+            progressMs: 10 * 1000,
+            episodePageUrl: '/shared',
+            stableId: 'source-a',
+          ),
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 1,
+            progressMs: 20 * 1000,
+            episodePageUrl: '/shared',
+            stableId: 'source-b',
+          ),
+        ],
+      );
+
+      final progresses = merged.histories.single.progresses.values;
+      expect(progresses, hasLength(2));
+      expect(
+        progresses
+            .singleWhere((progress) => progress.stableId == 'source-a')
+            .progress
+            .inSeconds,
+        10,
+      );
+      expect(
+        progresses
+            .singleWhere((progress) => progress.stableId == 'source-b')
+            .progress
+            .inSeconds,
+        20,
+      );
+    });
+
     test('keeps different page urls separate when episode index collides', () {
       final merged = HistorySyncMerger.merge(
         snapshot: HistorySyncSnapshot.empty(),
@@ -751,6 +826,7 @@ void main() {
             seq: 1,
             updatedAt: 2000,
             episode: 7,
+            stableId: 'episode-7',
           ),
         ],
       );
@@ -760,6 +836,7 @@ void main() {
       expect(mergedHistory.lastWatchTime.millisecondsSinceEpoch, 2000);
       expect(mergedHistory.lastSrc, 'https://example.com/video');
       expect(mergedHistory.lastWatchEpisodeName, 'EP7');
+      expect(mergedHistory.stableId, 'episode-7');
     });
 
     test('upsertWatchState clears stale page url when latest watch has none',
@@ -822,13 +899,14 @@ void main() {
   });
 
   group('HistorySyncCodec', () {
-    test('round-trips progress page url and accepts legacy progress json', () {
+    test('round-trips progress identity and accepts legacy progress json', () {
       final progress = Progress(
         2,
         1,
         30 * 1000,
         updatedAtMs: 4000,
         episodePageUrl: '/episode/2',
+        stableId: 'episode-2',
       );
 
       final restored = HistorySyncCodec.progressFromJson(
@@ -841,8 +919,10 @@ void main() {
       });
 
       expect(restored.episodePageUrl, '/episode/2');
+      expect(restored.stableId, 'episode-2');
       expect(restored.progress.inSeconds, 30);
       expect(legacy.episodePageUrl, isEmpty);
+      expect(legacy.stableId, isEmpty);
     });
 
     test('round-trips events through json lines', () {
@@ -854,6 +934,7 @@ void main() {
           episode: 1,
           progressMs: 10,
           episodePageUrl: '/episode/1',
+          stableId: 'episode-1',
         ),
         _watchState(
           deviceId: 'device-a',
@@ -880,6 +961,7 @@ void main() {
       ]);
       expect(restored.first.bangumiItem!.id, 1);
       expect(restored.first.episodePageUrl, '/episode/1');
+      expect(restored.first.stableId, 'episode-1');
     });
   });
 
@@ -894,6 +976,7 @@ void main() {
         'EP1',
         entryKind: HistoryEntryKind.offline,
         episodePageUrl: '/offline/1',
+        stableId: 'offline-1',
       );
       history.progresses[1] = Progress(
         1,
@@ -901,6 +984,7 @@ void main() {
         20 * 1000,
         updatedAtMs: 2500,
         episodePageUrl: '/offline/progress-1',
+        stableId: 'offline-progress-1',
       );
 
       final events =
@@ -916,10 +1000,12 @@ void main() {
       expect(progressEvent.entityKey, history.key);
       expect(progressEvent.entryKind, HistoryEntryKind.offline);
       expect(progressEvent.episodePageUrl, '/offline/progress-1');
+      expect(progressEvent.stableId, 'offline-progress-1');
       expect(progressEvent.updatedAt, 2500);
       expect(progressEvent.progressMs, 20 * 1000);
       expect(watchStateEvent.entryKind, HistoryEntryKind.offline);
       expect(watchStateEvent.episodePageUrl, '/offline/1');
+      expect(watchStateEvent.stableId, 'offline-1');
       expect(watchStateEvent.carriesWatchState, isTrue);
     });
   });
@@ -955,6 +1041,7 @@ HistorySyncEvent _upsert({
   required int progressMs,
   String entryKind = HistoryEntryKind.online,
   String episodePageUrl = '',
+  String stableId = '',
 }) {
   final history = History(
     _item(1),
@@ -972,6 +1059,7 @@ HistorySyncEvent _upsert({
     progressMs,
     updatedAtMs: updatedAt,
     episodePageUrl: episodePageUrl,
+    stableId: stableId,
   );
   return HistorySyncEvent.upsertProgress(
     deviceId: deviceId,
@@ -982,6 +1070,7 @@ HistorySyncEvent _upsert({
     progressMs: progressMs,
     updatedAt: updatedAt,
     episodePageUrl: episodePageUrl,
+    stableId: stableId,
   );
 }
 
@@ -1014,6 +1103,7 @@ HistorySyncEvent _watchState({
   required int seq,
   required int updatedAt,
   required int episode,
+  String stableId = '',
 }) {
   final history = History(
     _item(1),
@@ -1022,6 +1112,7 @@ HistorySyncEvent _watchState({
     DateTime.fromMillisecondsSinceEpoch(updatedAt),
     'https://example.com/video',
     'EP$episode',
+    stableId: stableId,
   );
   return HistorySyncEvent.upsertWatchState(
     deviceId: deviceId,

@@ -179,10 +179,14 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 审阅者: [所有者](https://github.com/Predidit)
 
 ## 赞助
-| ![signpath](https://signpath.org/assets/favicon-50x50.png) | Windows 上的免费代码签名由 [SignPath.io](https://about.signpath.io/) 提供，证书由 [SignPath Foundation](https://signpath.org/) 颁发。 |
+
+| ![signpath](https://signpath.org/assets/favicon-50x50.png) | Free code signing on Windows provided by [SignPath.io](https://about.signpath.io/), certficate by [SignPath Foundation](https://signpath.org/) |
 |------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| <img src="https://kilo.ai/favicon.ico" width="50"> | **自动 PR 审查由 [Kilo Code](https://kilo.ai/) 提供，由 [Kilo OSS Program](https://kilo.ai/oss) 赞助**。 |
-| <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_icon_blue.svg" width="50"> | **云基础设施由 [DigitalOcean](https://m.do.co/c/0062035db3e4) 支持**。 |
+| <img src="https://kilo.ai/favicon/favicon.svg" width="50"> | **Automatic PR review provided by [Kilo Code](https://kilo.ai/), sponsored by the [Kilo OSS Program](https://kilo.ai/oss)** |
+| <a href="https://m.do.co/c/0062035db3e4"><img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_icon_blue.svg" width="50" height="50"></a> | **Cloud infrastructure is supported by [DigitalOcean](https://m.do.co/c/0062035db3e4)** |
+
+## 致谢
+
 
 ## 致谢
 

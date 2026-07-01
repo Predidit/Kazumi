@@ -26,14 +26,14 @@
 
 <table>
   <tr>
-    <td><img alt="homepage" src="static/screenshot/img_1.jpg"></td>
-    <td><img alt="timetable" src="static/screenshot/img_2.jpg"></td>
-    <td><img alt="details" src="static/screenshot/img_3.jpg"></td>
+    <td><img alt="homepage" src="static/screenshot/img_1.png"></td>
+    <td><img alt="timetable" src="static/screenshot/img_2.png"></td>
+    <td><img alt="details" src="static/screenshot/img_3.png"></td>
   <tr>
   <tr>
-    <td><img alt="selection-page" src="static/screenshot/img_4.jpg"></td>
-    <td><img alt="rules-mange" src="static/screenshot/img_5.jpg"></td>
-    <td><img alt="rules-edit" src="static/screenshot/img_6.jpg"></td>
+    <td><img alt="selection-page" src="static/screenshot/img_4.png"></td>
+    <td><img alt="rules-mange" src="static/screenshot/img_5.png"></td>
+    <td><img alt="rules-edit" src="static/screenshot/img_6.png"></td>
   <tr>
 </table>
 

@@ -45,6 +45,7 @@ abstract class _HistoryController with Store {
     BangumiItem bangumiItem,
     String adapterName,
     int episode, {
+    int? road,
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
     String stableId = '',
@@ -53,6 +54,7 @@ abstract class _HistoryController with Store {
       bangumiItem,
       adapterName,
       episode,
+      road: road,
       entryKind: entryKind,
       episodePageUrl: episodePageUrl,
       stableId: stableId,
@@ -84,6 +86,7 @@ abstract class _HistoryController with Store {
     BangumiItem bangumiItem,
     String adapterName,
     int episode, {
+    int? road,
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
     String stableId = '',
@@ -92,6 +95,7 @@ abstract class _HistoryController with Store {
       bangumiItem,
       adapterName,
       episode,
+      road: road,
       entryKind: entryKind,
       episodePageUrl: episodePageUrl,
       stableId: stableId,

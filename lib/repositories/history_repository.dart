@@ -69,6 +69,7 @@ abstract class IHistoryRepository {
     BangumiItem bangumiItem,
     String adapterName,
     int episode, {
+    int? road,
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
     String stableId = '',
@@ -88,6 +89,7 @@ abstract class IHistoryRepository {
     BangumiItem bangumiItem,
     String adapterName,
     int episode, {
+    int? road,
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
     String stableId = '',
@@ -284,13 +286,16 @@ class HistoryRepository implements IHistoryRepository {
       final progressMatch = _HistoryEpisodeMatcher.find(
         history,
         episode: episode,
+        road: identity.road,
         stableId: identity.stableId,
         episodePageUrl: identity.episodePageUrl,
+        allowStableIdOnlyFallback: false,
       );
       final progressBucket = progressMatch?.bucket ??
           _HistoryEpisodeMatcher.bucketForNewProgress(
             history,
             episode: episode,
+            road: identity.road,
             stableId: identity.stableId,
             episodePageUrl: identity.episodePageUrl,
           );
@@ -382,6 +387,7 @@ class HistoryRepository implements IHistoryRepository {
     BangumiItem bangumiItem,
     String adapterName,
     int episode, {
+    int? road,
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
     String stableId = '',
@@ -394,8 +400,10 @@ class HistoryRepository implements IHistoryRepository {
       final progressMatch = _HistoryEpisodeMatcher.find(
         history,
         episode: episode,
+        road: road,
         stableId: stableId,
         episodePageUrl: episodePageUrl,
+        allowStableIdOnlyFallback: road == null,
       );
       _backfillProgressIdentity(
         history,
@@ -439,6 +447,7 @@ class HistoryRepository implements IHistoryRepository {
     BangumiItem bangumiItem,
     String adapterName,
     int episode, {
+    int? road,
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
     String stableId = '',
@@ -450,8 +459,10 @@ class HistoryRepository implements IHistoryRepository {
           : _HistoryEpisodeMatcher.find(
               history,
               episode: episode,
+              road: road,
               stableId: stableId,
               episodePageUrl: episodePageUrl,
+              allowStableIdOnlyFallback: road == null,
             );
       if (history != null && progressMatch != null) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -722,44 +733,71 @@ class _HistoryEpisodeMatch {
 
 class _HistoryEpisodeMatcher {
   /// 历史进度匹配，优先级：
-  /// 1. [stableId]（规则产出的稳定身份，与域名/顺序无关）——主键；
-  /// 2. [episodePageUrl]（存量数据兼容回退）；
-  /// 3. 集号（最终回退）。
+  /// 1. [stableId] + [road]（规则产出的线路内稳定身份）；
+  /// 2. [stableId] 唯一命中（存量数据兼容回退）；
+  /// 3. [episodePageUrl]（存量数据兼容回退）；
+  /// 4. 集号（最终回退）。
   static _HistoryEpisodeMatch? find(
     History history, {
     required int episode,
+    int? road,
     String stableId = '',
     String episodePageUrl = '',
+    bool allowStableIdOnlyFallback = true,
   }) {
     final id = stableId.trim();
     if (id.isNotEmpty) {
+      final stableMatches = <MapEntry<int, Progress>>[];
       for (final entry in history.progresses.entries) {
-        if (entry.value.stableId == id) {
+        if (entry.value.stableId != id) {
+          continue;
+        }
+        if (road != null && entry.value.road == road) {
           return _HistoryEpisodeMatch(
             bucket: entry.key,
             progress: entry.value,
           );
         }
+        stableMatches.add(entry);
+      }
+      if (allowStableIdOnlyFallback && stableMatches.length == 1) {
+        final entry = stableMatches.single;
+        return _HistoryEpisodeMatch(
+          bucket: entry.key,
+          progress: entry.value,
+        );
       }
     }
 
     final pageUrl = episodePageUrl.trim();
     if (pageUrl.isNotEmpty) {
+      final pageUrlMatches = <MapEntry<int, Progress>>[];
       for (final entry in history.progresses.entries) {
         if (entry.value.episodePageUrl == pageUrl &&
             (id.isEmpty ||
                 entry.value.stableId.isEmpty ||
                 entry.value.stableId == id)) {
-          return _HistoryEpisodeMatch(
-            bucket: entry.key,
-            progress: entry.value,
-          );
+          if (road != null && entry.value.road == road) {
+            return _HistoryEpisodeMatch(
+              bucket: entry.key,
+              progress: entry.value,
+            );
+          }
+          pageUrlMatches.add(entry);
         }
+      }
+      if (road == null && pageUrlMatches.isNotEmpty) {
+        final entry = pageUrlMatches.first;
+        return _HistoryEpisodeMatch(
+          bucket: entry.key,
+          progress: entry.value,
+        );
       }
 
       final legacyProgress = history.progresses[episode];
       if (legacyProgress != null &&
           legacyProgress.episode == episode &&
+          _matchesRoad(legacyProgress, road) &&
           legacyProgress.episodePageUrl.isEmpty &&
           legacyProgress.stableId.isEmpty) {
         return _HistoryEpisodeMatch(
@@ -770,6 +808,7 @@ class _HistoryEpisodeMatcher {
       for (final entry in history.progresses.entries) {
         final progress = entry.value;
         if (progress.episode == episode &&
+            _matchesRoad(progress, road) &&
             progress.episodePageUrl.isEmpty &&
             progress.stableId.isEmpty) {
           return _HistoryEpisodeMatch(
@@ -787,12 +826,14 @@ class _HistoryEpisodeMatcher {
     }
 
     final progress = history.progresses[episode];
-    if (progress != null && progress.episode == episode) {
+    if (progress != null &&
+        progress.episode == episode &&
+        _matchesRoad(progress, road)) {
       return _HistoryEpisodeMatch(bucket: episode, progress: progress);
     }
 
     for (final entry in history.progresses.entries) {
-      if (entry.value.episode == episode) {
+      if (entry.value.episode == episode && _matchesRoad(entry.value, road)) {
         return _HistoryEpisodeMatch(
           bucket: entry.key,
           progress: entry.value,
@@ -805,6 +846,7 @@ class _HistoryEpisodeMatcher {
   static int bucketForNewProgress(
     History history, {
     required int episode,
+    int? road,
     String stableId = '',
     String episodePageUrl = '',
   }) {
@@ -815,6 +857,7 @@ class _HistoryEpisodeMatcher {
       return episode;
     }
     if (existing.episode == episode &&
+        _matchesRoad(existing, road) &&
         (id.isEmpty || existing.stableId.isEmpty || existing.stableId == id) &&
         (pageUrl.isEmpty ||
             existing.episodePageUrl.isEmpty ||
@@ -827,6 +870,10 @@ class _HistoryEpisodeMatcher {
       bucket++;
     }
     return bucket;
+  }
+
+  static bool _matchesRoad(Progress progress, int? road) {
+    return road == null || progress.road == road;
   }
 
   _HistoryEpisodeMatcher._();

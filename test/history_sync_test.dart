@@ -517,6 +517,51 @@ void main() {
       );
     });
 
+    test('keeps the same stableId separate by road', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 1,
+            road: 0,
+            progressMs: 10 * 1000,
+            episodePageUrl: '/road-0/shared',
+            stableId: 'shared-episode',
+          ),
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 1,
+            road: 1,
+            progressMs: 20 * 1000,
+            episodePageUrl: '/road-1/shared',
+            stableId: 'shared-episode',
+          ),
+        ],
+      );
+
+      final progresses = merged.histories.single.progresses.values;
+      expect(progresses, hasLength(2));
+      expect(
+        progresses
+            .singleWhere((progress) => progress.road == 0)
+            .progress
+            .inSeconds,
+        10,
+      );
+      expect(
+        progresses
+            .singleWhere((progress) => progress.road == 1)
+            .progress
+            .inSeconds,
+        20,
+      );
+    });
+
     test('keeps different page urls separate when episode index collides', () {
       final merged = HistorySyncMerger.merge(
         snapshot: HistorySyncSnapshot.empty(),
@@ -1039,6 +1084,7 @@ HistorySyncEvent _upsert({
   required int updatedAt,
   required int episode,
   required int progressMs,
+  int road = 0,
   String entryKind = HistoryEntryKind.online,
   String episodePageUrl = '',
   String stableId = '',
@@ -1055,7 +1101,7 @@ HistorySyncEvent _upsert({
   );
   history.progresses[episode] = Progress(
     episode,
-    0,
+    road,
     progressMs,
     updatedAtMs: updatedAt,
     episodePageUrl: episodePageUrl,
@@ -1066,7 +1112,7 @@ HistorySyncEvent _upsert({
     seq: seq,
     history: history,
     episode: episode,
-    road: 0,
+    road: road,
     progressMs: progressMs,
     updatedAt: updatedAt,
     episodePageUrl: episodePageUrl,

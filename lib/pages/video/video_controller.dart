@@ -444,6 +444,7 @@ abstract class _VideoPageController with Store {
               identity.bangumiItem,
               identity.pluginName,
               identity.episodeNumber,
+              road: identity.road,
               entryKind: identity.entryKind,
               episodePageUrl: identity.episodePageUrl,
               stableId: identity.stableId,

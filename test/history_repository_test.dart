@@ -754,6 +754,95 @@ void main() {
       );
     });
 
+    test('keeps the same stableId separate by road', () async {
+      final repository = buildRepository();
+      final item = _item(35);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: '线路1 第1话',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://example.com/road-0/play/1',
+          stableId: 'shared-episode',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: '线路2 第1话',
+          road: 1,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://example.com/road-1/play/1',
+          stableId: 'shared-episode',
+        ),
+        progress: const Duration(seconds: 20),
+      );
+
+      final history = repository.getHistory('plugin', item)!;
+      expect(history.progresses, hasLength(2));
+      expect(
+        history.progresses.values
+            .singleWhere((progress) => progress.road == 0)
+            .progress
+            .inSeconds,
+        10,
+      );
+      expect(
+        history.progresses.values
+            .singleWhere((progress) => progress.road == 1)
+            .progress
+            .inSeconds,
+        20,
+      );
+
+      final road0Progress = repository.findProgress(
+        item,
+        'plugin',
+        1,
+        road: 0,
+        stableId: 'shared-episode',
+      );
+      final road1Progress = repository.findProgress(
+        item,
+        'plugin',
+        1,
+        road: 1,
+        stableId: 'shared-episode',
+      );
+      expect(road0Progress!.progress.inSeconds, 10);
+      expect(road1Progress!.progress.inSeconds, 20);
+
+      await repository.clearProgress(
+        item,
+        'plugin',
+        1,
+        road: 1,
+        stableId: 'shared-episode',
+      );
+
+      final refreshed = repository.getHistory('plugin', item)!;
+      expect(
+        refreshed.progresses.values
+            .singleWhere((progress) => progress.road == 0)
+            .progress
+            .inSeconds,
+        10,
+      );
+      expect(
+        refreshed.progresses.values
+            .singleWhere((progress) => progress.road == 1)
+            .progress,
+        Duration.zero,
+      );
+    });
+
     test('backfills stableId onto a legacy progress matched by page url',
         () async {
       final repository = buildRepository();

@@ -4,6 +4,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
+import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
+import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -53,7 +55,8 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() handleFullscreen;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
-  final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
+  final Future<void> Function(SuperResolutionMode mode)
+      handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
   final FocusNode keyboardFocus;
   final PlayerPanelHold Function() acquirePlayerPanelHold;
@@ -558,32 +561,28 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             },
             menuChildren: [
               SubmenuButton(
-                menuChildren: List<MenuItemButton>.generate(
-                  3,
-                  (int index) => MenuItemButton(
-                    onPressed: () =>
-                        playerController.panel.aspectRatioType = index + 1,
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          index + 1 == 1
-                              ? '自动'
-                              : index + 1 == 2
-                                  ? '裁切填充'
-                                  : '拉伸填充',
-                          style: TextStyle(
-                              color: index + 1 ==
-                                      playerController.panel.aspectRatioType
-                                  ? Theme.of(context).colorScheme.primary
-                                  : null),
+                menuChildren: [
+                  for (final aspectRatioMode in PlayerAspectRatio.values)
+                    MenuItemButton(
+                      onPressed: () => playerController.panel.aspectRatioMode =
+                          aspectRatioMode,
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            aspectRatioMode.label,
+                            style: TextStyle(
+                                color: aspectRatioMode ==
+                                        playerController.panel.aspectRatioMode
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                ],
                 child: Container(
                   height: 48,
                   constraints: BoxConstraints(minWidth: 112),
@@ -629,34 +628,29 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                 ),
               ),
               SubmenuButton(
-                menuChildren: List<MenuItemButton>.generate(
-                  3,
-                  (int index) => MenuItemButton(
-                    onPressed: () =>
-                        widget.handleSuperResolutionChange(index + 1),
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          index + 1 == 1
-                              ? '关闭'
-                              : index + 1 == 2
-                                  ? '效率档'
-                                  : '质量档',
-                          style: TextStyle(
-                            color:
-                                playerController.playback.superResolutionType ==
-                                        index + 1
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
+                menuChildren: [
+                  for (final mode in SuperResolutionMode.values)
+                    MenuItemButton(
+                      onPressed: () => widget.handleSuperResolutionChange(mode),
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            mode.label,
+                            style: TextStyle(
+                              color: playerController
+                                          .playback.superResolutionMode ==
+                                      mode
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                ],
                 child: Container(
                   height: 48,
                   constraints: BoxConstraints(minWidth: 112),
@@ -754,25 +748,13 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
               ),
               MenuItemButton(
                 onPressed: () {
-                  showModalBottomSheet(
-                    isScrollControlled: true,
-                    constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-                        maxWidth: (isDesktop() || isTablet())
-                            ? MediaQuery.of(context).size.width * 9 / 16
-                            : MediaQuery.of(context).size.width),
-                    clipBehavior: Clip.antiAlias,
+                  showDanmakuSettingsSheet(
                     context: context,
-                    builder: (context) {
-                      return DanmakuSettingsSheet(
-                        danmakuController:
-                            playerController.danmaku.canvasController,
-                        onUpdateDanmakuSpeed:
-                            playerController.updateDanmakuSpeed,
-                        onTimelineOffsetChanged: playerController
-                            .danmaku.clearAndInvalidateScheduledDanmakus,
-                      );
-                    },
+                    danmakuController:
+                        playerController.danmaku.canvasController,
+                    onUpdateDanmakuSpeed: playerController.updateDanmakuSpeed,
+                    onTimelineOffsetChanged: playerController
+                        .danmaku.clearAndInvalidateScheduledDanmakus,
                   );
                 },
                 child: Container(

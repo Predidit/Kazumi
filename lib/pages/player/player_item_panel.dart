@@ -4,6 +4,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
+import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
+import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
@@ -61,7 +63,8 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() handleScreenShot;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
-  final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
+  final Future<void> Function(SuperResolutionMode mode)
+      handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
   final FocusNode keyboardFocus;
   final PlayerPanelHold Function() acquirePlayerPanelHold;
@@ -711,38 +714,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 IconButton(
                                   onPressed: () {
                                     widget.keyboardFocus.requestFocus();
-                                    showModalBottomSheet(
-                                        isScrollControlled: true,
-                                        constraints: BoxConstraints(
-                                            maxHeight: MediaQuery.of(context)
-                                                    .size
-                                                    .height *
-                                                3 /
-                                                4,
-                                            maxWidth:
-                                                (isDesktop() || isTablet())
-                                                    ? MediaQuery.of(context)
-                                                            .size
-                                                            .width *
-                                                        9 /
-                                                        16
-                                                    : MediaQuery.of(context)
-                                                        .size
-                                                        .width),
-                                        clipBehavior: Clip.antiAlias,
-                                        context: context,
-                                        builder: (context) {
-                                          return DanmakuSettingsSheet(
-                                            danmakuController: playerController
-                                                .danmaku.canvasController,
-                                            onUpdateDanmakuSpeed:
-                                                playerController
-                                                    .updateDanmakuSpeed,
-                                            onTimelineOffsetChanged:
-                                                playerController.danmaku
-                                                    .clearAndInvalidateScheduledDanmakus,
-                                          );
-                                        });
+                                    showDanmakuSettingsSheet(
+                                      context: context,
+                                      danmakuController: playerController
+                                          .danmaku.canvasController,
+                                      onUpdateDanmakuSpeed:
+                                          playerController.updateDanmakuSpeed,
+                                      onTimelineOffsetChanged: playerController
+                                          .danmaku
+                                          .clearAndInvalidateScheduledDanmakus,
+                                    );
                                   },
                                   color: Colors.white,
                                   icon: cachedDanmakuSettingIcon!,
@@ -770,31 +751,15 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     if (playerController.danmaku.danmakuOn) ...[
                       IconButton(
                         onPressed: () {
-                          showModalBottomSheet(
-                              isScrollControlled: true,
-                              constraints: BoxConstraints(
-                                  maxHeight:
-                                      MediaQuery.of(context).size.height *
-                                          3 /
-                                          4,
-                                  maxWidth: (isDesktop() || isTablet())
-                                      ? MediaQuery.of(context).size.width *
-                                          9 /
-                                          16
-                                      : MediaQuery.of(context).size.width),
-                              clipBehavior: Clip.antiAlias,
-                              context: context,
-                              builder: (context) {
-                                return DanmakuSettingsSheet(
-                                  danmakuController:
-                                      playerController.danmaku.canvasController,
-                                  onUpdateDanmakuSpeed:
-                                      playerController.updateDanmakuSpeed,
-                                  onTimelineOffsetChanged: playerController
-                                      .danmaku
-                                      .clearAndInvalidateScheduledDanmakus,
-                                );
-                              });
+                          showDanmakuSettingsSheet(
+                            context: context,
+                            danmakuController:
+                                playerController.danmaku.canvasController,
+                            onUpdateDanmakuSpeed:
+                                playerController.updateDanmakuSpeed,
+                            onTimelineOffsetChanged: playerController
+                                .danmaku.clearAndInvalidateScheduledDanmakus,
+                          );
                         },
                         color: Colors.white,
                         icon: cachedDanmakuSettingIcon!,
@@ -824,34 +789,30 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         ),
                       );
                     },
-                    menuChildren: List<MenuItemButton>.generate(
-                      3,
-                      (int index) => MenuItemButton(
-                        onPressed: () =>
-                            widget.handleSuperResolutionChange(index + 1),
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              index + 1 == 1
-                                  ? '关闭'
-                                  : index + 1 == 2
-                                      ? '效率档'
-                                      : '质量档',
-                              style: TextStyle(
-                                color: playerController
-                                            .playback.superResolutionType ==
-                                        index + 1
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
+                    menuChildren: [
+                      for (final mode in SuperResolutionMode.values)
+                        MenuItemButton(
+                          onPressed: () =>
+                              widget.handleSuperResolutionChange(mode),
+                          child: Container(
+                            height: 48,
+                            constraints: BoxConstraints(minWidth: 112),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                mode.label,
+                                style: TextStyle(
+                                  color: playerController
+                                              .playback.superResolutionMode ==
+                                          mode
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
+                    ],
                   ),
                   // 倍速播放
                   PlayerPanelHoldMenuAnchor(
@@ -923,20 +884,20 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       );
                     },
                     menuChildren: [
-                      for (final entry in aspectRatioTypeMap.entries)
+                      for (final aspectRatioMode in PlayerAspectRatio.values)
                         MenuItemButton(
                           onPressed: () => playerController
-                              .panel.aspectRatioType = entry.key,
+                              .panel.aspectRatioMode = aspectRatioMode,
                           child: Container(
                             height: 48,
                             constraints: BoxConstraints(minWidth: 112),
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                entry.value,
+                                aspectRatioMode.label,
                                 style: TextStyle(
-                                  color: entry.key ==
-                                          playerController.panel.aspectRatioType
+                                  color: aspectRatioMode ==
+                                          playerController.panel.aspectRatioMode
                                       ? Theme.of(context).colorScheme.primary
                                       : null,
                                 ),

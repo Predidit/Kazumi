@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
@@ -24,7 +25,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
 
   late double defaultPlaySpeed;
   late double defaultShortcutForwardPlaySpeed;
-  late int defaultAspectRatioType;
+  late PlayerAspectRatio defaultAspectRatioMode;
   late bool hAenable;
   late bool androidEnableOpenSLES;
   late bool androidAutoEnterPIP;
@@ -56,8 +57,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         GStorage.getSetting<double>(SettingsKeys.defaultPlaySpeed);
     defaultShortcutForwardPlaySpeed = GStorage.getSetting<double>(
         SettingsKeys.defaultShortcutForwardPlaySpeed);
-    defaultAspectRatioType =
-        GStorage.getSetting<int>(SettingsKeys.defaultAspectRatioType);
+    defaultAspectRatioMode = PlayerAspectRatio.fromStorageValue(
+      GStorage.getSetting<int>(SettingsKeys.defaultAspectRatioType),
+    );
     hAenable = GStorage.getSetting<bool>(SettingsKeys.hAenable);
     androidEnableOpenSLES =
         GStorage.getSetting<bool>(SettingsKeys.androidEnableOpenSLES);
@@ -146,10 +148,13 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     });
   }
 
-  void updateDefaultAspectRatioType(int type) {
-    GStorage.putSetting<int>(SettingsKeys.defaultAspectRatioType, type);
+  void updateDefaultAspectRatioMode(PlayerAspectRatio mode) {
+    GStorage.putSetting<int>(
+      SettingsKeys.defaultAspectRatioType,
+      mode.storageValue,
+    );
     setState(() {
-      defaultAspectRatioType = type;
+      defaultAspectRatioMode = mode;
     });
   }
 
@@ -526,7 +531,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 ),
                 SettingsTile(
                   title:
-                      Text('默认方向键倍速', style: TextStyle(fontFamily: fontFamily)),
+                      Text('默认方向键/长按倍速', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultShortcutForwardPlaySpeed,
                     min: 1.25,
@@ -600,25 +605,26 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     controller: playerAspectRatioMenuController,
                     builder: (_, __, ___) {
                       return Text(
-                        aspectRatioTypeMap[defaultAspectRatioType] ?? '自动',
+                        defaultAspectRatioMode.label,
                         style: TextStyle(fontFamily: fontFamily),
                       );
                     },
                     menuChildren: [
-                      for (final entry in aspectRatioTypeMap.entries)
+                      for (final aspectRatioMode in PlayerAspectRatio.values)
                         MenuItemButton(
                           requestFocusOnHover: false,
                           onPressed: () =>
-                              updateDefaultAspectRatioType(entry.key),
+                              updateDefaultAspectRatioMode(aspectRatioMode),
                           child: Container(
                             height: 48,
                             constraints: BoxConstraints(minWidth: 112),
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                entry.value,
+                                aspectRatioMode.label,
                                 style: TextStyle(
-                                  color: entry.key == defaultAspectRatioType
+                                  color: aspectRatioMode ==
+                                          defaultAspectRatioMode
                                       ? Theme.of(context).colorScheme.primary
                                       : null,
                                   fontFamily: fontFamily,

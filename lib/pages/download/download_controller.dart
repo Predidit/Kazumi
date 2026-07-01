@@ -14,12 +14,17 @@ import 'package:kazumi/utils/format.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/video_source/services.dart';
+import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:mobx/mobx.dart';
 
 part 'download_controller.g.dart';
 
 class DownloadController = _DownloadController with _$DownloadController;
+
+String downloadResolvePageUrl(Plugin plugin, String episodePageUrl) {
+  return normalizeEpisodeUrl(plugin.baseUrl, episodePageUrl);
+}
 
 abstract class _DownloadController with Store {
   final _repository = Modular.get<IDownloadRepository>();
@@ -678,7 +683,7 @@ abstract class _DownloadController with Store {
 
       if (episode.status != DownloadStatus.resolving) return;
 
-      final fullUrl = plugin.buildFullUrl(request.episodePageUrl);
+      final fullUrl = downloadResolvePageUrl(plugin, request.episodePageUrl);
 
       KazumiLogger().i(
           'DownloadController: resolving video URL for episode ${episode.episodeNumber} from $fullUrl');

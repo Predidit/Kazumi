@@ -2,9 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/plugins/plugins.dart';
 
 EpisodeIdentity _identity(
   String stableId,
@@ -393,6 +395,19 @@ void main() {
   });
 
   group('download episode identity', () {
+    test('download resolution does not prefix normalized absolute urls', () {
+      final plugin = Plugin.fromTemplate()..baseUrl = 'http://www.example.com';
+
+      expect(
+        downloadResolvePageUrl(plugin, 'https://www.example.com/play/1'),
+        'https://www.example.com/play/1',
+      );
+      expect(
+        downloadResolvePageUrl(plugin, '/play/1'),
+        'https://www.example.com/play/1',
+      );
+    });
+
     test('uses rule ordinal as stored download episode number', () {
       final identity = _identity('/episode/13', '第13话', ordinal: 13);
 

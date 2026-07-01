@@ -179,10 +179,10 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 审阅者: [所有者](https://github.com/Predidit)
 
 ## 赞助
-| ![signpath](https://signpath.org/assets/favicon-50x50.png) | Windows 上的免费代码签名由 [SignPath.io](https://about.signpath.io/) 提供，证书由 [SignPath Foundation](https://signpath.org/) 颁发 |
+| ![signpath](https://signpath.org/assets/favicon-50x50.png) | Windows 上的免费代码签名由 [SignPath.io](https://about.signpath.io/) 提供，证书由 [SignPath Foundation](https://signpath.org/) 颁发。 |
 |------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| <img src="https://kilo.ai/favicon.ico" width="50"> | **自动 PR 审查由 [Kilo Code](https://kilo.ai/) 提供，由 [Kilo OSS Program](https://kilo.ai/oss) 赞助** |
-| <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_icon_blue.svg" width="50"> | **云基础设施由 [DigitalOcean](https://m.do.co/c/0062035db3e4) 支持** |
+| <img src="https://kilo.ai/favicon.ico" width="50"> | **自动 PR 审查由 [Kilo Code](https://kilo.ai/) 提供，由 [Kilo OSS Program](https://kilo.ai/oss) 赞助**。 |
+| <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_icon_blue.svg" width="50"> | **云基础设施由 [DigitalOcean](https://m.do.co/c/0062035db3e4) 支持**。 |
 
 ## 致谢
 
@@ -196,7 +196,7 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 
 特别感谢 [SyncPlay](https://github.com/Syncplay/syncplay) 本项目使用 SyncPlay 协议并通过 SyncPlay 公共服务器实现一起看功能。
 
-特别感谢 [所有贡献者](hhttps://github.com/Predidit/Kazumi/graphs/contributors) 本项目因为你们变得更好
+特别感谢 [所有贡献者](hhttps://github.com/Predidit/Kazumi/graphs/contributors) 本项目因为你们变得更好。
 
 特别感谢 [trace.moe](https://trace.moe) 本项目使用了 trace.moe 提供的图片识别番剧功能。
 

@@ -8,6 +8,7 @@ import 'package:kazumi/services/player/external_playback_launcher.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
+import 'package:kazumi/pages/player/controller/player_seek_controller.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_panel_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
@@ -46,6 +47,13 @@ class PlayerController {
     pause: pause,
     play: play,
     seek: seek,
+  );
+  late final PlayerSeekController seeking = PlayerSeekController(
+    playback: playback,
+    danmaku: danmaku,
+    pause: pause,
+    play: play,
+    onSeekCompleted: _onSeekCompleted,
   );
   late final ExternalPlaybackLauncher externalPlayback =
       ExternalPlaybackLauncher(
@@ -282,16 +290,13 @@ class PlayerController {
     await playback.playOrPause(pause: pause, play: play);
   }
 
-  Future<void> seek(Duration duration, {bool enableSync = true}) async {
-    final player = playback.mediaPlayer;
-    if (player == null) return;
-    playback.currentPosition = duration;
-    danmaku.canvasController.clear();
-    try {
-      await player.seek(duration);
-    } catch (_) {
-      return;
-    }
+  Future<void> seek(Duration duration, {bool enableSync = true}) =>
+      seeking.seekTo(duration, enableSync: enableSync);
+
+  Future<void> seekBy(Duration offset, {bool enableSync = true}) =>
+      seeking.seekBy(offset, enableSync: enableSync);
+
+  Future<void> _onSeekCompleted(bool enableSync) async {
     if (syncplay.syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {

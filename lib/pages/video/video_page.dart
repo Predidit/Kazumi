@@ -183,20 +183,36 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.historyOffset = 0;
     _showTabBodyImmediately(locateEpisode: false);
 
+    // 规则 baseURL 变更后迁移历史中过期的 pageURL，避免后续写入产生重复进度。
+    // 同步执行，保证下面 lastWatching 读取到迁移后的 URL。
+    videoPageController.migrateStaleOnlineEpisodePageUrls();
+
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
     if (progress != null) {
-      if (videoPageController.roadList.length > progress.road) {
-        if (videoPageController.roadList[progress.road].data.length >=
-            progress.episode) {
-          videoPageController.resetEpisodeState(
-            episode: progress.episode,
-            road: progress.road,
-          );
-          if (playResume) {
-            videoPageController.historyOffset = progress.progress.inSeconds;
-          }
+      final pageUrlSelection = findEpisodeSelectionByPageUrl(
+        videoPageController.roadList,
+        progress.episodePageUrl,
+      );
+      final fallbackSelection = pageUrlSelection ??
+          ((progress.road >= 0 &&
+                  videoPageController.roadList.length > progress.road &&
+                  progress.episode > 0 &&
+                  videoPageController.roadList[progress.road].data.length >=
+                      progress.episode)
+              ? VideoEpisodeSelection(
+                  episode: progress.episode,
+                  road: progress.road,
+                )
+              : null);
+      if (fallbackSelection != null) {
+        videoPageController.resetEpisodeState(
+          episode: fallbackSelection.episode,
+          road: fallbackSelection.road,
+        );
+        if (playResume) {
+          videoPageController.historyOffset = progress.progress.inSeconds;
         }
       }
     }

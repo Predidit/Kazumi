@@ -46,12 +46,28 @@ abstract class _HistoryController with Store {
     String adapterName,
     int episode, {
     String entryKind = HistoryEntryKind.online,
+    String episodePageUrl = '',
   }) {
     return _historyRepository.findProgress(
       bangumiItem,
       adapterName,
       episode,
       entryKind: entryKind,
+      episodePageUrl: episodePageUrl,
+    );
+  }
+
+  void migrateProgressPageUrls({
+    required BangumiItem bangumiItem,
+    required String adapterName,
+    String entryKind = HistoryEntryKind.online,
+    required String Function(int road, int episode) resolveCurrentPageUrl,
+  }) {
+    _historyRepository.migrateProgressPageUrls(
+      adapterName: adapterName,
+      bangumiItem: bangumiItem,
+      entryKind: entryKind,
+      resolveCurrentPageUrl: resolveCurrentPageUrl,
     );
   }
 
@@ -65,12 +81,14 @@ abstract class _HistoryController with Store {
     String adapterName,
     int episode, {
     String entryKind = HistoryEntryKind.online,
+    String episodePageUrl = '',
   }) async {
     await _historyRepository.clearProgress(
       bangumiItem,
       adapterName,
       episode,
       entryKind: entryKind,
+      episodePageUrl: episodePageUrl,
     );
     init();
   }

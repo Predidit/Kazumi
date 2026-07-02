@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -11,6 +13,7 @@ typedef HistoryProgressSyncAppender = Future<void> Function({
   required int road,
   required int progressMs,
   required int updatedAt,
+  required String episodePageUrl,
 });
 
 typedef HistoryDeleteSyncAppender = Future<void> Function(History history);
@@ -66,6 +69,7 @@ abstract class IHistoryRepository {
     String adapterName,
     int episode, {
     String entryKind = HistoryEntryKind.online,
+    String episodePageUrl = '',
   });
 
   /// 删除历史记录
@@ -83,10 +87,27 @@ abstract class IHistoryRepository {
     String adapterName,
     int episode, {
     String entryKind = HistoryEntryKind.online,
+    String episodePageUrl = '',
   });
 
   /// 清空所有历史记录
   Future<void> clearAllHistories();
+
+  /// 迁移历史进度中过期的 pageURL。
+  ///
+  /// 当规则的 baseURL 变更后，历史记录里基于旧 baseURL 归一化得到的
+  /// [Progress.episodePageUrl] 不再与当前 roadList 中的 URL 匹配，
+  /// 进而在下次写入时被当作新条目，产生重复进度。
+  ///
+  /// [resolveCurrentPageUrl] 根据存储的 `(road, episode)` 返回当前 roadList
+  /// 中对应的最新 URL（无法解析返回空串）。命中后就地把旧 URL 迁移为新 URL，
+  /// 使后续写入复用既有条目而非新建。
+  void migrateProgressPageUrls({
+    required String adapterName,
+    required BangumiItem bangumiItem,
+    String entryKind = HistoryEntryKind.online,
+    required String Function(int road, int episode) resolveCurrentPageUrl,
+  });
 
   /// 获取隐私模式设置
   bool getPrivateMode();
@@ -121,6 +142,7 @@ class HistoryRepository implements IHistoryRepository {
     required int road,
     required int progressMs,
     required int updatedAt,
+    required String episodePageUrl,
   }) async {
     final historySyncService = HistorySyncService();
     await historySyncService.appendSafely(
@@ -130,6 +152,7 @@ class HistoryRepository implements IHistoryRepository {
         road: road,
         progressMs: progressMs,
         updatedAt: updatedAt,
+        episodePageUrl: episodePageUrl,
       ),
     );
   }
@@ -247,24 +270,34 @@ class HistoryRepository implements IHistoryRepository {
       if (identity.episodeTitle.isNotEmpty) {
         history.lastWatchEpisodeName = identity.episodeTitle;
       }
-      if (identity.episodePageUrl.isNotEmpty) {
-        history.episodePageUrl = identity.episodePageUrl;
-      }
+      history.episodePageUrl = identity.episodePageUrl;
 
       // 更新观看进度
-      var prog = history.progresses[episode];
-      if (prog == null) {
-        history.progresses[episode] = Progress(
-          episode,
-          identity.road,
-          progress.inMilliseconds,
-          updatedAtMs: nowMs,
-        );
-      } else {
-        prog.road = identity.road;
-        prog.progress = progress;
-        prog.updatedAtMs = nowMs;
-      }
+      final progressMatch = _HistoryEpisodeMatcher.find(
+        history,
+        episode: episode,
+        episodePageUrl: identity.episodePageUrl,
+      );
+      final progressBucket = progressMatch?.bucket ??
+          _HistoryEpisodeMatcher.bucketForNewProgress(
+            history,
+            episode: episode,
+            episodePageUrl: identity.episodePageUrl,
+          );
+      final prog = progressMatch?.progress ??
+          Progress(
+            episode,
+            identity.road,
+            progress.inMilliseconds,
+            updatedAtMs: nowMs,
+            episodePageUrl: identity.episodePageUrl,
+          );
+      prog.episode = episode;
+      prog.road = identity.road;
+      prog.progress = progress;
+      prog.updatedAtMs = nowMs;
+      prog.episodePageUrl = identity.episodePageUrl;
+      history.progresses[progressBucket] = prog;
 
       // 保存到存储
       await _historiesBox.put(history.key, history);
@@ -277,6 +310,7 @@ class HistoryRepository implements IHistoryRepository {
         road: identity.road,
         progressMs: progress.inMilliseconds,
         updatedAt: nowMs,
+        episodePageUrl: prog.episodePageUrl,
       );
     } catch (e, stackTrace) {
       KazumiLogger().e(
@@ -294,8 +328,28 @@ class HistoryRepository implements IHistoryRepository {
     String entryKind = HistoryEntryKind.online,
   }) {
     try {
-      var history = _findHistory(adapterName, bangumiItem, entryKind);
-      return history?.progresses[history.lastWatchEpisode];
+      final history = _findHistory(adapterName, bangumiItem, entryKind);
+      if (history == null) {
+        return null;
+      }
+      final progressMatch = _HistoryEpisodeMatcher.find(
+        history,
+        episode: history.lastWatchEpisode,
+        episodePageUrl: history.episodePageUrl,
+      );
+      final resolvedMatch =
+          progressMatch?.progress.episode == history.lastWatchEpisode
+              ? progressMatch
+              : _HistoryEpisodeMatcher.find(
+                  history,
+                  episode: history.lastWatchEpisode,
+                );
+      _backfillProgressPageUrl(
+        history,
+        resolvedMatch,
+        history.episodePageUrl,
+      );
+      return resolvedMatch?.progress;
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: get last watching progress failed. bangumi=${bangumiItem.name}',
@@ -312,10 +366,20 @@ class HistoryRepository implements IHistoryRepository {
     String adapterName,
     int episode, {
     String entryKind = HistoryEntryKind.online,
+    String episodePageUrl = '',
   }) {
     try {
-      var history = _findHistory(adapterName, bangumiItem, entryKind);
-      return history?.progresses[episode];
+      final history = _findHistory(adapterName, bangumiItem, entryKind);
+      if (history == null) {
+        return null;
+      }
+      final progressMatch = _HistoryEpisodeMatcher.find(
+        history,
+        episode: episode,
+        episodePageUrl: episodePageUrl,
+      );
+      _backfillProgressPageUrl(history, progressMatch, episodePageUrl);
+      return progressMatch?.progress;
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: find progress failed. bangumi=${bangumiItem.name}, episode=$episode',
@@ -352,20 +416,34 @@ class HistoryRepository implements IHistoryRepository {
     String adapterName,
     int episode, {
     String entryKind = HistoryEntryKind.online,
+    String episodePageUrl = '',
   }) async {
     try {
-      var history = _findHistory(adapterName, bangumiItem, entryKind);
-      if (history != null && history.progresses[episode] != null) {
+      final history = _findHistory(adapterName, bangumiItem, entryKind);
+      final progressMatch = history == null
+          ? null
+          : _HistoryEpisodeMatcher.find(
+              history,
+              episode: episode,
+              episodePageUrl: episodePageUrl,
+            );
+      if (history != null && progressMatch != null) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
-        history.progresses[episode]!.progress = Duration.zero;
-        history.progresses[episode]!.updatedAtMs = nowMs;
+        progressMatch.progress.progress = Duration.zero;
+        progressMatch.progress.updatedAtMs = nowMs;
+        if (episodePageUrl.isNotEmpty &&
+            progressMatch.progress.episodePageUrl.isEmpty) {
+          progressMatch.progress.episodePageUrl = episodePageUrl;
+        }
+        history.progresses[progressMatch.bucket] = progressMatch.progress;
         await _historiesBox.put(history.key, history);
         await _progressSyncAppender(
           history: history,
-          episode: episode,
-          road: history.progresses[episode]!.road,
+          episode: progressMatch.progress.episode,
+          road: progressMatch.progress.road,
           progressMs: 0,
           updatedAt: nowMs,
+          episodePageUrl: progressMatch.progress.episodePageUrl,
         );
       }
     } catch (e, stackTrace) {
@@ -385,6 +463,118 @@ class HistoryRepository implements IHistoryRepository {
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: clear all histories failed',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  @override
+  void migrateProgressPageUrls({
+    required String adapterName,
+    required BangumiItem bangumiItem,
+    String entryKind = HistoryEntryKind.online,
+    required String Function(int road, int episode) resolveCurrentPageUrl,
+  }) {
+    try {
+      final history = _findHistory(adapterName, bangumiItem, entryKind);
+      if (history == null) {
+        return;
+      }
+
+      // Phase 1: 解析计划重写（仅记录，不修改）。
+      // 必须使用 Progress 值的 road/episode，而非 map key，因为
+      // bucketForNewProgress 会递增寻找空桶，key 可能不等于 episode。
+      final plannedRewrites = <int, String>{};
+      for (final entry in history.progresses.entries) {
+        final progress = entry.value;
+        final currentUrl = progress.episodePageUrl.trim();
+        if (currentUrl.isEmpty) {
+          continue;
+        }
+        final newUrl =
+            resolveCurrentPageUrl(progress.road, progress.episode).trim();
+        if (newUrl.isEmpty || newUrl == currentUrl) {
+          continue;
+        }
+        plannedRewrites[entry.key] = newUrl;
+      }
+
+      if (plannedRewrites.isEmpty) {
+        return;
+      }
+
+      // 在变更前记录顶层 URL 对应的桶，便于结束后同步迁移
+      // history.episodePageUrl（getLastWatchingProgress 会优先用它匹配）。
+      final topUrl = history.episodePageUrl.trim();
+      int? topBucketKey;
+      if (topUrl.isNotEmpty) {
+        for (final entry in history.progresses.entries) {
+          if (entry.value.episodePageUrl.trim() == topUrl) {
+            topBucketKey = entry.key;
+            break;
+          }
+        }
+      }
+
+      // Phase 2: 应用重写并解决目标 URL 冲突。
+      var changed = false;
+      final removedBuckets = <int>{};
+      plannedRewrites.forEach((bucketKey, newUrl) {
+        if (removedBuckets.contains(bucketKey)) {
+          return;
+        }
+        final progress = history.progresses[bucketKey];
+        if (progress == null) {
+          return;
+        }
+
+        // 查找其它已持有 newUrl 的桶（既有真实条目或过往升级产生的重复）。
+        int? conflictKey;
+        for (final entry in history.progresses.entries) {
+          if (entry.key == bucketKey || removedBuckets.contains(entry.key)) {
+            continue;
+          }
+          if (entry.value.episodePageUrl == newUrl) {
+            conflictKey = entry.key;
+            break;
+          }
+        }
+
+        if (conflictKey == null) {
+          progress.episodePageUrl = newUrl;
+          changed = true;
+          return;
+        }
+
+        // 冲突：按 updatedAtMs 较大者为准，删除落败桶，仅向幸存桶写入。
+        final conflictProgress = history.progresses[conflictKey]!;
+        if (progress.updatedAtMs >= conflictProgress.updatedAtMs) {
+          history.progresses.remove(conflictKey);
+          removedBuckets.add(conflictKey);
+          progress.episodePageUrl = newUrl;
+        } else {
+          history.progresses.remove(bucketKey);
+          removedBuckets.add(bucketKey);
+          // 幸存桶已持有 newUrl，无需再赋值。
+        }
+        changed = true;
+      });
+
+      if (topBucketKey != null) {
+        final newTopUrl = plannedRewrites[topBucketKey];
+        if (newTopUrl != null && newTopUrl != topUrl) {
+          history.episodePageUrl = newTopUrl;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        unawaited(_historiesBox.put(history.key, history));
+      }
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: migrate progress page urls failed. bangumi=${bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -422,4 +612,110 @@ class HistoryRepository implements IHistoryRepository {
             ? _historiesBox.get(History.legacyKey(adapterName, bangumiItem))
             : null);
   }
+
+  void _backfillProgressPageUrl(
+    History history,
+    _HistoryEpisodeMatch? progressMatch,
+    String episodePageUrl,
+  ) {
+    if (progressMatch == null ||
+        episodePageUrl.isEmpty ||
+        progressMatch.progress.episodePageUrl.isNotEmpty) {
+      return;
+    }
+    progressMatch.progress.episodePageUrl = episodePageUrl;
+    history.progresses[progressMatch.bucket] = progressMatch.progress;
+    unawaited(_historiesBox.put(history.key, history));
+  }
+}
+
+class _HistoryEpisodeMatch {
+  const _HistoryEpisodeMatch({
+    required this.bucket,
+    required this.progress,
+  });
+
+  final int bucket;
+  final Progress progress;
+}
+
+class _HistoryEpisodeMatcher {
+  static _HistoryEpisodeMatch? find(
+    History history, {
+    required int episode,
+    String episodePageUrl = '',
+  }) {
+    final pageUrl = episodePageUrl.trim();
+    if (pageUrl.isNotEmpty) {
+      for (final entry in history.progresses.entries) {
+        if (entry.value.episodePageUrl == pageUrl) {
+          return _HistoryEpisodeMatch(
+            bucket: entry.key,
+            progress: entry.value,
+          );
+        }
+      }
+
+      final legacyProgress = history.progresses[episode];
+      if (legacyProgress != null &&
+          legacyProgress.episode == episode &&
+          legacyProgress.episodePageUrl.isEmpty) {
+        return _HistoryEpisodeMatch(
+          bucket: episode,
+          progress: legacyProgress,
+        );
+      }
+      for (final entry in history.progresses.entries) {
+        final progress = entry.value;
+        if (progress.episode == episode && progress.episodePageUrl.isEmpty) {
+          return _HistoryEpisodeMatch(
+            bucket: entry.key,
+            progress: progress,
+          );
+        }
+      }
+      return null;
+    }
+
+    final progress = history.progresses[episode];
+    if (progress != null && progress.episode == episode) {
+      return _HistoryEpisodeMatch(bucket: episode, progress: progress);
+    }
+
+    for (final entry in history.progresses.entries) {
+      if (entry.value.episode == episode) {
+        return _HistoryEpisodeMatch(
+          bucket: entry.key,
+          progress: entry.value,
+        );
+      }
+    }
+    return null;
+  }
+
+  static int bucketForNewProgress(
+    History history, {
+    required int episode,
+    String episodePageUrl = '',
+  }) {
+    final pageUrl = episodePageUrl.trim();
+    final existing = history.progresses[episode];
+    if (existing == null) {
+      return episode;
+    }
+    if (existing.episode == episode &&
+        (pageUrl.isEmpty ||
+            existing.episodePageUrl.isEmpty ||
+            existing.episodePageUrl == pageUrl)) {
+      return episode;
+    }
+
+    var bucket = episode;
+    while (history.progresses.containsKey(bucket)) {
+      bucket++;
+    }
+    return bucket;
+  }
+
+  _HistoryEpisodeMatcher._();
 }

@@ -25,10 +25,13 @@ class CollectPage extends StatefulWidget {
 class _CollectPageState extends State<CollectPage>
     with SingleTickerProviderStateMixin {
   final CollectController collectController = Modular.get<CollectController>();
+  final TextEditingController searchController = TextEditingController();
   late NavigationBarState navigationBarState;
   TabController? tabController;
   bool showDelete = false;
   bool syncCollectiblesing = false;
+  bool searchBarHovering = false;
+  late final FocusNode _searchEntryFocusNode = FocusNode();
 
   Future<bool> _syncBangumiWithProgress({
     required GlobalKey<_FullSyncProgressDialogState> progressDialogKey,
@@ -133,6 +136,7 @@ class _CollectPageState extends State<CollectPage>
   }
 
   void onBackPressed(BuildContext context) {
+    collectController.searchText = '';
     if (syncCollectiblesing) {
       return;
     }
@@ -147,6 +151,7 @@ class _CollectPageState extends State<CollectPage>
   @override
   void initState() {
     super.initState();
+    searchController.text = collectController.searchText;
     collectController.loadCollectibles();
     tabController = TabController(vsync: this, length: tabs.length);
     navigationBarState =
@@ -156,6 +161,7 @@ class _CollectPageState extends State<CollectPage>
   @override
   void dispose() {
     tabController?.dispose();
+    searchController.dispose();
     super.dispose();
   }
 
@@ -191,6 +197,16 @@ class _CollectPageState extends State<CollectPage>
           ),
           title: const Text('追番'),
           actions: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Observer(builder: (context) => Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: searchEntry
+              )),
+            ),
             IconButton(
                 onPressed: () {
                   setState(() {
@@ -247,8 +263,8 @@ class _CollectPageState extends State<CollectPage>
               : const Icon(Icons.sync_rounded),
         ),
         body: Observer(builder: (context) {
-          return renderBody;
-        }),
+              return renderBody;
+            }),
       ),
     );
   }
@@ -276,6 +292,12 @@ class _CollectPageState extends State<CollectPage>
       collectedBangumiRenderItemList[element.type - 1].add(element);
     }
     for (List<CollectedBangumi> list in collectedBangumiRenderItemList) {
+      if (collectController.searchText.isNotEmpty) {
+        list.removeWhere((item) {
+          return !item.bangumiItem.nameCn.contains(collectController.searchText) &&
+                !item.bangumiItem.name.contains(collectController.searchText);
+        });
+      }
       list.sort((a, b) => b.time.millisecondsSinceEpoch
           .compareTo(a.time.millisecondsSinceEpoch));
     }
@@ -371,6 +393,102 @@ class _CollectPageState extends State<CollectPage>
       );
     }
     return gridViewList;
+  }
+
+  Widget get searchEntry {
+    if (collectController.isSearching) {
+      return TapRegion(
+        groupId: 'searchEntryTapRegion',
+        child: Observer(builder:(context) {
+          return SizedBox(
+            height: 48,
+            width: MediaQuery.sizeOf(context).width * 0.6,
+            child: SearchBar(
+              autoFocus: true,
+              focusNode: _searchEntryFocusNode,
+              controller: searchController,
+              hintText: '在收藏中搜索番剧喵~',
+              hintStyle: WidgetStateProperty.all(
+                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              elevation: WidgetStateProperty.all(2.0),
+              shadowColor: WidgetStateProperty.all(
+                Theme.of(context).colorScheme.shadow,
+              ),
+              surfaceTintColor: WidgetStateProperty.all(
+                Theme.of(context).colorScheme.surfaceTint,
+              ),
+              padding: WidgetStateProperty.all(
+                const EdgeInsets.symmetric(horizontal: 4.0),
+              ),
+              shape: WidgetStateProperty.all(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28.0),
+                ),
+              ),
+              leading: const Padding(
+                padding: EdgeInsets.only(left: 8.0),
+                child: Icon(Icons.search_rounded),
+              ),
+              trailing: [
+                Observer(builder: (context) => searchEntryActionButton),
+              ],
+              onChanged: (value) {
+                collectController.searchText = value;
+              },
+            ));
+        }),
+        onTapOutside: (_) {
+          collectController.isSearching = false;
+        },
+      );
+    } else {
+      IconButton searchButton = IconButton(
+        onPressed: () {
+          collectController.isSearching = true;
+        },
+        icon: const Icon(Icons.search_rounded),
+      );
+
+      if (collectController.searchText.isNotEmpty) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: Row(
+            children: [
+              Text(
+                '搜索： ${collectController.searchText}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              searchButton,
+            ],
+          ),
+        );
+      } else {
+        return searchButton;
+      }
+    }
+  }
+
+  Widget get searchEntryActionButton {
+    if (collectController.searchText.isNotEmpty) {
+      return IconButton(
+        padding: const EdgeInsets.all(0),
+        alignment: Alignment.centerRight,
+        style: ButtonStyle(
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
+        ),
+        onPressed: () {
+          searchController.clear();
+          collectController.searchText = '';
+          _searchEntryFocusNode.requestFocus();
+        },
+        icon: const Icon(Icons.close_rounded),
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
   }
 }
 

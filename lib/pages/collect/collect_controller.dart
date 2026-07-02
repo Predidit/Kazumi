@@ -35,6 +35,12 @@ abstract class _CollectController with Store {
   ObservableList<CollectedBangumi> collectibles =
       ObservableList<CollectedBangumi>();
 
+  @observable
+  String searchText = '';
+
+  @observable
+  bool isSearching = false;
+
   void loadCollectibles() {
     collectibles.clear();
     collectibles.addAll(_collectCrudRepository.getAllCollectibles());

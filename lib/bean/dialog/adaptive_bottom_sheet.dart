@@ -33,13 +33,14 @@ Future<T?> showAdaptiveBottomSheet<T>({
   double maxHeightFactor = 0.75,
   double compactLandscapeMaxHeightFactor = 0.9,
   Color? backgroundColor,
+  bool showDragHandle = false,
 }) {
   return showModalBottomSheet<T>(
     context: context,
     builder: builder,
     isScrollControlled: true,
     useSafeArea: true,
-    showDragHandle: false,
+    showDragHandle: showDragHandle,
     constraints: adaptiveBottomSheetConstraints(
       context,
       maxHeightFactor: maxHeightFactor,

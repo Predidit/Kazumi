@@ -373,8 +373,8 @@ class _SourceSheetState extends State<SourceSheet>
                   TextButton(
                     style: TextButton.styleFrom(
                       minimumSize: Size.zero,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 10),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
                       textStyle: Theme.of(context).textTheme.bodySmall,
@@ -385,8 +385,8 @@ class _SourceSheetState extends State<SourceSheet>
                   TextButton(
                     style: TextButton.styleFrom(
                       minimumSize: Size.zero,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 10),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
                       textStyle: Theme.of(context).textTheme.bodySmall,
@@ -414,7 +414,7 @@ class _SourceSheetState extends State<SourceSheet>
           aliases: widget.infoController.bangumiItem.alias,
           onAliasSelected: (alias) {
             KazumiDialog.dismiss();
-            pluginSearchService?.querySource(alias, pluginName);
+            pluginSearchService?.querySource(alias, pluginName, research: true);
           },
           onAliasesChanged: () {
             collectController
@@ -436,7 +436,7 @@ class _SourceSheetState extends State<SourceSheet>
       widget.infoController.bangumiItem.alias.add(alias);
       collectController.updateLocalCollect(widget.infoController.bangumiItem);
       KazumiDialog.dismiss();
-      pluginSearchService?.querySource(alias, pluginName);
+      pluginSearchService?.querySource(alias, pluginName, research: true);
     }
 
     KazumiDialog.show(

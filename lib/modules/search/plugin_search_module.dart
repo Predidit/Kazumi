@@ -10,6 +10,10 @@ class SearchItem {
   factory SearchItem.fromJson(Map<String, dynamic> json) {
     return SearchItem(name: json['name'], src: json['src']);
   }
+
+  Map<String, dynamic> toJson() {
+    return {'name': name, 'src': src};
+  }
 }
 
 class PluginSearchResponse {
@@ -28,5 +32,12 @@ class PluginSearchResponse {
           .map((itemJson) => SearchItem.fromJson(itemJson))
           .toList(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'pluginName': pluginName,
+      'data': data.map((item) => item.toJson()).toList(),
+    };
   }
 }

@@ -363,6 +363,22 @@ class GStorage {
     await _setting.put(key, value);
   }
 
+  static String? getStringSettingByName(String key) {
+    final storedValue = _setting.get(key);
+    if (storedValue is String) {
+      return storedValue;
+    }
+    return null;
+  }
+
+  static Future<void> putStringSettingByName(String key, String value) async {
+    await _setting.put(key, value);
+  }
+
+  static Future<void> deleteSettingByName(String key) async {
+    await _setting.delete(key);
+  }
+
   static Future<void> resetSettings(Iterable<SettingKey<Object?>> keys) async {
     await _setting.deleteAll(keys.map((key) => key.name));
     await _setting.flush();

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
@@ -353,25 +352,18 @@ class _PlayerItemState extends State<PlayerItem>
     widget.changeEpisode(targetEpisode, currentRoad: currentRoad);
   }
 
-  //快退快捷键动作
   Future<void> handleShortcutRewind() async {
-    int skipTime = playerController.playback.arrowKeySkipTime;
-    int current = playerController.playback.currentPosition.inSeconds;
-    int targetPosition;
-
-    targetPosition = current - skipTime;
-    if (targetPosition < 0) targetPosition = 0;
-
     try {
-      playerTimer?.cancel();
-      await playerController.seek(Duration(seconds: targetPosition));
-      playerTimer = getPlayerTimer();
+      await _seekWithPlayerTimer(
+        () => playerController.seekBy(
+          Duration(seconds: -playerController.playback.arrowKeySkipTime),
+        ),
+      );
     } catch (e) {
       KazumiLogger().e('PlayerController: seek failed', error: e);
     }
   }
 
-  // 快进快捷键动作
   Future<void> handleShortcutForwardDown() async {
     lastPlayerSpeed = playerController.playback.playerSpeed;
   }
@@ -387,21 +379,16 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> handleShortcutForwardUp() async {
-    int skipTime = playerController.playback.arrowKeySkipTime;
-    int current = playerController.playback.currentPosition.inSeconds;
-    int total = playerController.playback.duration.inSeconds;
-    int targetPosition;
-
-    targetPosition = current + skipTime;
-    if (targetPosition > total) targetPosition = total;
     if (playerController.panel.showPlaySpeed) {
       playerController.panel.showPlaySpeed = false;
       setPlaybackSpeed(lastPlayerSpeed);
     } else {
       try {
-        playerTimer?.cancel();
-        playerController.seek(Duration(seconds: targetPosition));
-        playerTimer = getPlayerTimer();
+        await _seekWithPlayerTimer(
+          () => playerController.seekBy(
+            Duration(seconds: playerController.playback.arrowKeySkipTime),
+          ),
+        );
       } catch (e) {
         KazumiLogger().e('PlayerController: seek failed', error: e);
       }
@@ -513,10 +500,10 @@ class _PlayerItemState extends State<PlayerItem>
     _scheduleAdjustmentHudHide();
   }
 
-  // 跳过指定秒数
   Future<void> skipOP() async {
-    await playerController.seek(playerController.playback.currentPosition +
-        Duration(seconds: playerController.playback.buttonSkipTime));
+    await playerController.seekBy(
+      Duration(seconds: playerController.playback.buttonSkipTime),
+    );
   }
 
   void handleDanmaku() {
@@ -628,21 +615,62 @@ class _PlayerItemState extends State<PlayerItem>
     await _syncHistoryWithWebDav();
   }
 
-  void handleProgressBarDragStart(ThumbDragDetails details) {
-    playerTimer?.cancel();
-    playerController.pause(enableSync: false);
+  void handleProgressBarDragStart() {
+    _beginInteractiveSeek();
     _syncAudioServiceState();
-    _progressBarDragHold?.release();
     _progressBarDragHold = acquirePlayerPanelHold();
   }
 
-  void handleProgressBarDragEnd() {
-    playerController.play(enableSync: false);
-    _syncAudioServiceState();
+  Future<void> handleProgressBarSeek(Duration duration) async {
+    if (!playerController.seeking.updateInteractiveSeek(duration)) {
+      await playerController.seek(duration);
+      return;
+    }
+    await _commitInteractiveSeek();
+  }
+
+  void _beginInteractiveSeek() {
     _progressBarDragHold?.release();
     _progressBarDragHold = null;
     playerTimer?.cancel();
+    playerController.seeking.beginInteractiveSeek();
+  }
+
+  Future<void> _commitInteractiveSeek() async {
+    var completed = false;
+    try {
+      completed = await playerController.seeking.commitInteractiveSeek();
+    } catch (e) {
+      KazumiLogger().e('PlayerController: interactive seek failed', error: e);
+    }
+    if (!mounted ||
+        (!completed && playerController.seeking.hasActiveInteractiveSeek)) {
+      return;
+    }
+    _progressBarDragHold?.release();
+    _progressBarDragHold = null;
+    if (completed) {
+      _syncAudioServiceState();
+    }
+    _restartPlayerTimer();
+  }
+
+  void _restartPlayerTimer() {
+    playerTimer?.cancel();
     playerTimer = getPlayerTimer();
+  }
+
+  Future<void> _seekWithPlayerTimer(
+    Future<void> Function() seekAction,
+  ) async {
+    playerTimer?.cancel();
+    try {
+      await seekAction();
+    } finally {
+      if (mounted) {
+        _restartPlayerTimer();
+      }
+    }
   }
 
   //截图
@@ -1725,6 +1753,7 @@ class _PlayerItemState extends State<PlayerItem>
     _playerSizeListener();
     WidgetsBinding.instance.removeObserver(this);
     windowManager.removeListener(this);
+    playerController.seeking.invalidateInteractiveSeek();
     playerTimer?.cancel();
     hideTimer?.cancel();
     mouseScrollerTimer?.cancel();
@@ -1928,7 +1957,7 @@ class _PlayerItemState extends State<PlayerItem>
                             handleFullscreen: handleFullscreen,
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
-                            handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            handleProgressBarSeek: handleProgressBarSeek,
                             handleSuperResolutionChange:
                                 handleSuperResolutionChange,
                             handlePreNextEpisode: handlePreNextEpisode,
@@ -1958,7 +1987,7 @@ class _PlayerItemState extends State<PlayerItem>
                             handleFullscreen: handleFullscreen,
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
-                            handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            handleProgressBarSeek: handleProgressBarSeek,
                             handleSuperResolutionChange:
                                 handleSuperResolutionChange,
                             panelVisibilityController:
@@ -1986,6 +2015,7 @@ class _PlayerItemState extends State<PlayerItem>
                           : GestureDetector(
                               onHorizontalDragStart: (_) {
                                 playerController.panel.seekDirection = 0;
+                                _beginInteractiveSeek();
                               },
                               onHorizontalDragUpdate:
                                   (DragUpdateDetails details) {
@@ -1994,28 +2024,25 @@ class _PlayerItemState extends State<PlayerItem>
                                   playerController.panel.seekDirection =
                                       details.delta.dx > 0 ? 1 : -1;
                                 }
-                                playerTimer?.cancel();
-                                playerController.pause(enableSync: false);
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
-                                int ms = (playerController.playback
-                                            .currentPosition.inMilliseconds +
-                                        (details.delta.dx * scale).round())
-                                    .clamp(
-                                        0,
-                                        playerController
-                                            .playback.duration.inMilliseconds);
-                                playerController.playback.currentPosition =
-                                    Duration(milliseconds: ms);
+                                playerController.seeking.updateInteractiveSeek(
+                                  playerController.playback.currentPosition +
+                                      Duration(
+                                        milliseconds:
+                                            (details.delta.dx * scale).round(),
+                                      ),
+                                );
                               },
                               onHorizontalDragEnd: (_) {
-                                playerController.play(enableSync: false);
-                                playerController.seek(
-                                    playerController.playback.currentPosition);
-                                playerTimer?.cancel();
-                                playerTimer = getPlayerTimer();
                                 playerController.panel.showSeekTime = false;
                                 playerController.panel.seekDirection = 0;
+                                if (playerController
+                                    .seeking.hasActiveInteractiveSeek) {
+                                  unawaited(
+                                    _commitInteractiveSeek(),
+                                  );
+                                }
                               },
                               onVerticalDragUpdate:
                                   (DragUpdateDetails details) async {

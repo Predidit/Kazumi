@@ -32,7 +32,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.showDanmakuSwitch,
     required this.handleFullscreen,
     required this.handleProgressBarDragStart,
-    required this.handleProgressBarDragEnd,
+    required this.handleProgressBarSeek,
     required this.handleSuperResolutionChange,
     required this.panelVisibilityController,
     required this.keyboardFocus,
@@ -53,8 +53,8 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() handleDanmaku;
   final void Function() skipOP;
   final void Function() handleFullscreen;
-  final void Function(ThumbDragDetails details) handleProgressBarDragStart;
-  final void Function() handleProgressBarDragEnd;
+  final VoidCallback handleProgressBarDragStart;
+  final Future<void> Function(Duration duration) handleProgressBarSeek;
   final Future<void> Function(SuperResolutionMode mode)
       handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
@@ -437,17 +437,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             progress: playerController.playback.currentPosition,
             buffered: playerController.playback.buffer,
             total: playerController.playback.duration,
-            onSeek: (duration) {
-              playerController.seek(duration);
-            },
-            onDragStart: (details) {
-              widget.handleProgressBarDragStart(details);
-            },
-            onDragUpdate: (details) =>
-                {playerController.playback.currentPosition = details.timeStamp},
-            onDragEnd: () {
-              widget.handleProgressBarDragEnd();
-            },
+            onSeek: widget.handleProgressBarSeek,
+            onDragStart: (_) => widget.handleProgressBarDragStart(),
+            onDragUpdate: (details) => playerController.seeking
+                .updateInteractiveSeek(details.timeStamp),
           ),
         ),
         Text(

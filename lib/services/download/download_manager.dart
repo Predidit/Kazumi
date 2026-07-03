@@ -220,6 +220,7 @@ class DownloadManager implements IDownloadManager {
   }
 
   Future<String> get _downloadBaseDir async {
+    if (!Platform.isWindows) return _defaultDownloadBaseDir;
     final customDir =
         GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
     if (customDir.isNotEmpty) return customDir;

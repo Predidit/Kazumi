@@ -37,14 +37,12 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   }
 
   bool get _canPickDirectory =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.windows ||
-          defaultTargetPlatform == TargetPlatform.macOS ||
-          defaultTargetPlatform == TargetPlatform.linux);
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
 
-  String get _effectiveDownloadDirectory => downloadDirectory.trim().isNotEmpty
-      ? downloadDirectory.trim()
-      : defaultDownloadDirectory;
+  String get _effectiveDownloadDirectory =>
+      _canPickDirectory && downloadDirectory.trim().isNotEmpty
+          ? downloadDirectory.trim()
+          : defaultDownloadDirectory;
 
   Future<void> _loadDefaultDownloadDirectory() async {
     final appSupport = await getApplicationSupportDirectory();
@@ -202,7 +200,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      downloadDirectory.trim().isEmpty
+                      !_canPickDirectory || downloadDirectory.trim().isEmpty
                           ? '当前使用默认下载位置，修改后仅对新下载生效'
                           : '当前使用自定义下载位置，修改后仅对新下载生效',
                       style: TextStyle(
@@ -237,7 +235,8 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                       onPressed:
                           _canPickDirectory ? _selectDownloadDirectory : null,
                     ),
-                    if (downloadDirectory.trim().isNotEmpty)
+                    if (_canPickDirectory &&
+                        downloadDirectory.trim().isNotEmpty)
                       IconButton(
                         tooltip: '恢复默认',
                         icon: const Icon(Icons.restore_rounded),

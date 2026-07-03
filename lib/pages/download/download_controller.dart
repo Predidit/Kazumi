@@ -873,10 +873,16 @@ abstract class _DownloadController with Store {
   Future<void> cancelDownload(
       int bangumiId, String pluginName, int episodeNumber) async {
     final recordKey = '${pluginName}_$bangumiId';
+    final episode =
+        _repository.getEpisode(bangumiId, pluginName, episodeNumber);
     _downloadManager.cancel(recordKey, episodeNumber);
     _cancelResolve(recordKey, episodeNumber);
     await _downloadManager.deleteEpisodeFiles(
-        bangumiId, pluginName, episodeNumber);
+      bangumiId,
+      pluginName,
+      episodeNumber,
+      episode: episode,
+    );
     await _repository.deleteEpisode(recordKey, episodeNumber);
     _refreshRecord(recordKey);
     _queueBackgroundNotificationUpdate();
@@ -892,7 +898,11 @@ abstract class _DownloadController with Store {
       }
     }
     _cancelResolveRecord(recordKey);
-    await _downloadManager.deleteRecordFiles(bangumiId, pluginName);
+    await _downloadManager.deleteRecordFiles(
+      bangumiId,
+      pluginName,
+      record: record,
+    );
     await _repository.deleteRecord(recordKey);
     _refreshRecord(recordKey);
     _queueBackgroundNotificationUpdate();
@@ -904,8 +914,14 @@ abstract class _DownloadController with Store {
     _downloadManager.cancel(recordKey, episodeNumber);
     _speeds.remove('${recordKey}_$episodeNumber');
     _cancelResolve(recordKey, episodeNumber);
+    final episode =
+        _repository.getEpisode(bangumiId, pluginName, episodeNumber);
     await _downloadManager.deleteEpisodeFiles(
-        bangumiId, pluginName, episodeNumber);
+      bangumiId,
+      pluginName,
+      episodeNumber,
+      episode: episode,
+    );
     await _repository.deleteEpisode(recordKey, episodeNumber);
     _refreshRecord(recordKey);
     _queueBackgroundNotificationUpdate();

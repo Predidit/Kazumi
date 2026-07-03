@@ -10,6 +10,7 @@ import 'package:kazumi/utils/m3u8_ad_filter.dart';
 import 'package:kazumi/utils/format.dart' as fmt;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
 class _NotM3u8Exception implements Exception {
@@ -100,8 +101,10 @@ abstract class IDownloadManager {
   void cancel(String recordKey, int episodeNumber);
   String? getLocalVideoPath(DownloadEpisode? episode);
   Future<void> deleteEpisodeFiles(
-      int bangumiId, String pluginName, int episodeNumber);
-  Future<void> deleteRecordFiles(int bangumiId, String pluginName);
+      int bangumiId, String pluginName, int episodeNumber,
+      {DownloadEpisode? episode});
+  Future<void> deleteRecordFiles(int bangumiId, String pluginName,
+      {DownloadRecord? record});
   double getSpeed(String recordKey, int episodeNumber);
 }
 
@@ -211,14 +214,50 @@ class DownloadManager implements IDownloadManager {
   bool isDownloading(String recordKey, int episodeNumber) =>
       _activeTasks.containsKey(_taskKey(recordKey, episodeNumber));
 
-  Future<String> get _downloadBaseDir async {
+  Future<String> get _defaultDownloadBaseDir async {
     final appSupport = await getApplicationSupportDirectory();
-    return '${appSupport.path}/downloads';
+    return path.join(appSupport.path, 'downloads');
+  }
+
+  Future<String> get _downloadBaseDir async {
+    final customDir =
+        GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
+    if (customDir.isNotEmpty) return customDir;
+    return _defaultDownloadBaseDir;
   }
 
   String getEpisodeDir(String downloadBase, int bangumiId, String pluginName,
       int episodeNumber) {
-    return '$downloadBase/${bangumiId}_$pluginName/$episodeNumber';
+    return path.join(
+        downloadBase, '${bangumiId}_$pluginName', '$episodeNumber');
+  }
+
+  Future<String> _resolveEpisodeDir(
+    DownloadEpisode episode,
+    int bangumiId,
+    String pluginName,
+    int episodeNumber,
+  ) async {
+    final existingDir = episode.downloadDirectory.trim();
+    if (existingDir.isNotEmpty) return existingDir;
+    return getEpisodeDir(
+        await _downloadBaseDir, bangumiId, pluginName, episodeNumber);
+  }
+
+  Future<void> _ensureWritableDirectory(String directoryPath) async {
+    final directory = Directory(directoryPath);
+    await directory.create(recursive: true);
+
+    final probe = File(path.join(
+      directoryPath,
+      '.kazumi_write_test_${DateTime.now().microsecondsSinceEpoch}.tmp',
+    ));
+    await probe.writeAsString('ok', flush: true);
+    try {
+      await probe.delete();
+    } on FileSystemException {
+      // A leftover probe file should not block the download after writing works.
+    }
   }
 
   @override
@@ -366,6 +405,12 @@ class DownloadManager implements IDownloadManager {
   }) async {
     final key = _taskKey(task.recordKey, task.episodeNumber);
     try {
+      final episodeDir = await _resolveEpisodeDir(
+          episode, bangumiId, pluginName, task.episodeNumber);
+      await _ensureWritableDirectory(episodeDir);
+      episode.downloadDirectory = episodeDir;
+      await _checkStorageSpace(episodeDir);
+
       episode.status = DownloadStatus.downloading;
       episode.networkM3u8Url = m3u8Url;
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
@@ -434,12 +479,6 @@ class DownloadManager implements IDownloadManager {
         segments = M3u8AdFilter.filterAds(segments);
       }
 
-      final base = await _downloadBaseDir;
-      final episodeDir =
-          getEpisodeDir(base, bangumiId, pluginName, task.episodeNumber);
-      await Directory(episodeDir).create(recursive: true);
-      episode.downloadDirectory = episodeDir;
-      await _checkStorageSpace(base);
       final keys = M3u8Parser.extractUniqueKeys(
         M3u8MediaPlaylist(
           segments: segments,
@@ -450,7 +489,7 @@ class DownloadManager implements IDownloadManager {
       final keyUriToLocal = <String, String>{};
       for (int i = 0; i < keys.length; i++) {
         final keyFile = 'key_$i.key';
-        final keyPath = '$episodeDir/$keyFile';
+        final keyPath = path.join(episodeDir, keyFile);
         await _downloadFile(
             keys[i].uri, keyPath, httpHeaders, task.cancelToken);
         keyUriToLocal[keys[i].uri] = keyFile;
@@ -473,8 +512,8 @@ class DownloadManager implements IDownloadManager {
       final existingSegments = <int>{};
       var existingBytes = 0;
       for (int i = 0; i < segments.length; i++) {
-        final segFile =
-            File('$episodeDir/seg_${i.toString().padLeft(5, '0')}.ts');
+        final segFile = File(
+            path.join(episodeDir, 'seg_${i.toString().padLeft(5, '0')}.ts'));
         if (await segFile.exists()) {
           final segmentBytes = await segFile.length();
           if (segmentBytes <= 0) continue;
@@ -517,7 +556,7 @@ class DownloadManager implements IDownloadManager {
 
           _downloadSegmentWithRetry(
             segments[idx].uri,
-            '$episodeDir/seg_${idx.toString().padLeft(5, '0')}.ts',
+            path.join(episodeDir, 'seg_${idx.toString().padLeft(5, '0')}.ts'),
             httpHeaders,
             task.cancelToken,
           ).then((bytes) {
@@ -572,7 +611,7 @@ class DownloadManager implements IDownloadManager {
         targetDuration: targetDuration,
         keyUriToLocal: keyUriToLocal,
       );
-      final m3u8Path = '$episodeDir/playlist.m3u8';
+      final m3u8Path = path.join(episodeDir, 'playlist.m3u8');
       await File(m3u8Path).writeAsString(localM3u8);
       final finalVideoBytes = await calculateM3u8VideoBytes(episodeDir);
 
@@ -629,14 +668,13 @@ class DownloadManager implements IDownloadManager {
   }) async {
     final key = _taskKey(task.recordKey, task.episodeNumber);
     try {
-      final base = await _downloadBaseDir;
-      final episodeDir =
-          getEpisodeDir(base, bangumiId, pluginName, task.episodeNumber);
-      await Directory(episodeDir).create(recursive: true);
+      final episodeDir = await _resolveEpisodeDir(
+          episode, bangumiId, pluginName, task.episodeNumber);
+      await _ensureWritableDirectory(episodeDir);
       episode.downloadDirectory = episodeDir;
-      await _checkStorageSpace(base);
+      await _checkStorageSpace(episodeDir);
 
-      final filePath = '$episodeDir/video.mp4';
+      final filePath = path.join(episodeDir, 'video.mp4');
       final tmpPath = '$filePath.tmp';
 
       int existingBytes = 0;
@@ -869,21 +907,51 @@ class DownloadManager implements IDownloadManager {
 
   @override
   Future<void> deleteEpisodeFiles(
-      int bangumiId, String pluginName, int episodeNumber) async {
-    final base = await _downloadBaseDir;
-    final dir =
-        Directory(getEpisodeDir(base, bangumiId, pluginName, episodeNumber));
+      int bangumiId, String pluginName, int episodeNumber,
+      {DownloadEpisode? episode}) async {
+    final episodeDir = episode?.downloadDirectory.trim();
+    final dir = Directory(episodeDir != null && episodeDir.isNotEmpty
+        ? episodeDir
+        : getEpisodeDir(await _defaultDownloadBaseDir, bangumiId, pluginName,
+            episodeNumber));
     if (await dir.exists()) {
       await dir.delete(recursive: true);
     }
   }
 
   @override
-  Future<void> deleteRecordFiles(int bangumiId, String pluginName) async {
-    final base = await _downloadBaseDir;
-    final dir = Directory('$base/${bangumiId}_$pluginName');
-    if (await dir.exists()) {
-      await dir.delete(recursive: true);
+  Future<void> deleteRecordFiles(int bangumiId, String pluginName,
+      {DownloadRecord? record}) async {
+    final parentDirs = <String>{};
+    if (record != null) {
+      for (final entry in record.episodes.entries) {
+        final episode = entry.value;
+        final episodeDir = episode.downloadDirectory.trim().isNotEmpty
+            ? episode.downloadDirectory.trim()
+            : getEpisodeDir(await _defaultDownloadBaseDir, bangumiId,
+                pluginName, entry.key);
+        final dir = Directory(episodeDir);
+        if (await dir.exists()) {
+          await dir.delete(recursive: true);
+        }
+        parentDirs.add(path.dirname(episodeDir));
+      }
+    } else {
+      final dir = Directory(
+          path.join(await _defaultDownloadBaseDir, '${bangumiId}_$pluginName'));
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
+    }
+
+    for (final parentDir in parentDirs) {
+      final dir = Directory(parentDir);
+      if (!await dir.exists()) continue;
+      try {
+        await dir.delete();
+      } on FileSystemException {
+        // Keep non-empty parent directories because they may contain other files.
+      }
     }
   }
 

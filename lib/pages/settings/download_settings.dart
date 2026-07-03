@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/file_system.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 class DownloadSettingsPage extends StatefulWidget {
   const DownloadSettingsPage({super.key});
@@ -45,10 +44,10 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
           : defaultDownloadDirectory;
 
   Future<void> _loadDefaultDownloadDirectory() async {
-    final appSupport = await getApplicationSupportDirectory();
+    final directory = await getDefaultDownloadDirectory();
     if (!mounted) return;
     setState(() {
-      defaultDownloadDirectory = path.join(appSupport.path, 'downloads');
+      defaultDownloadDirectory = directory;
     });
   }
 
@@ -68,7 +67,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       );
       if (!mounted || selectedPath == null || selectedPath.isEmpty) return;
 
-      await _ensureDirectoryWritable(selectedPath);
+      await ensureDirectoryWritable(selectedPath);
       await GStorage.putSetting(
         SettingsKeys.downloadDirectory,
         selectedPath,
@@ -92,21 +91,6 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       if (mounted) {
         setState(() => isSelectingDirectory = false);
       }
-    }
-  }
-
-  Future<void> _ensureDirectoryWritable(String directoryPath) async {
-    final directory = Directory(directoryPath);
-    await directory.create(recursive: true);
-    final probe = File(path.join(
-      directoryPath,
-      '.kazumi_write_test_${DateTime.now().microsecondsSinceEpoch}.tmp',
-    ));
-    await probe.writeAsString('ok', flush: true);
-    try {
-      await probe.delete();
-    } on FileSystemException {
-      // The write check already succeeded; a leftover probe is not fatal.
     }
   }
 

@@ -8,10 +8,10 @@ import 'package:kazumi/request/core/network_exception.dart';
 import 'package:kazumi/utils/m3u8_parser.dart';
 import 'package:kazumi/utils/m3u8_ad_filter.dart';
 import 'package:kazumi/utils/format.dart' as fmt;
+import 'package:kazumi/utils/file_system.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 class _NotM3u8Exception implements Exception {
   final String message;
@@ -215,8 +215,7 @@ class DownloadManager implements IDownloadManager {
       _activeTasks.containsKey(_taskKey(recordKey, episodeNumber));
 
   Future<String> get _defaultDownloadBaseDir async {
-    final appSupport = await getApplicationSupportDirectory();
-    return path.join(appSupport.path, 'downloads');
+    return getDefaultDownloadDirectory();
   }
 
   Future<String> get _downloadBaseDir async {
@@ -243,22 +242,6 @@ class DownloadManager implements IDownloadManager {
     if (existingDir.isNotEmpty) return existingDir;
     return getEpisodeDir(
         await _downloadBaseDir, bangumiId, pluginName, episodeNumber);
-  }
-
-  Future<void> _ensureWritableDirectory(String directoryPath) async {
-    final directory = Directory(directoryPath);
-    await directory.create(recursive: true);
-
-    final probe = File(path.join(
-      directoryPath,
-      '.kazumi_write_test_${DateTime.now().microsecondsSinceEpoch}.tmp',
-    ));
-    await probe.writeAsString('ok', flush: true);
-    try {
-      await probe.delete();
-    } on FileSystemException {
-      // A leftover probe file should not block the download after writing works.
-    }
   }
 
   @override
@@ -408,7 +391,7 @@ class DownloadManager implements IDownloadManager {
     try {
       final episodeDir = await _resolveEpisodeDir(
           episode, bangumiId, pluginName, task.episodeNumber);
-      await _ensureWritableDirectory(episodeDir);
+      await ensureDirectoryWritable(episodeDir);
       episode.downloadDirectory = episodeDir;
       await _checkStorageSpace(episodeDir);
 
@@ -671,7 +654,7 @@ class DownloadManager implements IDownloadManager {
     try {
       final episodeDir = await _resolveEpisodeDir(
           episode, bangumiId, pluginName, task.episodeNumber);
-      await _ensureWritableDirectory(episodeDir);
+      await ensureDirectoryWritable(episodeDir);
       episode.downloadDirectory = episodeDir;
       await _checkStorageSpace(episodeDir);
 

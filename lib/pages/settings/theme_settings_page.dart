@@ -12,6 +12,7 @@ import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/utils/desktop_title_bar.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
 
@@ -28,7 +29,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late dynamic defaultThemeColor;
   late bool oledEnhance;
   late bool useDynamicColor;
-  late bool showWindowButton;
+  late bool showTitleBar;
   late bool useSystemFont;
   final PopularController popularController = Modular.get<PopularController>();
   late final ThemeProvider themeProvider;
@@ -41,7 +42,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     defaultThemeColor = GStorage.getSetting(SettingsKeys.themeColor);
     oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
     useDynamicColor = GStorage.getSetting(SettingsKeys.useDynamicColor);
-    showWindowButton = GStorage.getSetting(SettingsKeys.showWindowButton);
+    showTitleBar = DesktopTitleBar.readShowTitleBarSetting();
     useSystemFont = GStorage.getSetting(SettingsKeys.useSystemFont);
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
@@ -381,16 +382,16 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 tiles: [
                   SettingsTile.switchTile(
                     onToggle: (value) async {
-                      showWindowButton = value ?? !showWindowButton;
-                      await GStorage.putSetting(
-                          SettingsKeys.showWindowButton, showWindowButton);
+                      showTitleBar = value ?? !showTitleBar;
+                      await DesktopTitleBar.saveShowTitleBarSetting(
+                          showTitleBar);
                       setState(() {});
                     },
-                    title: Text('使用系统标题栏',
+                    title: Text('显示标题栏',
                         style: TextStyle(fontFamily: fontFamily)),
                     description: Text('重启应用生效',
                         style: TextStyle(fontFamily: fontFamily)),
-                    initialValue: showWindowButton,
+                    initialValue: showTitleBar,
                   ),
                 ],
               ),

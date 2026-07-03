@@ -21,7 +21,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
-import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/desktop_title_bar.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -327,8 +327,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final bool showWindowButton =
-        GStorage.getSetting(SettingsKeys.showWindowButton);
+    final bool showNativeWindowButtons = DesktopTitleBar.isVisible();
     final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
     return PopScope(
       canPop: true,
@@ -387,19 +386,19 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                           icon: const Icon(Icons.open_in_browser_rounded),
                         ),
                       ),
-                      if (!showWindowButton && isDesktop())
+                      if (DesktopTitleBar.shouldShowCloseButton())
                         CloseButton(onPressed: () => windowManager.close()),
                       SizedBox(width: 8),
                     ],
-                    toolbarHeight: (Platform.isMacOS && showWindowButton)
+                    toolbarHeight: (Platform.isMacOS && showNativeWindowButtons)
                         ? kToolbarHeight + 22
                         : kToolbarHeight,
                     stretch: true,
                     centerTitle: false,
-                    expandedHeight: (Platform.isMacOS && showWindowButton)
+                    expandedHeight: (Platform.isMacOS && showNativeWindowButtons)
                         ? 308 + kTextTabBarHeight + kToolbarHeight + 22
                         : 308 + kTextTabBarHeight + kToolbarHeight,
-                    collapsedHeight: (Platform.isMacOS && showWindowButton)
+                    collapsedHeight: (Platform.isMacOS && showNativeWindowButtons)
                         ? kTextTabBarHeight +
                             kToolbarHeight +
                             MediaQuery.paddingOf(context).top +

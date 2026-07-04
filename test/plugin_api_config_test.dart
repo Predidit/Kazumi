@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/plugins/api_rule_config.dart';
 import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/utils/encoding.dart';
 
 void main() {
@@ -19,6 +20,20 @@ void main() {
     expect(plugin.usePost, isTrue);
     expect(restored.usePost, isTrue);
     expect(restored.searchMode, RuleMode.xpath);
+  });
+
+  test('detects rules that require a newer client API level', () {
+    final compatible = Plugin.fromJson({
+      ..._legacyRule,
+      'api': ApiEndpoints.apiLevel.toString(),
+    });
+    final incompatible = Plugin.fromJson({
+      ..._legacyRule,
+      'api': (ApiEndpoints.apiLevel + 1).toString(),
+    });
+
+    expect(compatible.requiresNewerClient, isFalse);
+    expect(incompatible.requiresNewerClient, isTrue);
   });
 
   test('API configuration survives JSON round trip', () {

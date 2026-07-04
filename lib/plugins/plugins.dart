@@ -177,6 +177,8 @@ class Plugin {
 
   bool get usesApiSearch => searchMode == RuleMode.api;
 
+  bool get requiresNewerClient => int.parse(api) > ApiEndpoints.apiLevel;
+
   RuleExecutionConfig get _executionConfig => RuleExecutionConfig(
         pluginName: name,
         baseUrl: baseUrl,

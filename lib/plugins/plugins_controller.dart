@@ -9,7 +9,6 @@ import 'package:kazumi/services/plugin/plugin_install_time_tracker.dart';
 import 'package:kazumi/request/apis/plugin_catalog_api.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
 
 part 'plugins_controller.g.dart';
 
@@ -206,7 +205,7 @@ abstract class _PluginsController with Store {
   Future<int> tryUpdatePluginByName(String name) async {
     var pluginHTTPItem = await queryPluginHTTP(name);
     if (pluginHTTPItem != null) {
-      if (int.parse(pluginHTTPItem.api) > ApiEndpoints.apiLevel) {
+      if (pluginHTTPItem.requiresNewerClient) {
         return 1;
       }
       updatePlugin(pluginHTTPItem);

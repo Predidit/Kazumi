@@ -102,14 +102,23 @@ class _PluginViewPageState extends State<PluginViewPage> {
               return TextButton(
                 onPressed: () async {
                   try {
-                    pluginsController.updatePlugin(Plugin.fromJson(
-                        json.decode(kazumiBase64ToJson(pluginText))));
+                    final plugin = Plugin.fromJson(
+                      json.decode(kazumiBase64ToJson(pluginText)),
+                    );
+                    if (plugin.requiresNewerClient) {
+                      KazumiDialog.dismiss();
+                      KazumiDialog.showToast(
+                        message: '规则需要更高版本客户端',
+                      );
+                      return;
+                    }
+                    pluginsController.updatePlugin(plugin);
+                    KazumiDialog.dismiss();
                     KazumiDialog.showToast(message: '导入成功');
                   } catch (e) {
                     KazumiDialog.dismiss();
                     KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
                   }
-                  KazumiDialog.dismiss();
                 },
                 child: const Text('导入'),
               );

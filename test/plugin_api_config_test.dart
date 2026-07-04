@@ -12,6 +12,15 @@ void main() {
     expect(plugin.chapterMode, RuleMode.xpath);
   });
 
+  test('legacy XPath POST setting survives JSON round trip', () {
+    final plugin = Plugin.fromJson({..._legacyRule, 'usePost': true});
+    final restored = Plugin.fromJson(plugin.toJson());
+
+    expect(plugin.usePost, isTrue);
+    expect(restored.usePost, isTrue);
+    expect(restored.searchMode, RuleMode.xpath);
+  });
+
   test('API configuration survives JSON round trip', () {
     final plugin = Plugin.fromJson({
       ..._legacyRule,

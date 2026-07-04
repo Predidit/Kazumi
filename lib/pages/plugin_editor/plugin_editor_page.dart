@@ -414,16 +414,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                           onToggle: (v) => setState(
                               () => useLegacyParser = v ?? !useLegacyParser),
                         ),
-                        if (searchMode == RuleMode.xpath)
-                          SettingsTile.switchTile(
-                            title: Text('POST',
-                                style: TextStyle(fontFamily: fontFamily)),
-                            description: Text('使用 POST 而不是 GET 进行检索',
-                                style: TextStyle(fontFamily: fontFamily)),
-                            initialValue: usePost,
-                            onToggle: (v) =>
-                                setState(() => usePost = v ?? !usePost),
-                          ),
                         SettingsTile.switchTile(
                           title: Text('内置播放器',
                               style: TextStyle(fontFamily: fontFamily)),
@@ -707,6 +697,19 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   }
 
   List<Widget> _buildXPathSearchFields() => [
+        DropdownButtonFormField<String>(
+          initialValue: usePost ? 'POST' : 'GET',
+          decoration: const InputDecoration(
+            labelText: _RuleEditorText.searchMethod,
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'GET', child: Text('GET')),
+            DropdownMenuItem(value: 'POST', child: Text('POST')),
+          ],
+          onChanged: (value) => setState(() => usePost = value == 'POST'),
+        ),
+        const SizedBox(height: 20),
         _editorField(searchURLController, _RuleEditorText.searchUrl),
         _editorField(searchListController, _RuleEditorText.searchListXPath),
         _editorField(searchNameController, _RuleEditorText.itemNameXPath),

@@ -5,7 +5,7 @@ import 'package:kazumi/services/logging/logger.dart';
 ///
 /// 为每条规则维护一个独立的内存 [CookieJar]，
 /// 通过 [saveFromWebView] 将 WebView 捕获的 document.cookie 字符串
-/// 解析后存入对应规则的 jar，用于后续 HTTP 请求的 CookieManager 拦截器。
+/// 解析后存入对应规则的 jar。规则请求执行器按需读取并组装 Cookie 请求头。
 /// Cookie 仅在当前 App 会话内有效，重启后需重新验证。
 class PluginCookieManager {
   PluginCookieManager._();
@@ -13,7 +13,7 @@ class PluginCookieManager {
 
   final Map<String, CookieJar> _jars = {};
 
-  CookieJar getJar(String pluginName) {
+  CookieJar _getJar(String pluginName) {
     return _jars.putIfAbsent(pluginName, () => CookieJar());
   }
 
@@ -23,7 +23,7 @@ class PluginCookieManager {
     final uri = Uri.tryParse(pageUrl);
     if (uri == null) return;
 
-    final jar = getJar(pluginName);
+    final jar = _getJar(pluginName);
     final cookies = _parseCookieString(cookieString, uri);
     if (cookies.isEmpty) return;
 
@@ -52,11 +52,12 @@ class PluginCookieManager {
     return cookies;
   }
 
-  void clearCookies(String pluginName) {
-    _jars.remove(pluginName);
-  }
-
-  bool hasCookies(String pluginName) {
-    return _jars.containsKey(pluginName);
+  Future<List<Cookie>> loadForRequest(
+    String pluginName,
+    Uri uri,
+  ) async {
+    final jar = _jars[pluginName];
+    if (jar == null) return <Cookie>[];
+    return jar.loadForRequest(uri);
   }
 }

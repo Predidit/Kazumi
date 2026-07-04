@@ -1,60 +1,33 @@
-import 'package:dio/dio.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/request/clients/plugin_site_client.dart';
-import 'package:html/dom.dart' show Element;
-import 'package:html/parser.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
+import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
-import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
+import 'package:kazumi/plugins/api_rule_config.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/services/plugin/api_rule_engine.dart';
 import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
 
-/// Thrown by [Plugin.queryBangumi] when the response contains a CAPTCHA challenge
-/// (i.e. the [AntiCrawlerConfig.captchaImage] XPath selector matches something
-/// in the returned HTML).
-class CaptchaRequiredException implements Exception {
-  final String pluginName;
-  const CaptchaRequiredException(this.pluginName);
-  @override
-  String toString() =>
-      'CaptchaRequiredException: $pluginName requires captcha verification';
-}
-
-/// Thrown by [Plugin.queryBangumi] when the search request succeeds but the
-/// XPath selectors return no results.
-class NoResultException implements Exception {
-  final String pluginName;
-  const NoResultException(this.pluginName);
-  @override
-  String toString() =>
-      'NoResultException: $pluginName returned no search results';
-}
-
-/// Thrown by [Plugin.queryBangumi] when the HTTP request or HTML parsing
-/// fails for reasons other than a captcha challenge.
-class SearchErrorException implements Exception {
-  final String pluginName;
-  final Object? cause;
-  const SearchErrorException(this.pluginName, {this.cause});
-  @override
-  String toString() =>
-      'SearchErrorException: $pluginName search failed${cause != null ? ' ($cause)' : ''}';
-}
+export 'package:kazumi/services/plugin/rule_engine_models.dart'
+    show
+        CaptchaRequiredException,
+        NoResultException,
+        SearchErrorException,
+        ChapterErrorException,
+        RuleFailureKind;
 
 class Plugin {
-  static final PluginSiteClient _siteClient = PluginSiteClient.instance;
+  static final RuleEngine _ruleEngine = RuleEngine();
 
   String api;
   String type;
   String name;
   String version;
   bool muliSources;
+
+  /// Legacy schema field retained for rule import/export compatibility.
   bool useWebview;
 
-  /// Deprecated (always true)
+  /// Legacy schema field retained for rule import/export compatibility.
   bool useNativePlayer;
   bool usePost;
   bool useLegacyParser;
@@ -68,6 +41,10 @@ class Plugin {
   String chapterRoads;
   String chapterResult;
   String referer;
+  String searchMode;
+  String chapterMode;
+  ApiSearchConfig searchApiConfig;
+  ApiChapterConfig chapterApiConfig;
   AntiCrawlerConfig antiCrawlerConfig;
 
   Plugin({
@@ -90,327 +67,196 @@ class Plugin {
     required this.chapterRoads,
     required this.chapterResult,
     required this.referer,
+    this.searchMode = RuleMode.xpath,
+    this.chapterMode = RuleMode.xpath,
+    ApiSearchConfig? searchApiConfig,
+    ApiChapterConfig? chapterApiConfig,
     AntiCrawlerConfig? antiCrawlerConfig,
-  }) : antiCrawlerConfig = antiCrawlerConfig ?? AntiCrawlerConfig.empty();
+  })  : searchApiConfig = searchApiConfig ?? ApiSearchConfig(),
+        chapterApiConfig = chapterApiConfig ?? ApiChapterConfig(),
+        antiCrawlerConfig = antiCrawlerConfig ?? AntiCrawlerConfig.empty();
 
   factory Plugin.fromJson(Map<String, dynamic> json) {
     return Plugin(
-        api: json['api'],
-        type: json['type'],
-        name: json['name'],
-        version: json['version'],
-        muliSources: json['muliSources'],
-        useWebview: json['useWebview'],
-        useNativePlayer: json['useNativePlayer'],
-        usePost: json['usePost'] ?? false,
-        useLegacyParser: json['useLegacyParser'] ?? false,
-        adBlocker: json['adBlocker'] ?? false,
-        userAgent: json['userAgent'],
-        baseUrl: json['baseURL'],
-        searchURL: json['searchURL'],
-        searchList: json['searchList'],
-        searchName: json['searchName'],
-        searchResult: json['searchResult'],
-        chapterRoads: json['chapterRoads'],
-        chapterResult: json['chapterResult'],
-        referer: json['referer'] ?? '',
-        antiCrawlerConfig: json['antiCrawlerConfig'] != null
-            ? AntiCrawlerConfig.fromJson(
-                Map<String, dynamic>.from(json['antiCrawlerConfig']))
-            : AntiCrawlerConfig.empty());
+      api: json['api']?.toString() ?? '1',
+      type: json['type'] as String? ?? 'anime',
+      name: json['name'] as String? ?? '',
+      version: json['version']?.toString() ?? '',
+      muliSources: json['muliSources'] as bool? ?? true,
+      useWebview: json['useWebview'] as bool? ?? true,
+      useNativePlayer: json['useNativePlayer'] as bool? ?? true,
+      usePost: json['usePost'] ?? false,
+      useLegacyParser: json['useLegacyParser'] ?? false,
+      adBlocker: json['adBlocker'] ?? false,
+      userAgent: json['userAgent'] as String? ?? '',
+      baseUrl: json['baseURL'] as String? ?? '',
+      searchURL: json['searchURL'] as String? ?? '',
+      searchList: json['searchList'] as String? ?? '',
+      searchName: json['searchName'] as String? ?? '',
+      searchResult: json['searchResult'] as String? ?? '',
+      chapterRoads: json['chapterRoads'] as String? ?? '',
+      chapterResult: json['chapterResult'] as String? ?? '',
+      referer: json['referer'] ?? '',
+      searchMode: RuleMode.normalize(json['searchMode']),
+      chapterMode: RuleMode.normalize(json['chapterMode']),
+      searchApiConfig: json['searchApiConfig'] is Map
+          ? ApiSearchConfig.fromJson(
+              Map<String, dynamic>.from(json['searchApiConfig']),
+            )
+          : ApiSearchConfig(),
+      chapterApiConfig: json['chapterApiConfig'] is Map
+          ? ApiChapterConfig.fromJson(
+              Map<String, dynamic>.from(json['chapterApiConfig']),
+            )
+          : ApiChapterConfig(),
+      antiCrawlerConfig: json['antiCrawlerConfig'] != null
+          ? AntiCrawlerConfig.fromJson(
+              Map<String, dynamic>.from(json['antiCrawlerConfig']),
+            )
+          : AntiCrawlerConfig.empty(),
+    );
   }
 
   factory Plugin.fromTemplate() {
     return Plugin(
-        api: ApiEndpoints.apiLevel.toString(),
-        type: 'anime',
-        name: '',
-        version: '',
-        muliSources: true,
-        useWebview: true,
-        useNativePlayer: true,
-        usePost: false,
-        useLegacyParser: false,
-        adBlocker: false,
-        userAgent: '',
-        baseUrl: '',
-        searchURL: '',
-        searchList: '',
-        searchName: '',
-        searchResult: '',
-        chapterRoads: '',
-        chapterResult: '',
-        referer: '',
-        antiCrawlerConfig: AntiCrawlerConfig.empty());
+      api: ApiEndpoints.apiLevel.toString(),
+      type: 'anime',
+      name: '',
+      version: '',
+      muliSources: true,
+      useWebview: true,
+      useNativePlayer: true,
+      usePost: false,
+      useLegacyParser: false,
+      adBlocker: false,
+      userAgent: '',
+      baseUrl: '',
+      searchURL: '',
+      searchList: '',
+      searchName: '',
+      searchResult: '',
+      chapterRoads: '',
+      chapterResult: '',
+      referer: '',
+      searchMode: RuleMode.xpath,
+      chapterMode: RuleMode.xpath,
+      searchApiConfig: ApiSearchConfig(),
+      chapterApiConfig: ApiChapterConfig(),
+      antiCrawlerConfig: AntiCrawlerConfig.empty(),
+    );
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['api'] = api;
-    data['type'] = type;
-    data['name'] = name;
-    data['version'] = version;
-    data['muliSources'] = muliSources;
-    data['useWebview'] = useWebview;
-    data['useNativePlayer'] = useNativePlayer;
-    data['usePost'] = usePost;
-    data['useLegacyParser'] = useLegacyParser;
-    data['adBlocker'] = adBlocker;
-    data['userAgent'] = userAgent;
-    data['baseURL'] = baseUrl;
-    data['searchURL'] = searchURL;
-    data['searchList'] = searchList;
-    data['searchName'] = searchName;
-    data['searchResult'] = searchResult;
-    data['chapterRoads'] = chapterRoads;
-    data['chapterResult'] = chapterResult;
-    data['referer'] = referer;
-    data['antiCrawlerConfig'] = antiCrawlerConfig.toJson();
-    return data;
+    return <String, dynamic>{
+      'api': api,
+      'type': type,
+      'name': name,
+      'version': version,
+      'muliSources': muliSources,
+      'useWebview': useWebview,
+      'useNativePlayer': useNativePlayer,
+      'usePost': usePost,
+      'useLegacyParser': useLegacyParser,
+      'adBlocker': adBlocker,
+      'userAgent': userAgent,
+      'baseURL': baseUrl,
+      'searchURL': searchURL,
+      'searchList': searchList,
+      'searchName': searchName,
+      'searchResult': searchResult,
+      'chapterRoads': chapterRoads,
+      'chapterResult': chapterResult,
+      'referer': referer,
+      'searchMode': searchMode,
+      'chapterMode': chapterMode,
+      'searchApiConfig': searchApiConfig.toJson(),
+      'chapterApiConfig': chapterApiConfig.toJson(),
+      'antiCrawlerConfig': antiCrawlerConfig.toJson(),
+    };
   }
 
-  Future<PluginSearchResponse> queryBangumi(String keyword,
-      {bool shouldRethrow = false}) async {
+  bool get usesApiSearch => searchMode == RuleMode.api;
+
+  RuleExecutionConfig get _executionConfig => RuleExecutionConfig(
+        pluginName: name,
+        baseUrl: baseUrl,
+        usePost: usePost,
+        searchMode: searchMode,
+        chapterMode: chapterMode,
+        searchUrl: searchURL,
+        searchList: searchList,
+        searchName: searchName,
+        searchResult: searchResult,
+        chapterRoads: chapterRoads,
+        chapterResult: chapterResult,
+        searchApiConfig: searchApiConfig,
+        chapterApiConfig: chapterApiConfig,
+        antiCrawlerConfig: antiCrawlerConfig,
+      );
+
+  Future<RuleSearchTrace> traceSearch(
+    String keyword, {
+    RuleCancelToken? cancelToken,
+  }) {
+    return _ruleEngine.search(
+      _executionConfig,
+      keyword,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<RuleChapterTrace> traceChapters(
+    String source, {
+    RuleCancelToken? cancelToken,
+  }) {
+    return _ruleEngine.queryChapters(
+      _executionConfig,
+      source,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<PluginSearchResponse> queryBangumi(
+    String keyword, {
+    bool shouldRethrow = false,
+    RuleCancelToken? cancelToken,
+  }) async {
     try {
-      String queryURL =
-          searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
-      String htmlString;
-      List<SearchItem> searchItems = [];
-      final String cookieHeader = await _cookieHeaderFor(queryURL);
-      if (usePost) {
-        Uri uri = Uri.parse(queryURL);
-        Map<String, String> queryParams = uri.queryParameters;
-        Uri postUri = Uri(
-          scheme: uri.scheme,
-          host: uri.host,
-          path: uri.path,
-        );
-        var httpHeaders = {
-          'referer': '$baseUrl/',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept-Language': getRandomAcceptedLanguage(),
-          'Connection': 'keep-alive',
-          if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
-        };
-        htmlString = await _siteClient.postFormText(
-          postUri.toString(),
-          headers: httpHeaders,
-          data: queryParams,
-        );
-      } else {
-        var httpHeaders = {
-          'referer': '$baseUrl/',
-          'Accept-Language': getRandomAcceptedLanguage(),
-          'Connection': 'keep-alive',
-          if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
-        };
-        htmlString = await _siteClient.getText(
-          queryURL,
-          headers: httpHeaders,
-        );
-      }
-
-      var htmlElement = parse(htmlString).documentElement!;
-
-      if (detectsCaptchaChallenge(htmlString, htmlElement: htmlElement)) {
-        KazumiLogger()
-            .w('Plugin: $name detected captcha challenge in search response');
-        throw CaptchaRequiredException(name);
-      }
-
-      htmlElement.queryXPath(searchList).nodes.forEach((element) {
-        try {
-          SearchItem searchItem = SearchItem(
-            name: element.queryXPath(searchName).node!.text?.trim() ?? '',
-            src:
-                element.queryXPath(searchResult).node!.attributes['href'] ?? '',
-          );
-          searchItems.add(searchItem);
-          KazumiLogger().i(
-              'Plugin: $name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
-        } catch (_) {}
-      });
-      if (searchItems.isEmpty) throw NoResultException(name);
-      return PluginSearchResponse(pluginName: name, data: searchItems);
+      return (await traceSearch(keyword, cancelToken: cancelToken)).response;
     } on CaptchaRequiredException {
       rethrow;
     } on NoResultException {
       rethrow;
-    } catch (e, st) {
-      KazumiLogger().w('Plugin: $name search failed', error: e, stackTrace: st);
-      if (shouldRethrow) throw SearchErrorException(name, cause: e);
-      return PluginSearchResponse(pluginName: name, data: []);
+    } on SearchErrorException {
+      if (shouldRethrow) rethrow;
+      return PluginSearchResponse(pluginName: name, data: <SearchItem>[]);
     }
   }
 
-  Future<List<Road>> querychapterRoads(String url,
-      {CancelToken? cancelToken}) async {
-    List<Road> roadList = [];
-    if (!url.contains('https')) {
-      url = url.replaceAll('http', 'https');
-    }
-    String queryURL = '';
-    if (url.contains(baseUrl)) {
-      queryURL = url;
-    } else {
-      queryURL = baseUrl + url;
-    }
-    var httpHeaders = {
-      'referer': '$baseUrl/',
-      'Accept-Language': getRandomAcceptedLanguage(),
-      'Connection': 'keep-alive',
-    };
-    try {
-      final htmlString = await _siteClient.getText(
-        queryURL,
-        headers: httpHeaders,
-        cancelToken: cancelToken,
-      );
-      var htmlElement = parse(htmlString).documentElement!;
-      int count = 1;
-      htmlElement.queryXPath(chapterRoads).nodes.forEach((element) {
-        try {
-          List<String> chapterUrlList = [];
-          List<String> chapterNameList = [];
-          element.queryXPath(chapterResult).nodes.forEach((item) {
-            String itemUrl = item.node.attributes['href'] ?? '';
-            String itemName = item.node.text ?? '';
-            chapterUrlList.add(normalizeEpisodeUrl(baseUrl, itemUrl));
-            chapterNameList.add(itemName.replaceAll(RegExp(r'\s+'), ''));
-          });
-          if (chapterUrlList.isNotEmpty && chapterNameList.isNotEmpty) {
-            Road road = Road(
-                name: '播放线路$count',
-                data: chapterUrlList,
-                identifier: chapterNameList);
-            roadList.add(road);
-            count++;
-          }
-        } catch (_) {}
-      });
-    } catch (_) {}
-    return roadList;
+  Future<List<Road>> queryChapterRoads(
+    String source, {
+    RuleCancelToken? cancelToken,
+  }) async {
+    return (await traceChapters(source, cancelToken: cancelToken)).roads;
   }
 
-  Future<String> testSearchRequest(String keyword,
-      {bool shouldRethrow = false, CancelToken? cancelToken}) async {
-    String queryURL =
-        searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
-    String htmlString;
-    if (usePost) {
-      Uri uri = Uri.parse(queryURL);
-      Map<String, String> queryParams = uri.queryParameters;
-      Uri postUri = Uri(
-        scheme: uri.scheme,
-        host: uri.host,
-        path: uri.path,
-      );
-      var httpHeaders = {
-        'referer': '$baseUrl/',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept-Language': getRandomAcceptedLanguage(),
-        'Connection': 'keep-alive',
-      };
-      htmlString = await _siteClient.postFormText(
-        postUri.toString(),
-        headers: httpHeaders,
-        data: queryParams,
-        cancelToken: cancelToken,
-      );
-    } else {
-      var httpHeaders = {
-        'referer': '$baseUrl/',
-        'Accept-Language': getRandomAcceptedLanguage(),
-        'Connection': 'keep-alive',
-      };
-      htmlString = await _siteClient.getText(
-        queryURL,
-        headers: httpHeaders,
-        cancelToken: cancelToken,
-      );
-    }
-
-    return htmlString;
-  }
-
-  Future<String> _cookieHeaderFor(String url) async {
-    if (!PluginCookieManager.instance.hasCookies(name)) return '';
-    final uri = Uri.tryParse(url);
-    if (uri == null) return '';
-    try {
-      final cookies =
-          await PluginCookieManager.instance.getJar(name).loadForRequest(uri);
-      if (cookies.isEmpty) return '';
-      return cookies.map((c) => '${c.name}=${c.value}').join('; ');
-    } catch (_) {
-      return '';
-    }
-  }
-
-  bool detectsCaptchaChallenge(String htmlString, {Element? htmlElement}) {
-    if (!antiCrawlerConfig.enabled) return false;
-
-    final detectValue = antiCrawlerConfig.captchaDetectValue.trim();
-    if (detectValue.isNotEmpty) {
-      switch (antiCrawlerConfig.captchaDetectType) {
-        case CaptchaDetectType.text:
-          return htmlString.contains(detectValue);
-        case CaptchaDetectType.regex:
-          try {
-            return RegExp(detectValue, caseSensitive: false, dotAll: true)
-                .hasMatch(htmlString);
-          } catch (e) {
-            KazumiLogger()
-                .w('Plugin: $name invalid captcha detect regex: $detectValue');
-            return false;
-          }
-        case CaptchaDetectType.xpath:
-        default:
-          final element = htmlElement ?? parse(htmlString).documentElement!;
-          return element.queryXPath(detectValue).node != null;
-      }
-    }
-
-    final element = htmlElement ?? parse(htmlString).documentElement!;
-    final List<String> detectionXpaths = [
-      antiCrawlerConfig.captchaImage,
-      antiCrawlerConfig.captchaButton,
-    ].where((x) => x.isNotEmpty).toList();
-    return detectionXpaths
-        .any((xpath) => element.queryXPath(xpath).node != null);
+  @Deprecated('Use queryChapterRoads instead.')
+  Future<List<Road>> querychapterRoads(
+    String source, {
+    RuleCancelToken? cancelToken,
+  }) {
+    return queryChapterRoads(source, cancelToken: cancelToken);
   }
 
   String buildFullUrl(String urlItem) {
-    if (urlItem.contains(baseUrl) ||
-        urlItem.contains(baseUrl.replaceAll('https', 'http'))) {
-      return urlItem;
-    }
-    return baseUrl + urlItem;
+    return normalizeEpisodeUrl(baseUrl, urlItem);
   }
 
+  /// Headers used when resolving or downloading the final media resource.
   Map<String, String> buildHttpHeaders() {
     return {
       'user-agent': userAgent.isEmpty ? getRandomUA() : userAgent,
       if (referer.isNotEmpty) 'referer': referer,
     };
-  }
-
-  PluginSearchResponse testQueryBangumi(String htmlString) {
-    List<SearchItem> searchItems = [];
-    var htmlElement = parse(htmlString).documentElement!;
-    htmlElement.queryXPath(searchList).nodes.forEach((element) {
-      try {
-        SearchItem searchItem = SearchItem(
-          name: element.queryXPath(searchName).node!.text?.trim() ?? '',
-          src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
-        );
-        searchItems.add(searchItem);
-        KazumiLogger().i(
-            'Plugin: $name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
-      } catch (_) {}
-    });
-    PluginSearchResponse pluginSearchResponse =
-        PluginSearchResponse(pluginName: name, data: searchItems);
-    return pluginSearchResponse;
   }
 }

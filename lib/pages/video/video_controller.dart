@@ -747,13 +747,17 @@ abstract class _VideoPageController with Store {
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {
         roadList.addAll(
-            await plugin.querychapterRoads(url, cancelToken: cancelToken));
+            await plugin.queryChapterRoads(url, cancelToken: cancelToken));
       }
     }
     KazumiLogger()
         .i('VideoPageController: road list length ${roadList.length}');
+    if (roadList.isEmpty) {
+      throw ChapterErrorException(pluginName);
+    }
     KazumiLogger().i(
-        'VideoPageController: first road episode count ${roadList[0].data.length}');
+      'VideoPageController: first road episode count ${roadList.first.data.length}',
+    );
   }
 
   void toggleSortOrder() {

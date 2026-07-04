@@ -3,7 +3,7 @@ class ApiEndpoints {
   static const String version = '2.1.8';
 
   /// 规则API级别
-  static const int apiLevel = 7;
+  static const int apiLevel = 8;
 
   /// 项目主页
   static const String projectUrl = "https://kazumi.app/";

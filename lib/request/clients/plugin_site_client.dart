@@ -13,19 +13,12 @@ class PluginSiteClient {
     Map<String, dynamic> headers = const {},
     CancelToken? cancelToken,
   }) async {
-    try {
-      final response = await DioFactory.pluginDio.get<String>(
-        url,
-        options: Options(
-          responseType: ResponseType.plain,
-          headers: _headers(headers),
-        ),
-        cancelToken: cancelToken,
-      );
-      return response.data ?? '';
-    } on DioException catch (e) {
-      throw await NetworkErrorMapper.mapException(e);
-    }
+    return requestText(
+      url,
+      method: 'GET',
+      headers: headers,
+      cancelToken: cancelToken,
+    );
   }
 
   Future<String> postFormText(
@@ -34,16 +27,35 @@ class PluginSiteClient {
     Map<String, dynamic> headers = const {},
     CancelToken? cancelToken,
   }) async {
+    return requestText(
+      url,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        ...headers,
+      },
+      data: data,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<String> requestText(
+    String url, {
+    required String method,
+    Map<String, dynamic> headers = const {},
+    Map<String, dynamic> queryParameters = const {},
+    Object? data,
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final response = await DioFactory.pluginDio.post<String>(
+      final response = await DioFactory.pluginDio.request<String>(
         url,
+        queryParameters: queryParameters,
         data: data,
         options: Options(
+          method: method,
           responseType: ResponseType.plain,
-          headers: _headers({
-            'Content-Type': 'application/x-www-form-urlencoded',
-            ...headers,
-          }),
+          headers: _headers(headers),
         ),
         cancelToken: cancelToken,
       );

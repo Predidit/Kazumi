@@ -373,8 +373,8 @@ class _SourceSheetState extends State<SourceSheet>
                   TextButton(
                     style: TextButton.styleFrom(
                       minimumSize: Size.zero,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 10),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
                       textStyle: Theme.of(context).textTheme.bodySmall,
@@ -385,8 +385,8 @@ class _SourceSheetState extends State<SourceSheet>
                   TextButton(
                     style: TextButton.styleFrom(
                       minimumSize: Size.zero,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 10),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
                       textStyle: Theme.of(context).textTheme.bodySmall,
@@ -535,11 +535,16 @@ class _SourceSheetState extends State<SourceSheet>
                 IconButton(
                   onPressed: () {
                     int currentIndex = widget.tabController.index;
+                    final currentPlugin =
+                        pluginsController.pluginList[currentIndex];
+                    final targetUrl = currentPlugin.usesApiSearch
+                        ? currentPlugin.baseUrl
+                        : currentPlugin.searchURL.replaceFirst(
+                            '@keyword',
+                            Uri.encodeQueryComponent(keyword),
+                          );
                     launchUrl(
-                      Uri.parse(pluginsController
-                          .pluginList[currentIndex].searchURL
-                          .replaceFirst(
-                              '@keyword', Uri.encodeQueryComponent(keyword))),
+                      Uri.parse(targetUrl),
                       mode: LaunchMode.externalApplication,
                     );
                   },

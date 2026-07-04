@@ -816,6 +816,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  iregexp:
+    dependency: transitive
+    description:
+      name: iregexp
+      sha256: c79119931b7ae9c0b6327adaa4495811813fcae7e6236ac68c15f45ca857d38b
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
   isolate_channel:
     dependency: transitive
     description:
@@ -856,6 +864,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.12.0"
+  json_path:
+    dependency: "direct main"
+    description:
+      name: json_path
+      sha256: "99cef94ca7b604ad85b9442bc8852e55396f559c08c0ab961d10b90b730c326f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.0"
   leak_tracker:
     dependency: transitive
     description:
@@ -920,6 +936,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.13.0"
+  maybe_just_nothing:
+    dependency: transitive
+    description:
+      name: maybe_just_nothing
+      sha256: "57af3cacbbe57d5889a4479983755b76551db3c8862aa6335f57f50657945054"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.0"
   media_kit:
     dependency: "direct main"
     description:
@@ -1297,6 +1321,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
+  rfc_6901:
+    dependency: transitive
+    description:
+      name: rfc_6901
+      sha256: "6a43b1858dca2febaf93e15639aa6b0c49ccdfd7647775f15a499f872b018154"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
   rxdart:
     dependency: transitive
     description:

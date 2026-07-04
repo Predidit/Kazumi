@@ -1,16 +1,15 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart' hide Element;
+import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:html/dom.dart' show Element;
-import 'package:html/parser.dart' show parse;
-import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 
 import '../../modules/roads/road_module.dart';
+import '../../plugins/api_rule_config.dart';
 import '../../plugins/plugins.dart';
 
 const _h8 = SizedBox(height: 8.0);
@@ -41,20 +40,19 @@ class PluginTestPage extends StatefulWidget {
 
 class _PluginTestPageState extends State<PluginTestPage> {
   late final Plugin plugin;
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
   final testKeywordController = TextEditingController();
   final htmlScrollController = ScrollController();
   final chapterScrollController = ScrollController();
-  final itemHtmlScrollController = ScrollController();
+  final fragmentScrollController = ScrollController();
 
   String searchHtml = "";
+  String chapterRaw = "";
   PluginSearchResponse? searchRes;
   List<Road>? chapters;
   bool isTesting = false;
   String errorMsg = "";
-  final Map<int, String> _itemHtmlMap = {};
-  int? _showItemHtmlIdx;
+  final Map<int, String> _itemFragmentMap = {};
+  int? _shownFragmentIndex;
 
   bool get _hasSearchHtml => searchHtml.isNotEmpty;
 
@@ -62,7 +60,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   bool get _hasChapters => chapters?.isNotEmpty ?? false;
 
-  bool get _needChapterParse => plugin.chapterRoads.isNotEmpty;
+  bool get _needChapterParse =>
+      plugin.chapterMode == RuleMode.api || plugin.chapterRoads.isNotEmpty;
 
   CancelToken? _testSearchRequestCancelToken;
   CancelToken? _testRoadsCancelToken;
@@ -82,7 +81,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
     testKeywordController.dispose();
     htmlScrollController.dispose();
     chapterScrollController.dispose();
-    itemHtmlScrollController.dispose();
+    fragmentScrollController.dispose();
     super.dispose();
   }
 
@@ -95,38 +94,19 @@ class _PluginTestPageState extends State<PluginTestPage> {
         _testRoadsCancelToken?.cancel();
         _testRoadsCancelToken = null;
         searchHtml = "";
+        chapterRaw = "";
         searchRes = null;
         chapters = null;
         errorMsg = "";
-        _itemHtmlMap.clear();
-        _showItemHtmlIdx = null;
+        _itemFragmentMap.clear();
+        _shownFragmentIndex = null;
       });
 
-  String _parseItemHtml(int index) {
-    if (_itemHtmlMap.containsKey(index)) return _itemHtmlMap[index]!;
-    try {
-      final node = (parse(searchHtml)
-          .documentElement!
-          .queryXPath(plugin.searchList)
-          .nodes[index]
-          .node as Element);
-      return _itemHtmlMap[index] = node.outerHtml;
-    } catch (e) {
-      KazumiLogger()
-          .e('PluginTest: failed to parse HTML item ${index + 1}', error: e);
-      return "解析失败：$e";
+  void _toggleFragment(int index) {
+    if (_shownFragmentIndex == index) {
+      return setState(() => _shownFragmentIndex = null);
     }
-  }
-
-  void _toggleItemHtml(int index) {
-    if (_showItemHtmlIdx == index)
-      return setState(() => _showItemHtmlIdx = null);
-    setState(() => isTesting = true);
-    _parseItemHtml(index);
-    setState(() {
-      _showItemHtmlIdx = index;
-      isTesting = false;
-    });
+    setState(() => _shownFragmentIndex = index);
   }
 
   Future<void> startTest() async {
@@ -136,20 +116,31 @@ class _PluginTestPageState extends State<PluginTestPage> {
     try {
       _testSearchRequestCancelToken?.cancel();
       _testSearchRequestCancelToken = CancelToken();
-      searchHtml = await plugin.testSearchRequest(keyword,
-          shouldRethrow: true, cancelToken: _testSearchRequestCancelToken);
-      searchRes = plugin.testQueryBangumi(searchHtml);
+      final searchTrace = await plugin.traceSearch(
+        keyword,
+        cancelToken: _testSearchRequestCancelToken,
+      );
+      searchHtml = searchTrace.rawResponse;
+      searchRes = searchTrace.response;
+      _itemFragmentMap.addAll(searchTrace.matchedFragments.asMap());
       if (_hasSearchData && _needChapterParse) {
         final firstItem = searchRes!.data.first;
         if (firstItem.src.isNotEmpty) {
           _testRoadsCancelToken?.cancel();
           _testRoadsCancelToken = CancelToken();
-          chapters = await plugin.querychapterRoads(firstItem.src,
-              cancelToken: _testRoadsCancelToken);
+          final chapterTrace = await plugin.traceChapters(
+            firstItem.src,
+            cancelToken: _testRoadsCancelToken,
+          );
+          chapterRaw = chapterTrace.rawResponse;
+          chapters = chapterTrace.roads;
         }
       }
     } catch (e, stack) {
       KazumiLogger().e("PluginTest: test failed", error: e, stackTrace: stack);
+      if (mounted) {
+        setState(() => errorMsg = e.toString());
+      }
     } finally {
       if (mounted) setState(() => isTesting = false);
     }
@@ -318,7 +309,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
   String _getSearchSubtitle() {
     if (isTesting) return '测试中...';
     if (!_hasSearchHtml) return '未执行测试';
-    return 'HTML长度：${searchHtml.length} 字符';
+    return '${plugin.searchMode == RuleMode.api ? 'JSON' : 'HTML'}长度：${searchHtml.length} 字符';
   }
 
   // 简化副标题颜色逻辑：仅三类
@@ -352,7 +343,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
         controller: htmlScrollController,
         physics: const ClampingScrollPhysics(),
         child: SelectableText(
-          searchHtml,
+          _formattedRaw(searchHtml, isJson: plugin.searchMode == RuleMode.api),
           style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
         ),
       ),
@@ -360,14 +351,14 @@ class _PluginTestPageState extends State<PluginTestPage> {
   }
 
   String _getParseSubtitle() {
-    if (isTesting && _showItemHtmlIdx == null) return '解析中...';
+    if (isTesting && _shownFragmentIndex == null) return '解析中...';
     if (!_hasSearchHtml) return '未执行解析';
     if (!_hasSearchData) return '未解析到结果';
     return '解析到 ${searchRes?.data.length ?? 0} 条结果';
   }
 
   Widget _buildParseContent(ThemeData theme) {
-    if (isTesting && _showItemHtmlIdx == null) return _buildLoading(theme);
+    if (isTesting && _shownFragmentIndex == null) return _buildLoading(theme);
     if (!_hasSearchHtml) return _buildEmpty('请先完成搜索请求测试', theme);
     if (!_hasSearchData) return _buildEmpty('未解析到搜索结果', theme, isError: true);
 
@@ -384,8 +375,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
   }
 
   Widget _buildSearchItemCard(SearchItem item, int i, ThemeData theme) {
-    final isShowHtml = _showItemHtmlIdx == i;
-    final itemHtml = _itemHtmlMap[i] ?? '加载中...';
+    final isShowingFragment = _shownFragmentIndex == i;
+    final fragment = _itemFragmentMap[i] ?? '无匹配片段';
 
     return Column(children: [
       Card(
@@ -406,13 +397,13 @@ class _PluginTestPageState extends State<PluginTestPage> {
                 ),
               ),
               IconButton(
-                onPressed: isTesting ? null : () => _toggleItemHtml(i),
+                onPressed: isTesting ? null : () => _toggleFragment(i),
                 icon: Icon(
-                  isShowHtml ? Icons.keyboard_arrow_up : Icons.code,
+                  isShowingFragment ? Icons.keyboard_arrow_up : Icons.code,
                   size: 18,
                   color: theme.getCoreColor(CoreColorType.success),
                 ),
-                tooltip: isShowHtml ? '隐藏HTML' : '查看HTML',
+                tooltip: isShowingFragment ? '隐藏匹配片段' : '查看匹配片段',
               ),
             ]),
             _h8,
@@ -422,7 +413,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
           ]),
         ),
       ),
-      if (isShowHtml)
+      if (isShowingFragment)
         Container(
           margin: const EdgeInsets.only(bottom: 8.0),
           padding: const EdgeInsets.all(8.0),
@@ -434,10 +425,10 @@ class _PluginTestPageState extends State<PluginTestPage> {
           ),
           height: 250,
           child: SingleChildScrollView(
-            controller: itemHtmlScrollController,
+            controller: fragmentScrollController,
             physics: const ClampingScrollPhysics(),
             child: SelectableText(
-              itemHtml,
+              fragment,
               style:
                   theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
             ),
@@ -461,15 +452,50 @@ class _PluginTestPageState extends State<PluginTestPage> {
     if (chapters == null) return _buildEmpty('未获取章节数据', theme, isError: true);
     if (!_hasChapters) return _buildEmpty('无可用章节', theme, isError: true);
 
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      height: 280,
-      child: ListView.builder(
-        controller: chapterScrollController,
-        itemCount: chapters?.length ?? 0,
-        itemBuilder: (_, i) => _buildChapterCard(chapters![i], i, theme),
-      ),
+    return Column(
+      children: [
+        if (chapterRaw.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(maxHeight: 220),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border:
+                  Border.all(color: theme.getCoreColor(CoreColorType.waiting)),
+            ),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                _formattedRaw(
+                  chapterRaw,
+                  isJson: plugin.chapterMode == RuleMode.api,
+                ),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(fontFamily: 'monospace'),
+              ),
+            ),
+          ),
+        Container(
+          padding: const EdgeInsets.all(8.0),
+          height: 280,
+          child: ListView.builder(
+            controller: chapterScrollController,
+            itemCount: chapters?.length ?? 0,
+            itemBuilder: (_, i) => _buildChapterCard(chapters![i], i, theme),
+          ),
+        ),
+      ],
     );
+  }
+
+  String _formattedRaw(String raw, {required bool isJson}) {
+    if (!isJson) return raw;
+    try {
+      return const JsonEncoder.withIndent('  ').convert(jsonDecode(raw));
+    } catch (_) {
+      return raw;
+    }
   }
 
   Widget _buildChapterCard(Road road, int i, ThemeData theme) => Card(
@@ -498,10 +524,16 @@ class _PluginTestPageState extends State<PluginTestPage> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ...road.identifier.asMap().entries.map((e) => Text(
-                                '${e.key + 1}. ${e.value}',
-                                style: theme.textTheme.bodySmall,
-                              )),
+                          ...road.identifier.asMap().entries.map(
+                                (e) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: SelectableText(
+                                    '${e.key + 1}. ${e.value}\n'
+                                    '${e.key < road.data.length ? road.data[e.key] : ''}',
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ),
+                              ),
                         ]),
                   ),
                 ),

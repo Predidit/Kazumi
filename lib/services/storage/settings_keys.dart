@@ -14,13 +14,9 @@ enum SettingGroup {
 }
 
 class SettingContext {
-  const SettingContext({
-    this.compactLayout = false,
-    this.isAndroid = false,
-  });
+  const SettingContext({this.compactLayout = false});
 
   final bool compactLayout;
-  final bool isAndroid;
 }
 
 class SettingKey<T> {
@@ -53,7 +49,6 @@ class SettingsKeys {
     _SettingBoxKey.hardwareDecoder,
     'auto-safe',
     group: SettingGroup.player,
-    defaultResolver: _resolveHardwareDecoderDefault,
   );
   static const searchEnhanceEnable = SettingKey<bool>(
     _SettingBoxKey.searchEnhanceEnable,
@@ -604,10 +599,6 @@ class SettingsKeys {
   }
 
   SettingsKeys._();
-}
-
-String _resolveHardwareDecoderDefault(SettingContext context) {
-  return context.isAndroid ? 'mediacodec' : 'auto-safe';
 }
 
 // Historical Hive key names used by settings created before the typed registry.

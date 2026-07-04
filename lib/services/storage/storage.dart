@@ -327,13 +327,9 @@ class GStorage {
 
   static T getSetting<T>(
     SettingKey<T> key, {
-    SettingContext? context,
+    SettingContext context = const SettingContext(),
   }) {
-    final effectiveContext = context ??
-        SettingContext(
-          isAndroid: Platform.isAndroid,
-        );
-    final defaultValue = key.resolveDefault(effectiveContext);
+    final defaultValue = key.resolveDefault(context);
     final storedValue = _setting.get(key.name);
     if (storedValue is T) {
       return storedValue;

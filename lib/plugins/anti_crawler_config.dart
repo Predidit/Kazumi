@@ -20,8 +20,8 @@ class CaptchaDetectType {
 
 /// 反反爬虫配置
 ///
-/// 当网站对搜索请求返回验证码时，使用 WebView 加载搜索页，
-/// 根据 [captchaType] 采用不同策略完成验证，之后保存 Cookie 用于后续请求。
+/// 仅当 XPath 搜索响应为验证页时，使用 WebView 加载搜索页，
+/// 根据 [captchaType] 完成验证并保存 Cookie，随后重试 XPath 搜索。
 class AntiCrawlerConfig {
   /// 是否启用反反爬虫功能
   bool enabled;

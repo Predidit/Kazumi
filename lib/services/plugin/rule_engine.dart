@@ -8,7 +8,6 @@ import 'package:kazumi/services/plugin/api_rule_strategy.dart';
 import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart';
 import 'package:kazumi/services/plugin/xpath_rule_strategy.dart';
-import 'package:kazumi/utils/http_headers.dart';
 
 abstract interface class RuleRequestExecutor {
   Future<String> execute(
@@ -56,9 +55,15 @@ class RuleEngine {
       );
     }
 
-    final raw = await _executeSearchRequest(
+    final raw = await _executeRequest(
       request,
       config,
+      phase: 'search request',
+      wrapError: (error) => SearchErrorException(
+        config.pluginName,
+        cause: error,
+        kind: RuleFailureKind.request,
+      ),
       cancelToken: cancelToken,
     );
     try {
@@ -114,9 +119,15 @@ class RuleEngine {
       );
     }
 
-    final raw = await _executeChapterRequest(
+    final raw = await _executeRequest(
       request,
       config,
+      phase: 'chapter request',
+      wrapError: (error) => ChapterErrorException(
+        config.pluginName,
+        cause: error,
+        kind: RuleFailureKind.request,
+      ),
       cancelToken: cancelToken,
     );
     try {
@@ -153,9 +164,11 @@ class RuleEngine {
     }
   }
 
-  Future<String> _executeSearchRequest(
+  Future<String> _executeRequest(
     PreparedRuleRequest request,
     RuleExecutionConfig config, {
+    required String phase,
+    required Object Function(Object error) wrapError,
     CancelToken? cancelToken,
   }) async {
     try {
@@ -166,34 +179,8 @@ class RuleEngine {
       );
     } catch (error, stackTrace) {
       if (_isCancellation(error)) rethrow;
-      _logFailure(config, 'search request', error, stackTrace);
-      throw SearchErrorException(
-        config.pluginName,
-        cause: error,
-        kind: RuleFailureKind.request,
-      );
-    }
-  }
-
-  Future<String> _executeChapterRequest(
-    PreparedRuleRequest request,
-    RuleExecutionConfig config, {
-    CancelToken? cancelToken,
-  }) async {
-    try {
-      return await _requestExecutor.execute(
-        request,
-        config,
-        cancelToken: cancelToken,
-      );
-    } catch (error, stackTrace) {
-      if (_isCancellation(error)) rethrow;
-      _logFailure(config, 'chapter request', error, stackTrace);
-      throw ChapterErrorException(
-        config.pluginName,
-        cause: error,
-        kind: RuleFailureKind.request,
-      );
+      _logFailure(config, phase, error, stackTrace);
+      throw wrapError(error);
     }
   }
 
@@ -229,8 +216,6 @@ class _DefaultRuleRequestExecutor implements RuleRequestExecutor {
         : '';
     final headers = <String, dynamic>{
       'referer': '${config.baseUrl}/',
-      'Accept-Language': getRandomAcceptedLanguage(),
-      'Connection': 'keep-alive',
       if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
       ...request.headers,
     };
@@ -258,13 +243,11 @@ class _DefaultRuleRequestExecutor implements RuleRequestExecutor {
   }
 
   Future<String> _cookieHeaderFor(String pluginName, String url) async {
-    if (!PluginCookieManager.instance.hasCookies(pluginName)) return '';
     final uri = Uri.tryParse(url);
     if (uri == null) return '';
     try {
-      final cookies = await PluginCookieManager.instance
-          .getJar(pluginName)
-          .loadForRequest(uri);
+      final cookies =
+          await PluginCookieManager.instance.loadForRequest(pluginName, uri);
       return cookies
           .map((cookie) => '${cookie.name}=${cookie.value}')
           .join('; ');

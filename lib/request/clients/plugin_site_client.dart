@@ -8,37 +8,6 @@ class PluginSiteClient {
 
   static final PluginSiteClient instance = PluginSiteClient._();
 
-  Future<String> getText(
-    String url, {
-    Map<String, dynamic> headers = const {},
-    CancelToken? cancelToken,
-  }) async {
-    return requestText(
-      url,
-      method: 'GET',
-      headers: headers,
-      cancelToken: cancelToken,
-    );
-  }
-
-  Future<String> postFormText(
-    String url, {
-    Object? data,
-    Map<String, dynamic> headers = const {},
-    CancelToken? cancelToken,
-  }) async {
-    return requestText(
-      url,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        ...headers,
-      },
-      data: data,
-      cancelToken: cancelToken,
-    );
-  }
-
   Future<String> requestText(
     String url, {
     required String method,

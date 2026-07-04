@@ -154,9 +154,10 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   String chapterApiMethod = 'GET';
   String chapterApiBodyType = ApiBodyType.none;
   String chapterApiFormat = ApiChapterFormat.nested;
-  bool muliSources = true;
-  bool useWebview = true;
-  bool useNativePlayer = true;
+  // Legacy schema values retained on save but no longer exposed as settings.
+  late bool _muliSources;
+  late bool _useWebview;
+  late bool _useNativePlayer;
   bool usePost = false;
   bool useLegacyParser = false;
   bool adBlocker = false;
@@ -252,9 +253,9 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         plugin.chapterApiConfig.episodePage?.url ?? '';
     chapterApiPageQueryController.text =
         _prettyJson(plugin.chapterApiConfig.episodePage?.query);
-    muliSources = plugin.muliSources;
-    useWebview = plugin.useWebview;
-    useNativePlayer = plugin.useNativePlayer;
+    _muliSources = plugin.muliSources;
+    _useWebview = plugin.useWebview;
+    _useNativePlayer = plugin.useNativePlayer;
     usePost = plugin.usePost;
     useLegacyParser = plugin.useLegacyParser;
     adBlocker = plugin.adBlocker;
@@ -413,15 +414,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                           initialValue: useLegacyParser,
                           onToggle: (v) => setState(
                               () => useLegacyParser = v ?? !useLegacyParser),
-                        ),
-                        SettingsTile.switchTile(
-                          title: Text('内置播放器',
-                              style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('使用内置播放器播放视频',
-                              style: TextStyle(fontFamily: fontFamily)),
-                          initialValue: useNativePlayer,
-                          onToggle: (v) => setState(
-                              () => useNativePlayer = v ?? !useNativePlayer),
                         ),
                         SettingsTile.switchTile(
                           title: Text('广告过滤',
@@ -697,16 +689,9 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   }
 
   List<Widget> _buildXPathSearchFields() => [
-        DropdownButtonFormField<String>(
-          initialValue: usePost ? 'POST' : 'GET',
-          decoration: const InputDecoration(
-            labelText: _RuleEditorText.searchMethod,
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'GET', child: Text('GET')),
-            DropdownMenuItem(value: 'POST', child: Text('POST')),
-          ],
+        _requestMethodField(
+          label: _RuleEditorText.searchMethod,
+          value: usePost ? 'POST' : 'GET',
           onChanged: (value) => setState(() => usePost = value == 'POST'),
         ),
         const SizedBox(height: 20),
@@ -722,18 +707,10 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       ];
 
   List<Widget> _buildApiSearchFields() => [
-        DropdownButtonFormField<String>(
-          initialValue: searchApiMethod,
-          decoration: const InputDecoration(
-            labelText: _RuleEditorText.searchMethod,
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'GET', child: Text('GET')),
-            DropdownMenuItem(value: 'POST', child: Text('POST')),
-          ],
-          onChanged: (value) =>
-              setState(() => searchApiMethod = value ?? 'GET'),
+        _requestMethodField(
+          label: _RuleEditorText.searchMethod,
+          value: searchApiMethod,
+          onChanged: (value) => setState(() => searchApiMethod = value),
         ),
         const SizedBox(height: 20),
         _editorField(
@@ -787,18 +764,10 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       ];
 
   List<Widget> _buildApiChapterFields() => [
-        DropdownButtonFormField<String>(
-          initialValue: chapterApiMethod,
-          decoration: const InputDecoration(
-            labelText: _RuleEditorText.chapterMethod,
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'GET', child: Text('GET')),
-            DropdownMenuItem(value: 'POST', child: Text('POST')),
-          ],
-          onChanged: (value) =>
-              setState(() => chapterApiMethod = value ?? 'GET'),
+        _requestMethodField(
+          label: _RuleEditorText.chapterMethod,
+          value: chapterApiMethod,
+          onChanged: (value) => setState(() => chapterApiMethod = value),
         ),
         const SizedBox(height: 20),
         _editorField(
@@ -918,6 +887,27 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         ),
       ];
 
+  Widget _requestMethodField({
+    required String label,
+    required String value,
+    required ValueChanged<String> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      items: const [
+        DropdownMenuItem(value: 'GET', child: Text('GET')),
+        DropdownMenuItem(value: 'POST', child: Text('POST')),
+      ],
+      onChanged: (value) {
+        if (value != null) onChanged(value);
+      },
+    );
+  }
+
   Widget _editorField(
     TextEditingController controller,
     String label, {
@@ -948,9 +938,9 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       type: typeController.text,
       name: nameController.text,
       version: versionController.text,
-      muliSources: muliSources,
-      useWebview: useWebview,
-      useNativePlayer: useNativePlayer,
+      muliSources: _muliSources,
+      useWebview: _useWebview,
+      useNativePlayer: _useNativePlayer,
       usePost: usePost,
       useLegacyParser: useLegacyParser,
       adBlocker: adBlocker,
@@ -981,29 +971,13 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   }
 
   ApiSearchConfig _buildSearchApiConfig() {
-    if (searchMode != RuleMode.api) {
-      return ApiSearchConfig(
-        request: ApiRequestConfig(
-          method: searchApiMethod,
-          url: searchApiURLController.text,
-          headers: _parseJsonMap(searchApiHeadersController, '搜索请求头'),
-          query: _parseJsonMap(searchApiQueryController, '搜索查询参数'),
-          bodyType: searchApiBodyType,
-          body: _parseBody(
-            searchApiBodyController,
-            searchApiBodyType,
-            '搜索请求体',
-          ),
-        ),
-        listPath: searchApiListPathController.text,
-        namePath: searchApiNamePathController.text,
-        sourcePath: searchApiSourcePathController.text,
-      );
-    }
+    final shouldValidate = searchMode == RuleMode.api;
+    String valueOf(TextEditingController controller) =>
+        shouldValidate ? controller.text.trim() : controller.text;
     final config = ApiSearchConfig(
       request: ApiRequestConfig(
         method: searchApiMethod,
-        url: searchApiURLController.text.trim(),
+        url: valueOf(searchApiURLController),
         headers: _parseJsonMap(searchApiHeadersController, '搜索请求头'),
         query: _parseJsonMap(searchApiQueryController, '搜索查询参数'),
         bodyType: searchApiBodyType,
@@ -1013,10 +987,11 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           '搜索请求体',
         ),
       ),
-      listPath: searchApiListPathController.text.trim(),
-      namePath: searchApiNamePathController.text.trim(),
-      sourcePath: searchApiSourcePathController.text.trim(),
+      listPath: valueOf(searchApiListPathController),
+      namePath: valueOf(searchApiNamePathController),
+      sourcePath: valueOf(searchApiSourcePathController),
     );
+    if (!shouldValidate) return config;
     if (config.request.url.isEmpty) {
       throw const FormatException('搜索请求地址不能为空');
     }

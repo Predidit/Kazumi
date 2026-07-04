@@ -7,6 +7,7 @@ import 'package:kazumi/plugins/api_rule_config.dart';
 import 'package:kazumi/request/core/network_exception.dart';
 import 'package:kazumi/services/plugin/rule_engine.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart';
+import 'package:kazumi/services/plugin/xpath_rule_strategy.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -88,6 +89,80 @@ void main() {
       throwsA(
         isA<SearchErrorException>()
             .having((error) => error.kind, 'kind', RuleFailureKind.parse),
+      ),
+    );
+  });
+
+  test('maps an empty relative search XPath to a typed parse error', () async {
+    final engine = RuleEngine(
+      requestExecutor: _FakeExecutor([xpathResponse]),
+      logFailures: false,
+    );
+
+    await expectLater(
+      engine.search(
+        _config(
+          searchMode: RuleMode.xpath,
+          chapterMode: RuleMode.xpath,
+          searchName: '',
+        ),
+        'keyword',
+      ),
+      throwsA(
+        isA<SearchErrorException>()
+            .having((error) => error.kind, 'kind', RuleFailureKind.parse)
+            .having(
+              (error) => error.cause,
+              'cause',
+              isA<XPathRuleFormatException>()
+                  .having(
+                    (error) => error.kind,
+                    'kind',
+                    XPathRuleFormatKind.invalidSelector,
+                  )
+                  .having(
+                    (error) => error.field,
+                    'field',
+                    XPathRuleField.searchName,
+                  ),
+            ),
+      ),
+    );
+  });
+
+  test('maps an empty chapter XPath to a typed parse error', () async {
+    final engine = RuleEngine(
+      requestExecutor: _FakeExecutor([xpathResponse]),
+      logFailures: false,
+    );
+
+    await expectLater(
+      engine.queryChapters(
+        _config(
+          searchMode: RuleMode.xpath,
+          chapterMode: RuleMode.xpath,
+          chapterResult: '',
+        ),
+        '/video/1',
+      ),
+      throwsA(
+        isA<ChapterErrorException>()
+            .having((error) => error.kind, 'kind', RuleFailureKind.parse)
+            .having(
+              (error) => error.cause,
+              'cause',
+              isA<XPathRuleFormatException>()
+                  .having(
+                    (error) => error.kind,
+                    'kind',
+                    XPathRuleFormatKind.invalidSelector,
+                  )
+                  .having(
+                    (error) => error.field,
+                    'field',
+                    XPathRuleField.chapterResult,
+                  ),
+            ),
       ),
     );
   });
@@ -177,6 +252,8 @@ RuleExecutionConfig _config({
   required String searchMode,
   required String chapterMode,
   AntiCrawlerConfig? antiCrawler,
+  String searchName = '//h2/a',
+  String chapterResult = '//a',
 }) {
   return RuleExecutionConfig(
     pluginName: 'runtime-test',
@@ -186,10 +263,10 @@ RuleExecutionConfig _config({
     chapterMode: chapterMode,
     searchUrl: 'https://example.com/search?q=@keyword',
     searchList: '//article[@class="result"]',
-    searchName: '//h2/a',
+    searchName: searchName,
     searchResult: '//h2/a',
     chapterRoads: '//div[@class="road"]',
-    chapterResult: '//a',
+    chapterResult: chapterResult,
     searchApiConfig: ApiSearchConfig(
       request: ApiRequestConfig(
         url: 'https://example.com/api/search',

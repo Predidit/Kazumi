@@ -56,6 +56,20 @@ void main() {
     expect(request.body, {'source': 'a/b', 'label': 'video-a/b'});
   });
 
+  test('ignores inactive request bodies for GET requests', () {
+    final request = engine.prepareRequest(
+      ApiRequestConfig(
+        method: 'GET',
+        url: 'https://example.com/search',
+        bodyType: ApiBodyType.json,
+        body: {'unused': '@missing'},
+      ),
+      const <String, Object?>{},
+    );
+
+    expect(request.body, isNull);
+  });
+
   test('parses Liangzi search and delimited chapters', () {
     const searchRaw = '''
 {
@@ -101,7 +115,7 @@ void main() {
     expect(roads.roads[1].data.single, 'https://cdn-b.test/main.m3u8');
   });
 
-  test('parses TvTFun nested chapters and builds play pages', () {
+  test('parses TvTFun chapters and constructs playback page URLs', () {
     final raw = jsonEncode({
       'data': {
         'slug': '28431',
@@ -171,5 +185,73 @@ void main() {
     );
     expect(roads.roads.single.identifier, ['第02集']);
     expect(roads.diagnostics, hasLength(1));
+  });
+
+  test('keeps default nested road names gapless without changing source index',
+      () {
+    final raw = jsonEncode({
+      'data': {
+        'roads': [
+          {'episodes': <Object>[]},
+          {
+            'episodes': [
+              {'name': '第01集'},
+            ],
+          },
+        ],
+      },
+    });
+    final result = engine.parseChapters(
+      raw,
+      ApiChapterConfig(
+        roadNamePath: '',
+        episodeUrlPath: '',
+        episodePage: ApiEpisodePageConfig(
+          url: '/play',
+          query: {'source': '@roadIndex'},
+        ),
+      ),
+      source: 'id',
+      baseUrl: 'https://example.com/',
+    );
+
+    expect(result.roads.single.name, '播放线路1');
+    expect(
+      result.roads.single.data.single,
+      'https://example.com/play?source=1',
+    );
+  });
+
+  test('keeps default delimited road names gapless', () {
+    const raw = r'''
+{"names":"$$$","episodes":"损坏条目$$$第01集$https://cdn.test/1.m3u8"}
+''';
+    final result = engine.parseChapters(
+      raw,
+      ApiChapterConfig(
+        format: ApiChapterFormat.delimited,
+        roadNamesPath: r'$.names',
+        roadEpisodesPath: r'$.episodes',
+      ),
+      source: 'id',
+      baseUrl: 'https://example.com/',
+    );
+
+    expect(result.roads.single.name, '播放线路1');
+    expect(result.roads.single.data.single, 'https://cdn.test/1.m3u8');
+  });
+
+  test('rejects invalid relative search paths before mapping entries', () {
+    expect(
+      () => engine.parseSearch(
+        '{"data":[{"name":"item","id":"1"}]}',
+        ApiSearchConfig(
+          listPath: r'$.data[*]',
+          namePath: r'$..name',
+          sourcePath: r'$.id',
+        ),
+      ),
+      throwsA(isA<ApiRuleFormatException>()),
+    );
   });
 }

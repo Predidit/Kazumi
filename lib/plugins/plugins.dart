@@ -23,9 +23,11 @@ class Plugin {
   String name;
   String version;
   bool muliSources;
+
+  /// Legacy schema field retained for rule import/export compatibility.
   bool useWebview;
 
-  /// Deprecated (always true)
+  /// Legacy schema field retained for rule import/export compatibility.
   bool useNativePlayer;
   bool usePost;
   bool useLegacyParser;
@@ -175,8 +177,6 @@ class Plugin {
 
   bool get usesApiSearch => searchMode == RuleMode.api;
 
-  bool get usesApiChapter => chapterMode == RuleMode.api;
-
   RuleExecutionConfig get _executionConfig => RuleExecutionConfig(
         pluginName: name,
         baseUrl: baseUrl,
@@ -252,6 +252,7 @@ class Plugin {
     return normalizeEpisodeUrl(baseUrl, urlItem);
   }
 
+  /// Headers used when resolving or downloading the final media resource.
   Map<String, String> buildHttpHeaders() {
     return {
       'user-agent': userAgent.isEmpty ? getRandomUA() : userAgent,

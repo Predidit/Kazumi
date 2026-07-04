@@ -64,6 +64,10 @@ class ChapterErrorException implements Exception {
       '${cause != null ? ' ($cause)' : ''}';
 }
 
+/// Immutable runtime snapshot built from a plugin rule.
+///
+/// Playback-only headers such as the rule's User-Agent and Referer are
+/// deliberately excluded. API requests can provide their own static headers.
 class RuleExecutionConfig {
   const RuleExecutionConfig({
     required this.pluginName,

@@ -10,21 +10,21 @@ import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 ///
 /// **类型1：图片验证码**（[loadForCaptcha] + [submitCaptcha]）
 ///   1. 初始化 WebView
-///   2. 加载搜索页面，注入 JS 脚本监听验证码图片
+///   2. 加载 XPath 搜索页面并监听验证码图片
 ///   3. 通过 [onCaptchaImageUrl] 流将验证码图片 URL 暴露给 UI
 ///   4. UI 将用户输入的验证码传给 [submitCaptcha]
-///   5. 页面通过 AJAX 提交验证码
+///   5. 在页面中填写验证码并点击提交按钮
 ///   6. 验证码图片消失后，获取页面 Cookie 并保存到 [PluginCookieManager]
 ///   7. UI 发起重新检索
 ///
 /// **类型2：自动点击验证按钮**（[loadForButtonClick]）
 ///   1. 初始化 WebView
-///   2. 加载搜索页面，注入 JS 脚本轮询验证按钮
+///   2. 加载 XPath 搜索页面并监听验证按钮
 ///   3. 检测到按钮后自动模拟点击
 ///   4. 按钮消失或页面跳转时，获取页面 Cookie 并保存到 [PluginCookieManager]
 ///   5. 通过 [onVerified] 回调通知 UI 发起重新检索
 ///
-/// **类型3：自定义 JS 验证**（[loadForCustomScript]）
+/// **类型3：自定义 JavaScript 验证**（[loadForCustomScript]）
 ///   1. 初始化 WebView
 ///   2. 加载搜索页面，注入规则中配置的 JS 验证脚本
 ///   3. 脚本调用 KazumiCaptcha.clicked/done 或返回 true 后完成验证
@@ -232,8 +232,6 @@ class CaptchaVerificationService {
     }
     await controller.unloadPage();
   }
-
-  Stream<String>? get onLog => _controller?.onLog;
 
   void dispose() {
     if (_disposed) return;

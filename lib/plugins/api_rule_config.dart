@@ -100,7 +100,10 @@ class ApiSearchConfig {
 }
 
 class ApiEpisodePageConfig {
+  /// Template for the final playback page URL.
   String url;
+
+  /// Query parameters rendered with response and episode index variables.
   Map<String, dynamic> query;
 
   ApiEpisodePageConfig({
@@ -125,14 +128,17 @@ class ApiChapterConfig {
   ApiRequestConfig request;
   String format;
 
-  // Nested JSON response.
+  // Nested JSON response mapping.
   String roadsPath;
   String roadNamePath;
   String episodesPath;
   String episodeNamePath;
+
+  /// JSONPath for a playback entry URL (page URL or direct media URL).
+  /// May be empty when [episodePage] constructs the final playback page URL.
   String episodeUrlPath;
 
-  // Delimited response.
+  // Delimited string response mapping.
   String roadNamesPath;
   String roadEpisodesPath;
   String roadSeparator;
@@ -141,6 +147,8 @@ class ApiChapterConfig {
 
   String defaultRoadName;
   Map<String, String> variables;
+
+  /// Optional final playback page template used instead of a response URL.
   ApiEpisodePageConfig? episodePage;
 
   ApiChapterConfig({

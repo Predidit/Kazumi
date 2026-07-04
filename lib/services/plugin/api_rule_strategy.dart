@@ -125,18 +125,22 @@ class ApiRuleStrategy {
     if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
       throw ApiRuleFormatException('API 请求 URL 无效: $url');
     }
+    final hasBody = method == 'POST' && config.bodyType != ApiBodyType.none;
     return PreparedRuleRequest(
       method: method,
       url: url,
       headers: _renderMap(config.headers, variables),
       query: _renderMap(config.query, variables),
       bodyType: config.bodyType,
-      body: _renderValue(config.body, variables),
+      body: hasBody ? _renderValue(config.body, variables) : null,
       includeCookies: true,
     );
   }
 
   RuleSearchParseResult parseSearch(String raw, ApiSearchConfig config) {
+    RestrictedJsonPath.validate(config.listPath);
+    RestrictedJsonPath.validate(config.namePath);
+    RestrictedJsonPath.validate(config.sourcePath);
     final document = decodeResponse(raw);
     final nodes = RestrictedJsonPath.read(document, config.listPath);
     final results = <SearchItem>[];
@@ -157,6 +161,8 @@ class ApiRuleStrategy {
         }
         results.add(SearchItem(name: name, src: source));
         fragments.add(jsonEncode(node));
+      } on ApiRuleFormatException {
+        rethrow;
       } catch (error) {
         diagnostics.add('搜索节点 $index 解析失败: $error');
       }
@@ -174,6 +180,7 @@ class ApiRuleStrategy {
     required String source,
     required String baseUrl,
   }) {
+    _validateChapterConfig(config);
     final document = decodeResponse(raw);
     final rootVariables = <String, Object?>{'source': source};
     for (final entry in config.variables.entries) {
@@ -284,6 +291,8 @@ class ApiRuleStrategy {
             names.add(
               episodeName.isEmpty ? '第${episodeIndex + 1}集' : episodeName,
             );
+          } on ApiRuleFormatException {
+            rethrow;
           } catch (error) {
             diagnostics.add(
               '线路 $roadIndex 的剧集节点 $episodeIndex 解析失败: $error',
@@ -297,12 +306,14 @@ class ApiRuleStrategy {
         roads.add(
           Road(
             name: roadName.isEmpty
-                ? '${config.defaultRoadName}${roadIndex + 1}'
+                ? '${config.defaultRoadName}${roads.length + 1}'
                 : roadName,
             data: urls,
             identifier: names,
           ),
         );
+      } on ApiRuleFormatException {
+        rethrow;
       } catch (error) {
         diagnostics.add('线路节点 $roadIndex 解析失败: $error');
       }
@@ -317,14 +328,6 @@ class ApiRuleStrategy {
     String baseUrl,
     List<String> diagnostics,
   ) {
-    if (config.roadNamesPath.isEmpty || config.roadEpisodesPath.isEmpty) {
-      throw const ApiRuleFormatException('分隔格式必须配置线路名和线路内容路径');
-    }
-    if (config.roadSeparator.isEmpty ||
-        config.episodeSeparator.isEmpty ||
-        config.fieldSeparator.isEmpty) {
-      throw const ApiRuleFormatException('分隔符不能为空');
-    }
     final namesValue = _stringValue(
       RestrictedJsonPath.readFirst(document, config.roadNamesPath),
     );
@@ -372,6 +375,8 @@ class ApiRuleStrategy {
           }
           urls.add(pageUrl);
           names.add(name.isEmpty ? '第${episodeIndex + 1}集' : name);
+        } on ApiRuleFormatException {
+          rethrow;
         } catch (error) {
           diagnostics.add(
             '线路 $roadIndex 的剧集条目 $episodeIndex 解析失败: $error',
@@ -387,7 +392,7 @@ class ApiRuleStrategy {
       roads.add(
         Road(
           name: configuredName.isEmpty
-              ? '${config.defaultRoadName}${roadIndex + 1}'
+              ? '${config.defaultRoadName}${roads.length + 1}'
               : configuredName,
           data: urls,
           identifier: names,
@@ -407,6 +412,9 @@ class ApiRuleStrategy {
   }) {
     final page = config.episodePage;
     if (page == null) return normalizeEpisodeUrl(baseUrl, rawUrl);
+    if (page.url.trim().isEmpty) {
+      throw const ApiRuleFormatException('播放页地址模板不能为空');
+    }
     final variables = <String, Object?>{
       ...rootVariables,
       'episodeUrl': rawUrl,
@@ -431,6 +439,41 @@ class ApiRuleStrategy {
       baseUrl,
       uri.replace(queryParameters: mergedQuery).toString(),
     );
+  }
+
+  void _validateChapterConfig(ApiChapterConfig config) {
+    for (final path in config.variables.values) {
+      RestrictedJsonPath.validate(path);
+    }
+    if (config.format == ApiChapterFormat.delimited) {
+      RestrictedJsonPath.validate(config.roadNamesPath);
+      RestrictedJsonPath.validate(config.roadEpisodesPath);
+      if (config.roadSeparator.isEmpty ||
+          config.episodeSeparator.isEmpty ||
+          config.fieldSeparator.isEmpty) {
+        throw const ApiRuleFormatException('章节分隔符不能为空');
+      }
+      return;
+    }
+
+    if (config.roadsPath.trim().isNotEmpty) {
+      RestrictedJsonPath.validate(config.roadsPath);
+    }
+    if (config.roadNamePath.trim().isNotEmpty) {
+      RestrictedJsonPath.validate(config.roadNamePath);
+    }
+    RestrictedJsonPath.validate(config.episodesPath);
+    RestrictedJsonPath.validate(config.episodeNamePath);
+    if (config.episodeUrlPath.trim().isNotEmpty) {
+      RestrictedJsonPath.validate(config.episodeUrlPath);
+    } else if (config.episodePage == null) {
+      throw const ApiRuleFormatException(
+        '必须配置播放入口地址路径或播放页地址模板',
+      );
+    }
+    if (config.episodePage != null && config.episodePage!.url.trim().isEmpty) {
+      throw const ApiRuleFormatException('播放页地址模板不能为空');
+    }
   }
 
   Map<String, dynamic> _renderMap(

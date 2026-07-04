@@ -41,11 +41,11 @@ class PluginTestPage extends StatefulWidget {
 class _PluginTestPageState extends State<PluginTestPage> {
   late final Plugin plugin;
   final testKeywordController = TextEditingController();
-  final htmlScrollController = ScrollController();
+  final searchRawScrollController = ScrollController();
   final chapterScrollController = ScrollController();
   final fragmentScrollController = ScrollController();
 
-  String searchHtml = "";
+  String searchRaw = "";
   String chapterRaw = "";
   PluginSearchResponse? searchRes;
   List<Road>? chapters;
@@ -54,7 +54,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
   final Map<int, String> _itemFragmentMap = {};
   int? _shownFragmentIndex;
 
-  bool get _hasSearchHtml => searchHtml.isNotEmpty;
+  bool get _hasSearchRaw => searchRaw.isNotEmpty;
 
   bool get _hasSearchData => searchRes?.data.isNotEmpty ?? false;
 
@@ -79,21 +79,21 @@ class _PluginTestPageState extends State<PluginTestPage> {
     _testSearchRequestCancelToken?.cancel();
     _testRoadsCancelToken?.cancel();
     testKeywordController.dispose();
-    htmlScrollController.dispose();
+    searchRawScrollController.dispose();
     chapterScrollController.dispose();
     fragmentScrollController.dispose();
     super.dispose();
   }
 
-  void onBackPressed() =>
+  void _onBackPressed() =>
       KazumiDialog.observer.hasKazumiDialog ? KazumiDialog.dismiss() : null;
 
-  void resetState() => setState(() {
+  void _resetState() => setState(() {
         _testSearchRequestCancelToken?.cancel();
         _testSearchRequestCancelToken = null;
         _testRoadsCancelToken?.cancel();
         _testRoadsCancelToken = null;
-        searchHtml = "";
+        searchRaw = "";
         chapterRaw = "";
         searchRes = null;
         chapters = null;
@@ -111,7 +111,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   Future<void> startTest() async {
     final keyword = testKeywordController.text.trim();
-    resetState();
+    _resetState();
     setState(() => isTesting = true);
     try {
       _testSearchRequestCancelToken?.cancel();
@@ -120,7 +120,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
         keyword,
         cancelToken: _testSearchRequestCancelToken,
       );
-      searchHtml = searchTrace.rawResponse;
+      searchRaw = searchTrace.rawResponse;
       searchRes = searchTrace.response;
       _itemFragmentMap.addAll(searchTrace.matchedFragments.asMap());
       if (_hasSearchData && _needChapterParse) {
@@ -151,7 +151,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
     final theme = Theme.of(context);
     return PopScope(
       canPop: true,
-      onPopInvokedWithResult: (didPop, _) => !didPop ? onBackPressed() : null,
+      onPopInvokedWithResult: (didPop, _) => !didPop ? _onBackPressed() : null,
       child: Scaffold(
         appBar: SysAppBar(
           title: Text('${plugin.name} 测试'),
@@ -162,7 +162,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
               tooltip: '开始测试',
             ),
             IconButton(
-              onPressed: resetState,
+              onPressed: _resetState,
               icon: const Icon(Icons.refresh),
               tooltip: '重置',
             ),
@@ -308,8 +308,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   String _getSearchSubtitle() {
     if (isTesting) return '测试中...';
-    if (!_hasSearchHtml) return '未执行测试';
-    return '${plugin.searchMode == RuleMode.api ? 'JSON' : 'HTML'}长度：${searchHtml.length} 字符';
+    if (!_hasSearchRaw) return '未执行测试';
+    return '${plugin.searchMode == RuleMode.api ? 'JSON' : 'HTML'}长度：${searchRaw.length} 字符';
   }
 
   // 简化副标题颜色逻辑：仅三类
@@ -329,7 +329,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   Widget _buildSearchContent(ThemeData theme) {
     if (isTesting) return _buildLoading(theme);
-    if (!_hasSearchHtml) return _buildEmpty('点击顶部「开始测试」按钮执行', theme);
+    if (!_hasSearchRaw) return _buildEmpty('点击顶部「开始测试」按钮执行', theme);
     return Container(
       margin: const EdgeInsets.only(bottom: 8.0),
       padding: const EdgeInsets.all(8.0),
@@ -340,10 +340,10 @@ class _PluginTestPageState extends State<PluginTestPage> {
       ),
       height: 250,
       child: SingleChildScrollView(
-        controller: htmlScrollController,
+        controller: searchRawScrollController,
         physics: const ClampingScrollPhysics(),
         child: SelectableText(
-          _formattedRaw(searchHtml, isJson: plugin.searchMode == RuleMode.api),
+          _formattedRaw(searchRaw, isJson: plugin.searchMode == RuleMode.api),
           style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
         ),
       ),
@@ -352,14 +352,14 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   String _getParseSubtitle() {
     if (isTesting && _shownFragmentIndex == null) return '解析中...';
-    if (!_hasSearchHtml) return '未执行解析';
+    if (!_hasSearchRaw) return '未执行解析';
     if (!_hasSearchData) return '未解析到结果';
     return '解析到 ${searchRes?.data.length ?? 0} 条结果';
   }
 
   Widget _buildParseContent(ThemeData theme) {
     if (isTesting && _shownFragmentIndex == null) return _buildLoading(theme);
-    if (!_hasSearchHtml) return _buildEmpty('请先完成搜索请求测试', theme);
+    if (!_hasSearchRaw) return _buildEmpty('请先完成搜索请求测试', theme);
     if (!_hasSearchData) return _buildEmpty('未解析到搜索结果', theme, isError: true);
 
     return Column(children: [

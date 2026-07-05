@@ -845,6 +845,59 @@ void main() {
       expect(await file.readAsString(), malformed);
     });
 
+    test('skips malformed remote files transactionally', () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'kazumi_history_remote_invalid_',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+      final malformedFile = File('${directory.path}/malformed.jsonl');
+      final validFile = File('${directory.path}/valid.jsonl');
+      final validPrefix = HistorySyncCodec.eventsToJsonLines([
+        _upsert(
+          deviceId: 'device-a',
+          seq: 1,
+          updatedAt: 1000,
+          episode: 1,
+          progressMs: 10,
+        ),
+      ]);
+      await malformedFile.writeAsString(
+        '$validPrefix{"eventId":"truncated"',
+        flush: true,
+      );
+      await validFile.writeAsString(
+        HistorySyncCodec.eventsToJsonLines([
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 2,
+            progressMs: 20,
+          ),
+        ]),
+        flush: true,
+      );
+      final skippedFiles = <File>[];
+
+      final merged = await HistorySyncService().mergeRemoteEventFiles(
+        snapshot: HistorySyncSnapshot.empty(),
+        eventFiles: [malformedFile, validFile],
+        onInvalidFile: (file, error, stackTrace) async {
+          expect(error, isA<FormatException>());
+          skippedFiles.add(file);
+        },
+      );
+
+      expect(skippedFiles, [malformedFile]);
+      expect(merged.histories, hasLength(1));
+      expect(merged.histories.single.progresses, contains(2));
+      expect(merged.histories.single.progresses, isNot(contains(1)));
+    });
+
     test('checkpoint keeps events appended during an active sync', () async {
       final directory =
           await Directory.systemTemp.createTemp('kazumi_history_checkpoint_');

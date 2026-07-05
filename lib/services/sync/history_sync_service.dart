@@ -319,6 +319,33 @@ class HistorySyncService {
     return HistorySyncSnapshot.fromJson(mergedJson);
   }
 
+  /// Merges independently-owned remote logs without letting one invalid file
+  /// block every device. Each file is transactional: none of its events are
+  /// applied if parsing fails.
+  Future<HistorySyncSnapshot> mergeRemoteEventFiles({
+    required HistorySyncSnapshot snapshot,
+    required Iterable<File> eventFiles,
+    required Future<void> Function(
+      File file,
+      Object error,
+      StackTrace stackTrace,
+    ) onInvalidFile,
+  }) async {
+    var mergedSnapshot = snapshot;
+    for (final file in eventFiles) {
+      try {
+        mergedSnapshot = await mergeEventFiles(
+          snapshot: mergedSnapshot,
+          eventFiles: [file],
+          inMemoryEvents: const [],
+        );
+      } catch (e, stackTrace) {
+        await onInvalidFile(file, e, stackTrace);
+      }
+    }
+    return mergedSnapshot;
+  }
+
   Future<void> writeSnapshotFile(
     HistorySyncSnapshot snapshot,
     File file,

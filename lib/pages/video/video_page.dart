@@ -449,24 +449,24 @@ class _VideoPageState extends State<VideoPage>
     }
   }
 
-  void sendDanmaku(String msg) async {
+  bool sendDanmaku(String msg) {
     final playerController = _playerController;
     if (playerController == null) {
-      return;
+      return false;
     }
     keyboardFocus.requestFocus();
     if (playerController.danmaku.danDanmakus.isEmpty) {
       KazumiDialog.showToast(
         message: '当前剧集不支持弹幕发送的说',
       );
-      return;
+      return false;
     }
     if (msg.isEmpty) {
       KazumiDialog.showToast(message: '弹幕内容为空');
-      return;
+      return false;
     } else if (msg.length > 100) {
       KazumiDialog.showToast(message: '弹幕内容过长');
-      return;
+      return false;
     }
 
     final destination = playerController.danmaku.danmakuDestination;
@@ -474,7 +474,7 @@ class _VideoPageState extends State<VideoPage>
     if (destination == DanmakuDestination.chatRoom) {
       if (playerController.syncplay.syncplayRoom.isEmpty) {
         KazumiDialog.showToast(message: '你还没有加入一起看，无法发送聊天室弹幕');
-        return;
+        return false;
       }
 
       final sender =
@@ -491,13 +491,15 @@ class _VideoPageState extends State<VideoPage>
         ),
       );
 
-      playerController.sendSyncPlayChatMessage(msg);
+      unawaited(playerController.sendSyncPlayChatMessage(msg));
     } else {
       // The remote danmaku provider does not expose a send API here; render the
       // local echo so the user still sees their message immediately.
       playerController.danmaku.canvasController
           .addDanmaku(DanmakuContentItem(msg, selfSend: true));
     }
+
+    return true;
   }
 
   Future<void> showMobileDanmakuInput() async {
@@ -551,17 +553,17 @@ class _VideoPageState extends State<VideoPage>
     if (!mounted || message == null) {
       return;
     }
-    showDanmakuDestinationPickerAndSend(message);
+    await showDanmakuDestinationPickerAndSend(message);
   }
 
-  void showDanmakuDestinationPickerAndSend(String msg) async {
+  Future<bool> showDanmakuDestinationPickerAndSend(String msg) async {
     final playerController = _playerController;
     if (playerController == null) {
-      return;
+      return false;
     }
     if (msg.trim().isEmpty) {
       KazumiDialog.showToast(message: '弹幕内容为空');
-      return;
+      return false;
     }
 
     final DanmakuDestination? result =
@@ -612,14 +614,13 @@ class _VideoPageState extends State<VideoPage>
       },
     );
 
-    if (result != null) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {});
-      playerController.danmaku.danmakuDestination = result;
-      sendDanmaku(msg);
+    if (result == null || !mounted) {
+      return false;
     }
+
+    setState(() {});
+    playerController.danmaku.danmakuDestination = result;
+    return sendDanmaku(msg);
   }
 
   @override

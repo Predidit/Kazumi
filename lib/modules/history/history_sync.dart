@@ -473,7 +473,7 @@ class HistorySyncState {
     if (entryKind == HistoryEntryKind.online) {
       deletedVersions.remove(legacyEntityKey);
     }
-    if (_shouldApplyLegacyWatchState(event)) {
+    if (_carriesLegacyWatchState(event)) {
       _applyUpsertWatchState(event);
     }
   }
@@ -615,13 +615,6 @@ class HistorySyncState {
     return HistorySyncVersion.compare(a, b) >= 0 ? a : b;
   }
 
-  bool _shouldApplyLegacyWatchState(HistorySyncEvent event) {
-    final hasWatchStatePayload = event.carriesWatchState ||
-        event.lastSrc != null ||
-        event.lastWatchEpisodeName != null;
-    return hasWatchStatePayload && !event.eventId.startsWith('local-state:');
-  }
-
   static Map<String, String> _canonicalizeVersionMap(
     Map<String, String> versions,
     String Function(String key) canonicalKey,
@@ -673,6 +666,137 @@ class HistorySyncMerger {
   }
 
   HistorySyncMerger._();
+}
+
+/// Incrementally reduces history events without retaining the full stream.
+///
+/// Only the latest last-write-wins event for each progress slot, watch state,
+/// delete tombstone, and global clear is retained. The bounded set is sorted
+/// when materializing a snapshot so results stay identical even when files
+/// arrive in a different order.
+class HistorySyncStreamMerger {
+  HistorySyncStreamMerger(HistorySyncSnapshot snapshot) : _snapshot = snapshot;
+
+  final HistorySyncSnapshot _snapshot;
+  final Map<String, HistorySyncEvent> _progressEvents = {};
+  final Map<String, HistorySyncEvent> _watchStateEvents = {};
+  final Map<String, HistorySyncEvent> _deleteEvents = {};
+  HistorySyncEvent? _clearEvent;
+
+  void add(HistorySyncEvent event) {
+    _validate(event);
+    switch (event.op) {
+      case HistorySyncOp.upsertProgress:
+        final entityKey = _upsertEntityKey(event);
+        final episode = event.episode;
+        final progressKey = episode == null
+            ? 'invalid-progress:${event.eventId}'
+            : '$entityKey:$episode';
+        _keepLatest(_progressEvents, progressKey, event);
+        if (_carriesLegacyWatchState(event)) {
+          _keepLatest(_watchStateEvents, entityKey, event);
+        }
+      case HistorySyncOp.upsertWatchState:
+        _keepLatest(_watchStateEvents, _upsertEntityKey(event), event);
+      case HistorySyncOp.deleteHistory:
+        _keepLatest(
+          _deleteEvents,
+          event.entityKey ?? 'invalid-delete:${event.eventId}',
+          event,
+        );
+      case HistorySyncOp.clearAll:
+        final current = _clearEvent;
+        if (current == null ||
+            HistorySyncVersion.compare(event.version, current.version) > 0) {
+          _clearEvent = event;
+        }
+    }
+  }
+
+  void addAll(Iterable<HistorySyncEvent> events) {
+    for (final event in events) {
+      add(event);
+    }
+  }
+
+  HistorySyncSnapshot snapshot() {
+    final uniqueEvents = <String, HistorySyncEvent>{};
+    final clearEvent = _clearEvent;
+    if (clearEvent != null) {
+      uniqueEvents[clearEvent.eventId] = clearEvent;
+    }
+    for (final events in [
+      _deleteEvents.values,
+      _watchStateEvents.values,
+      _progressEvents.values,
+    ]) {
+      for (final event in events) {
+        uniqueEvents[event.eventId] = event;
+      }
+    }
+    final sortedEvents = uniqueEvents.values.toList()
+      ..sort((a, b) => HistorySyncVersion.compare(a.version, b.version));
+    final state = HistorySyncState.fromSnapshot(_snapshot);
+    for (final event in sortedEvents) {
+      state.apply(event);
+    }
+    return state.toSnapshot();
+  }
+
+  void _keepLatest(
+    Map<String, HistorySyncEvent> events,
+    String key,
+    HistorySyncEvent candidate,
+  ) {
+    final current = events[key];
+    if (current == null ||
+        HistorySyncVersion.compare(candidate.version, current.version) > 0) {
+      events[key] = candidate;
+    }
+  }
+
+  String _upsertEntityKey(HistorySyncEvent event) {
+    final bangumiItem = event.bangumiItem;
+    final adapterName = event.adapterName;
+    if (bangumiItem == null || adapterName == null) {
+      return event.entityKey ?? 'invalid-upsert:${event.eventId}';
+    }
+    return History.scopedKey(
+      adapterName,
+      bangumiItem,
+      HistoryEntryKind.normalize(
+        event.entryKind ?? HistoryEntryKind.online,
+      ),
+    );
+  }
+
+  void _validate(HistorySyncEvent event) {
+    switch (event.op) {
+      case HistorySyncOp.upsertProgress:
+        if (event.bangumiItem == null ||
+            event.adapterName == null ||
+            event.episode == null ||
+            event.road == null ||
+            event.progressMs == null) {
+          throw const FormatException('Invalid upsertProgress history event');
+        }
+      case HistorySyncOp.upsertWatchState:
+        if (event.bangumiItem == null ||
+            event.adapterName == null ||
+            event.episode == null) {
+          throw const FormatException('Invalid upsertWatchState history event');
+        }
+      case HistorySyncOp.deleteHistory:
+      case HistorySyncOp.clearAll:
+    }
+  }
+}
+
+bool _carriesLegacyWatchState(HistorySyncEvent event) {
+  final hasWatchStatePayload = event.carriesWatchState ||
+      event.lastSrc != null ||
+      event.lastWatchEpisodeName != null;
+  return hasWatchStatePayload && !event.eventId.startsWith('local-state:');
 }
 
 class HistorySyncVersion {

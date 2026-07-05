@@ -48,7 +48,9 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
       KazumiDialog.showToast(message: '正在同步观看记录');
       var webDav = WebDav();
       try {
-        await webDav.ping();
+        if (!webDav.isHistorySyncing) {
+          await webDav.ping();
+        }
         try {
           await webDav.syncHistory();
           KazumiLogger().i('WebDav: manual history sync completed');

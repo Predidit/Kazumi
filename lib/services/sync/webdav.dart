@@ -1,7 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
-import 'dart:async';
-import 'dart:typed_data';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
@@ -10,6 +7,8 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/services/sync/history_sync_service.dart';
+import 'package:kazumi/utils/async_serial_queue.dart';
+import 'package:kazumi/utils/async_single_flight.dart';
 
 class WebDav {
   static const String _syncRootPath = '/kazumiSync';
@@ -24,8 +23,13 @@ class WebDav {
   late webdav.Client client;
 
   bool initialized = false;
-  bool isHistorySyncing = false;
-  Future<void> _webDavOperationQueue = Future.value();
+  static const Duration _staleRunDirectoryAge = Duration(hours: 24);
+
+  final AsyncSingleFlight<void> _historySyncSingleFlight =
+      AsyncSingleFlight<void>();
+  final AsyncSerialQueue _webDavOperationQueue = AsyncSerialQueue();
+
+  bool get isHistorySyncing => _historySyncSingleFlight.isRunning;
 
   WebDav._internal();
   static final WebDav _instance = WebDav._internal();
@@ -62,19 +66,7 @@ class WebDav {
   }
 
   Future<T> _runWebDavExclusive<T>(Future<T> Function() action) {
-    final previousOperation = _webDavOperationQueue;
-    final completer = Completer<T>();
-    _webDavOperationQueue = (() async {
-      try {
-        await previousOperation;
-      } catch (_) {}
-      try {
-        completer.complete(await action());
-      } catch (e, stackTrace) {
-        completer.completeError(e, stackTrace);
-      }
-    })();
-    return completer.future;
+    return _webDavOperationQueue.run(action);
   }
 
   Future<void> _updateBox(String boxName) async {
@@ -98,20 +90,15 @@ class WebDav {
     } catch (_) {}
   }
 
-  Future<void> syncHistory() async {
-    if (isHistorySyncing) {
-      KazumiLogger().w('WebDav: History is currently syncing');
-      throw Exception('History is currently syncing');
-    }
-    isHistorySyncing = true;
-    try {
-      await _runWebDavExclusive(_syncHistory);
-    } catch (e) {
-      KazumiLogger().e('WebDav: history sync failed', error: e);
-      rethrow;
-    } finally {
-      isHistorySyncing = false;
-    }
+  Future<void> syncHistory() {
+    return _historySyncSingleFlight.run(() async {
+      try {
+        await _runWebDavExclusive(_syncHistory);
+      } catch (e) {
+        KazumiLogger().e('WebDav: history sync failed', error: e);
+        rethrow;
+      }
+    });
   }
 
   Future<void> updateCollectibles() async {
@@ -199,46 +186,302 @@ class WebDav {
   Future<void> _syncHistory() async {
     await _ensureHistoryStorage();
     final historySync = HistorySyncService();
-    final localEvents = await historySync.readLocalEvents();
-    final localStateEvents = await _eventsFromLocalHistories();
-    var remoteSnapshot =
-        await _readHistorySnapshot() ?? HistorySyncSnapshot.empty();
-    final remoteEvents = await _readRemoteHistoryEvents();
+    final deviceId = await historySync.getDeviceId();
+    final runDirectory = await _createHistorySyncRunDirectory();
 
-    if (remoteSnapshot.histories.isEmpty &&
-        remoteSnapshot.itemVersions.isEmpty &&
-        remoteEvents.isEmpty &&
-        await _tryImportLegacyHistory()) {
-      remoteSnapshot = historySync.buildSnapshotFromLocal();
-      await _writeHistorySnapshot(remoteSnapshot);
+    try {
+      final downloads = await _downloadHistorySyncFiles(
+        runDirectory: runDirectory,
+        deviceId: deviceId,
+      );
+      final snapshotReadResult = await _readRemoteHistorySnapshot(
+        historySync,
+        downloads.snapshotFile,
+      );
+      var remoteSnapshot = snapshotReadResult.snapshot;
+      var importedLegacyHistory = false;
+
+      if (_isEmptyHistorySnapshot(remoteSnapshot) &&
+          downloads.eventFiles.isEmpty) {
+        importedLegacyHistory = await _tryImportLegacyHistory(runDirectory);
+        if (importedLegacyHistory) {
+          remoteSnapshot = await historySync.buildSnapshotFromLocal();
+        }
+      }
+
+      final snapshotInitialized =
+          GStorage.getSetting(SettingsKeys.historySyncSnapshotInitialized);
+      final localBatch = await historySync.prepareLocalLogs(
+        runDirectory: runDirectory,
+        forceCheckpoint: snapshotInitialized != true ||
+            snapshotReadResult.needsRepair ||
+            downloads.currentDeviceLogOversized ||
+            importedLegacyHistory,
+      );
+      final mergedRemoteSnapshot = await _mergeRemoteHistoryEventFiles(
+        historySync: historySync,
+        snapshot: remoteSnapshot,
+        eventFiles: downloads.eventFiles,
+      );
+      final mergedFromFiles = await historySync.mergeEventFiles(
+        snapshot: mergedRemoteSnapshot,
+        eventFiles: localBatch.files,
+        inMemoryEvents: await historySync.buildLocalStateEvents(),
+      );
+
+      final mergedSnapshot = await historySync.reconcileAndApplySnapshot(
+        mergedFromFiles,
+      );
+
+      if (localBatch.shouldCheckpoint) {
+        final snapshotFile = File(
+          '${runDirectory.path}${Platform.pathSeparator}snapshot.json',
+        );
+        await historySync.writeSnapshotFile(mergedSnapshot, snapshotFile);
+        await _publishHistorySnapshot(
+          snapshotFile: snapshotFile,
+          deviceId: deviceId,
+        );
+        await historySync.completeCheckpoint(localBatch);
+        await _removeDeviceHistoryChanges(deviceId);
+        await GStorage.putSetting(
+          SettingsKeys.historySyncSnapshotInitialized,
+          true,
+        );
+      } else {
+        final uploadFile =
+            await historySync.copyActiveLogForUpload(runDirectory);
+        if (uploadFile != null) {
+          await _publishDeviceHistoryChanges(
+            sourceFile: uploadFile,
+            deviceId: deviceId,
+          );
+        }
+      }
+    } finally {
+      try {
+        if (await runDirectory.exists()) {
+          await runDirectory.delete(recursive: true);
+        }
+      } catch (e) {
+        KazumiLogger().w(
+          'WebDav: failed to clean history sync temp directory',
+          error: e,
+        );
+      }
     }
+  }
 
-    final mergedSnapshot = HistorySyncMerger.merge(
-      snapshot: remoteSnapshot,
-      events: [
-        ...remoteEvents,
-        ...localStateEvents,
-        ...localEvents,
-      ],
-    );
-    await historySync.applySnapshotToLocal(mergedSnapshot);
+  bool _isEmptyHistorySnapshot(HistorySyncSnapshot snapshot) {
+    return snapshot.histories.isEmpty &&
+        snapshot.itemVersions.isEmpty &&
+        snapshot.progressVersions.isEmpty &&
+        snapshot.deletedVersions.isEmpty &&
+        snapshot.clearVersion == null;
+  }
 
-    if (localEvents.isNotEmpty) {
-      await _writeDeviceHistoryChanges(localEvents);
-    }
-
-    final snapshotInitialized =
-        GStorage.getSetting(SettingsKeys.historySyncSnapshotInitialized);
-    if (snapshotInitialized != true ||
-        await historySync.shouldCompactLocalLog()) {
-      await _writeHistorySnapshot(mergedSnapshot);
-      await historySync.replaceLocalEvents(const []);
-      await _writeDeviceHistoryChanges(const []);
-      await GStorage.putSetting(
-        SettingsKeys.historySyncSnapshotInitialized,
-        true,
+  Future<_HistorySnapshotReadResult> _readRemoteHistorySnapshot(
+    HistorySyncService historySync,
+    File? snapshotFile,
+  ) async {
+    if (snapshotFile == null) {
+      return _HistorySnapshotReadResult(
+        snapshot: HistorySyncSnapshot.empty(),
+        needsRepair: false,
       );
     }
+
+    try {
+      return _HistorySnapshotReadResult(
+        snapshot: await historySync.readSnapshotFile(snapshotFile),
+        needsRepair: false,
+      );
+    } catch (e, stackTrace) {
+      KazumiLogger().w(
+        'WebDav: invalid history snapshot, rebuilding from event logs',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return _HistorySnapshotReadResult(
+        snapshot: HistorySyncSnapshot.empty(),
+        needsRepair: true,
+      );
+    }
+  }
+
+  Future<HistorySyncSnapshot> _mergeRemoteHistoryEventFiles({
+    required HistorySyncService historySync,
+    required HistorySyncSnapshot snapshot,
+    required List<_DownloadedHistoryEventFile> eventFiles,
+  }) async {
+    final eventFilesByPath = {
+      for (final eventFile in eventFiles)
+        eventFile.localFile.path: eventFile.remoteName,
+    };
+    return historySync.mergeRemoteEventFiles(
+      snapshot: snapshot,
+      eventFiles: eventFiles.map((eventFile) => eventFile.localFile),
+      onInvalidFile: (file, error, stackTrace) async {
+        final remoteName = eventFilesByPath[file.path]!;
+        KazumiLogger().w(
+          'WebDav: invalid remote history event log $remoteName, skipping',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        await _quarantineRemoteHistoryEventFile(remoteName);
+      },
+    );
+  }
+
+  Future<Directory> _createHistorySyncRunDirectory() async {
+    await _cleanupStaleHistorySyncRunDirectories();
+    return webDavLocalTempDirectory.createTemp('history-sync-run-');
+  }
+
+  Future<void> _cleanupStaleHistorySyncRunDirectories() async {
+    await _ensureLocalTempDirectory();
+    final staleBefore = DateTime.now().subtract(_staleRunDirectoryAge);
+    await for (final entity
+        in webDavLocalTempDirectory.list(followLinks: false)) {
+      if (entity is! Directory) {
+        continue;
+      }
+      final name = entity.path.split(Platform.pathSeparator).last;
+      if (!name.startsWith('history-sync-run-')) {
+        continue;
+      }
+      try {
+        final stat = await entity.stat();
+        // A recent directory may belong to another running Kazumi process.
+        if (stat.modified.isAfter(staleBefore)) {
+          continue;
+        }
+        await entity.delete(recursive: true);
+      } catch (e) {
+        KazumiLogger().w(
+          'WebDav: failed to remove stale history sync directory $name',
+          error: e,
+        );
+      }
+    }
+  }
+
+  Future<_HistorySyncDownloads> _downloadHistorySyncFiles({
+    required Directory runDirectory,
+    required String deviceId,
+  }) async {
+    File? snapshotFile;
+    final historyEntries = await client.readDir(_historyRootPath);
+    final hasSnapshot = historyEntries.any(
+      (file) => file.name == 'snapshot.json',
+    );
+    if (hasSnapshot) {
+      snapshotFile = File(
+        '${runDirectory.path}${Platform.pathSeparator}remote-snapshot.json',
+      );
+      await client.read2File(_historySnapshotPath, snapshotFile.path);
+    }
+
+    final eventFiles = <_DownloadedHistoryEventFile>[];
+    var currentDeviceLogOversized = false;
+    final changeEntries = await client.readDir(_historyChangesPath);
+    var index = 0;
+    for (final entry in changeEntries) {
+      final name = entry.name ?? '';
+      if (!name.endsWith('.jsonl') || entry.size == 0) {
+        continue;
+      }
+      final localFile = File(
+        '${runDirectory.path}${Platform.pathSeparator}'
+        'remote-events-${index++}.jsonl',
+      );
+      await client.read2File(
+        '$_historyChangesPath/$name',
+        localFile.path,
+      );
+      if (name == '$deviceId.jsonl' &&
+          await localFile.length() >
+              HistorySyncService.checkpointLogThresholdBytes) {
+        currentDeviceLogOversized = true;
+      }
+      eventFiles.add(
+        _DownloadedHistoryEventFile(
+          remoteName: name,
+          localFile: localFile,
+        ),
+      );
+    }
+
+    return _HistorySyncDownloads(
+      snapshotFile: snapshotFile,
+      eventFiles: eventFiles,
+      currentDeviceLogOversized: currentDeviceLogOversized,
+    );
+  }
+
+  Future<void> _publishHistorySnapshot({
+    required File snapshotFile,
+    required String deviceId,
+  }) {
+    return _publishRemoteFile(
+      sourceFile: snapshotFile,
+      destinationPath: _historySnapshotPath,
+      temporaryPath: '$_historySnapshotPath.$deviceId.cache',
+    );
+  }
+
+  Future<void> _publishDeviceHistoryChanges({
+    required File sourceFile,
+    required String deviceId,
+  }) {
+    final destinationPath = '$_historyChangesPath/$deviceId.jsonl';
+    return _publishRemoteFile(
+      sourceFile: sourceFile,
+      destinationPath: destinationPath,
+      temporaryPath: '$destinationPath.cache',
+    );
+  }
+
+  Future<void> _publishRemoteFile({
+    required File sourceFile,
+    required String destinationPath,
+    required String temporaryPath,
+  }) async {
+    try {
+      await client.remove(temporaryPath);
+    } catch (_) {}
+    try {
+      await client.writeFromFile(sourceFile.path, temporaryPath);
+      await client.rename(temporaryPath, destinationPath, true);
+    } catch (_) {
+      try {
+        await client.remove(temporaryPath);
+      } catch (_) {}
+      rethrow;
+    }
+  }
+
+  Future<void> _removeDeviceHistoryChanges(String deviceId) async {
+    final remotePath = '$_historyChangesPath/$deviceId.jsonl';
+    try {
+      await client.remove(remotePath);
+    } catch (e) {
+      KazumiLogger().w(
+        'WebDav: failed to remove checkpointed device history log',
+        error: e,
+      );
+    }
+  }
+
+  Future<void> _quarantineRemoteHistoryEventFile(String remoteName) {
+    final sourcePath = '$_historyChangesPath/$remoteName';
+    final quarantinePath = '$sourcePath.invalid.'
+        '${DateTime.now().millisecondsSinceEpoch}';
+    return _quarantineRemoteFile(
+      sourcePath: sourcePath,
+      quarantinePath: quarantinePath,
+      description: 'history event log $remoteName',
+    );
   }
 
   Future<void> _ensureHistoryStorage() async {
@@ -279,105 +522,73 @@ class WebDav {
     }
   }
 
-  Future<HistorySyncSnapshot?> _readHistorySnapshot() async {
-    try {
-      final content = await _readRemoteText(_historySnapshotPath);
-      return HistorySyncSnapshot.fromJson(
-        Map<String, dynamic>.from(jsonDecode(content) as Map),
-      );
-    } catch (e) {
-      KazumiLogger().w('WebDav: history snapshot not available', error: e);
-      return null;
+  Future<bool> _tryImportLegacyHistory(Directory runDirectory) async {
+    final syncEntries = await client.readDir(_syncRootPath);
+    if (!syncEntries.any((file) => file.name == 'histories.tmp')) {
+      return false;
     }
-  }
 
-  Future<List<HistorySyncEvent>> _readRemoteHistoryEvents() async {
-    final events = <HistorySyncEvent>[];
-    final files = await client.readDir(_historyChangesPath);
-    for (final file in files) {
-      final name = file.name ?? '';
-      if (!name.endsWith('.jsonl') || file.size == 0) {
-        continue;
-      }
-      try {
-        final content = await _readRemoteText('$_historyChangesPath/$name');
-        events.addAll(HistorySyncCodec.eventsFromJsonLines(content));
-      } catch (e) {
-        KazumiLogger().w(
-          'WebDav: failed to read history change log $name',
-          error: e,
-        );
-      }
-    }
-    return events;
-  }
-
-  Future<List<HistorySyncEvent>> _eventsFromLocalHistories() async {
-    return HistorySyncService.buildStateEventsFromHistories(
-      GStorage.histories.values,
+    const fileName = 'histories.tmp';
+    final existingFile = File(
+      '${runDirectory.path}${Platform.pathSeparator}$fileName',
     );
-  }
-
-  Future<bool> _tryImportLegacyHistory() async {
     try {
-      final fileName = 'histories.tmp';
-      final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-      if (await existingFile.exists()) {
-        await existingFile.delete();
-      }
       await client.read2File('$_syncRootPath/$fileName', existingFile.path);
+    } catch (e, stackTrace) {
+      KazumiLogger().w(
+        'WebDav: failed to download legacy history backup, skipping import',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+
+    try {
       await GStorage.patchHistory(existingFile.path);
       KazumiLogger().i('WebDav: imported legacy history backup');
       return true;
-    } catch (e) {
-      KazumiLogger().w('WebDav: no legacy history backup imported', error: e);
+    } catch (e, stackTrace) {
+      KazumiLogger().w(
+        'WebDav: invalid legacy history backup, skipping import',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      await _quarantineLegacyHistoryBackup();
       return false;
     }
   }
 
-  Future<void> _writeHistorySnapshot(HistorySyncSnapshot snapshot) async {
-    await _writeRemoteText(
-      _historySnapshotPath,
-      jsonEncode(snapshot.toJson()),
+  Future<void> _quarantineLegacyHistoryBackup() async {
+    final quarantinePath = '$_syncRootPath/histories.invalid.'
+        '${DateTime.now().millisecondsSinceEpoch}.tmp';
+    await _quarantineRemoteFile(
+      sourcePath: '$_syncRootPath/histories.tmp',
+      quarantinePath: quarantinePath,
+      description: 'legacy history backup',
     );
   }
 
-  Future<void> _writeDeviceHistoryChanges(
-    Iterable<HistorySyncEvent> events,
-  ) async {
-    final deviceId = await HistorySyncService().getDeviceId();
-    final remotePath = '$_historyChangesPath/$deviceId.jsonl';
-    final content = HistorySyncCodec.eventsToJsonLines(events);
-    if (content.isEmpty) {
-      try {
-        await client.remove(remotePath);
-      } catch (_) {}
-      return;
+  Future<void> _quarantineRemoteFile({
+    required String sourcePath,
+    required String quarantinePath,
+    required String description,
+  }) async {
+    try {
+      await client.rename(
+        sourcePath,
+        quarantinePath,
+        false,
+      );
+      KazumiLogger().w(
+        'WebDav: moved invalid $description to $quarantinePath',
+      );
+    } catch (e, stackTrace) {
+      KazumiLogger().w(
+        'WebDav: failed to quarantine invalid $description',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
-    await _writeRemoteText(remotePath, content);
-  }
-
-  Future<String> _readRemoteText(String remotePath) async {
-    final bytes = await client.read(remotePath);
-    return utf8.decode(bytes);
-  }
-
-  Future<void> _writeRemoteText(String remotePath, String content) async {
-    final bytes = Uint8List.fromList(utf8.encode(content));
-    final response = await client.c.req(
-      client,
-      'PUT',
-      remotePath,
-      data: bytes,
-      optionsHandler: (options) {
-        options.contentType = 'application/octet-stream';
-      },
-    );
-    final statusCode = response.statusCode;
-    if (statusCode == 200 || statusCode == 201 || statusCode == 204) {
-      return;
-    }
-    throw Exception('WebDav: PUT $remotePath failed with $statusCode');
   }
 
   Future<void> ping() async {
@@ -388,4 +599,36 @@ class WebDav {
       rethrow;
     }
   }
+}
+
+class _HistorySyncDownloads {
+  const _HistorySyncDownloads({
+    required this.snapshotFile,
+    required this.eventFiles,
+    required this.currentDeviceLogOversized,
+  });
+
+  final File? snapshotFile;
+  final List<_DownloadedHistoryEventFile> eventFiles;
+  final bool currentDeviceLogOversized;
+}
+
+class _DownloadedHistoryEventFile {
+  const _DownloadedHistoryEventFile({
+    required this.remoteName,
+    required this.localFile,
+  });
+
+  final String remoteName;
+  final File localFile;
+}
+
+class _HistorySnapshotReadResult {
+  const _HistorySnapshotReadResult({
+    required this.snapshot,
+    required this.needsRepair,
+  });
+
+  final HistorySyncSnapshot snapshot;
+  final bool needsRepair;
 }

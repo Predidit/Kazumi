@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
@@ -578,6 +582,127 @@ void main() {
       expect(mergedHistory.lastWatchEpisode, 9);
       expect(mergedHistory.lastWatchEpisodeName, 'EP9');
       expect(mergedHistory.progresses[9]!.progress.inSeconds, 9);
+
+      final streamMerger = HistorySyncStreamMerger(HistorySyncSnapshot.empty())
+        ..add(legacyEvent);
+      final streamedHistory = streamMerger.snapshot().histories.single;
+      expect(streamedHistory.lastWatchEpisode, 9);
+      expect(streamedHistory.lastWatchEpisodeName, 'EP9');
+      expect(streamedHistory.progresses[9]!.progress.inSeconds, 9);
+    });
+
+    test('stream merger matches sorted merge for out-of-order events', () {
+      final events = <HistorySyncEvent>[
+        ..._upsertPair(
+          deviceId: 'device-a',
+          seq: 1,
+          updatedAt: 1000,
+          episode: 1,
+          progressMs: 10,
+        ),
+        HistorySyncEvent.deleteHistory(
+          deviceId: 'device-a',
+          seq: 3,
+          entityKey: History.getKey('plugin', _item(1)),
+          updatedAt: 2000,
+        ),
+        ..._upsertPair(
+          deviceId: 'device-b',
+          seq: 1,
+          updatedAt: 2500,
+          episode: 3,
+          progressMs: 30,
+        ),
+        HistorySyncEvent.clearAll(
+          deviceId: 'device-c',
+          seq: 1,
+          updatedAt: 3000,
+        ),
+        ..._upsertPair(
+          deviceId: 'device-a',
+          seq: 4,
+          updatedAt: 3500,
+          episode: 4,
+          progressMs: 40,
+        ),
+      ];
+      final expected = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: events,
+      );
+      final streamMerger = HistorySyncStreamMerger(HistorySyncSnapshot.empty());
+
+      for (final event in events.reversed) {
+        streamMerger.add(event);
+      }
+
+      expect(
+        _canonicalSnapshot(streamMerger.snapshot()),
+        _canonicalSnapshot(expected),
+      );
+    });
+
+    test('stream merger is permutation-equivalent to sorted merge', () {
+      final events = <HistorySyncEvent>[];
+      for (var index = 0; index < 80; index++) {
+        final updatedAt = 1000 + ((index * 37) % 53);
+        switch (index % 11) {
+          case 0:
+            events.add(
+              HistorySyncEvent.clearAll(
+                deviceId: 'device-c',
+                seq: index + 1,
+                updatedAt: updatedAt,
+              ),
+            );
+          case 1:
+            events.add(
+              HistorySyncEvent.deleteHistory(
+                deviceId: 'device-b',
+                seq: index + 1,
+                entityKey: History.getKey('plugin', _item(1)),
+                updatedAt: updatedAt,
+              ),
+            );
+          case 2:
+          case 3:
+            events.add(
+              _watchState(
+                deviceId: 'device-b',
+                seq: index + 1,
+                updatedAt: updatedAt,
+                episode: (index % 4) + 1,
+              ),
+            );
+          default:
+            events.add(
+              _upsert(
+                deviceId: 'device-a',
+                seq: index + 1,
+                updatedAt: updatedAt,
+                episode: (index % 4) + 1,
+                progressMs: index * 100,
+              ),
+            );
+        }
+      }
+      final expected = _canonicalSnapshot(
+        HistorySyncMerger.merge(
+          snapshot: HistorySyncSnapshot.empty(),
+          events: events,
+        ),
+      );
+
+      for (var seed = 0; seed < 20; seed++) {
+        final shuffled = [...events]..shuffle(Random(seed));
+        final merger = HistorySyncStreamMerger(HistorySyncSnapshot.empty())
+          ..addAll(shuffled);
+        expect(
+          _canonicalSnapshot(merger.snapshot()),
+          expected,
+          reason: 'failed permutation seed $seed',
+        );
+      }
     });
   });
 
@@ -656,7 +781,177 @@ void main() {
       expect(watchStateEvent.episodePageUrl, '/offline/1');
       expect(watchStateEvent.carriesWatchState, isTrue);
     });
+
+    test('streams a large event file into bounded history state', () async {
+      final directory =
+          await Directory.systemTemp.createTemp('kazumi_history_stream_');
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+      final file = File('${directory.path}/events.jsonl');
+      final sink = file.openWrite();
+      const eventCount = 10000;
+      for (var index = 0; index < eventCount; index++) {
+        sink.write(
+          HistorySyncCodec.eventsToJsonLines([
+            _upsert(
+              deviceId: 'device-a',
+              seq: index + 1,
+              updatedAt: index + 1,
+              episode: 1,
+              progressMs: index,
+            ),
+          ]),
+        );
+      }
+      await sink.close();
+
+      final merged = await HistorySyncService().mergeEventFiles(
+        snapshot: HistorySyncSnapshot.empty(),
+        eventFiles: [file],
+        inMemoryEvents: const [],
+      );
+
+      expect(merged.histories, hasLength(1));
+      expect(
+        merged.histories.single.progresses[1]!.progress.inMilliseconds,
+        eventCount - 1,
+      );
+      expect(merged.progressVersions.values.single, hasLength(1));
+    });
+
+    test('fails closed and preserves malformed event files', () async {
+      final directory =
+          await Directory.systemTemp.createTemp('kazumi_history_invalid_');
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+      final file = File('${directory.path}/events.jsonl');
+      const malformed = '{"eventId":"truncated"';
+      await file.writeAsString(malformed, flush: true);
+
+      await expectLater(
+        HistorySyncService().mergeEventFiles(
+          snapshot: HistorySyncSnapshot.empty(),
+          eventFiles: [file],
+          inMemoryEvents: const [],
+        ),
+        throwsA(isA<FormatException>()),
+      );
+      expect(await file.readAsString(), malformed);
+    });
+
+    test('checkpoint keeps events appended during an active sync', () async {
+      final directory =
+          await Directory.systemTemp.createTemp('kazumi_history_checkpoint_');
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+      final service = HistorySyncService.forTesting(directory);
+      final runDirectory = await directory.createTemp('run-');
+      await service.appendEvents([
+        _upsert(
+          deviceId: 'device-a',
+          seq: 1,
+          updatedAt: 1000,
+          episode: 1,
+          progressMs: 10,
+        ),
+      ]);
+
+      final batch = await service.prepareLocalLogs(
+        runDirectory: runDirectory,
+        forceCheckpoint: true,
+      );
+      await service.appendEvents([
+        _upsert(
+          deviceId: 'device-a',
+          seq: 2,
+          updatedAt: 2000,
+          episode: 1,
+          progressMs: 20,
+        ),
+      ]);
+      await service.completeCheckpoint(batch);
+
+      expect(batch.shouldCheckpoint, isTrue);
+      expect(batch.files, hasLength(1));
+      expect(await batch.files.single.exists(), isFalse);
+      final activeLog = await service.localChangeLogFile();
+      final activeContent = await activeLog.readAsString();
+      expect(activeContent, contains('device-a:2'));
+      expect(activeContent, isNot(contains('device-a:1')));
+    });
+
+    test('recovers pending logs left by an interrupted checkpoint', () async {
+      final directory =
+          await Directory.systemTemp.createTemp('kazumi_history_recovery_');
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+      final service = HistorySyncService.forTesting(directory);
+      final firstRun = await directory.createTemp('run-first-');
+      await service.appendEvents([
+        _upsert(
+          deviceId: 'device-a',
+          seq: 1,
+          updatedAt: 1000,
+          episode: 1,
+          progressMs: 10,
+        ),
+      ]);
+      await service.prepareLocalLogs(
+        runDirectory: firstRun,
+        forceCheckpoint: true,
+      );
+      await service.appendEvents([
+        _upsert(
+          deviceId: 'device-a',
+          seq: 2,
+          updatedAt: 2000,
+          episode: 1,
+          progressMs: 20,
+        ),
+      ]);
+
+      final secondRun = await directory.createTemp('run-second-');
+      final recoveredBatch = await service.prepareLocalLogs(
+        runDirectory: secondRun,
+        forceCheckpoint: false,
+      );
+      final merged = await service.mergeEventFiles(
+        snapshot: HistorySyncSnapshot.empty(),
+        eventFiles: recoveredBatch.files,
+        inMemoryEvents: const [],
+      );
+
+      expect(recoveredBatch.shouldCheckpoint, isTrue);
+      expect(recoveredBatch.files, hasLength(2));
+      expect(
+        merged.histories.single.progresses[1]!.progress.inMilliseconds,
+        20,
+      );
+    });
   });
+}
+
+Map<String, dynamic> _canonicalSnapshot(HistorySyncSnapshot snapshot) {
+  final json = snapshot.toJson();
+  json.remove('generatedAt');
+  final histories = (json['histories'] as List)
+      .map((item) => Map<String, dynamic>.from(item as Map))
+      .toList()
+    ..sort((a, b) => jsonEncode(a).compareTo(jsonEncode(b)));
+  json['histories'] = histories;
+  return json;
 }
 
 HistorySyncEvent _localStateUpsert({

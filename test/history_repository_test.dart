@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/history_repository.dart';
+import 'package:kazumi/services/storage/history_storage_coordinator.dart';
 
 void main() {
   late Directory tempDir;
@@ -174,6 +176,54 @@ void main() {
 
       expect(historiesBox.values, isEmpty);
       expect(repository.getHistory('plugin', item), isNull);
+    });
+
+    test('serializes repository writes with snapshot reconciliation', () async {
+      final appendStarted = Completer<void>();
+      final allowAppendToFinish = Completer<void>();
+      final repository = HistoryRepository(
+        historiesBox: historiesBox,
+        privateModeReader: () => privateMode,
+        progressSyncAppender: ({
+          required history,
+          required episode,
+          required road,
+          required progressMs,
+          required updatedAt,
+        }) async {
+          appendStarted.complete();
+          await allowAppendToFinish.future;
+        },
+        deleteSyncAppender: _noopDeleteSync,
+        clearSyncAppender: _noopClearSync,
+      );
+      final item = _item(4);
+
+      final update = repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: '/online/1',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+      await appendStarted.future;
+
+      var reconciliationStarted = false;
+      final reconciliation = HistoryStorageCoordinator().run(() async {
+        reconciliationStarted = true;
+      });
+      await Future<void>.delayed(Duration.zero);
+      expect(reconciliationStarted, isFalse);
+
+      allowAppendToFinish.complete();
+      await update;
+      await reconciliation;
+      expect(reconciliationStarted, isTrue);
     });
   });
 }

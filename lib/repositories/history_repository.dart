@@ -4,6 +4,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/services/sync/history_sync_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/history_storage_coordinator.dart';
 
 typedef HistoryProgressSyncAppender = Future<void> Function({
   required History history,
@@ -114,6 +115,8 @@ class HistoryRepository implements IHistoryRepository {
   final HistoryProgressSyncAppender _progressSyncAppender;
   final HistoryDeleteSyncAppender _deleteSyncAppender;
   final HistoryClearSyncAppender _clearSyncAppender;
+  final HistoryStorageCoordinator _storageCoordinator =
+      HistoryStorageCoordinator();
 
   static Future<void> _appendProgressSync({
     required History history,
@@ -200,91 +203,93 @@ class HistoryRepository implements IHistoryRepository {
     required PlaybackHistoryIdentity identity,
     required Duration progress,
   }) async {
-    try {
-      if (!identity.canRecord) {
-        return;
-      }
-      // 检查隐私模式
-      if (getPrivateMode()) {
-        return;
-      }
+    await _storageCoordinator.run(() async {
+      try {
+        if (!identity.canRecord) {
+          return;
+        }
+        // 检查隐私模式
+        if (getPrivateMode()) {
+          return;
+        }
 
-      final episode = identity.episodeNumber;
-      final adapterName = identity.pluginName;
-      final bangumiItem = identity.bangumiItem;
+        final episode = identity.episodeNumber;
+        final adapterName = identity.pluginName;
+        final bangumiItem = identity.bangumiItem;
 
-      final now = DateTime.now();
-      final nowMs = now.millisecondsSinceEpoch;
-      final legacyKey = History.legacyKey(adapterName, bangumiItem);
-      final shouldMigrateLegacy =
-          HistoryEntryKind.normalize(identity.entryKind) ==
-              HistoryEntryKind.online;
+        final now = DateTime.now();
+        final nowMs = now.millisecondsSinceEpoch;
+        final legacyKey = History.legacyKey(adapterName, bangumiItem);
+        final shouldMigrateLegacy =
+            HistoryEntryKind.normalize(identity.entryKind) ==
+                HistoryEntryKind.online;
 
-      // 获取或创建历史记录
-      var history = _findHistory(
-            adapterName,
-            bangumiItem,
-            identity.entryKind,
-          ) ??
-          History(
-            bangumiItem,
+        // 获取或创建历史记录
+        var history = _findHistory(
+              adapterName,
+              bangumiItem,
+              identity.entryKind,
+            ) ??
+            History(
+              bangumiItem,
+              episode,
+              adapterName,
+              now,
+              identity.onlineBangumiSrc,
+              identity.episodeTitle,
+              entryKind: identity.entryKind,
+              episodePageUrl: identity.episodePageUrl,
+            );
+
+        // 更新历史记录
+        history.lastWatchEpisode = episode;
+        history.lastWatchTime = now;
+        history.entryKind = HistoryEntryKind.normalize(identity.entryKind);
+        if (identity.onlineBangumiSrc.isNotEmpty) {
+          history.lastSrc = identity.onlineBangumiSrc;
+        }
+        if (identity.episodeTitle.isNotEmpty) {
+          history.lastWatchEpisodeName = identity.episodeTitle;
+        }
+        if (identity.episodePageUrl.isNotEmpty) {
+          history.episodePageUrl = identity.episodePageUrl;
+        }
+
+        // 更新观看进度
+        var prog = history.progresses[episode];
+        if (prog == null) {
+          history.progresses[episode] = Progress(
             episode,
-            adapterName,
-            now,
-            identity.onlineBangumiSrc,
-            identity.episodeTitle,
-            entryKind: identity.entryKind,
-            episodePageUrl: identity.episodePageUrl,
+            identity.road,
+            progress.inMilliseconds,
+            updatedAtMs: nowMs,
           );
+        } else {
+          prog.road = identity.road;
+          prog.progress = progress;
+          prog.updatedAtMs = nowMs;
+        }
 
-      // 更新历史记录
-      history.lastWatchEpisode = episode;
-      history.lastWatchTime = now;
-      history.entryKind = HistoryEntryKind.normalize(identity.entryKind);
-      if (identity.onlineBangumiSrc.isNotEmpty) {
-        history.lastSrc = identity.onlineBangumiSrc;
-      }
-      if (identity.episodeTitle.isNotEmpty) {
-        history.lastWatchEpisodeName = identity.episodeTitle;
-      }
-      if (identity.episodePageUrl.isNotEmpty) {
-        history.episodePageUrl = identity.episodePageUrl;
-      }
-
-      // 更新观看进度
-      var prog = history.progresses[episode];
-      if (prog == null) {
-        history.progresses[episode] = Progress(
-          episode,
-          identity.road,
-          progress.inMilliseconds,
-          updatedAtMs: nowMs,
+        // 保存到存储
+        await _historiesBox.put(history.key, history);
+        if (shouldMigrateLegacy && legacyKey != history.key) {
+          await _historiesBox.delete(legacyKey);
+        }
+        await _progressSyncAppender(
+          history: history,
+          episode: episode,
+          road: identity.road,
+          progressMs: progress.inMilliseconds,
+          updatedAt: nowMs,
         );
-      } else {
-        prog.road = identity.road;
-        prog.progress = progress;
-        prog.updatedAtMs = nowMs;
+      } catch (e, stackTrace) {
+        KazumiLogger().e(
+          'GStorage: update history failed. bangumi=${identity.bangumiItem.name}, episode=${identity.episodeNumber}',
+          error: e,
+          stackTrace: stackTrace,
+        );
       }
-
-      // 保存到存储
-      await _historiesBox.put(history.key, history);
-      if (shouldMigrateLegacy && legacyKey != history.key) {
-        await _historiesBox.delete(legacyKey);
-      }
-      await _progressSyncAppender(
-        history: history,
-        episode: episode,
-        road: identity.road,
-        progressMs: progress.inMilliseconds,
-        updatedAt: nowMs,
-      );
-    } catch (e, stackTrace) {
-      KazumiLogger().e(
-        'GStorage: update history failed. bangumi=${identity.bangumiItem.name}, episode=${identity.episodeNumber}',
-        error: e,
-        stackTrace: stackTrace,
-      );
-    }
+    });
   }
 
   @override
@@ -328,22 +333,24 @@ class HistoryRepository implements IHistoryRepository {
 
   @override
   Future<void> deleteHistory(History history) async {
-    try {
-      await _historiesBox.delete(history.key);
-      if (HistoryEntryKind.normalize(history.entryKind) ==
-          HistoryEntryKind.online) {
-        await _historiesBox.delete(
-          History.legacyKey(history.adapterName, history.bangumiItem),
+    await _storageCoordinator.run(() async {
+      try {
+        await _historiesBox.delete(history.key);
+        if (HistoryEntryKind.normalize(history.entryKind) ==
+            HistoryEntryKind.online) {
+          await _historiesBox.delete(
+            History.legacyKey(history.adapterName, history.bangumiItem),
+          );
+        }
+        await _deleteSyncAppender(history);
+      } catch (e, stackTrace) {
+        KazumiLogger().e(
+          'GStorage: delete history failed. bangumi=${history.bangumiItem.name}',
+          error: e,
+          stackTrace: stackTrace,
         );
       }
-      await _deleteSyncAppender(history);
-    } catch (e, stackTrace) {
-      KazumiLogger().e(
-        'GStorage: delete history failed. bangumi=${history.bangumiItem.name}',
-        error: e,
-        stackTrace: stackTrace,
-      );
-    }
+    });
   }
 
   @override
@@ -353,42 +360,46 @@ class HistoryRepository implements IHistoryRepository {
     int episode, {
     String entryKind = HistoryEntryKind.online,
   }) async {
-    try {
-      var history = _findHistory(adapterName, bangumiItem, entryKind);
-      if (history != null && history.progresses[episode] != null) {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        history.progresses[episode]!.progress = Duration.zero;
-        history.progresses[episode]!.updatedAtMs = nowMs;
-        await _historiesBox.put(history.key, history);
-        await _progressSyncAppender(
-          history: history,
-          episode: episode,
-          road: history.progresses[episode]!.road,
-          progressMs: 0,
-          updatedAt: nowMs,
+    await _storageCoordinator.run(() async {
+      try {
+        var history = _findHistory(adapterName, bangumiItem, entryKind);
+        if (history != null && history.progresses[episode] != null) {
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          history.progresses[episode]!.progress = Duration.zero;
+          history.progresses[episode]!.updatedAtMs = nowMs;
+          await _historiesBox.put(history.key, history);
+          await _progressSyncAppender(
+            history: history,
+            episode: episode,
+            road: history.progresses[episode]!.road,
+            progressMs: 0,
+            updatedAt: nowMs,
+          );
+        }
+      } catch (e, stackTrace) {
+        KazumiLogger().e(
+          'GStorage: clear progress failed. bangumi=${bangumiItem.name}, episode=$episode',
+          error: e,
+          stackTrace: stackTrace,
         );
       }
-    } catch (e, stackTrace) {
-      KazumiLogger().e(
-        'GStorage: clear progress failed. bangumi=${bangumiItem.name}, episode=$episode',
-        error: e,
-        stackTrace: stackTrace,
-      );
-    }
+    });
   }
 
   @override
   Future<void> clearAllHistories() async {
-    try {
-      await _historiesBox.clear();
-      await _clearSyncAppender();
-    } catch (e, stackTrace) {
-      KazumiLogger().e(
-        'GStorage: clear all histories failed',
-        error: e,
-        stackTrace: stackTrace,
-      );
-    }
+    await _storageCoordinator.run(() async {
+      try {
+        await _historiesBox.clear();
+        await _clearSyncAppender();
+      } catch (e, stackTrace) {
+        KazumiLogger().e(
+          'GStorage: clear all histories failed',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
+    });
   }
 
   @override

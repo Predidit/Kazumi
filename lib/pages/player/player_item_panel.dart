@@ -88,11 +88,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
+  final VideoPageController videoPageController = inject<VideoPageController>();
   late final PlayerController playerController;
-  final DownloadController downloadController =
-      Modular.get<DownloadController>();
+  final DownloadController downloadController = inject<DownloadController>();
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
   PlayerPanelHold? _danmakuTextFieldHold;

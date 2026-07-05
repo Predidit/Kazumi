@@ -17,19 +17,31 @@ import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/services/player/audio_controller.dart';
 import 'package:kazumi/utils/device.dart';
 
 export 'package:kazumi/pages/player/controller/player_models.dart';
 
-class PlayerController {
-  final ShaderAssetService shaderAssetService =
-      Modular.get<ShaderAssetService>();
+class PlayerController implements Disposable {
+  PlayerController(
+    this.shaderAssetService,
+    DownloadController downloadController,
+    this.audioController,
+  ) {
+    danmaku = PlayerDanmakuController(
+      isLocalPlayback: () => isLocalPlayback,
+      downloadController: downloadController,
+    );
+  }
+
+  final ShaderAssetService shaderAssetService;
+  final AudioController audioController;
+  Future<void>? _finalDisposeFuture;
   final PlayerPanelController panel = PlayerPanelController();
   final PlayerDebugController debug = PlayerDebugController();
 
-  late final PlayerDanmakuController danmaku = PlayerDanmakuController(
-    isLocalPlayback: () => isLocalPlayback,
-  );
+  late final PlayerDanmakuController danmaku;
   late final PlayerPlaybackController playback = PlayerPlaybackController(
     shaderAssetService: shaderAssetService,
     debug: debug,
@@ -144,8 +156,7 @@ class PlayerController {
     if (stored.round() == clamped.round()) {
       return;
     }
-    unawaited(
-        GStorage.putSetting<double>(SettingsKeys.defaultVolume, clamped));
+    unawaited(GStorage.putSetting<double>(SettingsKeys.defaultVolume, clamped));
   }
 
   Future<bool> init(PlaybackInitParams params) async {
@@ -171,7 +182,7 @@ class PlayerController {
     playback.arrowKeySkipTime =
         GStorage.getSetting(SettingsKeys.arrowKeySkipTime);
     try {
-      await dispose(
+      await disposeAsync(
         disposeSyncPlayController: false,
       );
     } catch (_) {}
@@ -341,20 +352,76 @@ class PlayerController {
     }
   }
 
-  Future<void> dispose({
+  @override
+  void dispose() {
+    beginShutdown();
+  }
+
+  /// Starts the idempotent player shutdown without blocking route navigation.
+  ///
+  /// Native media and audio-session cleanup may finish after the route is
+  /// removed. Immediate ownership detachment happens synchronously before this
+  /// method returns.
+  void beginShutdown() {
+    unawaited(
+      disposeAsync().catchError((Object error, StackTrace stackTrace) {
+        KazumiLogger().e(
+          'PlayerController: failed to dispose asynchronously',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }),
+    );
+  }
+
+  Future<void> disposeAsync({
     bool disposeSyncPlayController = true,
+  }) {
+    if (!disposeSyncPlayController) {
+      return _disposeResources(disposeSyncPlayController: false);
+    }
+    return _finalDisposeFuture ??=
+        _disposeResources(disposeSyncPlayController: true);
+  }
+
+  Future<void> _disposeResources({
+    required bool disposeSyncPlayController,
   }) async {
     hideVolumeUITimer?.cancel();
     _volumeGestureSyncTimer?.cancel();
     FlutterVolumeController.removeListener();
-    await FlutterVolumeController.updateShowSystemUI(true);
-    await playback.dispose(
+    final audioDeactivateFuture = audioController.deactivate();
+    final playbackDisposeFuture = playback.dispose(
       disposeSyncPlayController: disposeSyncPlayController,
     );
+    final volumeUiFuture = _restoreSystemVolumeUi();
+    await Future.wait([
+      audioDeactivateFuture,
+      playbackDisposeFuture,
+      volumeUiFuture,
+    ]);
+    if (disposeSyncPlayController) {
+      await syncplay.dispose();
+    }
+  }
+
+  Future<void> _restoreSystemVolumeUi() async {
+    try {
+      await FlutterVolumeController.updateShowSystemUI(true);
+    } catch (error, stackTrace) {
+      KazumiLogger().w(
+        'PlayerController: failed to restore the system volume UI',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> stop() async {
-    await playback.stop();
+    await Future.wait([
+      audioController.deactivate(),
+      playback.stop(),
+    ]);
   }
 
   Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {

@@ -9,11 +9,7 @@ typedef AudioCallback = Future<void> Function();
 typedef AudioSeekCallback = Future<void> Function(Duration position);
 
 class AudioController {
-  AudioController._();
-
-  static final AudioController _instance = AudioController._();
-
-  factory AudioController() => _instance;
+  AudioController();
 
   _KazumiAudioHandler? _handler;
   Future<void>? _initFuture;
@@ -26,6 +22,7 @@ class AudioController {
   bool _playInterrupted = false;
   bool? _lastAudioSessionActive;
   int _generation = 0;
+  bool _callbacksBound = false;
 
   Future<void> ensureInitialized() {
     _initFuture ??= _initialize();
@@ -145,8 +142,12 @@ class AudioController {
     required AudioCallback onSkipToPrevious,
     required AudioSeekCallback onSeek,
   }) async {
+    final generation = ++_generation;
     await ensureInitialized();
-    _generation++;
+    if (generation != _generation) {
+      return;
+    }
+    _callbacksBound = true;
     _onPlay = onPlay;
     _onPause = onPause;
     _handler?.bindCallbacks(
@@ -159,6 +160,12 @@ class AudioController {
   }
 
   void clearCallbacks() {
+    _generation++;
+    _callbacksBound = false;
+    _clearCallbacks();
+  }
+
+  void _clearCallbacks() {
     _onPlay = null;
     _onPause = null;
     _handler?.clearCallbacks();
@@ -182,12 +189,13 @@ class AudioController {
     required bool canSkipToNext,
     required bool canSkipToPrevious,
   }) async {
+    if (!_callbacksBound) return;
     final gen = _generation;
     await ensureInitialized();
-    if (gen != _generation) return;
+    if (gen != _generation || !_callbacksBound) return;
     await _setAudioSessionActive(playing);
     final handler = _handler;
-    if (handler == null || gen != _generation) return;
+    if (handler == null || gen != _generation || !_callbacksBound) return;
 
     final mediaItemCacheKey = [
       mediaId,
@@ -263,13 +271,28 @@ class AudioController {
     );
   }
 
-  Future<void> deactivate() async {
-    _generation++;
+  Future<void> deactivate() {
+    final generation = ++_generation;
+    _callbacksBound = false;
+    _clearCallbacks();
     _playInterrupted = false;
-    await ensureInitialized();
+    final initialization = _initFuture;
+    if (initialization == null) {
+      return Future<void>.value();
+    }
+    return _deactivate(generation, initialization);
+  }
+
+  Future<void> _deactivate(
+    int generation,
+    Future<void> initialization,
+  ) async {
+    await initialization;
+    if (generation != _generation) return;
     _lastMediaItemCacheKey = null;
     _lastAudioSessionActive = null;
     await _setAudioSessionActive(false);
+    if (generation != _generation) return;
     _handler?.updatePlaybackState(
       PlaybackState(
         controls: [],

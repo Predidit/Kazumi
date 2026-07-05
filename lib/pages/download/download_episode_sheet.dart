@@ -16,10 +16,8 @@ class DownloadEpisodeSheet extends StatefulWidget {
 }
 
 class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
-  final DownloadController downloadController =
-      Modular.get<DownloadController>();
+  final VideoPageController videoPageController = inject<VideoPageController>();
+  final DownloadController downloadController = inject<DownloadController>();
 
   final Set<int> _selectedEpisodes = {};
 

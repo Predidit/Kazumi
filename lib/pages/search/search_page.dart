@@ -13,8 +13,13 @@ import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/search_parser.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, this.inputTag = ''});
+  const SearchPage({
+    super.key,
+    required this.controller,
+    this.inputTag = '',
+  });
 
+  final SearchPageController controller;
   final String inputTag;
 
   @override
@@ -24,9 +29,7 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final SearchController searchController = SearchController();
 
-  /// Don't use modular singleton here. We may have multiple search pages.
-  /// Use a new instance of SearchPageController for each search page.
-  final SearchPageController searchPageController = SearchPageController();
+  SearchPageController get searchPageController => widget.controller;
   final ScrollController scrollController = ScrollController();
 
   SearchFilterState filterState = const SearchFilterState();
@@ -40,6 +43,9 @@ class _SearchPageState extends State<SearchPage> {
     searchPageController.loadSearchHistories();
     if (widget.inputTag != '') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
         final tagString = 'tag:${Uri.decodeComponent(widget.inputTag)}';
         _applyFilterState(SearchParser(tagString).toFilterState(),
             search: true);
@@ -253,8 +259,7 @@ class _SearchPageState extends State<SearchPage> {
                   IconButton(
                     tooltip: '图片搜索',
                     onPressed: () async {
-                      final result =
-                          await Modular.to.pushNamed('/search/image');
+                      final result = await context.pushNamed('/search/image');
                       if (result is String && result.isNotEmpty) {
                         await _applyFilterState(
                           SearchParser(result).toFilterState(),

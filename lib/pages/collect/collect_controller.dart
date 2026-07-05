@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -26,8 +25,13 @@ enum _BangumiDeleteSyncAction {
 class CollectController = _CollectController with _$CollectController;
 
 abstract class _CollectController with Store {
-  final _collectCrudRepository = Modular.get<ICollectCrudRepository>();
-  final _collectRepository = Modular.get<ICollectRepository>();
+  _CollectController(
+    this._collectCrudRepository,
+    this._collectRepository,
+  );
+
+  final ICollectCrudRepository _collectCrudRepository;
+  final ICollectRepository _collectRepository;
 
   List<BangumiItem> get favorites => _collectCrudRepository.getFavorites();
 

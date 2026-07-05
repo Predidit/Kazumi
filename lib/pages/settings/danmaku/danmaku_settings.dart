@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:kazumi/utils/device.dart';
@@ -23,7 +22,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late double defaultDanmakuDuration;
   late double defaultDanmakuLineHeight;
   late double defaultdanmakuBorderSize;
-  final PopularController popularController = Modular.get<PopularController>();
   late bool danmakuBorder;
   late bool danmakuTop;
   late bool danmakuBottom;
@@ -214,7 +212,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/danmaku/shield');
+                    context.pushNamed('/settings/danmaku/shield');
                   },
                   title:
                       Text('关键词屏蔽', style: TextStyle(fontFamily: fontFamily)),

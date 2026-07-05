@@ -24,7 +24,18 @@ import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
 
 class InfoPage extends StatefulWidget {
-  const InfoPage({super.key});
+  const InfoPage({
+    super.key,
+    required this.inputBangumiItem,
+    required this.infoController,
+    required this.videoPageController,
+    required this.pluginsController,
+  });
+
+  final BangumiItem inputBangumiItem;
+  final InfoController infoController;
+  final VideoPageController videoPageController;
+  final PluginsController pluginsController;
 
   @override
   State<InfoPage> createState() => _InfoPageState();
@@ -42,12 +53,9 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   static const Duration _minimumBangumiInfoLoadingDuration =
       Duration(milliseconds: 600);
 
-  /// Don't use modular singleton here. We may have multiple info pages.
-  /// Use a new instance of InfoController for each info page.
-  final InfoController infoController = InfoController();
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
-  final PluginsController pluginsController = Modular.get<PluginsController>();
+  InfoController get infoController => widget.infoController;
+  VideoPageController get videoPageController => widget.videoPageController;
+  PluginsController get pluginsController => widget.pluginsController;
   late TabController sourceTabController;
   late TabController infoTabController;
   late bool showRating;
@@ -64,7 +72,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool _showBangumiInfoSkeleton = false;
   int _fabTabIndex = 0;
 
-  final inputBangumiIten = Modular.args.data as BangumiItem;
+  BangumiItem get inputBangumiIten => widget.inputBangumiItem;
 
   bool get _isShowingBangumiInfoSkeleton =>
       infoController.isLoading || _showBangumiInfoSkeleton;
@@ -361,7 +369,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                     leading: EmbeddedNativeControlArea(
                       child: IconButton(
                         onPressed: () {
-                          Navigator.maybePop(context);
+                          context.maybePop();
                         },
                         icon: Icon(Icons.arrow_back),
                       ),

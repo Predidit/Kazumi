@@ -8,7 +8,12 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class PluginShopPage extends StatefulWidget {
-  const PluginShopPage({super.key});
+  const PluginShopPage({
+    super.key,
+    required this.controller,
+  });
+
+  final PluginsController controller;
 
   @override
   State<PluginShopPage> createState() => _PluginShopPageState();
@@ -21,7 +26,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
 
   // 排序方式状态：false=按更新时间排序，true=按名称排序
   bool sortByName = false;
-  final PluginsController pluginsController = Modular.get<PluginsController>();
+  PluginsController get pluginsController => widget.controller;
 
   void onBackPressed(BuildContext context) {
     if (KazumiDialog.observer.hasKazumiDialog) {
@@ -197,7 +202,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
         actions: [
           GeneralErrorButton(
             onPressed: () {
-              Modular.to.pushNamed('/settings/webdav/');
+              context.pushNamed('/settings/webdav/');
             },
             text: enableGitProxy ? '禁用规则镜像' : '启用规则镜像',
           ),

@@ -76,8 +76,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
+  final VideoPageController videoPageController = inject<VideoPageController>();
   late final PlayerController playerController;
   final TextEditingController textController = TextEditingController();
 

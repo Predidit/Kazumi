@@ -87,10 +87,36 @@ abstract class _PlayerPlaybackController with Store {
     if (isCurrentPlayer(player)) {
       return player;
     }
+    await _disposePlayer(player);
+    return null;
+  }
+
+  Future<void> _disposePlayer(Player? player) async {
+    if (player == null) return;
     try {
       await player.dispose();
+    } catch (error, stackTrace) {
+      KazumiLogger().e(
+        'PlayerPlaybackController: failed to dispose media player',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      try {
+        await player.stop();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _cancelDebugInfo() async {
+    try {
+      await debug.cancel();
     } catch (_) {}
-    return null;
+  }
+
+  Future<void> _exitSyncPlayRoom() async {
+    try {
+      await onExitSyncPlayRoom();
+    } catch (_) {}
   }
 
   @action
@@ -464,30 +490,31 @@ abstract class _PlayerPlaybackController with Store {
     final player = mediaPlayer;
     mediaPlayer = null;
     videoController = null;
-    final cancelDebugInfoFuture = debug.cancel();
+    playing = false;
+    loading = true;
+    // Start media disposal before unrelated async cleanup. media_kit's
+    // dispose operation stops playback before releasing native resources.
+    final playerDisposeFuture = _disposePlayer(player);
+    final cleanupFutures = <Future<void>>[
+      playerDisposeFuture,
+      _cancelDebugInfo(),
+    ];
     if (disposeSyncPlayController) {
-      try {
-        await onExitSyncPlayRoom();
-      } catch (_) {}
+      cleanupFutures.add(_exitSyncPlayRoom());
     }
-    try {
-      await cancelDebugInfoFuture;
-    } catch (_) {}
-    try {
-      await player?.dispose();
-    } catch (_) {}
+    await Future.wait(cleanupFutures);
   }
 
   Future<void> stop() async {
-    try {
-      final player = mediaPlayer;
-      mediaPlayer = null;
-      videoController = null;
-      await debug.cancel();
-      await player?.stop();
-      await player?.dispose();
-      loading = true;
-    } catch (_) {}
+    final player = mediaPlayer;
+    mediaPlayer = null;
+    videoController = null;
+    playing = false;
+    loading = true;
+    await Future.wait([
+      _disposePlayer(player),
+      _cancelDebugInfo(),
+    ]);
   }
 
   Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {

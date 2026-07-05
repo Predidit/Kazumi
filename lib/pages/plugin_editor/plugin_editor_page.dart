@@ -81,14 +81,19 @@ abstract final class _RuleEditorText {
 class PluginEditorPage extends StatefulWidget {
   const PluginEditorPage({
     super.key,
+    required this.plugin,
+    required this.controller,
   });
+
+  final Plugin plugin;
+  final PluginsController controller;
 
   @override
   State<PluginEditorPage> createState() => _PluginEditorPageState();
 }
 
 class _PluginEditorPageState extends State<PluginEditorPage> {
-  final PluginsController pluginsController = Modular.get<PluginsController>();
+  PluginsController get pluginsController => widget.controller;
   final TextEditingController apiController = TextEditingController();
   final TextEditingController typeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
@@ -190,7 +195,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   @override
   void initState() {
     super.initState();
-    final Plugin plugin = Modular.args.data as Plugin;
+    final Plugin plugin = widget.plugin;
     apiController.text = plugin.api;
     typeController.text = plugin.type;
     nameController.text = plugin.name;
@@ -662,8 +667,10 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
             onPressed: () async {
               try {
                 final pluginText = _buildEditedPlugin();
-                Modular.to
-                    .pushNamed('/settings/plugin/test', arguments: pluginText);
+                context.pushNamed(
+                  '/settings/plugin/test',
+                  arguments: pluginText,
+                );
               } catch (error) {
                 _showEditorError(error);
               }
@@ -677,7 +684,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               try {
                 final editedPlugin = _buildEditedPlugin();
                 pluginsController.updatePlugin(editedPlugin);
-                Navigator.of(context).pop();
+                context.pop();
               } catch (error) {
                 _showEditorError(error);
               }

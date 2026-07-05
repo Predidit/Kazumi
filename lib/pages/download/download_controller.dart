@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -21,8 +20,15 @@ part 'download_controller.g.dart';
 class DownloadController = _DownloadController with _$DownloadController;
 
 abstract class _DownloadController with Store {
-  final _repository = Modular.get<IDownloadRepository>();
-  final _downloadManager = Modular.get<IDownloadManager>();
+  _DownloadController(
+    this._repository,
+    this._downloadManager,
+    this._pluginsController,
+  );
+
+  final IDownloadRepository _repository;
+  final IDownloadManager _downloadManager;
+  final PluginsController _pluginsController;
   final _backgroundService = BackgroundDownloadService();
   final _resolverPool = VideoSourceResolverPool();
 
@@ -327,8 +333,7 @@ abstract class _DownloadController with Store {
   }
 
   Plugin? _findPlugin(String pluginName) {
-    final pluginsController = Modular.get<PluginsController>();
-    for (final plugin in pluginsController.pluginList) {
+    for (final plugin in _pluginsController.pluginList) {
       if (plugin.name == pluginName) return plugin;
     }
     return null;

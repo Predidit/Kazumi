@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -87,6 +86,13 @@ class VideoEpisodeSelection {
 }
 
 abstract class _VideoPageController with Store {
+  _VideoPageController(
+    this.pluginsController,
+    this.historyController,
+    this.downloadRepository,
+    this.downloadManager,
+  );
+
   late BangumiItem bangumiItem;
   EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
 
@@ -163,11 +169,10 @@ abstract class _VideoPageController with Store {
 
   CancelToken? _queryRoadsCancelToken;
 
-  final PluginsController pluginsController = Modular.get<PluginsController>();
-  final HistoryController historyController = Modular.get<HistoryController>();
-  final IDownloadRepository downloadRepository =
-      Modular.get<IDownloadRepository>();
-  final IDownloadManager downloadManager = Modular.get<IDownloadManager>();
+  final PluginsController pluginsController;
+  final HistoryController historyController;
+  final IDownloadRepository downloadRepository;
+  final IDownloadManager downloadManager;
 
   WebViewVideoSourceService? _videoSourceService;
 
@@ -741,8 +746,6 @@ abstract class _VideoPageController with Store {
       cancelToken = _queryRoadsCancelToken;
     }
 
-    final PluginsController pluginsController =
-        Modular.get<PluginsController>();
     roadList.clear();
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {

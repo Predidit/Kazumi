@@ -9,8 +9,6 @@ class MenuRoute {
 
   final List<MenuRouteItem> menuList;
 
-  int get size => menuList.length;
-
   String getPath(int index) => menuList[index].path;
 
   int indexForPath(String path) {

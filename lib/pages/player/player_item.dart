@@ -1765,7 +1765,6 @@ class _PlayerItemState extends State<PlayerItem>
       PipUtils.disposePipHandler();
     }
     playerController.panel.reset();
-    unawaited(_audioController.deactivate());
     super.dispose();
   }
 

@@ -162,12 +162,6 @@ class AudioController {
     _boundSession = binding;
   }
 
-  void clearCallbacks() {
-    _sessions.cancel();
-    _boundSession = null;
-    _clearCallbacks();
-  }
-
   void _clearCallbacks() {
     _onPlay = null;
     _onPause = null;

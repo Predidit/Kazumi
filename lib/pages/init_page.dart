@@ -11,7 +11,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/services/download/background_download_service.dart';
@@ -45,12 +44,10 @@ class _InitPageState extends State<InitPage> {
   ShaderAssetService get shaderAssetService => widget.shaderAssetService;
   MyController get myController => widget.myController;
   DownloadController get downloadController => widget.downloadController;
-  late final ThemeProvider themeProvider;
 
   @override
   void initState() {
     super.initState();
-    themeProvider = context.read<ThemeProvider>();
     unawaited(_initializeApp());
   }
 
@@ -135,9 +132,6 @@ class _InitPageState extends State<InitPage> {
   void _startDefaultPage() {
     final defaultStartupPage =
         GStorage.getSetting(SettingsKeys.defaultStartupPage);
-    // Workaround for dynamic_color. dynamic_color need PlatformChannel to get color, it takes time.
-    // setDynamic here to avoid white screen flash when themeMode is dark.
-    themeProvider.setDynamic(GStorage.getSetting(SettingsKeys.useDynamicColor));
     context.navigate(defaultStartupPage);
   }
 

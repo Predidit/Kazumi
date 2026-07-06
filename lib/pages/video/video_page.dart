@@ -118,10 +118,6 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void _initializePlayback() {
-    if (!mounted) {
-      return;
-    }
-
     if (videoPageController.isOfflineMode) {
       _initOfflineMode(playerController);
     } else {

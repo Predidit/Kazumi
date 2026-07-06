@@ -48,7 +48,6 @@ class PlayerController implements Disposable {
     shaderAssetService: shaderAssetService,
     debug: debug,
     videoUrl: () => videoUrl,
-    onExitSyncPlayRoom: () => syncplay.exitRoom(),
   );
   late final PlayerSyncPlayController syncplay = PlayerSyncPlayController(
     bangumiId: () => bangumiId,
@@ -189,7 +188,7 @@ class PlayerController implements Disposable {
     playback.arrowKeySkipTime =
         GStorage.getSetting(SettingsKeys.arrowKeySkipTime);
     try {
-      await _disposePlaybackForReinitialization();
+      await _releasePlaybackResources();
     } catch (_) {}
     if (initialization.isStale) {
       return false;
@@ -384,7 +383,7 @@ class PlayerController implements Disposable {
     if (_shutdownFuture != null) {
       return;
     }
-    final shutdown = _disposeResources(disposeSyncPlayController: true);
+    final shutdown = _shutdownResources();
     _shutdownFuture = shutdown;
     unawaited(
       shutdown.catchError((Object error, StackTrace stackTrace) {
@@ -397,29 +396,22 @@ class PlayerController implements Disposable {
     );
   }
 
-  Future<void> _disposePlaybackForReinitialization() {
-    return _disposeResources(disposeSyncPlayController: false);
+  Future<void> _shutdownResources() async {
+    await Future.wait([
+      _releasePlaybackResources(),
+      syncplay.dispose(),
+    ]);
   }
 
-  Future<void> _disposeResources({
-    required bool disposeSyncPlayController,
-  }) async {
+  Future<void> _releasePlaybackResources() async {
     hideVolumeUITimer?.cancel();
     _volumeGestureSyncTimer?.cancel();
     FlutterVolumeController.removeListener();
-    final audioDeactivateFuture = audioController.deactivate();
-    final playbackDisposeFuture = playback.dispose(
-      disposeSyncPlayController: disposeSyncPlayController,
-    );
-    final volumeUiFuture = _restoreSystemVolumeUi();
     await Future.wait([
-      audioDeactivateFuture,
-      playbackDisposeFuture,
-      volumeUiFuture,
+      audioController.deactivate(),
+      playback.stop(),
+      _restoreSystemVolumeUi(),
     ]);
-    if (disposeSyncPlayController) {
-      await syncplay.dispose();
-    }
   }
 
   Future<void> _restoreSystemVolumeUi() async {
@@ -436,10 +428,7 @@ class PlayerController implements Disposable {
 
   Future<void> stop() async {
     _initializations.cancel();
-    await Future.wait([
-      audioController.deactivate(),
-      playback.stop(),
-    ]);
+    await _releasePlaybackResources();
   }
 
   Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {

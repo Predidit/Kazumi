@@ -39,6 +39,8 @@ abstract class _PlayerPlaybackController with Store {
   final Future<void> Function() onExitSyncPlayRoom;
   final PlayerScreenshotService screenshotService =
       const PlayerScreenshotService();
+  final Map<Player, Future<void>> _playerDisposals =
+      Map<Player, Future<void>>.identity();
 
   Player? mediaPlayer;
   VideoController? videoController;
@@ -91,8 +93,17 @@ abstract class _PlayerPlaybackController with Store {
     return null;
   }
 
-  Future<void> _disposePlayer(Player? player) async {
-    if (player == null) return;
+  Future<void> _disposePlayer(Player? player) {
+    if (player == null) {
+      return Future<void>.value();
+    }
+    return _playerDisposals.putIfAbsent(
+      player,
+      () => _performPlayerDisposal(player),
+    );
+  }
+
+  Future<void> _performPlayerDisposal(Player player) async {
     try {
       await player.dispose();
     } catch (error, stackTrace) {
@@ -187,8 +198,11 @@ abstract class _PlayerPlaybackController with Store {
   }
 
   Future<Player?> createVideoController(
-      Map<String, String> httpHeaders, bool adBlockerEnabled,
-      {int offset = 0}) async {
+    Map<String, String> httpHeaders,
+    bool adBlockerEnabled, {
+    required bool Function() canInstall,
+    int offset = 0,
+  }) async {
     superResolutionMode = SuperResolutionMode.fromStorageValue(
       GStorage.getSetting(SettingsKeys.defaultSuperResolutionMode),
     );
@@ -200,6 +214,9 @@ abstract class _PlayerPlaybackController with Store {
     lowMemoryMode = GStorage.getSetting(SettingsKeys.lowMemoryMode);
     playerDebugMode = GStorage.getSetting(SettingsKeys.playerDebugMode);
 
+    if (!canInstall()) {
+      return null;
+    }
     final Player player = Player(
       configuration: PlayerConfiguration(
         bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
@@ -208,6 +225,10 @@ abstract class _PlayerPlaybackController with Store {
         adBlocker: adBlockerEnabled,
       ),
     );
+    if (!canInstall()) {
+      await _disposePlayer(player);
+      return null;
+    }
     mediaPlayer = player;
 
     debug.playerLog.clear();

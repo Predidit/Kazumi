@@ -4,6 +4,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_mpris/audio_service_mpris.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/async_session.dart';
 
 typedef AudioCallback = Future<void> Function();
 typedef AudioSeekCallback = Future<void> Function(Duration position);
@@ -21,8 +22,8 @@ class AudioController {
   AudioCallback? _onPause;
   bool _playInterrupted = false;
   bool? _lastAudioSessionActive;
-  int _generation = 0;
-  bool _callbacksBound = false;
+  final AsyncSessionOwner _sessions = AsyncSessionOwner();
+  AsyncSession? _boundSession;
 
   Future<void> ensureInitialized() {
     _initFuture ??= _initialize();
@@ -142,12 +143,13 @@ class AudioController {
     required AudioCallback onSkipToPrevious,
     required AudioSeekCallback onSeek,
   }) async {
-    final generation = ++_generation;
+    final binding = _sessions.begin();
+    _boundSession = null;
+    _clearCallbacks();
     await ensureInitialized();
-    if (generation != _generation) {
+    if (binding.isStale) {
       return;
     }
-    _callbacksBound = true;
     _onPlay = onPlay;
     _onPause = onPause;
     _handler?.bindCallbacks(
@@ -157,11 +159,12 @@ class AudioController {
       onSkipToPrevious: onSkipToPrevious,
       onSeek: onSeek,
     );
+    _boundSession = binding;
   }
 
   void clearCallbacks() {
-    _generation++;
-    _callbacksBound = false;
+    _sessions.cancel();
+    _boundSession = null;
     _clearCallbacks();
   }
 
@@ -189,13 +192,14 @@ class AudioController {
     required bool canSkipToNext,
     required bool canSkipToPrevious,
   }) async {
-    if (!_callbacksBound) return;
-    final gen = _generation;
+    final binding = _boundSession;
+    if (binding == null || binding.isStale) return;
     await ensureInitialized();
-    if (gen != _generation || !_callbacksBound) return;
+    if (binding.isStale) return;
     await _setAudioSessionActive(playing);
+    if (binding.isStale) return;
     final handler = _handler;
-    if (handler == null || gen != _generation || !_callbacksBound) return;
+    if (handler == null) return;
 
     final mediaItemCacheKey = [
       mediaId,
@@ -272,27 +276,27 @@ class AudioController {
   }
 
   Future<void> deactivate() {
-    final generation = ++_generation;
-    _callbacksBound = false;
+    final deactivation = _sessions.begin();
+    _boundSession = null;
     _clearCallbacks();
     _playInterrupted = false;
     final initialization = _initFuture;
     if (initialization == null) {
       return Future<void>.value();
     }
-    return _deactivate(generation, initialization);
+    return _deactivate(deactivation, initialization);
   }
 
   Future<void> _deactivate(
-    int generation,
+    AsyncSession deactivation,
     Future<void> initialization,
   ) async {
     await initialization;
-    if (generation != _generation) return;
+    if (deactivation.isStale) return;
     _lastMediaItemCacheKey = null;
     _lastAudioSessionActive = null;
     await _setAudioSessionActive(false);
-    if (generation != _generation) return;
+    if (deactivation.isStale) return;
     _handler?.updatePlaybackState(
       PlaybackState(
         controls: [],

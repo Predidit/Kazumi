@@ -19,6 +19,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
+import 'package:kazumi/utils/async_session.dart';
 import 'package:kazumi/utils/device.dart';
 
 export 'package:kazumi/pages/player/controller/player_models.dart';
@@ -37,7 +38,8 @@ class PlayerController implements Disposable {
 
   final ShaderAssetService shaderAssetService;
   final AudioController audioController;
-  Future<void>? _finalDisposeFuture;
+  final AsyncSessionOwner _initializations = AsyncSessionOwner();
+  Future<void>? _shutdownFuture;
   final PlayerPanelController panel = PlayerPanelController();
   final PlayerDebugController debug = PlayerDebugController();
 
@@ -160,6 +162,11 @@ class PlayerController implements Disposable {
   }
 
   Future<bool> init(PlaybackInitParams params) async {
+    if (_initializations.isClosed) {
+      return false;
+    }
+    final initialization = _initializations.begin();
+
     videoUrl = params.videoUrl;
     isLocalPlayback = params.isLocalPlayback;
     bangumiId = params.bangumiId;
@@ -182,24 +189,30 @@ class PlayerController implements Disposable {
     playback.arrowKeySkipTime =
         GStorage.getSetting(SettingsKeys.arrowKeySkipTime);
     try {
-      await disposeAsync(
-        disposeSyncPlayController: false,
-      );
+      await _disposePlaybackForReinitialization();
     } catch (_) {}
+    if (initialization.isStale) {
+      return false;
+    }
+
     final Player? player;
     try {
       player = await playback.createVideoController(
         params.httpHeaders,
         params.adBlockerEnabled,
+        canInstall: () => initialization.isActive,
         offset: params.offset,
       );
     } catch (e) {
+      if (initialization.isStale) {
+        return false;
+      }
       playback.loading = false;
       KazumiLogger()
           .e('PlayerController: failed to initialize video', error: e);
       return false;
     }
-    if (player == null || !playback.isCurrentPlayer(player)) {
+    if (player == null || !_ownsInitialization(initialization, player)) {
       return false;
     }
 
@@ -212,25 +225,25 @@ class PlayerController implements Disposable {
         playback.volume = muted ? 0 : remembered;
       }
       await setVolume(playback.volume);
-      if (!playback.isCurrentPlayer(player)) {
+      if (!_ownsInitialization(initialization, player)) {
         return false;
       }
     } else {
       await FlutterVolumeController.getVolume().then((value) {
         playback.volume = (value ?? 0.0) * 100;
       });
-      if (!playback.isCurrentPlayer(player)) {
+      if (!_ownsInitialization(initialization, player)) {
         return false;
       }
 
       await FlutterVolumeController.updateShowSystemUI(false);
-      if (!playback.isCurrentPlayer(player)) {
+      if (!_ownsInitialization(initialization, player)) {
         await FlutterVolumeController.updateShowSystemUI(true);
         return false;
       }
 
       FlutterVolumeController.addListener((volume) {
-        if (player == null || !playback.isCurrentPlayer(player)) {
+        if (player == null || !_ownsInitialization(initialization, player)) {
           return;
         }
         if (panel.volumeSeeking) {
@@ -246,12 +259,12 @@ class PlayerController implements Disposable {
           });
         }
       }, category: AudioSessionCategory.playback, emitOnStart: false);
-      if (!playback.isCurrentPlayer(player)) {
+      if (!_ownsInitialization(initialization, player)) {
         return false;
       }
     }
-    setPlaybackSpeed(playback.playerSpeed);
-    if (!playback.isCurrentPlayer(player)) {
+    await setPlaybackSpeed(playback.playerSpeed);
+    if (!_ownsInitialization(initialization, player)) {
       return false;
     }
     KazumiLogger().i('PlayerController: video initialized');
@@ -267,6 +280,10 @@ class PlayerController implements Disposable {
       }
     }
     return true;
+  }
+
+  bool _ownsInitialization(AsyncSession initialization, Player player) {
+    return initialization.isActive && playback.isCurrentPlayer(player);
   }
 
   Future<void> setShader(SuperResolutionMode mode, {Player? player}) async {
@@ -363,8 +380,14 @@ class PlayerController implements Disposable {
   /// removed. Immediate ownership detachment happens synchronously before this
   /// method returns.
   void beginShutdown() {
+    _initializations.close();
+    if (_shutdownFuture != null) {
+      return;
+    }
+    final shutdown = _disposeResources(disposeSyncPlayController: true);
+    _shutdownFuture = shutdown;
     unawaited(
-      disposeAsync().catchError((Object error, StackTrace stackTrace) {
+      shutdown.catchError((Object error, StackTrace stackTrace) {
         KazumiLogger().e(
           'PlayerController: failed to dispose asynchronously',
           error: error,
@@ -374,14 +397,8 @@ class PlayerController implements Disposable {
     );
   }
 
-  Future<void> disposeAsync({
-    bool disposeSyncPlayController = true,
-  }) {
-    if (!disposeSyncPlayController) {
-      return _disposeResources(disposeSyncPlayController: false);
-    }
-    return _finalDisposeFuture ??=
-        _disposeResources(disposeSyncPlayController: true);
+  Future<void> _disposePlaybackForReinitialization() {
+    return _disposeResources(disposeSyncPlayController: false);
   }
 
   Future<void> _disposeResources({
@@ -418,6 +435,7 @@ class PlayerController implements Disposable {
   }
 
   Future<void> stop() async {
+    _initializations.cancel();
     await Future.wait([
       audioController.deactivate(),
       playback.stop(),

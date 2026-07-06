@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -50,7 +51,7 @@ class _InitPageState extends State<InitPage> {
   void initState() {
     super.initState();
     themeProvider = context.read<ThemeProvider>();
-    _initializeApp();
+    unawaited(_initializeApp());
   }
 
   Future<void> _initializeApp() async {
@@ -70,9 +71,15 @@ class _InitPageState extends State<InitPage> {
     await _pluginInit();
     await _showShortcutDialog();
 
+    if (!mounted) {
+      return;
+    }
     _startDefaultPage();
     // delay to ensure that the default page is fully loaded
     await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) {
+      return;
+    }
     _update();
   }
 

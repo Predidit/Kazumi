@@ -24,41 +24,12 @@ import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
 import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/utils/async_session.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
 
 part 'video_controller.g.dart';
 
 class VideoPageController = _VideoPageController with _$VideoPageController;
-
-// Controller-local ownership token for async work. Keep it private so playback
-// and comment freshness checks stay inside VideoPageController instead of
-// leaking through player, danmaku, or widget APIs.
-class _AsyncSessionOwner {
-  int _version = 0;
-
-  _AsyncSession begin() {
-    return _AsyncSession(this, ++_version);
-  }
-
-  void cancel() {
-    _version++;
-  }
-
-  bool owns(_AsyncSession session) {
-    return identical(session.owner, this) && session.version == _version;
-  }
-}
-
-class _AsyncSession {
-  const _AsyncSession(this.owner, this.version);
-
-  final _AsyncSessionOwner owner;
-  final int version;
-
-  bool get isActive => owner.owns(this);
-
-  bool get isStale => !isActive;
-}
 
 class VideoEpisodeSelection {
   const VideoEpisodeSelection({
@@ -134,9 +105,9 @@ abstract class _VideoPageController with Store {
   // Playback, automatic danmaku loading, and comment loading have separate
   // owners. Manual danmaku selection can cancel auto danmaku without touching
   // playback; comment refreshes never cancel playback.
-  final _AsyncSessionOwner _playbackSessions = _AsyncSessionOwner();
-  final _AsyncSessionOwner _danmakuSessions = _AsyncSessionOwner();
-  final _AsyncSessionOwner _commentSessions = _AsyncSessionOwner();
+  final AsyncSessionOwner _playbackSessions = AsyncSessionOwner();
+  final AsyncSessionOwner _danmakuSessions = AsyncSessionOwner();
+  final AsyncSessionOwner _commentSessions = AsyncSessionOwner();
 
   @observable
   bool isPip = false;
@@ -464,7 +435,7 @@ abstract class _VideoPageController with Store {
   Future<void> _changeOfflineEpisode(
     VideoEpisodeSelection selection,
     int offset, {
-    required _AsyncSession session,
+    required AsyncSession session,
     required PlayerController playerController,
   }) async {
     final resolvedEpisode =
@@ -539,7 +510,7 @@ abstract class _VideoPageController with Store {
   Future<void> _loadPlaybackDanmaku(
     PlayerController playerController,
     PlaybackInitParams params,
-    _AsyncSession session,
+    AsyncSession session,
   ) async {
     final danmakuSession = _danmakuSessions.begin();
     playerController.danmaku.beginDanmakuLoad();
@@ -588,7 +559,7 @@ abstract class _VideoPageController with Store {
     String url,
     int offset, {
     required EpisodeRef resolvedEpisode,
-    required _AsyncSession session,
+    required AsyncSession session,
     required PlayerController playerController,
   }) async {
     _videoSourceService ??= WebViewVideoSourceService();

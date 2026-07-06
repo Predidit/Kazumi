@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/episode_comments_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
@@ -9,30 +8,24 @@ import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 
-class EpisodeInfoWidget extends InheritedWidget {
-  const EpisodeInfoWidget(
-      {super.key, required this.episode, required super.child});
-
-  final int episode;
-
-  @override
-  bool updateShouldNotify(covariant InheritedWidget oldWidget) => true;
-
-  static EpisodeInfoWidget? of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<EpisodeInfoWidget>();
-  }
-}
-
 class EpisodeCommentsSheet extends StatefulWidget {
-  const EpisodeCommentsSheet({super.key});
+  const EpisodeCommentsSheet({
+    super.key,
+    required this.videoPageController,
+    required this.episode,
+    required this.selection,
+  });
+
+  final VideoPageController videoPageController;
+  final int episode;
+  final VideoEpisodeSelection selection;
 
   @override
   State<EpisodeCommentsSheet> createState() => _EpisodeCommentsSheetState();
 }
 
 class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
+  VideoPageController get videoPageController => widget.videoPageController;
   bool commentsQueryTimeout = false;
   bool commentsIsEmpty = false;
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
@@ -71,17 +64,36 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   @override
-  void didChangeDependencies() {
+  void initState() {
+    super.initState();
+    _resetAndScheduleRefresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant EpisodeCommentsSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.episode != widget.episode ||
+        oldWidget.selection != widget.selection) {
+      _resetAndScheduleRefresh();
+    }
+  }
+
+  void _resetAndScheduleRefresh() {
     ep = 0;
+    commentsQueryTimeout = false;
+    commentsIsEmpty = false;
+    final targetEpisode = widget.episode;
+    final targetSelection = widget.selection;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
+      if (!mounted ||
+          widget.episode != targetEpisode ||
+          widget.selection != targetSelection) {
         return;
       }
       if (videoPageController.episodeCommentsList.isEmpty) {
         _refreshIndicatorKey.currentState?.show();
       }
     });
-    super.didChangeDependencies();
   }
 
   Widget get episodeCommentsBody {
@@ -215,8 +227,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   void showEpisodeSelection() async {
-    final int selectedEpisode =
-        ep == 0 ? EpisodeInfoWidget.of(context)!.episode : ep;
+    final int selectedEpisode = ep == 0 ? widget.episode : ep;
     KazumiDialog.showLoading(msg: '分集列表加载中');
     final List<EpisodeInfo> episodeList =
         await BangumiApi.getBangumiEpisodesByID(
@@ -295,7 +306,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final int episode = EpisodeInfoWidget.of(context)!.episode;
     return Scaffold(
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
@@ -304,7 +314,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
           children: [commentsInfo, Expanded(child: episodeCommentsBody)],
         ),
         onRefresh: () async {
-          await loadComments(ep == 0 ? episode : ep);
+          await loadComments(ep == 0 ? widget.episode : ep);
         },
       ),
     );

@@ -24,6 +24,7 @@ class KazumiDialog {
       try {
         final result = await showDialog<T>(
           context: ctx,
+          useRootNavigator: true,
           barrierDismissible: clickMaskDismiss ?? true,
           builder: builder,
           routeSettings: const RouteSettings(name: 'KazumiDialog'),
@@ -95,6 +96,7 @@ class KazumiDialog {
       try {
         await showDialog(
           context: ctx,
+          useRootNavigator: true,
           barrierDismissible: barrierDismissible,
           builder: (BuildContext context) {
             return Center(

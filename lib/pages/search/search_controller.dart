@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
@@ -17,8 +16,13 @@ part 'search_controller.g.dart';
 class SearchPageController = _SearchPageController with _$SearchPageController;
 
 abstract class _SearchPageController with Store {
-  final _collectRepository = Modular.get<ICollectRepository>();
-  final _searchHistoryRepository = Modular.get<ISearchHistoryRepository>();
+  _SearchPageController(
+    this._collectRepository,
+    this._searchHistoryRepository,
+  );
+
+  final ICollectRepository _collectRepository;
+  final ISearchHistoryRepository _searchHistoryRepository;
 
   @observable
   bool isLoading = false;

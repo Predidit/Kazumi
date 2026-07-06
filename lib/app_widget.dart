@@ -10,7 +10,6 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
-import 'package:provider/provider.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
@@ -35,7 +34,6 @@ class _AppWidgetState extends State<AppWidget>
     trayManager.addListener(this);
     windowManager.addListener(this);
     WidgetsBinding.instance.addObserver(this);
-    Modular.setObservers([KazumiDialog.observer]);
     _initializePlatformIntegrations();
   }
 
@@ -81,7 +79,7 @@ class _AppWidgetState extends State<AppWidget>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = context.watch<ThemeProvider>();
     _applyStoredThemeSettings(themeProvider);
     _syncWindowsTitleBarBrightness(themeProvider);
   }
@@ -277,8 +275,7 @@ class _AppWidgetState extends State<AppWidget>
   @override
   Future<void> didChangePlatformBrightness() async {
     super.didChangePlatformBrightness();
-    final ThemeProvider themeProvider =
-        Provider.of<ThemeProvider>(context, listen: false);
+    final ThemeProvider themeProvider = context.read<ThemeProvider>();
     KazumiLogger().i(
         "Platform brightness changed, themeMode: ${themeProvider.themeMode}");
 
@@ -309,7 +306,7 @@ class _AppWidgetState extends State<AppWidget>
 
   @override
   Widget build(BuildContext context) {
-    final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context);
+    final ThemeProvider themeProvider = context.watch<ThemeProvider>();
     bool oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
 
     var app = DynamicColorBuilder(
@@ -346,7 +343,7 @@ class _AppWidgetState extends State<AppWidget>
           theme: lightTheme,
           darkTheme: effectiveDarkTheme,
           themeMode: themeProvider.themeMode,
-          routerConfig: Modular.routerConfig,
+          routerConfig: ModularApp.routerConfigOf(context),
         );
       },
     );

@@ -50,7 +50,7 @@ class BangumiTimelineCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         onTap: onTap ??
             () {
-              Modular.to.pushNamed('/info/', arguments: bangumiItem);
+              context.pushNamed('/info/', arguments: bangumiItem);
             },
         child: SizedBox(
           height: cardHeight,

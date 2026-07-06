@@ -132,6 +132,9 @@ class _InitPageState extends State<InitPage> {
   void _startDefaultPage() {
     final defaultStartupPage =
         GStorage.getSetting(SettingsKeys.defaultStartupPage);
+    if (!mounted) {
+      return;
+    }
     context.navigate(defaultStartupPage);
   }
 

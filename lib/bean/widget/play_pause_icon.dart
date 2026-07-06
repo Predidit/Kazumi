@@ -1,26 +1,20 @@
 import 'package:flutter/material.dart';
 
-class PlayPauseButton extends StatefulWidget {
+class PlayPauseIcon extends StatefulWidget {
   final bool playing;
-  final VoidCallback onPressed;
   final double iconSize;
   final Color? iconColor;
-  final String? tooltip;
 
-  const PlayPauseButton({super.key,
-    required this.playing,
-    required this.onPressed,
-    this.iconSize = 25,
-    this.tooltip, this.iconColor});
+  const PlayPauseIcon(
+      {super.key, required this.playing, this.iconSize = 25, this.iconColor});
 
   @override
-  State<PlayPauseButton> createState() => _PlayPauseButtonState();
+  State<PlayPauseIcon> createState() => _PlayPauseIconState();
 }
 
-class _PlayPauseButtonState extends State<PlayPauseButton>
+class _PlayPauseIconState extends State<PlayPauseIcon>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-
 
   @override
   void initState() {
@@ -39,7 +33,7 @@ class _PlayPauseButtonState extends State<PlayPauseButton>
   }
 
   @override
-  void didUpdateWidget(covariant PlayPauseButton oldWidget) {
+  void didUpdateWidget(covariant PlayPauseIcon oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.playing != widget.playing) {
@@ -53,15 +47,11 @@ class _PlayPauseButtonState extends State<PlayPauseButton>
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: widget.onPressed,
-      iconSize: widget.iconSize,
-      tooltip: widget.tooltip,
+    return AnimatedIcon(
       color: widget.iconColor,
-      icon: AnimatedIcon(
-        icon: AnimatedIcons.play_pause,
-        progress: _controller,
-      ),
+      size: widget.iconSize,
+      icon: AnimatedIcons.play_pause,
+      progress: _controller,
     );
   }
 }

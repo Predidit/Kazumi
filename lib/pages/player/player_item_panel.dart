@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:kazumi/pages/player/play_pause_button.dart';
+import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
@@ -95,6 +95,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
   PlayerPanelHold? _danmakuTextFieldHold;
+
   // SVG Caches
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
@@ -658,11 +659,13 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
                 children: [
-                  PlayPauseButton(
-                    iconColor: Colors.white,
+                  IconButton(
                     tooltip: playerController.playback.playing ? '暂停' : '播放',
-                    playing: playerController.playback.playing,
                     onPressed: () => playerController.playOrPause(),
+                    icon: PlayPauseIcon(
+                      iconColor: Colors.white,
+                      playing: playerController.playback.playing,
+                    ),
                   ),
                   // 更换选集
                   if (videoPageController.isFullscreen ||

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kazumi/pages/player/play_pause_button.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
@@ -657,15 +658,11 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
                 children: [
-                  IconButton(
-                    color: Colors.white,
-                    icon: Icon(playerController.playback.playing
-                        ? Icons.pause_rounded
-                        : Icons.play_arrow_rounded),
+                  PlayPauseButton(
+                    iconColor: Colors.white,
                     tooltip: playerController.playback.playing ? '暂停' : '播放',
-                    onPressed: () {
-                      playerController.playOrPause();
-                    },
+                    playing: playerController.playback.playing,
+                    onPressed: () => playerController.playOrPause(),
                   ),
                   // 更换选集
                   if (videoPageController.isFullscreen ||

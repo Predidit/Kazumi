@@ -13,7 +13,7 @@ class DanmakuShieldSettingsSheet extends StatefulWidget {
 
 class _DanmakuShieldSettingsSheetState
     extends State<DanmakuShieldSettingsSheet> {
-  final MyController myController = Modular.get<MyController>();
+  final MyController myController = inject<MyController>();
   final TextEditingController textEditingController = TextEditingController();
 
   @override

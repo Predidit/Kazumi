@@ -25,22 +25,47 @@ part 'player_playback_controller.g.dart';
 class PlayerPlaybackController = _PlayerPlaybackController
     with _$PlayerPlaybackController;
 
+final class _OwnedPlayer {
+  _OwnedPlayer(this.player);
+
+  final Player player;
+  Future<void>? _disposeFuture;
+
+  Future<void> dispose() {
+    return _disposeFuture ??= _dispose();
+  }
+
+  Future<void> _dispose() async {
+    try {
+      await player.dispose();
+    } catch (error, stackTrace) {
+      KazumiLogger().e(
+        'PlayerPlaybackController: failed to dispose media player',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      try {
+        await player.stop();
+      } catch (_) {}
+    }
+  }
+}
+
 abstract class _PlayerPlaybackController with Store {
   _PlayerPlaybackController({
     required this.shaderAssetService,
     required this.debug,
     required this.videoUrl,
-    required this.onExitSyncPlayRoom,
   });
 
   final ShaderAssetService shaderAssetService;
   final PlayerDebugController debug;
   final String Function() videoUrl;
-  final Future<void> Function() onExitSyncPlayRoom;
   final PlayerScreenshotService screenshotService =
       const PlayerScreenshotService();
 
-  Player? mediaPlayer;
+  _OwnedPlayer? _ownedPlayer;
+  Player? get mediaPlayer => _ownedPlayer?.player;
   VideoController? videoController;
 
   bool hAenable = true;
@@ -83,14 +108,18 @@ abstract class _PlayerPlaybackController with Store {
     return identical(mediaPlayer, player);
   }
 
-  Future<Player?> _discardIfNotCurrent(Player player) async {
-    if (isCurrentPlayer(player)) {
-      return player;
+  Future<Player?> _discardIfNotCurrent(_OwnedPlayer candidate) async {
+    if (identical(_ownedPlayer, candidate)) {
+      return candidate.player;
     }
-    try {
-      await player.dispose();
-    } catch (_) {}
+    await candidate.dispose();
     return null;
+  }
+
+  Future<void> _cancelDebugInfo() async {
+    try {
+      await debug.cancel();
+    } catch (_) {}
   }
 
   @action
@@ -161,8 +190,11 @@ abstract class _PlayerPlaybackController with Store {
   }
 
   Future<Player?> createVideoController(
-      Map<String, String> httpHeaders, bool adBlockerEnabled,
-      {int offset = 0}) async {
+    Map<String, String> httpHeaders,
+    bool adBlockerEnabled, {
+    required bool Function() canInstall,
+    int offset = 0,
+  }) async {
     superResolutionMode = SuperResolutionMode.fromStorageValue(
       GStorage.getSetting(SettingsKeys.defaultSuperResolutionMode),
     );
@@ -174,155 +206,174 @@ abstract class _PlayerPlaybackController with Store {
     lowMemoryMode = GStorage.getSetting(SettingsKeys.lowMemoryMode);
     playerDebugMode = GStorage.getSetting(SettingsKeys.playerDebugMode);
 
-    final Player player = Player(
-      configuration: PlayerConfiguration(
-        bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
-        osc: false,
-        logLevel: MPVLogLevel.values[debug.playerLogLevel],
-        adBlocker: adBlockerEnabled,
+    if (!canInstall()) {
+      return null;
+    }
+    final candidate = _OwnedPlayer(
+      Player(
+        configuration: PlayerConfiguration(
+          bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
+          osc: false,
+          logLevel: MPVLogLevel.values[debug.playerLogLevel],
+          adBlocker: adBlockerEnabled,
+        ),
       ),
     );
-    mediaPlayer = player;
+    final player = candidate.player;
+    if (!canInstall()) {
+      await candidate.dispose();
+      return null;
+    }
+    _ownedPlayer = candidate;
 
-    debug.playerLog.clear();
-    await debug.setup(
-      player,
-      isCurrentPlayer: isCurrentPlayer,
-      playerDebugMode: playerDebugMode,
-    );
-    if (!isCurrentPlayer(player)) {
-      return await _discardIfNotCurrent(player);
-    }
-
-    var pp = player.platform as NativePlayer;
-    // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
-    // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
-    // 该设置可以在所有平台上正确启用双重缓存
-    await pp.setProperty("demuxer-cache-dir", await getPlayerTempPath());
-    if (!isCurrentPlayer(player)) {
-      return await _discardIfNotCurrent(player);
-    }
-    await pp.setProperty("af", "scaletempo2=max-speed=8");
-    if (!isCurrentPlayer(player)) {
-      return await _discardIfNotCurrent(player);
-    }
-    if (Platform.isAndroid) {
-      await pp.setProperty("volume-max", "100");
+    try {
+      debug.playerLog.clear();
+      await debug.setup(
+        player,
+        isCurrentPlayer: isCurrentPlayer,
+        playerDebugMode: playerDebugMode,
+      );
       if (!isCurrentPlayer(player)) {
-        return await _discardIfNotCurrent(player);
+        return await _discardIfNotCurrent(candidate);
       }
-      if (androidEnableOpenSLES) {
-        await pp.setProperty("ao", "opensles");
-      } else {
-        await pp.setProperty("ao", "audiotrack");
-      }
+
+      var pp = player.platform as NativePlayer;
+      // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
+      // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
+      // 该设置可以在所有平台上正确启用双重缓存
+      await pp.setProperty("demuxer-cache-dir", await getPlayerTempPath());
       if (!isCurrentPlayer(player)) {
-        return await _discardIfNotCurrent(player);
+        return await _discardIfNotCurrent(candidate);
       }
-    }
-
-    final bool proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
-    if (proxyEnable) {
-      final String proxyUrl = GStorage.getSetting(SettingsKeys.proxyUrl);
-      final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
-      if (formattedProxy != null) {
-        await pp.setProperty("http-proxy", formattedProxy);
-        if (!isCurrentPlayer(player)) {
-          return await _discardIfNotCurrent(player);
-        }
-        KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
+      await pp.setProperty("af", "scaletempo2=max-speed=8");
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(candidate);
       }
-    }
-
-    await player.setAudioTrack(
-      AudioTrack.auto(),
-    );
-    if (!isCurrentPlayer(player)) {
-      return await _discardIfNotCurrent(player);
-    }
-
-    String? videoRenderer;
-    if (Platform.isAndroid) {
-      final String androidVideoRenderer =
-          GStorage.getSetting(SettingsKeys.androidVideoRenderer);
-
-      if (androidVideoRenderer == 'auto') {
-        // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
-        // GPU-NEXT 需要 Vulkan 1.2 支持
-        // 避免 Android 14 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
-        final int androidSdkVersion =
-            await PlatformEnvironmentService.getAndroidSdkVersion();
+      if (Platform.isAndroid) {
+        await pp.setProperty("volume-max", "100");
         if (!isCurrentPlayer(player)) {
-          return await _discardIfNotCurrent(player);
+          return await _discardIfNotCurrent(candidate);
         }
-        if (androidSdkVersion >= 34) {
-          videoRenderer = 'gpu-next';
+        if (androidEnableOpenSLES) {
+          await pp.setProperty("ao", "opensles");
         } else {
-          videoRenderer = 'gpu';
+          await pp.setProperty("ao", "audiotrack");
         }
-      } else {
-        videoRenderer = androidVideoRenderer;
-      }
-    }
-
-    if (videoRenderer == 'mediacodec_embed') {
-      hAenable = true;
-      hardwareDecoder = 'mediacodec';
-      superResolutionMode = SuperResolutionMode.off;
-    }
-
-    videoController ??= VideoController(
-      player,
-      configuration: VideoControllerConfiguration(
-        vo: videoRenderer,
-        enableHardwareAcceleration: hAenable,
-        enableAndroidSurfaceProducer: false,
-        hwdec: hAenable ? hardwareDecoder : 'no',
-        androidAttachSurfaceAfterVideoParameters: false,
-      ),
-    );
-    player.setPlaylistMode(PlaylistMode.none);
-    if (!isCurrentPlayer(player)) {
-      return await _discardIfNotCurrent(player);
-    }
-
-    bool showPlayerError = GStorage.getSetting(SettingsKeys.showPlayerError);
-    player.stream.error.listen((event) {
-      if (showPlayerError) {
         if (!isCurrentPlayer(player)) {
-          return;
-        }
-        if (event.toString().contains('Failed to open') && playerBuffering) {
-          KazumiDialog.showToast(
-              message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
-        } else {
-          KazumiDialog.showToast(
-              message: '播放器内部错误 ${event.toString()} ${videoUrl()}',
-              duration: const Duration(seconds: 5),
-              showActionButton: true);
+          return await _discardIfNotCurrent(candidate);
         }
       }
-      KazumiLogger().e('PlayerController: Player intent error ${videoUrl()}',
-          error: event);
-    });
 
-    if (superResolutionMode != SuperResolutionMode.off) {
-      await setShader(superResolutionMode, player: player);
+      final bool proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
+      if (proxyEnable) {
+        final String proxyUrl = GStorage.getSetting(SettingsKeys.proxyUrl);
+        final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
+        if (formattedProxy != null) {
+          await pp.setProperty("http-proxy", formattedProxy);
+          if (!isCurrentPlayer(player)) {
+            return await _discardIfNotCurrent(candidate);
+          }
+          KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
+        }
+      }
+
+      await player.setAudioTrack(
+        AudioTrack.auto(),
+      );
       if (!isCurrentPlayer(player)) {
-        return await _discardIfNotCurrent(player);
+        return await _discardIfNotCurrent(candidate);
       }
-    }
 
-    await player.open(
-      Media(videoUrl(),
-          start: Duration(seconds: offset), httpHeaders: httpHeaders),
-      play: autoPlay,
-    );
-    if (!isCurrentPlayer(player)) {
-      return await _discardIfNotCurrent(player);
-    }
+      String? videoRenderer;
+      if (Platform.isAndroid) {
+        final String androidVideoRenderer =
+            GStorage.getSetting(SettingsKeys.androidVideoRenderer);
 
-    return player;
+        if (androidVideoRenderer == 'auto') {
+          // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
+          // GPU-NEXT 需要 Vulkan 1.2 支持
+          // 避免 Android 13 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
+          final int androidSdkVersion =
+              await PlatformEnvironmentService.getAndroidSdkVersion();
+          if (!isCurrentPlayer(player)) {
+            return await _discardIfNotCurrent(candidate);
+          }
+          if (androidSdkVersion >= 34) {
+            videoRenderer = 'gpu-next';
+          } else {
+            videoRenderer = 'gpu';
+          }
+        } else {
+          videoRenderer = androidVideoRenderer;
+        }
+      }
+
+      if (videoRenderer == 'mediacodec_embed') {
+        hAenable = true;
+        hardwareDecoder = 'mediacodec';
+        superResolutionMode = SuperResolutionMode.off;
+      }
+
+      videoController ??= VideoController(
+        player,
+        configuration: VideoControllerConfiguration(
+          vo: videoRenderer,
+          enableHardwareAcceleration: hAenable,
+          enableAndroidSurfaceProducer: false,
+          hwdec: hAenable ? hardwareDecoder : 'no',
+          androidAttachSurfaceAfterVideoParameters: false,
+        ),
+      );
+      player.setPlaylistMode(PlaylistMode.none);
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(candidate);
+      }
+
+      bool showPlayerError = GStorage.getSetting(SettingsKeys.showPlayerError);
+      player.stream.error.listen((event) {
+        if (showPlayerError) {
+          if (!isCurrentPlayer(player)) {
+            return;
+          }
+          if (event.toString().contains('Failed to open') && playerBuffering) {
+            KazumiDialog.showToast(
+                message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
+          } else {
+            KazumiDialog.showToast(
+                message: '播放器内部错误 ${event.toString()} ${videoUrl()}',
+                duration: const Duration(seconds: 5),
+                showActionButton: true);
+          }
+        }
+        KazumiLogger().e('PlayerController: Player intent error ${videoUrl()}',
+            error: event);
+      });
+
+      if (superResolutionMode != SuperResolutionMode.off) {
+        await setShader(superResolutionMode, player: player);
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(candidate);
+        }
+      }
+
+      await player.open(
+        Media(videoUrl(),
+            start: Duration(seconds: offset), httpHeaders: httpHeaders),
+        play: autoPlay,
+      );
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(candidate);
+      }
+
+      return player;
+    } catch (error, stackTrace) {
+      if (identical(_ownedPlayer, candidate)) {
+        _ownedPlayer = null;
+        videoController = null;
+      }
+      await candidate.dispose();
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   Future<void> setShader(SuperResolutionMode mode, {Player? player}) async {
@@ -458,36 +509,18 @@ abstract class _PlayerPlaybackController with Store {
     }
   }
 
-  Future<void> dispose({
-    bool disposeSyncPlayController = true,
-  }) async {
-    final player = mediaPlayer;
-    mediaPlayer = null;
-    videoController = null;
-    final cancelDebugInfoFuture = debug.cancel();
-    if (disposeSyncPlayController) {
-      try {
-        await onExitSyncPlayRoom();
-      } catch (_) {}
-    }
-    try {
-      await cancelDebugInfoFuture;
-    } catch (_) {}
-    try {
-      await player?.dispose();
-    } catch (_) {}
-  }
-
   Future<void> stop() async {
-    try {
-      final player = mediaPlayer;
-      mediaPlayer = null;
-      videoController = null;
-      await debug.cancel();
-      await player?.stop();
-      await player?.dispose();
-      loading = true;
-    } catch (_) {}
+    final ownedPlayer = _ownedPlayer;
+    _ownedPlayer = null;
+    videoController = null;
+    playing = false;
+    loading = true;
+    // media_kit stops playback as part of disposal before releasing native
+    // resources. Debug subscriptions can be cancelled concurrently.
+    await Future.wait([
+      ownedPlayer?.dispose() ?? Future<void>.value(),
+      _cancelDebugInfo(),
+    ]);
   }
 
   Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {

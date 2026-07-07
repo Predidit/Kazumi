@@ -183,7 +183,7 @@ class _InfoTabViewState extends State<InfoTabView>
                     onPressed: () {
                       final tagName = Uri.encodeComponent(
                           widget.bangumiItem.tags[index].name);
-                      Modular.to.pushNamed('/search/$tagName');
+                      context.pushNamed('/search/$tagName');
                     },
                   );
                 }).toList(),

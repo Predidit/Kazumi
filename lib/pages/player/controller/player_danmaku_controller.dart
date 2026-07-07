@@ -1,7 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 
 import 'package:canvas_danmaku/canvas_danmaku.dart' as canvas;
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
@@ -88,9 +87,11 @@ class DanmakuTimeline {
 abstract class _PlayerDanmakuController with Store {
   _PlayerDanmakuController({
     required this.isLocalPlayback,
+    required this.downloadController,
   });
 
   final bool Function() isLocalPlayback;
+  final DownloadController downloadController;
 
   late canvas.DanmakuController canvasController;
 
@@ -196,7 +197,6 @@ abstract class _PlayerDanmakuController with Store {
         'PlayerController: attempting to load cached danmaku for episode $episode');
     var nextBangumiID = bangumiID;
     try {
-      final downloadController = Modular.get<DownloadController>();
       final cachedDanmakus = await downloadController.getCachedDanmakus(
         bangumiId,
         pluginName,

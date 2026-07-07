@@ -1,4 +1,3 @@
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/anime_season.dart';
@@ -12,7 +11,9 @@ part 'timeline_controller.g.dart';
 class TimelineController = _TimelineController with _$TimelineController;
 
 abstract class _TimelineController with Store {
-  final _collectRepository = Modular.get<ICollectRepository>();
+  _TimelineController(this._collectRepository);
+
+  final ICollectRepository _collectRepository;
 
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =

@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
@@ -32,7 +31,12 @@ extension CoreColorExtension on ThemeData {
 }
 
 class PluginTestPage extends StatefulWidget {
-  const PluginTestPage({super.key});
+  const PluginTestPage({
+    super.key,
+    required this.plugin,
+  });
+
+  final Plugin plugin;
 
   @override
   State<PluginTestPage> createState() => _PluginTestPageState();
@@ -69,7 +73,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
   @override
   void initState() {
     super.initState();
-    plugin = Modular.args.data as Plugin;
+    plugin = widget.plugin;
     testKeywordController.addListener(
         () => errorMsg.isNotEmpty ? setState(() => errorMsg = "") : null);
   }

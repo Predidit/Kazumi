@@ -277,7 +277,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
-                    await Modular.to.pushNamed('/settings/player/decoder');
+                    await context.pushNamed('/settings/player/decoder');
                   },
                   title:
                       Text('硬件解码器', style: TextStyle(fontFamily: fontFamily)),
@@ -287,7 +287,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 if (Platform.isAndroid) ...[
                   SettingsTile.navigation(
                     onPressed: (_) async {
-                      await Modular.to.pushNamed('/settings/player/renderer');
+                      await context.pushNamed('/settings/player/renderer');
                     },
                     title:
                         Text('视频渲染器', style: TextStyle(fontFamily: fontFamily)),
@@ -326,7 +326,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 ],
                 SettingsTile.navigation(
                   onPressed: (_) async {
-                    Modular.to.pushNamed('/settings/player/super');
+                    context.pushNamed('/settings/player/super');
                   },
                   title: Text('超分辨率', style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -530,8 +530,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   ),
                 ),
                 SettingsTile(
-                  title:
-                      Text('默认方向键/长按倍速', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('默认方向键/长按倍速',
+                      style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultShortcutForwardPlaySpeed,
                     min: 1.25,

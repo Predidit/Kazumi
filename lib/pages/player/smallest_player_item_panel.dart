@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
@@ -76,8 +77,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
+  final VideoPageController videoPageController = inject<VideoPageController>();
   late final PlayerController playerController;
   final TextEditingController textController = TextEditingController();
 
@@ -420,10 +420,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     return Row(
       children: [
         IconButton(
-          color: Colors.white,
-          icon: Icon(playerController.playback.playing
-              ? Icons.pause_rounded
-              : Icons.play_arrow_rounded),
+          icon: PlayPauseIcon(
+            iconColor: Colors.white,
+            playing: playerController.playback.playing,
+          ),
           tooltip: playerController.playback.playing ? '暂停' : '播放',
           onPressed: () {
             playerController.playOrPause();

@@ -10,15 +10,19 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/utils/format.dart';
 
 class DownloadPage extends StatefulWidget {
-  const DownloadPage({super.key});
+  const DownloadPage({
+    super.key,
+    required this.controller,
+  });
+
+  final DownloadController controller;
 
   @override
   State<DownloadPage> createState() => _DownloadPageState();
 }
 
 class _DownloadPageState extends State<DownloadPage> {
-  final DownloadController downloadController =
-      Modular.get<DownloadController>();
+  DownloadController get downloadController => widget.controller;
 
   @override
   void initState() {
@@ -369,7 +373,7 @@ class _DownloadPageState extends State<DownloadPage> {
       record.pluginName,
     );
 
-    final videoPageController = Modular.get<VideoPageController>();
+    final videoPageController = inject<VideoPageController>();
     videoPageController.initForOfflinePlayback(
       bangumiItem: bangumiItem,
       pluginName: record.pluginName,
@@ -378,7 +382,7 @@ class _DownloadPageState extends State<DownloadPage> {
       downloadedEpisodes: downloadedEpisodes,
     );
 
-    Modular.to.pushNamed('/video/');
+    context.pushNamed('/video/');
   }
 
   void _confirmDeleteEpisode(DownloadRecord record, DownloadEpisode episode) {

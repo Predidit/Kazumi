@@ -26,7 +26,18 @@ import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
 
 class VideoPage extends StatefulWidget {
-  const VideoPage({super.key});
+  const VideoPage({
+    super.key,
+    required this.playerController,
+    required this.videoPageController,
+    required this.historyController,
+    required this.downloadController,
+  });
+
+  final PlayerController playerController;
+  final VideoPageController videoPageController;
+  final HistoryController historyController;
+  final DownloadController downloadController;
 
   @override
   State<VideoPage> createState() => _VideoPageState();
@@ -34,12 +45,12 @@ class VideoPage extends StatefulWidget {
 
 class _VideoPageState extends State<VideoPage>
     with TickerProviderStateMixin, WindowListener {
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
-  PlayerController? _playerController;
-  final HistoryController historyController = Modular.get<HistoryController>();
-  final DownloadController downloadController =
-      Modular.get<DownloadController>();
+  PlayerController get playerController => widget.playerController;
+  VideoPageController get videoPageController => widget.videoPageController;
+  bool _didInitializePlayback = false;
+  bool _isClosing = false;
+  HistoryController get historyController => widget.historyController;
+  DownloadController get downloadController => widget.downloadController;
   late bool playResume;
   bool showDebugLog = false;
   List<String> webviewLogLines = [];
@@ -94,40 +105,19 @@ class _VideoPageState extends State<VideoPage>
     playResume = GStorage.getSetting(SettingsKeys.playResume);
     disableAnimations =
         GStorage.getSetting(SettingsKeys.playerDisableAnimations);
-
-    // PlayerController is route-scoped and may not be registered until after
-    // the first frame.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadPlayerController();
-    });
   }
 
-  void _loadPlayerController() {
-    if (!mounted) {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInitializePlayback) {
       return;
     }
+    _didInitializePlayback = true;
+    _initializePlayback();
+  }
 
-    try {
-      _playerController = Modular.get<PlayerController>();
-    } catch (e) {
-      KazumiLogger().e(
-        'VideoPage: failed to load PlayerController',
-        error: e,
-      );
-      if (mounted) {
-        videoPageController.loading = false;
-        videoPageController.errorMessage = '播放器初始化失败';
-      }
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {});
-    final playerController = _playerController!;
-
+  void _initializePlayback() {
     if (videoPageController.isOfflineMode) {
       _initOfflineMode(playerController);
     } else {
@@ -241,13 +231,6 @@ class _VideoPageState extends State<VideoPage>
       _logSubscription?.cancel();
     } catch (_) {}
     videoPageController.cancelVideoSourceResolution();
-    try {
-      _playerController?.dispose();
-    } catch (e) {
-      KazumiLogger().e(
-          'VideoPageController: failed to dispose playerController',
-          error: e);
-    }
     if (!isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
@@ -299,10 +282,6 @@ class _VideoPageState extends State<VideoPage>
 
   Future<void> changeEpisode(int episode,
       {int currentRoad = 0, int offset = 0}) async {
-    final playerController = _playerController;
-    if (playerController == null) {
-      return;
-    }
     if (!mounted) {
       return;
     }
@@ -436,24 +415,27 @@ class _VideoPageState extends State<VideoPage>
       return;
     }
     if (videoPageController.isFullscreen) {
-      DisplayModeService.exitFullScreen();
+      await DisplayModeService.exitFullScreen();
       videoPageController.isFullscreen = false;
     }
-    Navigator.of(context).pop();
+    if (_isClosing) {
+      return;
+    }
+    _isClosing = true;
+    playerController.beginShutdown();
+    if (!context.mounted) {
+      return;
+    }
+    context.pop();
   }
 
   void pauseForTimedShutdown() {
-    final playerController = _playerController;
-    if (playerController != null && playerController.playback.playing) {
+    if (playerController.playback.playing) {
       playerController.pause();
     }
   }
 
   bool sendDanmaku(String msg) {
-    final playerController = _playerController;
-    if (playerController == null) {
-      return false;
-    }
     keyboardFocus.requestFocus();
     if (playerController.danmaku.danDanmakus.isEmpty) {
       KazumiDialog.showToast(
@@ -557,10 +539,6 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Future<bool> showDanmakuDestinationPickerAndSend(String msg) async {
-    final playerController = _playerController;
-    if (playerController == null) {
-      return false;
-    }
     if (msg.trim().isEmpty) {
       KazumiDialog.showToast(message: '弹幕内容为空');
       return false;
@@ -750,8 +728,7 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget get playerBody {
-    final playerController = _playerController;
-    final bool playerLoading = playerController?.playback.loading ?? true;
+    final bool playerLoading = playerController.playback.loading;
     return Stack(
       children: [
         Positioned.fill(
@@ -889,7 +866,7 @@ class _VideoPageState extends State<VideoPage>
           ),
         ),
         Positioned.fill(
-          child: playerController == null || playerController.playback.loading
+          child: playerController.playback.loading
               ? Container()
               : PlayerItem(
                   playerController: playerController,
@@ -1149,8 +1126,7 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget get tabBody {
-    final playerController = _playerController;
-    final bool danmakuOn = playerController?.danmaku.danmakuOn ?? false;
+    final bool danmakuOn = playerController.danmaku.danmakuOn;
     final int episodeNum = videoPageController.commentsEpisode;
 
     return Container(
@@ -1262,9 +1238,10 @@ class _VideoPageState extends State<VideoPage>
                         ),
                     ],
                   ),
-                  EpisodeInfoWidget(
+                  EpisodeCommentsSheet(
                     episode: episodeNum,
-                    child: EpisodeCommentsSheet(),
+                    selection: videoPageController.selectedEpisode,
+                    videoPageController: videoPageController,
                   ),
                 ],
               ),

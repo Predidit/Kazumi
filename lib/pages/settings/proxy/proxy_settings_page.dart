@@ -74,7 +74,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
-                    await Modular.to.pushNamed('/settings/proxy/editor');
+                    await context.pushNamed('/settings/proxy/editor');
                     setState(() {
                       proxyEnable =
                           GStorage.getSetting(SettingsKeys.proxyEnable);

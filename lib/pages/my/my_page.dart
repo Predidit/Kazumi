@@ -2,8 +2,6 @@ import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:provider/provider.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
 class MyPage extends StatefulWidget {
@@ -14,22 +12,12 @@ class MyPage extends StatefulWidget {
 }
 
 class _MyPageState extends State<MyPage> {
-  late NavigationBarState navigationBarState;
-
   void onBackPressed(BuildContext context) {
     if (KazumiDialog.observer.hasKazumiDialog) {
       KazumiDialog.dismiss();
       return;
     }
-    navigationBarState.updateSelectedIndex(0);
-    Modular.to.navigate('/tab/popular/');
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
+    context.navigate('/tab/popular/');
   }
 
   @override
@@ -53,7 +41,7 @@ class _MyPageState extends State<MyPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/history/');
+                    context.pushNamed('/settings/history/');
                   },
                   leading: const Icon(Icons.history_rounded),
                   title: Text('历史记录', style: TextStyle(fontFamily: fontFamily)),
@@ -62,7 +50,7 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/download/');
+                    context.pushNamed('/settings/download/');
                   },
                   leading: const Icon(Icons.download_rounded),
                   title: Text('下载管理', style: TextStyle(fontFamily: fontFamily)),
@@ -71,7 +59,7 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/download-settings');
+                    context.pushNamed('/settings/download-settings');
                   },
                   leading: const Icon(Icons.settings_rounded),
                   title: Text('下载设置', style: TextStyle(fontFamily: fontFamily)),
@@ -80,7 +68,7 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/plugin/');
+                    context.pushNamed('/settings/plugin/');
                   },
                   leading: const Icon(Icons.extension),
                   title: Text('规则管理', style: TextStyle(fontFamily: fontFamily)),
@@ -94,7 +82,7 @@ class _MyPageState extends State<MyPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/player');
+                    context.pushNamed('/settings/player');
                   },
                   leading: const Icon(Icons.display_settings_rounded),
                   title: Text('播放设置', style: TextStyle(fontFamily: fontFamily)),
@@ -103,7 +91,7 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/danmaku/');
+                    context.pushNamed('/settings/danmaku/');
                   },
                   leading: const Icon(Icons.subtitles_rounded),
                   title: Text('弹幕设置', style: TextStyle(fontFamily: fontFamily)),
@@ -112,7 +100,7 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/keyboard');
+                    context.pushNamed('/settings/keyboard');
                   },
                   leading: const Icon(Icons.keyboard_rounded),
                   title: Text('操作设置', style: TextStyle(fontFamily: fontFamily)),
@@ -121,7 +109,7 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/proxy');
+                    context.pushNamed('/settings/proxy');
                   },
                   leading: const Icon(Icons.vpn_key_rounded),
                   title: Text('代理设置', style: TextStyle(fontFamily: fontFamily)),
@@ -135,7 +123,7 @@ class _MyPageState extends State<MyPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/theme');
+                    context.pushNamed('/settings/theme');
                   },
                   leading: const Icon(Icons.palette_rounded),
                   title: Text('外观设置', style: TextStyle(fontFamily: fontFamily)),
@@ -144,7 +132,7 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/interface');
+                    context.pushNamed('/settings/interface');
                   },
                   leading: const Icon(Icons.pages_rounded),
                   title: Text('界面设置', style: TextStyle(fontFamily: fontFamily)),
@@ -153,7 +141,7 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/webdav/');
+                    context.pushNamed('/settings/webdav/');
                   },
                   leading: const Icon(Icons.cloud),
                   title: Text('同步设置', style: TextStyle(fontFamily: fontFamily)),
@@ -167,7 +155,7 @@ class _MyPageState extends State<MyPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/about/');
+                    context.pushNamed('/settings/about/');
                   },
                   leading: const Icon(Icons.info_outline_rounded),
                   title: Text('关于', style: TextStyle(fontFamily: fontFamily)),

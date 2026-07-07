@@ -10,14 +10,19 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/encoding.dart';
 
 class PluginViewPage extends StatefulWidget {
-  const PluginViewPage({super.key});
+  const PluginViewPage({
+    super.key,
+    required this.controller,
+  });
+
+  final PluginsController controller;
 
   @override
   State<PluginViewPage> createState() => _PluginViewPageState();
 }
 
 class _PluginViewPageState extends State<PluginViewPage> {
-  final PluginsController pluginsController = Modular.get<PluginsController>();
+  PluginsController get pluginsController => widget.controller;
 
   // 是否处于多选模式
   bool isMultiSelectMode = false;
@@ -49,7 +54,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 title: const Text('新建规则'),
                 onTap: () {
                   KazumiDialog.dismiss();
-                  Modular.to.pushNamed('/settings/plugin/editor',
+                  context.pushNamed('/settings/plugin/editor',
                       arguments: Plugin.fromTemplate());
                 },
               ),
@@ -58,7 +63,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 title: const Text('从规则仓库导入'),
                 onTap: () {
                   KazumiDialog.dismiss();
-                  Modular.to.pushNamed('/settings/plugin/shop',
+                  context.pushNamed('/settings/plugin/shop',
                       arguments: Plugin.fromTemplate());
                 },
               ),
@@ -445,7 +450,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
         MenuItemButton(
           requestFocusOnHover: false,
           onPressed: () {
-            Modular.to.pushNamed('/settings/plugin/editor', arguments: plugin);
+            context.pushNamed('/settings/plugin/editor', arguments: plugin);
           },
           child: Container(
             height: 48,
@@ -465,7 +470,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
         MenuItemButton(
           requestFocusOnHover: false,
           onPressed: () {
-            Modular.to.pushNamed('/settings/plugin/test', arguments: plugin);
+            context.pushNamed('/settings/plugin/test', arguments: plugin);
           },
           child: Container(
             height: 48,

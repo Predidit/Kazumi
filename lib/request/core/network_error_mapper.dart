@@ -45,6 +45,7 @@ class NetworkErrorMapper {
           stackTrace: error.stackTrace,
         );
       case DioExceptionType.receiveTimeout:
+      case DioExceptionType.transformTimeout:
         return NetworkException(
           type: NetworkExceptionType.receiveTimeout,
           message: '响应超时，请稍后重试！',

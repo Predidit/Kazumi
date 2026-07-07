@@ -9,6 +9,7 @@ import 'package:kazumi/services/plugin/plugin_install_time_tracker.dart';
 import 'package:kazumi/request/apis/plugin_catalog_api.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 part 'plugins_controller.g.dart';
 
@@ -18,11 +19,16 @@ part 'plugins_controller.g.dart';
 class PluginsController = _PluginsController with _$PluginsController;
 
 abstract class _PluginsController with Store {
+  static const String disabledPluginNamesSettingKey = 'disabledPluginNames';
+
   @observable
   ObservableList<Plugin> pluginList = ObservableList.of([]);
 
   @observable
   ObservableList<PluginHTTPItem> pluginHTTPList = ObservableList.of([]);
+
+  final ObservableSet<String> disabledPluginNames =
+      ObservableSet<String>.of({});
 
   // 规则有效性追踪器
   final validityTracker = PluginValidityTracker();
@@ -48,6 +54,7 @@ abstract class _PluginsController with Store {
       await newPluginDirectory!.create(recursive: true);
     }
     await loadAllPlugins();
+    await loadPluginEnabledState();
   }
 
   // Loads all plugins from the directory, populates the plugin list, and saves to plugins.json if needed
@@ -117,6 +124,82 @@ abstract class _PluginsController with Store {
     return json;
   }
 
+  Future<void> loadPluginEnabledState({
+    Iterable<String>? disabledNames,
+    bool persist = true,
+  }) async {
+    disabledPluginNames
+      ..clear()
+      ..addAll(disabledNames ??
+          GStorage.getStringListSettingByName(disabledPluginNamesSettingKey));
+    if (_pruneDisabledPluginNames() && persist) {
+      await saveDisabledPluginNames();
+    }
+  }
+
+  bool isPluginEnabled(String name) => !disabledPluginNames.contains(name);
+
+  List<Plugin> get enabledPlugins => pluginList
+      .where((plugin) => isPluginEnabled(plugin.name))
+      .toList(growable: false);
+
+  Future<void> setPluginEnabled(
+    String name,
+    bool enabled, {
+    bool persist = true,
+  }) async {
+    if (!pluginList.any((plugin) => plugin.name == name)) {
+      return;
+    }
+    final changed = enabled
+        ? disabledPluginNames.remove(name)
+        : disabledPluginNames.add(name);
+    if (changed && persist) {
+      await saveDisabledPluginNames();
+    }
+  }
+
+  Future<void> setPluginsEnabled(
+    Iterable<String> names,
+    bool enabled, {
+    bool persist = true,
+  }) async {
+    final pluginNames = pluginList.map((plugin) => plugin.name).toSet();
+    var changed = false;
+    for (final name in names) {
+      if (!pluginNames.contains(name)) {
+        continue;
+      }
+      if (enabled) {
+        changed = disabledPluginNames.remove(name) || changed;
+      } else {
+        changed = disabledPluginNames.add(name) || changed;
+      }
+    }
+    if (changed && persist) {
+      await saveDisabledPluginNames();
+    }
+  }
+
+  Future<void> saveDisabledPluginNames() async {
+    await GStorage.putStringListSettingByName(
+      disabledPluginNamesSettingKey,
+      disabledPluginNames.toList(growable: false)..sort(),
+    );
+  }
+
+  bool _pruneDisabledPluginNames() {
+    final pluginNames = pluginList.map((plugin) => plugin.name).toSet();
+    final namesToRemove = disabledPluginNames
+        .where((name) => !pluginNames.contains(name))
+        .toList(growable: false);
+    if (namesToRemove.isEmpty) {
+      return false;
+    }
+    disabledPluginNames.removeAll(namesToRemove);
+    return true;
+  }
+
   // Converts a JSON string into a list of Plugin objects.
   List<Plugin> getPluginListFromJson(String jsonString) {
     List<dynamic> json = jsonDecode(jsonString);
@@ -127,13 +210,20 @@ abstract class _PluginsController with Store {
     return plugins;
   }
 
-  Future<void> removePlugin(Plugin plugin) async {
+  Future<void> removePlugin(Plugin plugin, {bool persist = true}) async {
     pluginList.removeWhere((p) => p.name == plugin.name);
-    await savePlugins();
+    if (disabledPluginNames.remove(plugin.name)) {
+      if (persist) {
+        await saveDisabledPluginNames();
+      }
+    }
+    if (persist) {
+      await savePlugins();
+    }
   }
 
   // Update or add plugin
-  void updatePlugin(Plugin plugin) {
+  void updatePlugin(Plugin plugin, {bool persist = true}) {
     bool flag = false;
     for (int i = 0; i < pluginList.length; ++i) {
       if (pluginList[i].name == plugin.name) {
@@ -145,7 +235,9 @@ abstract class _PluginsController with Store {
     if (!flag) {
       pluginList.add(plugin);
     }
-    savePlugins();
+    if (persist) {
+      savePlugins();
+    }
   }
 
   void onReorder(int oldIndex, int newIndex) {
@@ -226,13 +318,20 @@ abstract class _PluginsController with Store {
     return count;
   }
 
-  void removePlugins(Set<String> pluginNames) {
+  Future<void> removePlugins(
+    Set<String> pluginNames, {
+    bool persist = true,
+  }) async {
     for (int i = pluginList.length - 1; i >= 0; --i) {
       var name = pluginList[i].name;
       if (pluginNames.contains(name)) {
         pluginList.removeAt(i);
       }
     }
-    savePlugins();
+    disabledPluginNames.removeAll(pluginNames);
+    if (persist) {
+      await saveDisabledPluginNames();
+      await savePlugins();
+    }
   }
 }

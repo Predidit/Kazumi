@@ -19,6 +19,14 @@ class PluginViewPage extends StatefulWidget {
 class _PluginViewPageState extends State<PluginViewPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
+  static const WidgetStateProperty<Icon> _switchThumbIcon =
+      WidgetStateProperty<Icon>.fromMap(
+    <WidgetStatesConstraint, Icon>{
+      WidgetState.selected: Icon(Icons.check_rounded),
+      WidgetState.any: Icon(Icons.close_rounded),
+    },
+  );
+
   // 是否处于多选模式
   bool isMultiSelectMode = false;
 
@@ -136,6 +144,50 @@ class _PluginViewPageState extends State<PluginViewPage> {
     }
   }
 
+  Future<void> _setPluginEnabled(Plugin plugin, bool enabled) async {
+    await pluginsController.setPluginEnabled(plugin.name, enabled);
+    if (!mounted) return;
+    setState(() {});
+    KazumiDialog.showToast(
+        message: enabled ? '已启用 ${plugin.name}' : '已禁用 ${plugin.name}');
+  }
+
+  Future<void> _setSelectedPluginsEnabled(bool enabled) async {
+    if (selectedNames.isEmpty) return;
+    final names = Set<String>.of(selectedNames);
+    await pluginsController.setPluginsEnabled(names, enabled);
+    if (!mounted) return;
+    setState(() {
+      isMultiSelectMode = false;
+      selectedNames.clear();
+    });
+    KazumiDialog.showToast(
+        message:
+            enabled ? '已启用 ${names.length} 条规则' : '已禁用 ${names.length} 条规则');
+  }
+
+  Widget _statusBadge(
+    BuildContext context,
+    String text, {
+    required Color backgroundColor,
+    required Color foregroundColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          color: foregroundColor,
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -177,6 +229,20 @@ class _PluginViewPageState extends State<PluginViewPage> {
               IconButton(
                 onPressed: selectedNames.isEmpty
                     ? null
+                    : () => _setSelectedPluginsEnabled(true),
+                tooltip: '启用选中规则',
+                icon: const Icon(Icons.visibility_outlined),
+              ),
+              IconButton(
+                onPressed: selectedNames.isEmpty
+                    ? null
+                    : () => _setSelectedPluginsEnabled(false),
+                tooltip: '禁用选中规则',
+                icon: const Icon(Icons.visibility_off_outlined),
+              ),
+              IconButton(
+                onPressed: selectedNames.isEmpty
+                    ? null
                     : () {
                         KazumiDialog.show(
                           builder: (context) => AlertDialog(
@@ -195,9 +261,10 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                 ),
                               ),
                               TextButton(
-                                onPressed: () {
-                                  pluginsController
+                                onPressed: () async {
+                                  await pluginsController
                                       .removePlugins(selectedNames);
+                                  if (!mounted) return;
                                   setState(() {
                                     isMultiSelectMode = false;
                                     selectedNames.clear();
@@ -251,6 +318,10 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       itemCount: pluginsController.pluginList.length,
                       itemBuilder: (context, index) {
                         var plugin = pluginsController.pluginList[index];
+                        final theme = Theme.of(context);
+                        final colorScheme = theme.colorScheme;
+                        final isEnabled =
+                            pluginsController.isPluginEnabled(plugin.name);
                         bool canUpdate =
                             pluginsController.pluginUpdateStatus(plugin) ==
                                 'updatable';
@@ -289,66 +360,58 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                   .primaryContainer,
                               title: Text(
                                 plugin.name,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isEnabled
+                                      ? null
+                                      : colorScheme.onSurfaceVariant,
+                                ),
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
                                     children: [
                                       Text(
                                         'Version: ${plugin.version}',
-                                        style:
-                                            const TextStyle(color: Colors.grey),
+                                        style: TextStyle(
+                                          color: isEnabled
+                                              ? Colors.grey
+                                              : colorScheme.onSurfaceVariant,
+                                        ),
                                       ),
-                                      if (canUpdate) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .errorContainer,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            '可更新',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onErrorContainer,
-                                            ),
-                                          ),
+                                      if (canUpdate)
+                                        _statusBadge(
+                                          context,
+                                          '可更新',
+                                          backgroundColor:
+                                              colorScheme.errorContainer,
+                                          foregroundColor:
+                                              colorScheme.onErrorContainer,
                                         ),
-                                      ],
                                       if (pluginsController.validityTracker
-                                          .isSearchValid(plugin.name)) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .tertiaryContainer,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            '搜索有效',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onTertiaryContainer,
-                                            ),
-                                          ),
+                                          .isSearchValid(plugin.name))
+                                        _statusBadge(
+                                          context,
+                                          '搜索有效',
+                                          backgroundColor:
+                                              colorScheme.tertiaryContainer,
+                                          foregroundColor:
+                                              colorScheme.onTertiaryContainer,
                                         ),
-                                      ],
+                                      if (!isEnabled)
+                                        _statusBadge(
+                                          context,
+                                          '已禁用',
+                                          backgroundColor: colorScheme
+                                              .surfaceContainerHighest,
+                                          foregroundColor:
+                                              colorScheme.onSurfaceVariant,
+                                        ),
                                     ],
                                   ),
                                 ],
@@ -363,24 +426,38 @@ class _PluginViewPageState extends State<PluginViewPage> {
 
   Widget pluginCardTrailing(int index) {
     final plugin = pluginsController.pluginList[index];
+    final isEnabled = pluginsController.isPluginEnabled(plugin.name);
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      isMultiSelectMode
-          ? Checkbox(
-              value: selectedNames.contains(plugin.name),
-              onChanged: (bool? value) {
-                setState(() {
-                  if (value == true) {
-                    selectedNames.add(plugin.name);
-                  } else {
-                    selectedNames.remove(plugin.name);
-                    if (selectedNames.isEmpty) {
-                      isMultiSelectMode = false;
-                    }
-                  }
-                });
-              },
-            )
-          : popupMenuButton(index),
+      if (isMultiSelectMode)
+        Checkbox(
+          value: selectedNames.contains(plugin.name),
+          onChanged: (bool? value) {
+            setState(() {
+              if (value == true) {
+                selectedNames.add(plugin.name);
+              } else {
+                selectedNames.remove(plugin.name);
+                if (selectedNames.isEmpty) {
+                  isMultiSelectMode = false;
+                }
+              }
+            });
+          },
+        )
+      else ...[
+        popupMenuButton(index),
+        Tooltip(
+          message: isEnabled ? '禁用规则' : '启用规则',
+          child: Transform.scale(
+            scale: 0.85,
+            child: Switch(
+              thumbIcon: _switchThumbIcon,
+              value: isEnabled,
+              onChanged: (value) => _setPluginEnabled(plugin, value),
+            ),
+          ),
+        ),
+      ],
       ReorderableDragStartListener(
         index: index,
         child: const Icon(Icons.drag_handle), // 单独的拖拽按钮
@@ -390,6 +467,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
 
   Widget popupMenuButton(int index) {
     final plugin = pluginsController.pluginList[index];
+    final isEnabled = pluginsController.isPluginEnabled(plugin.name);
     return MenuAnchor(
       consumeOutsideTap: true,
       builder:
@@ -437,6 +515,26 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   Icon(Icons.update_rounded),
                   SizedBox(width: 8),
                   Text('更新'),
+                ],
+              ),
+            ),
+          ),
+        ),
+        MenuItemButton(
+          requestFocusOnHover: false,
+          onPressed: () => _setPluginEnabled(plugin, !isEnabled),
+          child: Container(
+            height: 48,
+            constraints: BoxConstraints(minWidth: 112),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  Icon(isEnabled
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined),
+                  SizedBox(width: 8),
+                  Text(isEnabled ? '禁用' : '启用'),
                 ],
               ),
             ),
@@ -538,9 +636,9 @@ class _PluginViewPageState extends State<PluginViewPage> {
         MenuItemButton(
           requestFocusOnHover: false,
           onPressed: () async {
-            setState(() {
-              pluginsController.removePlugin(plugin);
-            });
+            await pluginsController.removePlugin(plugin);
+            if (!mounted) return;
+            setState(() {});
           },
           child: Container(
             height: 48,

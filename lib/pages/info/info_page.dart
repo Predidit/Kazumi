@@ -48,7 +48,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
-  late TabController sourceTabController;
   late TabController infoTabController;
   late bool showRating;
 
@@ -202,6 +201,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
+    infoController.pluginSearchStatus.clear();
     videoPageController.resetEpisodeState();
     // Search results can miss rating distribution or summaries, so fill those
     // fields without replacing image URLs that are already rendered.
@@ -213,8 +213,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         enforceMinimumLoadingDuration: true,
       );
     }
-    sourceTabController =
-        TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
     _fabTabIndex = infoTabController.index;
     showRating = GStorage.getSetting(SettingsKeys.showRating);
@@ -287,10 +285,46 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
+    infoController.pluginSearchStatus.clear();
     videoPageController.resetEpisodeState();
-    sourceTabController.dispose();
     infoTabController.dispose();
     super.dispose();
+  }
+
+  void showSourceSheet() {
+    if (pluginsController.enabledPlugins.isEmpty) {
+      KazumiDialog.show(
+        builder: (context) => AlertDialog(
+          title: const Text('没有启用的视频源规则'),
+          content: const Text('请在规则管理中启用至少一条规则后再开始观看。'),
+          actions: [
+            TextButton(
+              onPressed: () => KazumiDialog.dismiss(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                KazumiDialog.dismiss();
+                Modular.to.pushNamed('/settings/plugin/');
+              },
+              child: const Text('管理规则'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    showAdaptiveBottomSheet<void>(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      showDragHandle: true,
+      context: context,
+      builder: (context) {
+        return SourceSheet(infoController: infoController);
+      },
+    );
   }
 
   Future<void> queryBangumiInfoByID(
@@ -491,19 +525,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 )
               : FloatingActionButton.extended(
                   tooltip: '开始观看',
-                  onPressed: () {
-                    showAdaptiveBottomSheet<void>(
-                      backgroundColor:
-                          Theme.of(context).scaffoldBackgroundColor,
-                      showDragHandle: true,
-                      context: context,
-                      builder: (context) {
-                        return SourceSheet(
-                            tabController: sourceTabController,
-                            infoController: infoController);
-                      },
-                    );
-                  },
+                  onPressed: showSourceSheet,
                   label: const Text('开始观看'),
                   icon: const Icon(Icons.play_arrow_rounded),
                 ),

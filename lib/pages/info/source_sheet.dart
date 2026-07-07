@@ -20,11 +20,9 @@ import 'package:kazumi/utils/device.dart';
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
     super.key,
-    required this.tabController,
     required this.infoController,
   });
 
-  final TabController tabController;
   final InfoController infoController;
 
   @override
@@ -38,6 +36,8 @@ class _SourceSheetState extends State<SourceSheet>
   final CollectController collectController = Modular.get<CollectController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   late String keyword;
+  late final List<Plugin> _plugins;
+  late final TabController _tabController;
 
   /// Concurrent plugin search service.
   PluginSearchService? pluginSearchService;
@@ -53,8 +53,10 @@ class _SourceSheetState extends State<SourceSheet>
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
-    pluginSearchService =
-        PluginSearchService(infoController: widget.infoController);
+    _plugins = List<Plugin>.of(pluginsController.enabledPlugins);
+    _tabController = TabController(length: _plugins.length, vsync: this);
+    pluginSearchService = PluginSearchService(
+        infoController: widget.infoController, plugins: _plugins);
     pluginSearchService?.queryAllSource(keyword);
     super.initState();
   }
@@ -67,6 +69,7 @@ class _SourceSheetState extends State<SourceSheet>
     _captchaVerificationService = null;
     _captchaVerifyTimer?.cancel();
     _captchaVerifyTimer = null;
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -475,145 +478,146 @@ class _SourceSheetState extends State<SourceSheet>
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        body: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TabBar(
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.center,
-                    dividerHeight: 0,
-                    controller: widget.tabController,
-                    tabs: pluginsController.pluginList
-                        .map(
-                          (plugin) => Observer(
-                            builder: (context) {
-                              return Tab(
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      plugin.name,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          fontSize: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium!
-                                              .fontSize,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface),
+    if (_plugins.isEmpty) {
+      return const Center(
+        child: Text('没有启用的视频源规则'),
+      );
+    }
+
+    return Scaffold(
+      body: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.center,
+                  dividerHeight: 0,
+                  controller: _tabController,
+                  tabs: _plugins
+                      .map(
+                        (plugin) => Observer(
+                          builder: (context) {
+                            return Tab(
+                              child: Row(
+                                children: [
+                                  Text(
+                                    plugin.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium!
+                                            .fontSize,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface),
+                                  ),
+                                  const SizedBox(width: 5.0),
+                                  Container(
+                                    width: 8.0,
+                                    height: 8.0,
+                                    decoration: BoxDecoration(
+                                      color: switch (widget.infoController
+                                          .pluginSearchStatus[plugin.name]) {
+                                        'success' => Colors.green,
+                                        'noResult' => Colors.orange,
+                                        'captcha' => Colors.blue,
+                                        'error' => Colors.red,
+                                        _ => Colors.grey,
+                                      },
+                                      shape: BoxShape.circle,
                                     ),
-                                    const SizedBox(width: 5.0),
-                                    Container(
-                                      width: 8.0,
-                                      height: 8.0,
-                                      decoration: BoxDecoration(
-                                        color: switch (widget.infoController
-                                            .pluginSearchStatus[plugin.name]) {
-                                          'success' => Colors.green,
-                                          'noResult' => Colors.orange,
-                                          'captcha' => Colors.blue,
-                                          'error' => Colors.red,
-                                          _ => Colors.grey,
-                                        },
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    int currentIndex = widget.tabController.index;
-                    final currentPlugin =
-                        pluginsController.pluginList[currentIndex];
-                    final targetUrl = currentPlugin.usesApiSearch
-                        ? currentPlugin.baseUrl
-                        : currentPlugin.searchURL.replaceFirst(
-                            '@keyword',
-                            Uri.encodeQueryComponent(keyword),
-                          );
-                    launchUrl(
-                      Uri.parse(targetUrl),
-                      mode: LaunchMode.externalApplication,
-                    );
-                  },
-                  icon: const Icon(Icons.open_in_browser_rounded),
-                ),
-                const SizedBox(width: 4),
-              ],
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: Observer(
-                builder: (context) => TabBarView(
-                  controller: widget.tabController,
-                  children: List.generate(pluginsController.pluginList.length,
-                      (pluginIndex) {
-                    var plugin = pluginsController.pluginList[pluginIndex];
-                    var cardList = <Widget>[];
-                    for (var searchResponse
-                        in widget.infoController.pluginSearchResponseList) {
-                      if (searchResponse.pluginName == plugin.name) {
-                        for (var searchItem in searchResponse.data) {
-                          cardList.add(
-                            Card(
-                              elevation: 0,
-                              margin: const EdgeInsets.only(
-                                  left: 10, right: 10, top: 10),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () async {
-                                  KazumiDialog.showLoading(
-                                    msg: '获取中',
-                                    barrierDismissible: isDesktop(),
-                                    onDismiss: () {
-                                      videoPageController.cancelQueryRoads();
-                                    },
-                                  );
-                                  videoPageController.bangumiItem =
-                                      widget.infoController.bangumiItem;
-                                  videoPageController.currentPlugin = plugin;
-                                  videoPageController.title = searchItem.name;
-                                  videoPageController.src = searchItem.src;
-                                  try {
-                                    await videoPageController.queryRoads(
-                                        searchItem.src, plugin.name);
-                                    KazumiDialog.dismiss();
-                                    Modular.to.pushNamed('/video/');
-                                  } catch (_) {
-                                    KazumiLogger().w(
-                                        "PluginSearchService: failed to query video playlist");
-                                    KazumiDialog.dismiss();
-                                  }
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20),
-                                  child: Text(searchItem.name),
-                                ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          );
-                        }
-                      }
-                    }
-                    return buildPluginView(plugin, cardList);
-                  }),
+                            );
+                          },
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
-            )
-          ],
-        ),
+              IconButton(
+                onPressed: () {
+                  int currentIndex = _tabController.index;
+                  final currentPlugin = _plugins[currentIndex];
+                  final targetUrl = currentPlugin.usesApiSearch
+                      ? currentPlugin.baseUrl
+                      : currentPlugin.searchURL.replaceFirst(
+                          '@keyword',
+                          Uri.encodeQueryComponent(keyword),
+                        );
+                  launchUrl(
+                    Uri.parse(targetUrl),
+                    mode: LaunchMode.externalApplication,
+                  );
+                },
+                icon: const Icon(Icons.open_in_browser_rounded),
+              ),
+              const SizedBox(width: 4),
+            ],
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: Observer(
+              builder: (context) => TabBarView(
+                controller: _tabController,
+                children: List.generate(_plugins.length, (pluginIndex) {
+                  var plugin = _plugins[pluginIndex];
+                  var cardList = <Widget>[];
+                  for (var searchResponse
+                      in widget.infoController.pluginSearchResponseList) {
+                    if (searchResponse.pluginName == plugin.name) {
+                      for (var searchItem in searchResponse.data) {
+                        cardList.add(
+                          Card(
+                            elevation: 0,
+                            margin: const EdgeInsets.only(
+                                left: 10, right: 10, top: 10),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () async {
+                                KazumiDialog.showLoading(
+                                  msg: '获取中',
+                                  barrierDismissible: isDesktop(),
+                                  onDismiss: () {
+                                    videoPageController.cancelQueryRoads();
+                                  },
+                                );
+                                videoPageController.bangumiItem =
+                                    widget.infoController.bangumiItem;
+                                videoPageController.currentPlugin = plugin;
+                                videoPageController.title = searchItem.name;
+                                videoPageController.src = searchItem.src;
+                                try {
+                                  await videoPageController.queryRoads(
+                                      searchItem.src, plugin.name);
+                                  KazumiDialog.dismiss();
+                                  Modular.to.pushNamed('/video/');
+                                } catch (_) {
+                                  KazumiLogger().w(
+                                      "PluginSearchService: failed to query video playlist");
+                                  KazumiDialog.dismiss();
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Text(searchItem.name),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                  return buildPluginView(plugin, cardList);
+                }),
+              ),
+            ),
+          )
+        ],
       ),
     );
   }

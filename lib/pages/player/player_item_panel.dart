@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -72,11 +73,11 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() handleDanmaku;
   final void Function(String direction) handlePreNextEpisode;
   final void Function() skipOP;
-  final void Function(String) sendDanmaku;
+  final bool Function(String) sendDanmaku;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
-  final void Function(String) showDanmakuDestinationPickerAndSend;
+  final Future<bool> Function(String) showDanmakuDestinationPickerAndSend;
   final VoidCallback pauseForTimedShutdown;
   final bool disableAnimations;
 
@@ -125,6 +126,19 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     _danmakuTextFieldHold = null;
   }
 
+  Future<void> _submitDanmakuText(String message) async {
+    textFieldFocus.unfocus();
+    _releaseDanmakuTextFieldPanel();
+
+    final sent = await widget.showDanmakuDestinationPickerAndSend(message);
+    if (!mounted) {
+      return;
+    }
+    if (sent) {
+      textController.clear();
+    }
+  }
+
   Widget get danmakuTextField {
     return Observer(builder: (context) {
       return Container(
@@ -161,10 +175,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               children: [
                 TextButton(
                   onPressed: () {
-                    textFieldFocus.unfocus();
-                    widget.showDanmakuDestinationPickerAndSend(
-                        textController.text);
-                    textController.clear();
+                    unawaited(_submitDanmakuText(textController.text));
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: playerController.danmaku.danmakuOn
@@ -187,10 +198,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             _holdDanmakuTextFieldPanel();
           },
           onSubmitted: (msg) {
-            textFieldFocus.unfocus();
-            widget.showDanmakuDestinationPickerAndSend(msg);
-            _releaseDanmakuTextFieldPanel();
-            textController.clear();
+            unawaited(_submitDanmakuText(msg));
           },
           onTapOutside: (_) {
             _releaseDanmakuTextFieldPanel();

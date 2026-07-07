@@ -62,10 +62,10 @@ class PlayerItem extends StatefulWidget {
   final Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
-  final void Function(String) sendDanmaku;
+  final bool Function(String) sendDanmaku;
   final FocusNode keyboardFocus;
   final bool disableAnimations;
-  final void Function(String) showDanmakuDestinationPickerAndSend;
+  final Future<bool> Function(String) showDanmakuDestinationPickerAndSend;
   final VoidCallback pauseForTimedShutdown;
 
   @override

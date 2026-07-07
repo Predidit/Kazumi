@@ -22,9 +22,7 @@ class PluginSearchService {
     infoController.pluginSearchResponseList.removeWhere(
       (response) => response.pluginName == pluginName,
     );
-    if (infoController.pluginSearchStatus.containsKey(pluginName)) {
-      infoController.pluginSearchStatus[pluginName] = 'pending';
-    }
+    infoController.pluginSearchStatus[pluginName] = 'pending';
     for (final plugin in _queryPlugins) {
       if (plugin.name == pluginName) {
         await _queryPlugin(plugin, keyword);

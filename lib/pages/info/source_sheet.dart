@@ -36,7 +36,7 @@ class _SourceSheetState extends State<SourceSheet>
   final PluginsController pluginsController = inject<PluginsController>();
   late String keyword;
   late final List<Plugin> _plugins;
-  late final TabController _tabController;
+  TabController? _tabController;
 
   /// Concurrent plugin search service.
   PluginSearchService? pluginSearchService;
@@ -49,10 +49,14 @@ class _SourceSheetState extends State<SourceSheet>
 
   @override
   void initState() {
+    super.initState();
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
     _plugins = List<Plugin>.of(pluginsController.enabledPlugins);
+    if (_plugins.isEmpty) {
+      return;
+    }
     _tabController = TabController(length: _plugins.length, vsync: this);
     pluginSearchService = PluginSearchService(
       infoController: widget.infoController,
@@ -60,7 +64,6 @@ class _SourceSheetState extends State<SourceSheet>
       plugins: _plugins,
     );
     pluginSearchService?.queryAllSource(keyword);
-    super.initState();
   }
 
   @override
@@ -71,7 +74,7 @@ class _SourceSheetState extends State<SourceSheet>
     _captchaVerificationService = null;
     _captchaVerifyTimer?.cancel();
     _captchaVerifyTimer = null;
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -480,7 +483,8 @@ class _SourceSheetState extends State<SourceSheet>
 
   @override
   Widget build(BuildContext context) {
-    if (_plugins.isEmpty) {
+    final tabController = _tabController;
+    if (_plugins.isEmpty || tabController == null) {
       return const Center(
         child: Text('没有启用的视频源规则'),
       );
@@ -496,7 +500,7 @@ class _SourceSheetState extends State<SourceSheet>
                   isScrollable: true,
                   tabAlignment: TabAlignment.center,
                   dividerHeight: 0,
-                  controller: _tabController,
+                  controller: tabController,
                   tabs: _plugins
                       .map(
                         (plugin) => Observer(
@@ -543,7 +547,7 @@ class _SourceSheetState extends State<SourceSheet>
               ),
               IconButton(
                 onPressed: () {
-                  int currentIndex = _tabController.index;
+                  int currentIndex = tabController.index;
                   final currentPlugin = _plugins[currentIndex];
                   final targetUrl = currentPlugin.usesApiSearch
                       ? currentPlugin.baseUrl
@@ -565,7 +569,7 @@ class _SourceSheetState extends State<SourceSheet>
           Expanded(
             child: Observer(
               builder: (context) => TabBarView(
-                controller: _tabController,
+                controller: tabController,
                 children: List.generate(_plugins.length, (pluginIndex) {
                   var plugin = _plugins[pluginIndex];
                   var cardList = <Widget>[];

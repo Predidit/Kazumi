@@ -37,7 +37,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
-  flutter_modular: ^6.3.4
+  flutter_modular: ^7.1.0
   mobx: ^2.6.0
   flutter_mobx: ^2.3.0
   dio: ^5.0.0
@@ -70,7 +70,6 @@ dependencies:
       ref: 8ad650c6eb487208b9861d44755c8e58db061c88
   audio_session: ^0.2.2
   dynamic_color: ^1.8.1
-  provider: ^6.1.2
   flutter_displaymode: ^0.6.0
 
   url_launcher: ^6.3.0
@@ -165,6 +164,8 @@ dependency_overrides:
       path: ./libs/ohos/media_kit_libs_ohos
 
 dev_dependencies:
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
   flutter_test:
     sdk: flutter
 

@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
@@ -71,11 +73,11 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() handleDanmaku;
   final void Function(String direction) handlePreNextEpisode;
   final void Function() skipOP;
-  final void Function(String) sendDanmaku;
+  final bool Function(String) sendDanmaku;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
-  final void Function(String) showDanmakuDestinationPickerAndSend;
+  final Future<bool> Function(String) showDanmakuDestinationPickerAndSend;
   final VoidCallback pauseForTimedShutdown;
   final bool disableAnimations;
 
@@ -88,14 +90,13 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
+  final VideoPageController videoPageController = inject<VideoPageController>();
   late final PlayerController playerController;
-  final DownloadController downloadController =
-      Modular.get<DownloadController>();
+  final DownloadController downloadController = inject<DownloadController>();
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
   PlayerPanelHold? _danmakuTextFieldHold;
+
   // SVG Caches
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
@@ -123,6 +124,19 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   void _releaseDanmakuTextFieldPanel() {
     _danmakuTextFieldHold?.release();
     _danmakuTextFieldHold = null;
+  }
+
+  Future<void> _submitDanmakuText(String message) async {
+    textFieldFocus.unfocus();
+    _releaseDanmakuTextFieldPanel();
+
+    final sent = await widget.showDanmakuDestinationPickerAndSend(message);
+    if (!mounted) {
+      return;
+    }
+    if (sent) {
+      textController.clear();
+    }
   }
 
   Widget get danmakuTextField {
@@ -161,10 +175,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               children: [
                 TextButton(
                   onPressed: () {
-                    textFieldFocus.unfocus();
-                    widget.showDanmakuDestinationPickerAndSend(
-                        textController.text);
-                    textController.clear();
+                    unawaited(_submitDanmakuText(textController.text));
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: playerController.danmaku.danmakuOn
@@ -187,10 +198,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             _holdDanmakuTextFieldPanel();
           },
           onSubmitted: (msg) {
-            textFieldFocus.unfocus();
-            widget.showDanmakuDestinationPickerAndSend(msg);
-            _releaseDanmakuTextFieldPanel();
-            textController.clear();
+            unawaited(_submitDanmakuText(msg));
           },
           onTapOutside: (_) {
             _releaseDanmakuTextFieldPanel();
@@ -660,14 +668,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               child: Row(
                 children: [
                   IconButton(
-                    color: Colors.white,
-                    icon: Icon(playerController.playback.playing
-                        ? Icons.pause_rounded
-                        : Icons.play_arrow_rounded),
                     tooltip: playerController.playback.playing ? '暂停' : '播放',
-                    onPressed: () {
-                      playerController.playOrPause();
-                    },
+                    onPressed: () => playerController.playOrPause(),
+                    icon: PlayPauseIcon(
+                      iconColor: Colors.white,
+                      playing: playerController.playback.playing,
+                    ),
                   ),
                   // 更换选集
                   if (videoPageController.isFullscreen ||

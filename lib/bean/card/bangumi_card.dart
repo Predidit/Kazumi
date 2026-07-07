@@ -33,7 +33,7 @@ class BangumiCardV extends StatelessWidget {
               );
               return;
             }
-            Modular.to.pushNamed('/info/', arguments: bangumiItem);
+            context.pushNamed('/info/', arguments: bangumiItem);
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

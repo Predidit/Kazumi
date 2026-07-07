@@ -14,7 +14,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/utils/device.dart';
 
 class AboutPage extends StatefulWidget {
-  const AboutPage({super.key});
+  const AboutPage({
+    super.key,
+    required this.controller,
+  });
+
+  final MyController controller;
 
   @override
   State<AboutPage> createState() => _AboutPageState();
@@ -28,7 +33,7 @@ class _AboutPageState extends State<AboutPage> {
   late int exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
   late bool autoUpdate;
   double _cacheSizeMB = -1;
-  final MyController myController = Modular.get<MyController>();
+  MyController get myController => widget.controller;
   final MenuController menuController = MenuController();
 
   @override
@@ -143,7 +148,7 @@ class _AboutPageState extends State<AboutPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/about/license');
+                    context.pushNamed('/settings/about/license');
                   },
                   title:
                       Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
@@ -279,7 +284,7 @@ class _AboutPageState extends State<AboutPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/about/logs');
+                    context.pushNamed('/settings/about/logs');
                   },
                   title: Text('错误日志', style: TextStyle(fontFamily: fontFamily)),
                 ),

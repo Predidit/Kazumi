@@ -12,10 +12,11 @@ import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/webview_feature_service.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/navigation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,12 +88,15 @@ void main() async {
   }
   ProxyManager.applyProxy();
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
-      child: ModularApp(
-        module: AppModule(),
-        child: const AppWidget(),
-      ),
+    ModularApp(
+      module: appModule,
+      navigatorKey: rootNavigatorKey,
+      navigatorObservers: [KazumiDialog.observer],
+      defaultTransition: TransitionType.material,
+      provide: (scoped) {
+        scoped.addChangeNotifier<ThemeProvider>(ThemeProvider.new);
+      },
+      child: const AppWidget(),
     ),
   );
 }

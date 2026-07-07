@@ -69,12 +69,10 @@ class BangumiHistoryCardV extends StatefulWidget {
 }
 
 class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
-  final PluginsController pluginsController = Modular.get<PluginsController>();
-  final CollectController collectController = Modular.get<CollectController>();
-  final DownloadController downloadController =
-      Modular.get<DownloadController>();
+  final VideoPageController videoPageController = inject<VideoPageController>();
+  final PluginsController pluginsController = inject<PluginsController>();
+  final CollectController collectController = inject<CollectController>();
+  final DownloadController downloadController = inject<DownloadController>();
 
   Future<void> _onTap() async {
     if (widget.showDelete) {
@@ -94,8 +92,9 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       openOfflinePlayback: _openOfflinePlayback,
     );
     KazumiDialog.dismiss();
+    if (!mounted) return;
     if (result.opened) {
-      Modular.to.pushNamed('/video/');
+      context.pushNamed('/video/');
       return;
     }
     KazumiDialog.showToast(message: result.failureMessage ?? '未找到可用播放入口');
@@ -351,7 +350,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                         ),
                         tooltip: '番剧详情',
                         onPressed: () {
-                          Modular.to.pushNamed(
+                          context.pushNamed(
                             '/info/',
                             arguments: widget.historyItem.bangumiItem,
                           );

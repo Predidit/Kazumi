@@ -1,4 +1,3 @@
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -7,11 +6,12 @@ import 'package:kazumi/services/logging/logger.dart';
 class PluginSearchService {
   PluginSearchService({
     required this.infoController,
+    required this.pluginsController,
     List<Plugin>? plugins,
   }) : _plugins = plugins == null ? null : List.unmodifiable(plugins);
 
   final InfoController infoController;
-  final PluginsController pluginsController = Modular.get<PluginsController>();
+  final PluginsController pluginsController;
   final List<Plugin>? _plugins;
   bool _isCancelled = false;
 

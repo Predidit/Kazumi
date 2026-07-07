@@ -41,7 +41,7 @@ class _CollectButtonState extends State<CollectButton> {
   // 4. 看过
   // 5. 抛弃
   late int collectType;
-  final CollectController collectController = Modular.get<CollectController>();
+  final CollectController collectController = inject<CollectController>();
 
   @override
   void initState() {

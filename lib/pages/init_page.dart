@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -10,36 +11,44 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:provider/provider.dart';
-import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/services/download/background_download_service.dart';
 import 'package:kazumi/services/platform/windows_shortcut.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
+import 'package:kazumi/navigation.dart';
 
 class InitPage extends StatefulWidget {
-  const InitPage({super.key});
+  const InitPage({
+    super.key,
+    required this.pluginsController,
+    required this.collectController,
+    required this.shaderAssetService,
+    required this.myController,
+    required this.downloadController,
+  });
+
+  final PluginsController pluginsController;
+  final CollectController collectController;
+  final ShaderAssetService shaderAssetService;
+  final MyController myController;
+  final DownloadController downloadController;
 
   @override
   State<InitPage> createState() => _InitPageState();
 }
 
 class _InitPageState extends State<InitPage> {
-  final PluginsController pluginsController = Modular.get<PluginsController>();
-  final CollectController collectController = Modular.get<CollectController>();
-  final ShaderAssetService shaderAssetService =
-      Modular.get<ShaderAssetService>();
-  final MyController myController = Modular.get<MyController>();
-  final DownloadController downloadController =
-      Modular.get<DownloadController>();
-  late final ThemeProvider themeProvider;
+  PluginsController get pluginsController => widget.pluginsController;
+  CollectController get collectController => widget.collectController;
+  ShaderAssetService get shaderAssetService => widget.shaderAssetService;
+  MyController get myController => widget.myController;
+  DownloadController get downloadController => widget.downloadController;
 
   @override
   void initState() {
     super.initState();
-    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    _initializeApp();
+    unawaited(_initializeApp());
   }
 
   Future<void> _initializeApp() async {
@@ -59,9 +68,15 @@ class _InitPageState extends State<InitPage> {
     await _pluginInit();
     await _showShortcutDialog();
 
+    if (!mounted) {
+      return;
+    }
     _startDefaultPage();
     // delay to ensure that the default page is fully loaded
     await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) {
+      return;
+    }
     _update();
   }
 
@@ -71,8 +86,11 @@ class _InitPageState extends State<InitPage> {
     backgroundService.onNavigateToDownloadRequested = () {
       Future.delayed(const Duration(milliseconds: 300), () {
         try {
-          if (Modular.to.path.contains('/download')) return;
-          Modular.to.pushNamed('/settings/download/');
+          final navigationContext = rootNavigatorKey.currentContext;
+          if (navigationContext == null || !navigationContext.mounted) return;
+          final path = navigationContext.routeState(listen: false).uri.path;
+          if (path.contains('/download')) return;
+          navigationContext.pushNamed('/settings/download/');
         } catch (e) {
           KazumiLogger()
               .w('InitPage: failed to navigate to download page', error: e);
@@ -114,10 +132,10 @@ class _InitPageState extends State<InitPage> {
   void _startDefaultPage() {
     final defaultStartupPage =
         GStorage.getSetting(SettingsKeys.defaultStartupPage);
-    // Workaround for dynamic_color. dynamic_color need PlatformChannel to get color, it takes time.
-    // setDynamic here to avoid white screen flash when themeMode is dark.
-    themeProvider.setDynamic(GStorage.getSetting(SettingsKeys.useDynamicColor));
-    Modular.to.navigate(defaultStartupPage);
+    if (!mounted) {
+      return;
+    }
+    context.navigate(defaultStartupPage);
   }
 
   // migrate collect from old version (favorites)
@@ -367,7 +385,7 @@ class _InitPageState extends State<InitPage> {
   Future<void> _update() async {
     bool autoUpdate = await GStorage.getSetting(SettingsKeys.autoUpdate);
     if (autoUpdate) {
-      Modular.get<MyController>().checkUpdate(type: 'auto');
+      myController.checkUpdate(type: 'auto');
     }
   }
 

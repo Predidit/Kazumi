@@ -11,44 +11,41 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
 
 class PopularPage extends StatefulWidget {
-  const PopularPage({super.key});
+  const PopularPage({
+    super.key,
+    required this.controller,
+  });
+
+  final PopularController controller;
 
   @override
   State<PopularPage> createState() => _PopularPageState();
 }
 
-class _PopularPageState extends State<PopularPage>
-    with AutomaticKeepAliveClientMixin {
+class _PopularPageState extends State<PopularPage> {
   DateTime? _lastPressedAt;
-  late NavigationBarState navigationBarState;
   final FocusNode _focusNode = FocusNode();
-  final ScrollController scrollController = ScrollController();
-  final PopularController popularController = Modular.get<PopularController>();
+  late final ScrollController scrollController;
+  PopularController get popularController => widget.controller;
 
   // Key used to position the dropdown menu for the tag selector
   final GlobalKey selectorKey = GlobalKey();
 
   @override
-  bool get wantKeepAlive => true;
-
-  @override
   void initState() {
     super.initState();
+    scrollController = ScrollController(
+      initialScrollOffset: popularController.scrollOffset,
+    );
     scrollController.addListener(scrollListener);
     if (popularController.trendList.isEmpty) {
       popularController.queryBangumiByTrend();
     }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
   }
 
   @override
@@ -95,7 +92,6 @@ class _PopularPageState extends State<PopularPage>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -268,14 +264,14 @@ class _PopularPageState extends State<PopularPage>
       if (MediaQuery.of(context).orientation == Orientation.portrait)
         IconButton(
           tooltip: '搜索',
-          onPressed: () => Modular.to.pushNamed('/search/'),
+          onPressed: () => context.pushNamed('/search/'),
           icon: const Icon(Icons.search),
         ),
     ];
     actions.add(
       IconButton(
         tooltip: '历史记录',
-        onPressed: () => Modular.to.pushNamed('/settings/history/'),
+        onPressed: () => context.pushNamed('/settings/history/'),
         icon: const Icon(Icons.history),
       ),
     );

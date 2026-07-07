@@ -1,12 +1,11 @@
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/core_module.dart';
 import 'package:kazumi/pages/index_module.dart';
 
-class AppModule extends Module {
-  @override
-  void binds(i) {}
-
-  @override
-  void routes(r) {
-    r.module("/", module: IndexModule());
-  }
-}
+final appModule = createModule(
+  register: (c) {
+    c
+      ..module(coreModule)
+      ..module(indexModule);
+  },
+);

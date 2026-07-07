@@ -1,4 +1,3 @@
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/history_repository.dart';
@@ -9,7 +8,9 @@ part 'history_controller.g.dart';
 class HistoryController = _HistoryController with _$HistoryController;
 
 abstract class _HistoryController with Store {
-  final _historyRepository = Modular.get<IHistoryRepository>();
+  _HistoryController(this._historyRepository);
+
+  final IHistoryRepository _historyRepository;
 
   @observable
   ObservableList<History> histories = ObservableList<History>();

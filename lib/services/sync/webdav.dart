@@ -7,6 +7,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/services/sync/history_sync_service.dart';
+import 'package:kazumi/services/sync/webdav_remote_file_commit.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:kazumi/utils/async_single_flight.dart';
 
@@ -28,6 +29,8 @@ class WebDav {
   final AsyncSingleFlight<void> _historySyncSingleFlight =
       AsyncSingleFlight<void>();
   final AsyncSerialQueue _webDavOperationQueue = AsyncSerialQueue();
+  final WebDavRemoteFileCommitter _remoteFileCommitter =
+      const WebDavRemoteFileCommitter();
 
   bool get isHistorySyncing => _historySyncSingleFlight.isRunning;
 
@@ -42,7 +45,6 @@ class WebDav {
     webDavUsername = GStorage.getSetting(SettingsKeys.webDavUsername);
     webDavPassword = GStorage.getSetting(SettingsKeys.webDavPassword);
     if (webDavURL.isEmpty) {
-      //KazumiLogger().log(Level.warning, 'WebDAV URL is not set');
       throw Exception('请先填写WebDAV URL');
     }
     client = webdav.newClient(
@@ -75,16 +77,11 @@ class WebDav {
     final tempFilePath = '${webDavLocalTempDirectory.path}/$boxName.tmp';
     final webDavPath = '$_syncRootPath/$boxName.tmp';
     await File(localFilePath).copy(tempFilePath);
-    try {
-      await client.remove('$webDavPath.cache');
-    } catch (_) {}
-    await client.writeFromFile(tempFilePath, '$webDavPath.cache');
-    try {
-      await client.remove(webDavPath);
-    } catch (_) {
-      KazumiLogger().w('WebDav: former backup file not exist');
-    }
-    await client.rename('$webDavPath.cache', webDavPath, true);
+    await _publishRemoteFile(
+      sourceFilePath: tempFilePath,
+      destinationPath: webDavPath,
+      temporaryPath: '$webDavPath.cache',
+    );
     try {
       await File(tempFilePath).delete();
     } catch (_) {}
@@ -424,7 +421,7 @@ class WebDav {
     required String deviceId,
   }) {
     return _publishRemoteFile(
-      sourceFile: snapshotFile,
+      sourceFilePath: snapshotFile.path,
       destinationPath: _historySnapshotPath,
       temporaryPath: '$_historySnapshotPath.$deviceId.cache',
     );
@@ -436,29 +433,28 @@ class WebDav {
   }) {
     final destinationPath = '$_historyChangesPath/$deviceId.jsonl';
     return _publishRemoteFile(
-      sourceFile: sourceFile,
+      sourceFilePath: sourceFile.path,
       destinationPath: destinationPath,
       temporaryPath: '$destinationPath.cache',
     );
   }
 
   Future<void> _publishRemoteFile({
-    required File sourceFile,
+    required String sourceFilePath,
     required String destinationPath,
     required String temporaryPath,
   }) async {
-    try {
-      await client.remove(temporaryPath);
-    } catch (_) {}
-    try {
-      await client.writeFromFile(sourceFile.path, temporaryPath);
-      await client.rename(temporaryPath, destinationPath, true);
-    } catch (_) {
-      try {
-        await client.remove(temporaryPath);
-      } catch (_) {}
-      rethrow;
-    }
+    await _remoteFileCommitter.replaceFile(
+      sourceFilePath: sourceFilePath,
+      temporaryPath: temporaryPath,
+      destinationPath: destinationPath,
+      remove: (path) => client.remove(path),
+      uploadFromFile: (sourceFilePath, remotePath) =>
+          client.writeFromFile(sourceFilePath, remotePath),
+      rename: (sourcePath, targetPath) =>
+          client.rename(sourcePath, targetPath, true),
+      exists: _remoteEntryExists,
+    );
   }
 
   Future<void> _removeDeviceHistoryChanges(String deviceId) async {

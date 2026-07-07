@@ -31,10 +31,9 @@ class SourceSheet extends StatefulWidget {
 
 class _SourceSheetState extends State<SourceSheet>
     with SingleTickerProviderStateMixin {
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
-  final CollectController collectController = Modular.get<CollectController>();
-  final PluginsController pluginsController = Modular.get<PluginsController>();
+  final VideoPageController videoPageController = inject<VideoPageController>();
+  final CollectController collectController = inject<CollectController>();
+  final PluginsController pluginsController = inject<PluginsController>();
   late String keyword;
   late final List<Plugin> _plugins;
   late final TabController _tabController;
@@ -56,7 +55,10 @@ class _SourceSheetState extends State<SourceSheet>
     _plugins = List<Plugin>.of(pluginsController.enabledPlugins);
     _tabController = TabController(length: _plugins.length, vsync: this);
     pluginSearchService = PluginSearchService(
-        infoController: widget.infoController, plugins: _plugins);
+      infoController: widget.infoController,
+      pluginsController: pluginsController,
+      plugins: _plugins,
+    );
     pluginSearchService?.queryAllSource(keyword);
     super.initState();
   }
@@ -595,7 +597,8 @@ class _SourceSheetState extends State<SourceSheet>
                                   await videoPageController.queryRoads(
                                       searchItem.src, plugin.name);
                                   KazumiDialog.dismiss();
-                                  Modular.to.pushNamed('/video/');
+                                  if (!mounted) return;
+                                  this.context.pushNamed('/video/');
                                 } catch (_) {
                                   KazumiLogger().w(
                                       "PluginSearchService: failed to query video playlist");

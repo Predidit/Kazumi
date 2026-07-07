@@ -62,10 +62,10 @@ class PlayerItem extends StatefulWidget {
   final Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
-  final void Function(String) sendDanmaku;
+  final bool Function(String) sendDanmaku;
   final FocusNode keyboardFocus;
   final bool disableAnimations;
-  final void Function(String) showDanmakuDestinationPickerAndSend;
+  final Future<bool> Function(String) showDanmakuDestinationPickerAndSend;
   final VoidCallback pauseForTimedShutdown;
 
   @override
@@ -75,12 +75,11 @@ class PlayerItem extends StatefulWidget {
 class _PlayerItemState extends State<PlayerItem>
     with WindowListener, WidgetsBindingObserver, TickerProviderStateMixin {
   late final PlayerController playerController;
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
-  final HistoryController historyController = Modular.get<HistoryController>();
-  final CollectController collectController = Modular.get<CollectController>();
-  final MyController myController = Modular.get<MyController>();
-  final AudioController _audioController = AudioController();
+  final VideoPageController videoPageController = inject<VideoPageController>();
+  final HistoryController historyController = inject<HistoryController>();
+  final CollectController collectController = inject<CollectController>();
+  final MyController myController = inject<MyController>();
+  AudioController get _audioController => playerController.audioController;
   late Map<String, List<String>> keyboardShortcuts;
   late List<String> keyboardActionsNeedLongPress;
   late Map<String, void Function()> keyboardActions;
@@ -1766,8 +1765,6 @@ class _PlayerItemState extends State<PlayerItem>
       PipUtils.disposePipHandler();
     }
     playerController.panel.reset();
-    unawaited(_audioController.deactivate());
-    _audioController.clearCallbacks();
     super.dispose();
   }
 

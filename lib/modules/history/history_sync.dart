@@ -688,11 +688,7 @@ class HistorySyncStreamMerger {
     switch (event.op) {
       case HistorySyncOp.upsertProgress:
         final entityKey = _upsertEntityKey(event);
-        final episode = event.episode;
-        final progressKey = episode == null
-            ? 'invalid-progress:${event.eventId}'
-            : '$entityKey:$episode';
-        _keepLatest(_progressEvents, progressKey, event);
+        _keepLatest(_progressEvents, '$entityKey:${event.episode!}', event);
         if (_carriesLegacyWatchState(event)) {
           _keepLatest(_watchStateEvents, entityKey, event);
         }
@@ -755,15 +751,12 @@ class HistorySyncStreamMerger {
     }
   }
 
+  /// Callers must run [_validate] first: upsert events always carry
+  /// [HistorySyncEvent.adapterName] and [HistorySyncEvent.bangumiItem].
   String _upsertEntityKey(HistorySyncEvent event) {
-    final bangumiItem = event.bangumiItem;
-    final adapterName = event.adapterName;
-    if (bangumiItem == null || adapterName == null) {
-      return event.entityKey ?? 'invalid-upsert:${event.eventId}';
-    }
     return History.scopedKey(
-      adapterName,
-      bangumiItem,
+      event.adapterName!,
+      event.bangumiItem!,
       HistoryEntryKind.normalize(
         event.entryKind ?? HistoryEntryKind.online,
       ),

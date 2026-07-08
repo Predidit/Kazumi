@@ -270,6 +270,10 @@ class HistorySyncService {
     });
   }
 
+  /// Copies the active log for upload, dropping lines other devices could
+  /// not merge. When malformed lines are found the active log itself is
+  /// rewritten from the sanitized copy so the damage does not resurface on
+  /// every following sync. Returns null when nothing valid is left to upload.
   Future<File?> copyActiveLogForUpload(Directory runDirectory) {
     return _localLogQueue.run(() async {
       final activeFile = await localChangeLogFile();
@@ -280,9 +284,43 @@ class HistorySyncService {
         '${runDirectory.path}${Platform.pathSeparator}'
         'local-events-upload.jsonl',
       );
-      await activeFile.copy(uploadFile.path);
+      final result = await _sanitizeEventLogCopy(
+        sourcePath: activeFile.path,
+        targetPath: uploadFile.path,
+      );
+      final malformedLines = result['malformedLines']!;
+      if (malformedLines > 0) {
+        KazumiLogger().w(
+          'HistorySync: dropped $malformedLines malformed line(s) '
+          'from local event log upload',
+        );
+        await _repairActiveLog(activeFile, uploadFile);
+      }
+      if (result['validLines'] == 0) {
+        return null;
+      }
       return uploadFile;
     });
+  }
+
+  /// Replaces the active log with its sanitized copy. Must be called while
+  /// holding [_localLogQueue] so no append interleaves. Best-effort: on
+  /// failure the damaged log stays and the next sync retries.
+  Future<void> _repairActiveLog(File activeFile, File sanitizedFile) async {
+    try {
+      final tempFile = File('${activeFile.path}.repair');
+      await sanitizedFile.copy(tempFile.path);
+      await tempFile.rename(activeFile.path);
+      KazumiLogger().w(
+        'HistorySync: rewrote local event log without malformed lines',
+      );
+    } catch (e, stackTrace) {
+      KazumiLogger().w(
+        'HistorySync: failed to repair local event log',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> completeCheckpoint(HistorySyncLogBatch batch) {
@@ -304,19 +342,36 @@ class HistorySyncService {
     return HistorySyncSnapshot.fromJson(json);
   }
 
+  /// Merges event files into [snapshot].
+  ///
+  /// With [tolerateMalformedLines] each unparsable line is skipped and
+  /// reported through a warning log instead of failing the whole merge. This
+  /// keeps sync alive when a crash mid-append leaves a truncated line in a
+  /// locally-owned log; the local Hive box remains the source of truth for
+  /// anything a skipped line described.
   Future<HistorySyncSnapshot> mergeEventFiles({
     required HistorySyncSnapshot snapshot,
     required Iterable<File> eventFiles,
     required Iterable<HistorySyncEvent> inMemoryEvents,
+    bool tolerateMalformedLines = false,
   }) async {
     final request = <String, dynamic>{
       'snapshot': snapshot.toJson(),
       'eventFiles': eventFiles.map((file) => file.path).toList(),
       'events': inMemoryEvents.map((event) => event.toJson()).toList(),
+      'tolerateMalformedLines': tolerateMalformedLines,
     };
-    final mergedJson =
-        await Isolate.run(() => _mergeHistoryEventFiles(request));
-    return HistorySyncSnapshot.fromJson(mergedJson);
+    final response = await Isolate.run(() => _mergeHistoryEventFiles(request));
+    final skippedLines = Map<String, int>.from(response['skippedLines'] as Map);
+    for (final entry in skippedLines.entries) {
+      KazumiLogger().w(
+        'HistorySync: skipped ${entry.value} malformed line(s) '
+        'in local event log ${entry.key}',
+      );
+    }
+    return HistorySyncSnapshot.fromJson(
+      Map<String, dynamic>.from(response['snapshot'] as Map),
+    );
   }
 
   /// Merges independently-owned remote logs without letting one invalid file
@@ -447,22 +502,32 @@ Future<Map<String, dynamic>> _mergeHistoryEventFiles(
   );
   final merger = HistorySyncStreamMerger(snapshot);
   final eventFiles = (request['eventFiles'] as List).cast<String>();
+  final tolerateMalformedLines =
+      request['tolerateMalformedLines'] as bool? ?? false;
+  final skippedLines = <String, int>{};
 
   for (final path in eventFiles) {
     final lines = File(path)
         .openRead()
-        .transform(utf8.decoder)
+        .transform(Utf8Decoder(allowMalformed: tolerateMalformedLines))
         .transform(const LineSplitter());
     await for (final rawLine in lines) {
       final line = rawLine.trim();
       if (line.isEmpty) {
         continue;
       }
-      merger.add(
-        HistorySyncEvent.fromJson(
-          Map<String, dynamic>.from(jsonDecode(line) as Map),
-        ),
-      );
+      try {
+        merger.add(
+          HistorySyncEvent.fromJson(
+            Map<String, dynamic>.from(jsonDecode(line) as Map),
+          ),
+        );
+      } catch (_) {
+        if (!tolerateMalformedLines) {
+          rethrow;
+        }
+        skippedLines[path] = (skippedLines[path] ?? 0) + 1;
+      }
     }
   }
 
@@ -474,5 +539,61 @@ Future<Map<String, dynamic>> _mergeHistoryEventFiles(
     ),
   );
 
-  return merger.snapshot().toJson();
+  return <String, dynamic>{
+    'snapshot': merger.snapshot().toJson(),
+    'skippedLines': skippedLines,
+  };
+}
+
+/// Runs [_copyValidEventLines] in an isolate. Top-level so the isolate
+/// closure captures only the paths, not the service instance.
+Future<Map<String, int>> _sanitizeEventLogCopy({
+  required String sourcePath,
+  required String targetPath,
+}) {
+  final request = <String, String>{
+    'sourcePath': sourcePath,
+    'targetPath': targetPath,
+  };
+  return Isolate.run(() => _copyValidEventLines(request));
+}
+
+/// Copies only the lines other devices can merge, so one corrupt local line
+/// cannot get this device's remote log quarantined by every peer.
+Future<Map<String, int>> _copyValidEventLines(
+  Map<String, String> request,
+) async {
+  final sourcePath = request['sourcePath']!;
+  final targetPath = request['targetPath']!;
+  final probe = HistorySyncStreamMerger(HistorySyncSnapshot.empty());
+  final sink = File(targetPath).openWrite();
+  var validLines = 0;
+  var malformedLines = 0;
+  try {
+    final lines = File(sourcePath)
+        .openRead()
+        .transform(const Utf8Decoder(allowMalformed: true))
+        .transform(const LineSplitter());
+    await for (final rawLine in lines) {
+      final line = rawLine.trim();
+      if (line.isEmpty) {
+        continue;
+      }
+      try {
+        probe.add(
+          HistorySyncEvent.fromJson(
+            Map<String, dynamic>.from(jsonDecode(line) as Map),
+          ),
+        );
+      } catch (_) {
+        malformedLines++;
+        continue;
+      }
+      sink.writeln(line);
+      validLines++;
+    }
+  } finally {
+    await sink.close();
+  }
+  return {'validLines': validLines, 'malformedLines': malformedLines};
 }

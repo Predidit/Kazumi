@@ -95,6 +95,56 @@ void main() {
     expect(plugin.searchMode, RuleMode.api);
   });
 
+  test('configured API rule survives serialization while mode is XPath', () {
+    final plugin = Plugin.fromJson({
+      ..._legacyRule,
+      'searchMode': RuleMode.xpath,
+      'chapterMode': RuleMode.xpath,
+      'searchApiConfig': {
+        'request': {'url': 'https://example.com/search'},
+        'listPath': r'$.list[*]',
+      },
+      'chapterApiConfig': {
+        'request': {'url': 'https://example.com/detail/@source'},
+        'format': 'delimited',
+        'roadNamesPath': r'$.from',
+        'roadEpisodesPath': r'$.urls',
+      },
+    });
+    final restored = Plugin.fromJson(plugin.toJson());
+
+    expect(restored.searchApiConfig.request.url, 'https://example.com/search');
+    expect(restored.searchApiConfig.listPath, r'$.list[*]');
+    expect(restored.chapterApiConfig.roadNamesPath, r'$.from');
+    expect(restored.chapterApiConfig.roadEpisodesPath, r'$.urls');
+  });
+
+  test('customized inactive chapter format survives serialization', () {
+    final config = ApiChapterConfig.fromJson({
+      'format': 'delimited',
+      'roadNamesPath': r'$.from',
+      'roadEpisodesPath': r'$.urls',
+      'roadsPath': r'$.custom[*]',
+    });
+    final restored = ApiChapterConfig.fromJson(config.toJson());
+
+    expect(restored.format, ApiChapterFormat.delimited);
+    expect(restored.roadsPath, r'$.custom[*]');
+  });
+
+  test('pristine rules omit inactive-mode and inactive-format fields', () {
+    final xpathRule = Plugin.fromJson(_legacyRule);
+    expect(xpathRule.toJson().containsKey('searchApiConfig'), isFalse);
+    expect(xpathRule.toJson().containsKey('chapterApiConfig'), isFalse);
+
+    final nestedChapter = ApiChapterConfig.fromJson({
+      'request': {'url': 'https://example.com/detail/@source'},
+    }).toJson();
+    expect(nestedChapter.containsKey('roadSeparator'), isFalse);
+    expect(nestedChapter.containsKey('roadNamesPath'), isFalse);
+    expect(nestedChapter['roadsPath'], r'$.data.roads[*]');
+  });
+
   test('kazumi link import and export preserves API rule configuration', () {
     final plugin = Plugin.fromJson({
       ..._legacyRule,

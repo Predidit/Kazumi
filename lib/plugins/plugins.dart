@@ -12,8 +12,7 @@ export 'package:kazumi/services/plugin/rule_engine_models.dart'
         CaptchaRequiredException,
         NoResultException,
         SearchErrorException,
-        ChapterErrorException,
-        RuleFailureKind;
+        ChapterErrorException;
 
 class Plugin {
   static final RuleEngine _ruleEngine = RuleEngine();
@@ -169,8 +168,13 @@ class Plugin {
       'referer': referer,
       'searchMode': searchMode,
       'chapterMode': chapterMode,
-      'searchApiConfig': searchApiConfig.toJson(),
-      'chapterApiConfig': chapterApiConfig.toJson(),
+      // Persisting re-serializes the whole plugin list, so a configured API
+      // rule must survive even while the mode points at XPath.
+      if (searchMode == RuleMode.api || searchApiConfig.request.url.isNotEmpty)
+        'searchApiConfig': searchApiConfig.toJson(),
+      if (chapterMode == RuleMode.api ||
+          chapterApiConfig.request.url.isNotEmpty)
+        'chapterApiConfig': chapterApiConfig.toJson(),
       'antiCrawlerConfig': antiCrawlerConfig.toJson(),
     };
   }
@@ -240,14 +244,6 @@ class Plugin {
     RuleCancelToken? cancelToken,
   }) async {
     return (await traceChapters(source, cancelToken: cancelToken)).roads;
-  }
-
-  @Deprecated('Use queryChapterRoads instead.')
-  Future<List<Road>> querychapterRoads(
-    String source, {
-    RuleCancelToken? cancelToken,
-  }) {
-    return queryChapterRoads(source, cancelToken: cancelToken);
   }
 
   String buildFullUrl(String urlItem) {

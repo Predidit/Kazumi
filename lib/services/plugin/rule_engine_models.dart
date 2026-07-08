@@ -6,12 +6,6 @@ import 'package:kazumi/plugins/api_rule_config.dart';
 
 typedef RuleCancelToken = CancelToken;
 
-enum RuleFailureKind {
-  request,
-  parse,
-  noResult,
-}
-
 class CaptchaRequiredException implements Exception {
   const CaptchaRequiredException(this.pluginName);
 
@@ -33,15 +27,10 @@ class NoResultException implements Exception {
 }
 
 class SearchErrorException implements Exception {
-  const SearchErrorException(
-    this.pluginName, {
-    this.cause,
-    this.kind = RuleFailureKind.parse,
-  });
+  const SearchErrorException(this.pluginName, {this.cause});
 
   final String pluginName;
   final Object? cause;
-  final RuleFailureKind kind;
 
   @override
   String toString() =>
@@ -49,15 +38,10 @@ class SearchErrorException implements Exception {
 }
 
 class ChapterErrorException implements Exception {
-  const ChapterErrorException(
-    this.pluginName, {
-    this.cause,
-    this.kind = RuleFailureKind.parse,
-  });
+  const ChapterErrorException(this.pluginName, {this.cause});
 
   final String pluginName;
   final Object? cause;
-  final RuleFailureKind kind;
 
   @override
   String toString() => 'ChapterErrorException: $pluginName chapter query failed'
@@ -119,6 +103,9 @@ class PreparedRuleRequest {
   final Map<String, dynamic> query;
   final String bodyType;
   final Object? body;
+
+  /// Whether stored plugin cookies are attached to the request. Historically
+  /// only search and API requests send cookies; XPath chapter requests do not.
   final bool includeCookies;
 }
 
@@ -137,12 +124,10 @@ class RuleSearchParseResult {
 class RuleChapterParseResult {
   const RuleChapterParseResult({
     required this.roads,
-    this.matchedFragments = const <String>[],
     this.diagnostics = const <String>[],
   });
 
   final List<Road> roads;
-  final List<String> matchedFragments;
   final List<String> diagnostics;
 }
 
@@ -164,12 +149,10 @@ class RuleChapterTrace {
   const RuleChapterTrace({
     required this.rawResponse,
     required this.roads,
-    required this.matchedFragments,
     required this.diagnostics,
   });
 
   final String rawResponse;
   final List<Road> roads;
-  final List<String> matchedFragments;
   final List<String> diagnostics;
 }

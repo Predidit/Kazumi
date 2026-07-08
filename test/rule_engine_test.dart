@@ -62,7 +62,6 @@ void main() {
         expect(search.matchedFragments, isNotEmpty);
         expect(search.diagnostics, isEmpty);
         expect(chapters.rawResponse, isNotEmpty);
-        expect(chapters.matchedFragments, isNotEmpty);
         expect(chapters.diagnostics, isEmpty);
         expect(chapters.roads, isNotEmpty);
         expect(executor.requests, hasLength(2));
@@ -86,10 +85,7 @@ void main() {
         ),
         'keyword',
       ),
-      throwsA(
-        isA<SearchErrorException>()
-            .having((error) => error.kind, 'kind', RuleFailureKind.parse),
-      ),
+      throwsA(isA<SearchErrorException>()),
     );
   });
 
@@ -109,9 +105,7 @@ void main() {
         'keyword',
       ),
       throwsA(
-        isA<SearchErrorException>()
-            .having((error) => error.kind, 'kind', RuleFailureKind.parse)
-            .having(
+        isA<SearchErrorException>().having(
               (error) => error.cause,
               'cause',
               isA<XPathRuleFormatException>()
@@ -146,9 +140,7 @@ void main() {
         '/video/1',
       ),
       throwsA(
-        isA<ChapterErrorException>()
-            .having((error) => error.kind, 'kind', RuleFailureKind.parse)
-            .having(
+        isA<ChapterErrorException>().having(
               (error) => error.cause,
               'cause',
               isA<XPathRuleFormatException>()
@@ -186,7 +178,7 @@ void main() {
     );
   });
 
-  test('maps request failures to a typed request reason', () async {
+  test('wraps request failures in a search error', () async {
     final engine = RuleEngine(
       requestExecutor: _FakeExecutor(
         const [],
@@ -202,7 +194,7 @@ void main() {
       ),
       throwsA(
         isA<SearchErrorException>()
-            .having((error) => error.kind, 'kind', RuleFailureKind.request),
+            .having((error) => error.cause, 'cause', isA<StateError>()),
       ),
     );
   });

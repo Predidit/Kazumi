@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
+import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
@@ -85,6 +86,9 @@ void main() async {
       await windowManager.show();
       await windowManager.focus();
     });
+  }
+  if (Platform.isWindows) {
+    SystemProxyService.init();
   }
   ProxyManager.applyProxy();
   runApp(

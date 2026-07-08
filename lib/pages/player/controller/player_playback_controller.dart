@@ -11,6 +11,7 @@ import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/player/player_screenshot_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:media_kit/media_kit.dart';
@@ -274,6 +275,15 @@ abstract class _PlayerPlaybackController with Store {
             return await _discardIfNotCurrent(candidate);
           }
           KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
+        }
+      } else if (SystemProxyService.isActive) {
+        final proxy = SystemProxyService.proxyFor('https');
+        if (proxy != null) {
+          await pp.setProperty("http-proxy", 'http://${proxy.$1}:${proxy.$2}');
+          if (!isCurrentPlayer(player)) {
+            return await _discardIfNotCurrent(candidate);
+          }
+          KazumiLogger().i('Player: 跟随系统代理 http://${proxy.$1}:${proxy.$2}');
         }
       }
 

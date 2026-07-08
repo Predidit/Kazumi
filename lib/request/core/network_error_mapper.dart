@@ -6,72 +6,67 @@ class NetworkErrorMapper {
   const NetworkErrorMapper._();
 
   static Future<NetworkException> mapException(DioException error) async {
-    if (error.type == DioExceptionType.badCertificate) {
-      return NetworkException(
-        type: NetworkExceptionType.badCertificate,
-        message: '证书有误！',
-        rawError: error,
-        stackTrace: error.stackTrace,
-      );
+    switch (error.type) {
+      case DioExceptionType.badCertificate:
+        return NetworkException(
+          type: NetworkExceptionType.badCertificate,
+          message: '证书有误！',
+          rawError: error,
+          stackTrace: error.stackTrace,
+        );
+      case DioExceptionType.badResponse:
+        final statusCode = error.response?.statusCode;
+        return NetworkException(
+          type: NetworkExceptionType.badResponse,
+          message: '服务器异常，请稍后重试！',
+          statusCode: statusCode,
+          rawError: error,
+          stackTrace: error.stackTrace,
+        );
+      case DioExceptionType.cancel:
+        return NetworkException(
+          type: NetworkExceptionType.cancel,
+          message: '请求已被取消，请重新请求',
+          rawError: error,
+          stackTrace: error.stackTrace,
+        );
+      case DioExceptionType.connectionError:
+        return NetworkException(
+          type: NetworkExceptionType.connectionError,
+          message: '连接错误，请检查网络设置',
+          rawError: error,
+          stackTrace: error.stackTrace,
+        );
+      case DioExceptionType.connectionTimeout:
+        return NetworkException(
+          type: NetworkExceptionType.connectionTimeout,
+          message: '网络连接超时，请检查网络设置',
+          rawError: error,
+          stackTrace: error.stackTrace,
+        );
+      case DioExceptionType.receiveTimeout:
+        return NetworkException(
+          type: NetworkExceptionType.receiveTimeout,
+          message: '响应超时，请稍后重试！',
+          rawError: error,
+          stackTrace: error.stackTrace,
+        );
+      case DioExceptionType.sendTimeout:
+        return NetworkException(
+          type: NetworkExceptionType.sendTimeout,
+          message: '发送请求超时，请检查网络设置',
+          rawError: error,
+          stackTrace: error.stackTrace,
+        );
+      case DioExceptionType.unknown:
+        final connection = await _connectionLabel();
+        return NetworkException(
+          type: NetworkExceptionType.unknown,
+          message: '$connection 网络异常'.trimLeft(),
+          rawError: error,
+          stackTrace: error.stackTrace,
+        );
     }
-    if (error.type == DioExceptionType.badResponse) {
-      final statusCode = error.response?.statusCode;
-      return NetworkException(
-        type: NetworkExceptionType.badResponse,
-        message: '服务器异常，请稍后重试！',
-        statusCode: statusCode,
-        rawError: error,
-        stackTrace: error.stackTrace,
-      );
-    }
-    if (error.type == DioExceptionType.cancel) {
-      return NetworkException(
-        type: NetworkExceptionType.cancel,
-        message: '请求已被取消，请重新请求',
-        rawError: error,
-        stackTrace: error.stackTrace,
-      );
-    }
-    if (error.type == DioExceptionType.connectionError) {
-      return NetworkException(
-        type: NetworkExceptionType.connectionError,
-        message: '连接错误，请检查网络设置',
-        rawError: error,
-        stackTrace: error.stackTrace,
-      );
-    }
-    if (error.type == DioExceptionType.connectionTimeout) {
-      return NetworkException(
-        type: NetworkExceptionType.connectionTimeout,
-        message: '网络连接超时，请检查网络设置',
-        rawError: error,
-        stackTrace: error.stackTrace,
-      );
-    }
-    if (error.type == DioExceptionType.receiveTimeout ||
-        error.type.name == 'transformTimeout') {
-      return NetworkException(
-        type: NetworkExceptionType.receiveTimeout,
-        message: '响应超时，请稍后重试！',
-        rawError: error,
-        stackTrace: error.stackTrace,
-      );
-    }
-    if (error.type == DioExceptionType.sendTimeout) {
-      return NetworkException(
-        type: NetworkExceptionType.sendTimeout,
-        message: '发送请求超时，请检查网络设置',
-        rawError: error,
-        stackTrace: error.stackTrace,
-      );
-    }
-    final connection = await _connectionLabel();
-    return NetworkException(
-      type: NetworkExceptionType.unknown,
-      message: '$connection 网络异常'.trimLeft(),
-      rawError: error,
-      stackTrace: error.stackTrace,
-    );
   }
 
   static NetworkException parse(Object error, StackTrace stackTrace) {

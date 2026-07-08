@@ -6,7 +6,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/utils/format.dart';
 
 class DownloadPage extends StatefulWidget {
@@ -373,16 +373,16 @@ class _DownloadPageState extends State<DownloadPage> {
       record.pluginName,
     );
 
-    final videoPageController = inject<VideoPageController>();
-    videoPageController.initForOfflinePlayback(
-      bangumiItem: bangumiItem,
-      pluginName: record.pluginName,
-      episodeNumber: episode.episodeNumber,
-      road: episode.road,
-      downloadedEpisodes: downloadedEpisodes,
+    context.pushNamed(
+      '/video/',
+      arguments: OfflineVideoPlaybackArgs(
+        bangumiItem: bangumiItem,
+        pluginName: record.pluginName,
+        episodeNumber: episode.episodeNumber,
+        road: episode.road,
+        downloadedEpisodes: downloadedEpisodes,
+      ),
     );
-
-    context.pushNamed('/video/');
   }
 
   void _confirmDeleteEpisode(DownloadRecord record, DownloadEpisode episode) {

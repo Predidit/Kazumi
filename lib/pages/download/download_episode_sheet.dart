@@ -8,15 +8,20 @@ import 'package:kazumi/pages/video/video_controller.dart';
 
 class DownloadEpisodeSheet extends StatefulWidget {
   final int road;
+  final VideoPageController videoPageController;
 
-  const DownloadEpisodeSheet({super.key, required this.road});
+  const DownloadEpisodeSheet({
+    super.key,
+    required this.road,
+    required this.videoPageController,
+  });
 
   @override
   State<DownloadEpisodeSheet> createState() => _DownloadEpisodeSheetState();
 }
 
 class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
-  final VideoPageController videoPageController = inject<VideoPageController>();
+  VideoPageController get videoPageController => widget.videoPageController;
   final DownloadController downloadController = inject<DownloadController>();
 
   final Set<int> _selectedEpisodes = {};
@@ -51,7 +56,6 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
       builder: (context, scrollController) {
         return Column(
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
@@ -71,7 +75,6 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                 ],
               ),
             ),
-            // Select all / deselect all
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(

@@ -16,14 +16,15 @@ class ApiEndpoints {
 
   /// 规则仓库
   static const String pluginShop =
+      'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
+
+  /// 规则仓库镜像
+  static const String pluginShopMirror =
       'https://raw.gitcode.com/gh_mirrors/ka/KazumiRules/raw/main/';
 
   /// 在线升级
   static const String latestApp =
       'https://api.github.com/repos/Predidit/Kazumi/releases/latest';
-
-  /// Github镜像
-  static const String gitMirror = 'https://ghfast.top/';
 
   /// Bangumi 镜像测试后端
   static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';

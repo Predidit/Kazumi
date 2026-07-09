@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/request/clients/github_client.dart';
+import 'package:kazumi/request/clients/rules_repo_client.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 
 class PluginCatalogApi {
-  static final GithubClient _client = GithubClient.instance;
+  static final RulesRepoClient _client = RulesRepoClient.instance;
 
   static Future<List<PluginHTTPItem>> getPluginList() async {
     List<PluginHTTPItem> pluginHTTPItemList = [];

@@ -382,10 +382,16 @@ abstract class _VideoPageController with Store implements Disposable {
   /// notification instead of one per field.
   @action
   void _beginEpisodeSwitch(VideoEpisodeSelection selection) {
+    final targetCommentsEpisode = commentEpisodeForSelection(selection);
     selectedEpisode = selection;
     playingEpisode = null;
-    commentsEpisode = commentEpisodeForSelection(selection);
-    _resetEpisodeComments();
+    // The comments sheet only re-queries when [commentsEpisode] changes, so
+    // resetting comment state here without changing it would blank the sheet
+    // permanently.
+    if (targetCommentsEpisode != commentsEpisode) {
+      commentsEpisode = targetCommentsEpisode;
+      _resetEpisodeComments();
+    }
     _loading = true;
     _errorMessage = null;
   }

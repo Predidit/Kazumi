@@ -7,33 +7,35 @@
 /// 归一化规则：
 /// - 去除首尾空白；空输入返回空串（调用方据此判断"无 URL"）。
 /// - 相对路径基于 [baseUrl] 补全为绝对 URL。
-/// - 统一协议口径到 `https`，避免 `http`/`https` 造成的失配
-///   （与既有抓取逻辑一致：源页抓取时本就强制 https）。
+/// - 与 [baseUrl] 同站（同 host、同显式端口）的 URL，协议统一到 [baseUrl]
+///   声明的协议，避免同一集因 `http`/`https` 混用产生两个 key；跨站或端口
+///   不同的 URL 保持原协议不动——规则站点可能仅支持 http（如自建反代），
+///   改写协议会导致无法访问。
 /// - 去除 path 多余尾斜杠（根路径 `/` 保留）。
 /// - 去除空 query。
 /// - 幂等：`normalizeEpisodeUrl(b, normalizeEpisodeUrl(b, x))` 等于
 ///   `normalizeEpisodeUrl(b, x)`。
 ///
-/// 归一化结果同时作为"身份 key"与可访问的"请求 URL"使用。由于既有抓取逻辑
-/// 已强制将源页 URL 升级为 https，这里统一到 https 不会改变实际可访问性。
+/// 归一化结果同时作为"身份 key"与可访问的"请求 URL"使用，因此归一化
+/// 不得改变 URL 实际指向的端点，协议口径以规则中用户声明的 [baseUrl] 为准。
 String normalizeEpisodeUrl(String baseUrl, String raw) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty) return '';
 
   final rawUri = Uri.tryParse(trimmed);
+  final baseUri = Uri.tryParse(baseUrl.trim());
+  final hasValidBase =
+      baseUri != null && baseUri.hasScheme && baseUri.host.isNotEmpty;
 
   Uri? resolved;
   if (rawUri != null && rawUri.hasScheme && rawUri.host.isNotEmpty) {
     // 已是绝对 URL。
     resolved = rawUri;
-  } else {
-    final baseUri = Uri.tryParse(baseUrl.trim());
-    if (baseUri != null && baseUri.hasScheme && baseUri.host.isNotEmpty) {
-      try {
-        resolved = baseUri.resolve(trimmed);
-      } catch (_) {
-        resolved = null;
-      }
+  } else if (hasValidBase) {
+    try {
+      resolved = baseUri.resolve(trimmed);
+    } catch (_) {
+      resolved = null;
     }
   }
 
@@ -42,9 +44,15 @@ String normalizeEpisodeUrl(String baseUrl, String raw) {
     return trimmed;
   }
 
-  // 统一协议到 https。
-  if (resolved.scheme == 'http') {
-    resolved = resolved.replace(scheme: 'https');
+  // 同站 URL 的协议统一到 baseUrl 声明的协议。
+  if (hasValidBase &&
+      _isHttpScheme(baseUri.scheme) &&
+      _isHttpScheme(resolved.scheme) &&
+      resolved.scheme != baseUri.scheme &&
+      resolved.host == baseUri.host &&
+      resolved.hasPort == baseUri.hasPort &&
+      (!resolved.hasPort || resolved.port == baseUri.port)) {
+    resolved = resolved.replace(scheme: baseUri.scheme);
   }
 
   // 去除 path 尾斜杠（根路径除外）。
@@ -68,3 +76,5 @@ String normalizeEpisodeUrl(String baseUrl, String raw) {
 
   return normalized.toString();
 }
+
+bool _isHttpScheme(String scheme) => scheme == 'http' || scheme == 'https';

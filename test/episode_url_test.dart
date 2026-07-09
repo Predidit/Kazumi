@@ -24,7 +24,7 @@ void main() {
       expect(normalizeEpisodeUrl(baseUrl, absolute), absolute);
     });
 
-    test('http 与 https 同站归一到同一 key', () {
+    test('http 与 https 同站归一到同一 key（协议以 baseUrl 为准）', () {
       final viaHttp =
           normalizeEpisodeUrl(baseUrl, 'http://www.example.com/play/123.html');
       final viaHttps =
@@ -33,10 +33,47 @@ void main() {
       expect(viaHttp, 'https://www.example.com/play/123.html');
     });
 
-    test('http baseUrl 下相对路径也归一到 https', () {
+    test('http baseUrl 下相对路径保持 http', () {
       expect(
         normalizeEpisodeUrl('http://www.example.com', '/play/123.html'),
-        'https://www.example.com/play/123.html',
+        'http://www.example.com/play/123.html',
+      );
+    });
+
+    test('http baseUrl 下同站绝对 URL 保持 http', () {
+      expect(
+        normalizeEpisodeUrl(
+            'http://www.example.com', 'http://www.example.com/play/123.html'),
+        'http://www.example.com/play/123.html',
+      );
+    });
+
+    test('http baseUrl 下同站 https URL 归一到 http（同一 key）', () {
+      expect(
+        normalizeEpisodeUrl(
+            'http://www.example.com', 'https://www.example.com/play/123.html'),
+        'http://www.example.com/play/123.html',
+      );
+    });
+
+    test('跨站 URL 保持原协议不改写', () {
+      expect(
+        normalizeEpisodeUrl(baseUrl, 'http://cdn.other.com/play/123'),
+        'http://cdn.other.com/play/123',
+      );
+    });
+
+    test('同 host 不同显式端口不改写协议', () {
+      expect(
+        normalizeEpisodeUrl(baseUrl, 'http://www.example.com:8080/play/123'),
+        'http://www.example.com:8080/play/123',
+      );
+    });
+
+    test('带端口的 http baseUrl 下相对路径保持 http 与端口', () {
+      expect(
+        normalizeEpisodeUrl('http://www.example.com:8080', '/play/123.html'),
+        'http://www.example.com:8080/play/123.html',
       );
     });
 
@@ -106,10 +143,13 @@ void main() {
         'https://www.example.com/',
         '',
       ];
-      for (final raw in cases) {
-        final once = normalizeEpisodeUrl(baseUrl, raw);
-        final twice = normalizeEpisodeUrl(baseUrl, once);
-        expect(twice, once, reason: 'not idempotent for: "$raw"');
+      for (final base in <String>[baseUrl, 'http://www.example.com']) {
+        for (final raw in cases) {
+          final once = normalizeEpisodeUrl(base, raw);
+          final twice = normalizeEpisodeUrl(base, once);
+          expect(twice, once,
+              reason: 'not idempotent for: "$raw" (base: "$base")');
+        }
       }
     });
   });

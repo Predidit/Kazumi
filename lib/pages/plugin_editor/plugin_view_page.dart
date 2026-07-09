@@ -429,6 +429,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
               } else if (res == 2) {
                 KazumiDialog.showToast(message: '更新规则失败');
+              } else if (res == 3) {
+                KazumiDialog.showToast(message: '远程规则版本不高于本地, 已跳过更新');
               }
             }
           },

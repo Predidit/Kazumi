@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/utils/encoding.dart';
 
 class PluginViewPage extends StatefulWidget {
@@ -31,13 +33,20 @@ class _PluginViewPageState extends State<PluginViewPage> {
   final Set<String> selectedNames = {};
 
   Future<void> _handleUpdate() async {
-    KazumiDialog.showLoading(msg: '更新中');
-    int count = await pluginsController.tryUpdateAllPlugin();
-    KazumiDialog.dismiss();
-    if (count == 0) {
-      KazumiDialog.showToast(message: '所有规则已是最新');
-    } else {
-      KazumiDialog.showToast(message: '更新成功 $count 条');
+    await updateAllPluginsWithFeedback(
+      pluginsController,
+      ensureCatalog: true,
+    );
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _handleReorder(int oldIndex, int newIndex) async {
+    try {
+      await pluginsController.onReorder(oldIndex, newIndex);
+    } catch (_) {
+      KazumiDialog.showToast(message: '保存规则顺序失败');
     }
   }
 
@@ -117,7 +126,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       );
                       return;
                     }
-                    pluginsController.updatePlugin(plugin);
+                    await pluginsController.updatePlugin(plugin);
                     KazumiDialog.dismiss();
                     KazumiDialog.showToast(message: '导入成功');
                   } catch (e) {
@@ -144,11 +153,22 @@ class _PluginViewPageState extends State<PluginViewPage> {
   @override
   void initState() {
     super.initState();
+    unawaited(_loadPluginUpdateStatus());
+  }
+
+  Future<void> _loadPluginUpdateStatus() async {
+    try {
+      await pluginsController.ensurePluginCatalog();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (_) {
+      KazumiDialog.showToast(message: '检查规则更新失败');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: !isMultiSelectMode,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -200,9 +220,15 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                 ),
                               ),
                               TextButton(
-                                onPressed: () {
-                                  pluginsController
-                                      .removePlugins(selectedNames);
+                                onPressed: () async {
+                                  try {
+                                    await pluginsController
+                                        .removePlugins(selectedNames);
+                                  } catch (_) {
+                                    KazumiDialog.showToast(message: '删除规则失败');
+                                    return;
+                                  }
+                                  if (!mounted) return;
                                   setState(() {
                                     isMultiSelectMode = false;
                                     selectedNames.clear();
@@ -251,16 +277,16 @@ class _PluginViewPageState extends State<PluginViewPage> {
                         );
                       },
                       onReorderItem: (int oldIndex, int newIndex) {
-                        pluginsController.onReorder(oldIndex, newIndex);
+                        unawaited(_handleReorder(oldIndex, newIndex));
                       },
                       itemCount: pluginsController.pluginList.length,
                       itemBuilder: (context, index) {
                         var plugin = pluginsController.pluginList[index];
                         bool canUpdate =
                             pluginsController.pluginUpdateStatus(plugin) ==
-                                'updatable';
+                                PluginUpdateAvailability.updatable;
                         return Card(
-                            key: ValueKey(index),
+                            key: ObjectKey(plugin),
                             margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                             child: ListTile(
                               trailing: pluginCardTrailing(index),
@@ -414,24 +440,29 @@ class _PluginViewPageState extends State<PluginViewPage> {
         MenuItemButton(
           requestFocusOnHover: false,
           onPressed: () async {
-            var state = pluginsController.pluginUpdateStatus(plugin);
-            if (state == "nonexistent") {
-              KazumiDialog.showToast(message: '规则仓库中没有当前规则');
-            } else if (state == "latest") {
-              KazumiDialog.showToast(message: '规则已是最新');
-            } else if (state == "updatable") {
-              KazumiDialog.showLoading(msg: '更新中');
-              int res = await pluginsController.tryUpdatePlugin(plugin);
-              KazumiDialog.dismiss();
-              if (res == 0) {
-                KazumiDialog.showToast(message: '更新成功');
-              } else if (res == 1) {
-                KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
-              } else if (res == 2) {
-                KazumiDialog.showToast(message: '更新规则失败');
-              } else if (res == 3) {
-                KazumiDialog.showToast(message: '远程规则版本不高于本地, 已跳过更新');
+            try {
+              await pluginsController.ensurePluginCatalog();
+              if (mounted) {
+                setState(() {});
               }
+            } catch (_) {
+              KazumiDialog.showToast(message: '检查规则更新失败');
+              return;
+            }
+            final state = pluginsController.pluginUpdateStatus(plugin);
+            switch (state) {
+              case PluginUpdateAvailability.unknown:
+                KazumiDialog.showToast(message: '尚未获取规则更新状态');
+              case PluginUpdateAvailability.notInCatalog:
+                KazumiDialog.showToast(message: '规则仓库中没有当前规则');
+              case PluginUpdateAvailability.latest:
+                KazumiDialog.showToast(message: '规则已是最新');
+              case PluginUpdateAvailability.updatable:
+                await updatePluginWithFeedback(
+                  pluginsController,
+                  plugin.name,
+                  installing: false,
+                );
             }
           },
           child: Container(
@@ -545,9 +576,11 @@ class _PluginViewPageState extends State<PluginViewPage> {
         MenuItemButton(
           requestFocusOnHover: false,
           onPressed: () async {
-            setState(() {
-              pluginsController.removePlugin(plugin);
-            });
+            try {
+              await pluginsController.removePlugin(plugin);
+            } catch (_) {
+              KazumiDialog.showToast(message: '删除规则失败');
+            }
           },
           child: Container(
             height: 48,

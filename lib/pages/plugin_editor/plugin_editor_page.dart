@@ -687,7 +687,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
             onPressed: () async {
               try {
                 final editedPlugin = _buildEditedPlugin();
-                pluginsController.updatePlugin(editedPlugin);
+                await pluginsController.updatePlugin(editedPlugin);
+                if (!context.mounted) return;
                 context.pop();
               } catch (error) {
                 _showEditorError(error);

@@ -32,6 +32,7 @@ class _AboutPageState extends State<AboutPage> {
   late dynamic defaultThemeColor;
   late int exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
   late bool autoUpdate;
+  late bool checkPluginUpdateOnStartup;
   double _cacheSizeMB = -1;
   MyController get myController => widget.controller;
   final MenuController menuController = MenuController();
@@ -40,6 +41,8 @@ class _AboutPageState extends State<AboutPage> {
   void initState() {
     super.initState();
     autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
+    checkPluginUpdateOnStartup =
+        GStorage.getSetting(SettingsKeys.checkPluginUpdateOnStartup);
     _getCacheSize();
   }
 
@@ -310,16 +313,37 @@ class _AboutPageState extends State<AboutPage> {
                         SettingsKeys.autoUpdate, autoUpdate);
                     setState(() {});
                   },
-                  title: Text('自动更新', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('启动时检查应用更新',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoUpdate,
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     myController.checkUpdate();
                   },
-                  title: Text('检查更新', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('检查应用更新', style: TextStyle(fontFamily: fontFamily)),
                   value: Text('当前版本 ${ApiEndpoints.version}',
                       style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('规则更新', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    checkPluginUpdateOnStartup =
+                        value ?? !checkPluginUpdateOnStartup;
+                    await GStorage.putSetting(
+                      SettingsKeys.checkPluginUpdateOnStartup,
+                      checkPluginUpdateOnStartup,
+                    );
+                    setState(() {});
+                  },
+                  title: Text('启动时检查规则更新',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: checkPluginUpdateOnStartup,
                 ),
               ],
             ),

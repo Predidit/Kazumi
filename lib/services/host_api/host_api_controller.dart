@@ -15,7 +15,7 @@ class HostApiController = _HostApiController with _$HostApiController;
 
 abstract class _HostApiController with Store {
   late final HostApiServer _server = HostApiServer(
-    pluginsProvider: () => Modular.get<PluginsController>(),
+    pluginsProvider: () => inject<PluginsController>(),
   );
 
   @observable

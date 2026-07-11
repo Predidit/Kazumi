@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:provider/provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -15,7 +14,12 @@ import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/utils/device.dart';
 
 class TimelinePage extends StatefulWidget {
-  const TimelinePage({super.key});
+  const TimelinePage({
+    super.key,
+    required this.controller,
+  });
+
+  final TimelineController controller;
 
   @override
   State<TimelinePage> createState() => _TimelinePageState();
@@ -23,9 +27,7 @@ class TimelinePage extends StatefulWidget {
 
 class _TimelinePageState extends State<TimelinePage>
     with SingleTickerProviderStateMixin {
-  final TimelineController timelineController =
-      Modular.get<TimelineController>();
-  late NavigationBarState navigationBarState;
+  TimelineController get timelineController => widget.controller;
   TabController? tabController;
   late bool showRating;
   final GlobalKey filterSectionKey = GlobalKey();
@@ -36,8 +38,6 @@ class _TimelinePageState extends State<TimelinePage>
     int weekday = DateTime.now().weekday - 1;
     tabController =
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
     showRating = GStorage.getSetting(SettingsKeys.showRating);
     if (timelineController.bangumiCalendar.isEmpty) {
       timelineController.init();
@@ -55,8 +55,7 @@ class _TimelinePageState extends State<TimelinePage>
       KazumiDialog.dismiss();
       return;
     }
-    navigationBarState.updateSelectedIndex(0);
-    Modular.to.navigate('/tab/popular/');
+    context.navigate('/tab/popular/');
   }
 
   DateTime generateDateTime(int year, String season) {
@@ -109,9 +108,7 @@ class _TimelinePageState extends State<TimelinePage>
     double? compactHeightFactor,
   }) {
     final mediaSize = MediaQuery.sizeOf(context);
-    final maxWidth = mediaSize.width >= LayoutBreakpoint.medium['width']!
-        ? mediaSize.width * 9 / 16
-        : mediaSize.width;
+    final adaptiveConstraints = adaptiveBottomSheetConstraints(context);
     final maxHeight = compactHeightFactor != null
         ? (mediaSize.height >= LayoutBreakpoint.compact['height']!
             ? mediaSize.height * compactHeightFactor
@@ -119,7 +116,7 @@ class _TimelinePageState extends State<TimelinePage>
         : double.infinity;
 
     return BoxConstraints(
-      maxWidth: maxWidth,
+      maxWidth: adaptiveConstraints.maxWidth,
       maxHeight: maxHeight,
     );
   }
@@ -186,7 +183,6 @@ class _TimelinePageState extends State<TimelinePage>
     BuildContext context, {
     required Widget header,
     required Widget body,
-    bool showDragHandle = false,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -198,24 +194,8 @@ class _TimelinePageState extends State<TimelinePage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showDragHandle) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-          ],
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              showDragHandle ? 12 : 16,
-              16,
-              8,
-            ),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: header,
           ),
           Flexible(child: body),
@@ -839,7 +819,7 @@ class _TimelinePageState extends State<TimelinePage>
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () async {
+          onPressed: () {
             KazumiDialog.showBottomSheet(
               backgroundColor: Theme.of(context).colorScheme.surface,
               shape: const RoundedRectangleBorder(

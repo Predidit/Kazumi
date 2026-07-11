@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
@@ -14,7 +15,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/utils/format.dart';
 
 class ImageSearchPage extends StatefulWidget {
-  const ImageSearchPage({super.key});
+  const ImageSearchPage({
+    super.key,
+    required this.controller,
+  });
+
+  final SearchPageController controller;
 
   @override
   State<ImageSearchPage> createState() => _ImageSearchPageState();
@@ -22,7 +28,7 @@ class ImageSearchPage extends StatefulWidget {
 
 class _ImageSearchPageState extends State<ImageSearchPage> {
   final TextEditingController _urlController = TextEditingController();
-  final SearchPageController _searchPageController = SearchPageController();
+  SearchPageController get _searchPageController => widget.controller;
   final ImagePicker _picker = ImagePicker();
   bool _isUrlMode = false;
   String _previewUrl = '';
@@ -559,7 +565,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                     return InkWell(
                       onTap: () {
                         final title = _formatTraceResultTitle(result);
-                        Navigator.of(context).pop(title);
+                        context.pop(title);
                       },
                       child: _buildResultCard(
                         context,

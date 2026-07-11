@@ -4,17 +4,55 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/services/plugin/rule_engine_models.dart'
+    show RuleCancelToken;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/date_time.dart';
 
-// 视频历史记录卡片 - 水平布局
+String historySourceText(String entryKind) {
+  return HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline
+      ? '缓存'
+      : '在线';
+}
+
+Future<_HistoryPlaybackOpenResult> _openHistoryPlaybackForEntry({
+  required String entryKind,
+  required Future<VideoPlaybackArgs?> Function() openOnlinePlayback,
+  required Future<VideoPlaybackArgs?> Function() openOfflinePlayback,
+}) async {
+  if (HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline) {
+    final args = await openOfflinePlayback();
+    return _HistoryPlaybackOpenResult(
+      args: args,
+      failureMessage: args != null ? null : '未找到可用缓存',
+    );
+  }
+
+  final args = await openOnlinePlayback();
+  return _HistoryPlaybackOpenResult(
+    args: args,
+    failureMessage: args != null ? null : '在线源不可用，请重新选择播放源',
+  );
+}
+
+class _HistoryPlaybackOpenResult {
+  const _HistoryPlaybackOpenResult({
+    required this.args,
+    required this.failureMessage,
+  });
+
+  final VideoPlaybackArgs? args;
+  final String? failureMessage;
+}
+
 class BangumiHistoryCardV extends StatefulWidget {
   const BangumiHistoryCardV({
     super.key,
@@ -32,11 +70,17 @@ class BangumiHistoryCardV extends StatefulWidget {
 }
 
 class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
-  final PluginsController pluginsController = Modular.get<PluginsController>();
-  final HistoryController historyController = Modular.get<HistoryController>();
-  final CollectController collectController = Modular.get<CollectController>();
+  final PluginsController pluginsController = inject<PluginsController>();
+  final CollectController collectController = inject<CollectController>();
+  final DownloadController downloadController = inject<DownloadController>();
+
+  RuleCancelToken? _queryRoadsCancelToken;
+
+  @override
+  void dispose() {
+    _queryRoadsCancelToken?.cancel();
+    super.dispose();
+  }
 
   Future<void> _onTap() async {
     if (widget.showDelete) {
@@ -47,36 +91,117 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       msg: '获取中',
       barrierDismissible: isDesktop(),
       onDismiss: () {
-        videoPageController.cancelQueryRoads();
+        _queryRoadsCancelToken?.cancel();
       },
     );
-    bool flag = false;
+    final result = await _openHistoryPlaybackForEntry(
+      entryKind: widget.historyItem.entryKind,
+      openOnlinePlayback: _openOnlinePlayback,
+      openOfflinePlayback: _openOfflinePlayback,
+    );
+    KazumiDialog.dismiss();
+    if (!mounted) return;
+    final args = result.args;
+    if (args != null) {
+      context.pushNamed('/video/', arguments: args);
+      return;
+    }
+    KazumiDialog.showToast(message: result.failureMessage ?? '未找到可用播放入口');
+  }
+
+  Future<VideoPlaybackArgs?> _openOnlinePlayback() async {
+    if (widget.historyItem.lastSrc.isEmpty) {
+      return null;
+    }
+    Plugin? targetPlugin;
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == widget.historyItem.adapterName) {
-        videoPageController.currentPlugin = plugin;
-        flag = true;
+        targetPlugin = plugin;
         break;
       }
     }
-    if (!flag) {
-      KazumiDialog.dismiss();
-      KazumiDialog.showToast(message: '未找到关联番剧源');
-      return;
+    if (targetPlugin == null) {
+      return null;
     }
-    videoPageController.bangumiItem = widget.historyItem.bangumiItem;
-    videoPageController.title = widget.historyItem.bangumiItem.nameCn == ''
-        ? widget.historyItem.bangumiItem.name
-        : widget.historyItem.bangumiItem.nameCn;
-    videoPageController.src = widget.historyItem.lastSrc;
     try {
-      await videoPageController.queryRoads(
-          widget.historyItem.lastSrc, videoPageController.currentPlugin.name);
-      KazumiDialog.dismiss();
-      Modular.to.pushNamed('/video/');
+      _queryRoadsCancelToken?.cancel();
+      _queryRoadsCancelToken = RuleCancelToken();
+      final roads = await targetPlugin.queryChapterRoads(
+        widget.historyItem.lastSrc,
+        cancelToken: _queryRoadsCancelToken,
+      );
+      if (roads.isEmpty) {
+        return null;
+      }
+      return OnlineVideoPlaybackArgs(
+        bangumiItem: widget.historyItem.bangumiItem,
+        plugin: targetPlugin,
+        title: widget.historyItem.bangumiItem.nameCn == ''
+            ? widget.historyItem.bangumiItem.name
+            : widget.historyItem.bangumiItem.nameCn,
+        src: widget.historyItem.lastSrc,
+        roads: roads,
+      );
     } catch (_) {
-      KazumiLogger().w("PluginSearchService: failed to query roads");
-      KazumiDialog.dismiss();
+      KazumiLogger().w("QueryManager: failed to query roads");
+      return null;
     }
+  }
+
+  Future<VideoPlaybackArgs?> _openOfflinePlayback() async {
+    final downloadedEpisodes = downloadController.getCompletedEpisodes(
+      widget.historyItem.bangumiItem.id,
+      widget.historyItem.adapterName,
+    );
+    if (downloadedEpisodes.isEmpty) {
+      return null;
+    }
+
+    DownloadEpisode? targetEpisode;
+    if (widget.historyItem.episodePageUrl.isNotEmpty) {
+      for (final episode in downloadedEpisodes) {
+        if (episode.episodePageUrl == widget.historyItem.episodePageUrl) {
+          targetEpisode = episode;
+          break;
+        }
+      }
+    }
+    targetEpisode ??= _episodeByNumber(
+      downloadedEpisodes,
+      widget.historyItem.lastWatchEpisode,
+    );
+    if (targetEpisode == null) {
+      return null;
+    }
+
+    final localPath = downloadController.getLocalVideoPath(
+      widget.historyItem.bangumiItem.id,
+      widget.historyItem.adapterName,
+      targetEpisode.episodeNumber,
+    );
+    if (localPath == null) {
+      return null;
+    }
+
+    return OfflineVideoPlaybackArgs(
+      bangumiItem: widget.historyItem.bangumiItem,
+      pluginName: widget.historyItem.adapterName,
+      episodeNumber: targetEpisode.episodeNumber,
+      road: targetEpisode.road,
+      downloadedEpisodes: downloadedEpisodes,
+    );
+  }
+
+  DownloadEpisode? _episodeByNumber(
+    List<DownloadEpisode> episodes,
+    int episodeNumber,
+  ) {
+    for (final episode in episodes) {
+      if (episode.episodeNumber == episodeNumber) {
+        return episode;
+      }
+    }
+    return null;
   }
 
   @override
@@ -91,6 +216,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     final String episodeText = widget.historyItem.lastWatchEpisodeName.isEmpty
         ? '第${widget.historyItem.lastWatchEpisode}话'
         : widget.historyItem.lastWatchEpisodeName;
+    final String sourceText = historySourceText(widget.historyItem.entryKind);
 
     return Dismissible(
       key: ValueKey(widget.historyItem.key),
@@ -182,7 +308,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                widget.historyItem.adapterName,
+                                '$sourceText · ${widget.historyItem.adapterName}',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),
@@ -239,7 +365,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                         ),
                         tooltip: '番剧详情',
                         onPressed: () {
-                          Modular.to.pushNamed(
+                          context.pushNamed(
                             '/info/',
                             arguments: widget.historyItem.bangumiItem,
                           );

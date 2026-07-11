@@ -48,7 +48,9 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
       KazumiDialog.showToast(message: '正在同步观看记录');
       var webDav = WebDav();
       try {
-        await webDav.ping();
+        if (!webDav.isHistorySyncing) {
+          await webDav.ping();
+        }
         try {
           await webDav.syncHistory();
           KazumiLogger().i('WebDav: manual history sync completed');
@@ -155,7 +157,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
-                    await Modular.to.pushNamed('/settings/bangumi/');
+                    await context.pushNamed('/settings/bangumi/');
                     bangumiSyncEnable =
                         GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
                     setState(() {});
@@ -232,7 +234,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
-                    Modular.to.pushNamed('/settings/webdav/editor');
+                    context.pushNamed('/settings/webdav/editor');
                   },
                   title: Text('WEBDAV配置',
                       style: TextStyle(fontFamily: fontFamily)),

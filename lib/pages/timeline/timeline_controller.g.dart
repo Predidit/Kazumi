@@ -142,6 +142,23 @@ mixin _$TimelineController on _TimelineController, Store {
     });
   }
 
+  late final _$getSchedulesAsyncAction =
+      AsyncAction('_TimelineController.getSchedules', context: context);
+
+  @override
+  Future<void> getSchedules() {
+    return _$getSchedulesAsyncAction.run(() => super.getSchedules());
+  }
+
+  late final _$getSchedulesBySeasonAsyncAction =
+      AsyncAction('_TimelineController.getSchedulesBySeason', context: context);
+
+  @override
+  Future<void> getSchedulesBySeason() {
+    return _$getSchedulesBySeasonAsyncAction
+        .run(() => super.getSchedulesBySeason());
+  }
+
   late final _$setNotShowAbandonedBangumisAsyncAction = AsyncAction(
       '_TimelineController.setNotShowAbandonedBangumis',
       context: context);
@@ -170,6 +187,20 @@ mixin _$TimelineController on _TimelineController, Store {
   Future<void> setOnlyShowWatchingBangumis(bool value) {
     return _$setOnlyShowWatchingBangumisAsyncAction
         .run(() => super.setOnlyShowWatchingBangumis(value));
+  }
+
+  late final _$_TimelineControllerActionController =
+      ActionController(name: '_TimelineController', context: context);
+
+  @override
+  void changeSortType(int type) {
+    final _$actionInfo = _$_TimelineControllerActionController.startAction(
+        name: '_TimelineController.changeSortType');
+    try {
+      return super.changeSortType(type);
+    } finally {
+      _$_TimelineControllerActionController.endAction(_$actionInfo);
+    }
   }
 
   @override

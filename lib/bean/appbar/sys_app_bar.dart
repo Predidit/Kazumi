@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:window_manager/window_manager.dart';
@@ -80,12 +81,12 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
                 requireOffset: needTopOffset,
                 child: leading!,
               )
-            : Navigator.canPop(context)
+            : (ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
                 ? EmbeddedNativeControlArea(
                     requireOffset: needTopOffset,
                     child: IconButton(
                       onPressed: () {
-                        Navigator.maybePop(context);
+                        context.maybePop();
                       },
                       icon: Icon(Icons.arrow_back),
                     ),

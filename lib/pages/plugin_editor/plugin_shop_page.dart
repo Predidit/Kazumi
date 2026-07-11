@@ -1,27 +1,35 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class PluginShopPage extends StatefulWidget {
-  const PluginShopPage({super.key});
+  const PluginShopPage({
+    super.key,
+    required this.controller,
+  });
+
+  final PluginsController controller;
 
   @override
   State<PluginShopPage> createState() => _PluginShopPageState();
 }
 
 class _PluginShopPageState extends State<PluginShopPage> {
-  bool timeout = false;
-  bool loading = false;
+  bool loadFailed = false;
+  bool loading = true;
   late bool enableGitProxy;
 
   // 排序方式状态：false=按更新时间排序，true=按名称排序
   bool sortByName = false;
-  final PluginsController pluginsController = Modular.get<PluginsController>();
+  PluginsController get pluginsController => widget.controller;
 
   void onBackPressed(BuildContext context) {
     if (KazumiDialog.observer.hasKazumiDialog) {
@@ -34,27 +42,43 @@ class _PluginShopPageState extends State<PluginShopPage> {
   void initState() {
     super.initState();
     enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
+    if (pluginsController.isPluginCatalogFresh) {
+      loading = false;
+    } else {
+      unawaited(_loadPluginCatalog());
+    }
+  }
+
+  Future<void> _loadPluginCatalog({bool forceRefresh = false}) async {
+    try {
+      if (forceRefresh) {
+        await pluginsController.refreshPluginCatalog();
+      } else {
+        await pluginsController.ensurePluginCatalog();
+      }
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        loadFailed = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        loadFailed = true;
+      });
+    }
   }
 
   // 刷新规则列表
-  void _handleRefresh() async {
-    if (!loading) {
-      setState(() {
-        loading = true;
-        timeout = false;
-      });
+  void _handleRefresh() {
+    if (loading) return;
+    setState(() {
+      loading = true;
+      loadFailed = false;
       enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
-      pluginsController.queryPluginHTTPList().then((_) {
-        setState(() {
-          loading = false;
-        });
-        if (pluginsController.pluginHTTPList.isEmpty) {
-          setState(() {
-            timeout = true;
-          });
-        }
-      });
-    }
+    });
+    unawaited(_loadPluginCatalog(forceRefresh: true));
   }
 
   // 切换排序方式
@@ -67,7 +91,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
   Widget get pluginHTTPListBody {
     return Observer(builder: (context) {
       // 创建列表副本用于排序
-      var sortedList = List.from(pluginsController.pluginHTTPList);
+      final sortedList = pluginsController.pluginHTTPList.toList();
 
       // 排序规则：
       // 1. 按名称排序：忽略大小写的字母顺序
@@ -82,13 +106,15 @@ class _PluginShopPageState extends State<PluginShopPage> {
       return ListView.builder(
         itemCount: sortedList.length,
         itemBuilder: (context, index) {
+          final item = sortedList[index];
+          final status = pluginsController.pluginStatus(item);
           return Card(
             margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: ListTile(
                 title: Row(
                   children: [
                     Text(
-                      sortedList[index].name,
+                      item.name,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -106,28 +132,12 @@ class _PluginShopPageState extends State<PluginShopPage> {
                             borderRadius: BorderRadius.circular(16.0),
                           ),
                           child: Text(
-                            sortedList[index].version,
+                            item.version,
                             style: TextStyle(
                                 color: Theme.of(context).colorScheme.surface),
                           ),
                         ),
-                        const SizedBox(width: 5),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8.0, vertical: 1.0),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(16.0),
-                          ),
-                          child: Text(
-                            sortedList[index].useNativePlayer
-                                ? "native"
-                                : "webview",
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.surface),
-                          ),
-                        ),
-                        if (sortedList[index].antiCrawlerEnabled) ...[
+                        if (item.antiCrawlerEnabled) ...[
                           const SizedBox(width: 5),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -146,56 +156,36 @@ class _PluginShopPageState extends State<PluginShopPage> {
                         ],
                       ],
                     ),
-                    if (sortedList[index].lastUpdate > 0) ...[
+                    if (item.lastUpdate > 0) ...[
                       const SizedBox(height: 4),
                       Text(
-                        '更新时间: ${DateTime.fromMillisecondsSinceEpoch(sortedList[index].lastUpdate).toString().split('.')[0]}',
+                        '更新时间: ${DateTime.fromMillisecondsSinceEpoch(item.lastUpdate).toString().split('.')[0]}',
                         style: const TextStyle(color: Colors.grey),
                       ),
                     ],
                   ],
                 ),
                 trailing: TextButton(
-                  onPressed: () async {
-                    if (pluginsController.pluginStatus(sortedList[index]) ==
-                        'install') {
-                      KazumiDialog.showToast(message: '导入中');
-                      int res = await pluginsController
-                          .tryUpdatePluginByName(sortedList[index].name);
-                      if (res == 0) {
-                        KazumiDialog.showToast(message: '导入成功');
-                        setState(() {});
-                      } else if (res == 1) {
-                        KazumiDialog.showToast(
-                            message: 'kazumi版本过低, 此规则不兼容当前版本');
-                      } else if (res == 2) {
-                        KazumiDialog.showToast(message: '导入规则失败');
-                      }
-                    }
-                    if (pluginsController.pluginStatus(sortedList[index]) ==
-                        'update') {
-                      KazumiDialog.showToast(message: '更新中');
-                      int res = await pluginsController
-                          .tryUpdatePluginByName(sortedList[index].name);
-                      if (res == 0) {
-                        KazumiDialog.showToast(message: '更新成功');
-                        setState(() {});
-                      } else if (res == 1) {
-                        KazumiDialog.showToast(
-                            message: 'kazumi版本过低, 此规则不兼容当前版本');
-                      } else if (res == 2) {
-                        KazumiDialog.showToast(message: '更新规则失败');
-                      }
-                    }
-                  },
-                  child: Text(pluginsController
-                              .pluginStatus(sortedList[index]) ==
-                          'install'
-                      ? '安装'
-                      : (pluginsController.pluginStatus(sortedList[index]) ==
-                              'installed')
-                          ? '已安装'
-                          : '更新'),
+                  onPressed: status == PluginCatalogItemStatus.installed
+                      ? null
+                      : () async {
+                          final result = await updatePluginWithFeedback(
+                            pluginsController,
+                            item.name,
+                            installing:
+                                status == PluginCatalogItemStatus.install,
+                          );
+                          if (result == PluginUpdateResult.updated && mounted) {
+                            setState(() {});
+                          }
+                        },
+                  child: Text(
+                    switch (status) {
+                      PluginCatalogItemStatus.install => '安装',
+                      PluginCatalogItemStatus.installed => '已安装',
+                      PluginCatalogItemStatus.update => '更新',
+                    },
+                  ),
                 )),
           );
         },
@@ -203,7 +193,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
     });
   }
 
-  Widget get timeoutWidget {
+  Widget get loadErrorWidget {
     return Center(
       child: GeneralErrorWidget(
         errMsg:
@@ -211,7 +201,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
         actions: [
           GeneralErrorButton(
             onPressed: () {
-              Modular.to.pushNamed('/settings/webdav/');
+              context.pushNamed('/settings/webdav/');
             },
             text: enableGitProxy ? '禁用规则镜像' : '启用规则镜像',
           ),
@@ -228,7 +218,6 @@ class _PluginShopPageState extends State<PluginShopPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -255,10 +244,12 @@ class _PluginShopPageState extends State<PluginShopPage> {
           ],
         ),
         body: loading
-            ? (const Center(child: CircularProgressIndicator()))
-            : (pluginsController.pluginHTTPList.isEmpty
-                ? timeoutWidget
-                : pluginHTTPListBody),
+            ? const Center(child: CircularProgressIndicator())
+            : loadFailed
+                ? loadErrorWidget
+                : pluginsController.pluginHTTPList.isEmpty
+                    ? const Center(child: Text('规则仓库中暂无规则'))
+                    : pluginHTTPListBody,
       ),
     );
   }

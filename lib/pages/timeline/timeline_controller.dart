@@ -1,4 +1,3 @@
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/anime_season.dart';
@@ -12,7 +11,9 @@ part 'timeline_controller.g.dart';
 class TimelineController = _TimelineController with _$TimelineController;
 
 abstract class _TimelineController with Store {
-  final _collectRepository = Modular.get<ICollectRepository>();
+  _TimelineController(this._collectRepository);
+
+  final ICollectRepository _collectRepository;
 
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =
@@ -39,19 +40,24 @@ abstract class _TimelineController with Store {
   late bool onlyShowWatchingBangumis =
       _collectRepository.getTimelineOnlyShowWatchingBangumis();
 
-  int sortType = 3;
+  int _sortType = 3;
+  int get sortType => _sortType;
 
-  late DateTime selectedDate;
+  late DateTime _selectedDate;
+  DateTime get selectedDate => _selectedDate;
 
   bool get _bangumiMirrorEnabled =>
       GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 
   void init() {
-    selectedDate = DateTime.now();
-    seasonString = AnimeSeason(selectedDate).toString();
+    _selectedDate = DateTime.now();
+    seasonString = AnimeSeason(_selectedDate).toString();
     getSchedules();
   }
 
+  // Async actions commit each segment between awaits as one transaction, so
+  // clear+addAll never shows observers an intermediate empty list.
+  @action
   Future<void> getSchedules() async {
     isLoading = true;
     isTimeOut = false;
@@ -64,6 +70,7 @@ abstract class _TimelineController with Store {
     isTimeOut = bangumiCalendar.isEmpty;
   }
 
+  @action
   Future<void> getSchedulesBySeason() async {
     if (_bangumiMirrorEnabled) {
       isLoading = true;
@@ -82,7 +89,6 @@ abstract class _TimelineController with Store {
       return;
     }
 
-    // 4次获取，每次最多20部
     isLoading = true;
     isTimeOut = false;
     bangumiCalendar.clear();
@@ -112,22 +118,20 @@ abstract class _TimelineController with Store {
   }
 
   void tryEnterSeason(DateTime date) {
-    selectedDate = date;
+    _selectedDate = date;
     seasonString = "加载中 ٩(◦`꒳´◦)۶";
   }
 
-  /// 排序方式
-  /// 1. default
-  /// 2. score
-  /// 3. heat
+  /// Sort type: 1 = default (id), 2 = score, 3 = heat (votes).
+  @action
   void changeSortType(int type) {
     if (type < 1 || type > 3) {
       return;
     }
-    sortType = type;
+    _sortType = type;
     var resBangumiCalendar = bangumiCalendar.toList();
     for (var dayList in resBangumiCalendar) {
-      switch (sortType) {
+      switch (_sortType) {
         case 1:
           dayList.sort((a, b) => a.id.compareTo(b.id));
           break;

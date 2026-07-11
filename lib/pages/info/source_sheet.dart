@@ -6,7 +6,9 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/video/video_playback_args.dart';
+import 'package:kazumi/services/plugin/rule_engine_models.dart'
+    show RuleCancelToken;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/services/plugin/plugin_search_service.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
@@ -33,10 +35,8 @@ class SourceSheet extends StatefulWidget {
 
 class _SourceSheetState extends State<SourceSheet>
     with SingleTickerProviderStateMixin {
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
-  final CollectController collectController = Modular.get<CollectController>();
-  final PluginsController pluginsController = Modular.get<PluginsController>();
+  final CollectController collectController = inject<CollectController>();
+  final PluginsController pluginsController = inject<PluginsController>();
   late String keyword;
 
   /// Concurrent plugin search service.
@@ -53,8 +53,10 @@ class _SourceSheetState extends State<SourceSheet>
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
-    pluginSearchService =
-        PluginSearchService(infoController: widget.infoController);
+    pluginSearchService = PluginSearchService(
+      infoController: widget.infoController,
+      pluginsController: pluginsController,
+    );
     pluginSearchService?.queryAllSource(keyword);
     super.initState();
   }
@@ -70,7 +72,6 @@ class _SourceSheetState extends State<SourceSheet>
     super.dispose();
   }
 
-  /// 根据插件的验证类型分发到对应的验证对话框
   void showAntiCrawlerDialog(Plugin plugin) {
     switch (plugin.antiCrawlerConfig.captchaType) {
       case CaptchaType.customJavaScript:
@@ -344,7 +345,8 @@ class _SourceSheetState extends State<SourceSheet>
     );
   }
 
-  /// 构建结果列表底部补充检索入口，便于已有结果不准确时换用别名或手动检索关键词
+  /// Fallback search entry under the result list, for when the default
+  /// keyword produced inaccurate matches.
   Widget showSupplementarySearchEntry(String pluginName) {
     return SafeArea(
       top: false,
@@ -373,8 +375,8 @@ class _SourceSheetState extends State<SourceSheet>
                   TextButton(
                     style: TextButton.styleFrom(
                       minimumSize: Size.zero,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 10),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
                       textStyle: Theme.of(context).textTheme.bodySmall,
@@ -385,8 +387,8 @@ class _SourceSheetState extends State<SourceSheet>
                   TextButton(
                     style: TextButton.styleFrom(
                       minimumSize: Size.zero,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 10),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
                       textStyle: Theme.of(context).textTheme.bodySmall,
@@ -535,11 +537,16 @@ class _SourceSheetState extends State<SourceSheet>
                 IconButton(
                   onPressed: () {
                     int currentIndex = widget.tabController.index;
+                    final currentPlugin =
+                        pluginsController.pluginList[currentIndex];
+                    final targetUrl = currentPlugin.usesApiSearch
+                        ? currentPlugin.baseUrl
+                        : currentPlugin.searchURL.replaceFirst(
+                            '@keyword',
+                            Uri.encodeQueryComponent(keyword),
+                          );
                     launchUrl(
-                      Uri.parse(pluginsController
-                          .pluginList[currentIndex].searchURL
-                          .replaceFirst(
-                              '@keyword', Uri.encodeQueryComponent(keyword))),
+                      Uri.parse(targetUrl),
                       mode: LaunchMode.externalApplication,
                     );
                   },
@@ -569,23 +576,34 @@ class _SourceSheetState extends State<SourceSheet>
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () async {
+                                  final cancelToken = RuleCancelToken();
                                   KazumiDialog.showLoading(
                                     msg: '获取中',
                                     barrierDismissible: isDesktop(),
-                                    onDismiss: () {
-                                      videoPageController.cancelQueryRoads();
-                                    },
+                                    onDismiss: cancelToken.cancel,
                                   );
-                                  videoPageController.bangumiItem =
-                                      widget.infoController.bangumiItem;
-                                  videoPageController.currentPlugin = plugin;
-                                  videoPageController.title = searchItem.name;
-                                  videoPageController.src = searchItem.src;
                                   try {
-                                    await videoPageController.queryRoads(
-                                        searchItem.src, plugin.name);
+                                    final roads =
+                                        await plugin.queryChapterRoads(
+                                      searchItem.src,
+                                      cancelToken: cancelToken,
+                                    );
+                                    if (roads.isEmpty) {
+                                      throw ChapterErrorException(plugin.name);
+                                    }
                                     KazumiDialog.dismiss();
-                                    Modular.to.pushNamed('/video/');
+                                    if (!mounted) return;
+                                    this.context.pushNamed(
+                                      '/video/',
+                                      arguments: OnlineVideoPlaybackArgs(
+                                        bangumiItem: widget
+                                            .infoController.bangumiItem,
+                                        plugin: plugin,
+                                        title: searchItem.name,
+                                        src: searchItem.src,
+                                        roads: roads,
+                                      ),
+                                    );
                                   } catch (_) {
                                     KazumiLogger().w(
                                         "PluginSearchService: failed to query video playlist");

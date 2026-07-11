@@ -1,4 +1,3 @@
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/history_repository.dart';
@@ -9,7 +8,9 @@ part 'history_controller.g.dart';
 class HistoryController = _HistoryController with _$HistoryController;
 
 abstract class _HistoryController with Store {
-  final _historyRepository = Modular.get<IHistoryRepository>();
+  _HistoryController(this._historyRepository);
+
+  final IHistoryRepository _historyRepository;
 
   @observable
   ObservableList<History> histories = ObservableList<History>();
@@ -21,42 +22,46 @@ abstract class _HistoryController with Store {
   }
 
   Future<void> updateHistory(
-      int episode,
-      int road,
-      String adapterName,
-      BangumiItem bangumiItem,
-      Duration progress,
-      String lastSrc,
-      String lastWatchEpisodeName) async {
+    PlaybackHistoryIdentity identity,
+    Duration progress, {
+    Duration duration = Duration.zero,
+  }) async {
     await _historyRepository.updateHistory(
-      episode: episode,
-      road: road,
-      adapterName: adapterName,
-      bangumiItem: bangumiItem,
+      identity: identity,
       progress: progress,
-      lastSrc: lastSrc,
-      lastWatchEpisodeName: lastWatchEpisodeName,
+      duration: duration,
     );
     init();
   }
 
-  Progress? lastWatching(BangumiItem bangumiItem, String adapterName) {
-    return _historyRepository.getLastWatchingProgress(bangumiItem, adapterName);
+  Progress? lastWatching(
+    BangumiItem bangumiItem,
+    String adapterName, {
+    String entryKind = HistoryEntryKind.online,
+  }) {
+    return _historyRepository.getLastWatchingProgress(
+      bangumiItem,
+      adapterName,
+      entryKind: entryKind,
+    );
   }
 
   Progress? findProgress(
-      BangumiItem bangumiItem, String adapterName, int episode) {
-    return _historyRepository.findProgress(bangumiItem, adapterName, episode);
+    BangumiItem bangumiItem,
+    String adapterName,
+    int episode, {
+    String entryKind = HistoryEntryKind.online,
+  }) {
+    return _historyRepository.findProgress(
+      bangumiItem,
+      adapterName,
+      episode,
+      entryKind: entryKind,
+    );
   }
 
   Future<void> deleteHistory(History history) async {
     await _historyRepository.deleteHistory(history);
-    init();
-  }
-
-  Future<void> clearProgress(
-      BangumiItem bangumiItem, String adapterName, int episode) async {
-    await _historyRepository.clearProgress(bangumiItem, adapterName, episode);
     init();
   }
 

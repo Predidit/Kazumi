@@ -30,15 +30,12 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
         );
       }
 
-      return Video(
+      final aspectRatioMode = playerController.panel.aspectRatioMode;
+      final video = Video(
         controller: playerController.playback.videoController!,
         controls: NoVideoControls,
         pauseUponEnteringBackgroundMode: false,
-        fit: playerController.panel.aspectRatioType == 1
-            ? BoxFit.contain
-            : playerController.panel.aspectRatioType == 2
-                ? BoxFit.cover
-                : BoxFit.fill,
+        fit: aspectRatioMode.fit,
         subtitleViewConfiguration: SubtitleViewConfiguration(
           style: TextStyle(
             color: Colors.pink,
@@ -62,6 +59,15 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
           textAlign: TextAlign.center,
           padding: const EdgeInsets.all(24.0),
         ),
+      );
+
+      final frameAspectRatio = aspectRatioMode.frameAspectRatio;
+      if (frameAspectRatio == null) {
+        return video;
+      }
+      return AspectRatio(
+        aspectRatio: frameAspectRatio,
+        child: video,
       );
     });
   }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/io.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class NetworkConfig {
@@ -32,6 +33,8 @@ class NetworkConfig {
         final client = HttpClient();
         if (hasProxy) {
           client.findProxy = (_) => 'PROXY $proxyHost:$proxyPort';
+        } else if (Platform.isWindows) {
+          client.findProxy = SystemProxyService.findProxy;
         }
         if (allowBadCertificates) {
           client.badCertificateCallback = (cert, host, port) => true;

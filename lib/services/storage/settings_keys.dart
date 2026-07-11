@@ -60,6 +60,11 @@ class SettingsKeys {
     true,
     group: SettingGroup.update,
   );
+  static const checkPluginUpdateOnStartup = SettingKey<bool>(
+    'checkPluginUpdateOnStartup',
+    true,
+    group: SettingGroup.update,
+  );
   static const alwaysOntop = SettingKey<bool>(
     _SettingBoxKey.alwaysOntop,
     false,
@@ -341,13 +346,13 @@ class SettingsKeys {
     false,
     group: SettingGroup.player,
   );
-  static const defaultSuperResolutionType = SettingKey<int>(
-    _SettingBoxKey.defaultSuperResolutionType,
+  static const defaultSuperResolutionMode = SettingKey<int>(
+    _SettingBoxKey.defaultSuperResolutionMode,
     1,
     group: SettingGroup.player,
   );
-  static const superResolutionWarn = SettingKey<bool>(
-    _SettingBoxKey.superResolutionWarn,
+  static const disableSuperResolutionWarning = SettingKey<bool>(
+    _SettingBoxKey.disableSuperResolutionWarning,
     false,
     group: SettingGroup.player,
   );
@@ -416,6 +421,11 @@ class SettingsKeys {
     true,
     group: SettingGroup.interface,
   );
+  static const showAnimeCounter = SettingKey<bool>(
+    _SettingBoxKey.showAnimeCounter,
+    false,
+    group: SettingGroup.interface,
+  );
   static const downloadParallelEpisodes = SettingKey<int>(
     _SettingBoxKey.downloadParallelEpisodes,
     2,
@@ -476,18 +486,33 @@ class SettingsKeys {
     false,
     group: SettingGroup.sync,
   );
+  static const playerControllerLayerDisappearTime = SettingKey<int>(
+    'playerControllerLayerDisappearTime',
+    4000,
+    group: SettingGroup.player,
+  );
+  static const defaultVolume = SettingKey<double>(
+    'defaultVolume',
+    100.0,
+    group: SettingGroup.player,
+  );
+  static const playerMuted = SettingKey<bool>(
+    'playerMuted',
+    false,
+    group: SettingGroup.player,
+  );
   static const hostApiEnable = SettingKey<bool>(
-    _SettingBoxKey.hostApiEnable,
+    'hostApiEnable',
     false,
     group: SettingGroup.misc,
   );
   static const hostApiPort = SettingKey<int>(
-    _SettingBoxKey.hostApiPort,
+    'hostApiPort',
     21327,
     group: SettingGroup.misc,
   );
   static const hostApiToken = SettingKey<String>(
-    _SettingBoxKey.hostApiToken,
+    'hostApiToken',
     '',
     group: SettingGroup.misc,
   );
@@ -497,6 +522,7 @@ class SettingsKeys {
     hardwareDecoder,
     searchEnhanceEnable,
     autoUpdate,
+    checkPluginUpdateOnStartup,
     alwaysOntop,
     defaultPlaySpeed,
     defaultShortcutForwardPlaySpeed,
@@ -553,8 +579,8 @@ class SettingsKeys {
     androidEnableOpenSLES,
     androidVideoRenderer,
     androidAutoEnterPIP,
-    defaultSuperResolutionType,
-    superResolutionWarn,
+    defaultSuperResolutionMode,
+    disableSuperResolutionWarning,
     playerDisableAnimations,
     playerLogLevel,
     timelineNotShowAbandonedBangumis,
@@ -568,6 +594,7 @@ class SettingsKeys {
     proxyUrl,
     proxyTestUrl,
     showRating,
+    showAnimeCounter,
     downloadParallelEpisodes,
     downloadParallelSegments,
     downloadDanmaku,
@@ -580,6 +607,9 @@ class SettingsKeys {
     historySyncDeviceId,
     historySyncSequence,
     historySyncSnapshotInitialized,
+    playerControllerLayerDisappearTime,
+    defaultVolume,
+    playerMuted,
     hostApiEnable,
     hostApiPort,
     hostApiToken,
@@ -662,8 +692,8 @@ class _SettingBoxKey {
       androidEnableOpenSLES = 'androidEnableOpenSLES',
       androidVideoRenderer = 'androidVideoRenderer',
       androidAutoEnterPIP = 'androidAutoEnterPIP',
-      defaultSuperResolutionType = 'defaultSuperResolutionType',
-      superResolutionWarn = 'superResolutionWarn',
+      defaultSuperResolutionMode = 'defaultSuperResolutionType',
+      disableSuperResolutionWarning = 'superResolutionWarn',
       playerDisableAnimations = 'playerDisableAnimations',
       playerLogLevel = 'playerLogLevel',
       timelineNotShowAbandonedBangumis = 'timelineNotShowAbandonedBangumis',
@@ -677,6 +707,7 @@ class _SettingBoxKey {
       proxyUrl = 'proxyUrl',
       proxyTestUrl = 'proxyTestUrl',
       showRating = 'showRating',
+      showAnimeCounter = 'showAnimeCounter',
       downloadParallelEpisodes = 'downloadParallelEpisodes',
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',
@@ -688,8 +719,5 @@ class _SettingBoxKey {
       brightnessVolumeGesture = 'brightnessVolumeGesture',
       historySyncDeviceId = 'historySyncDeviceId',
       historySyncSequence = 'historySyncSequence',
-      historySyncSnapshotInitialized = 'historySyncSnapshotInitialized',
-      hostApiEnable = 'hostApiEnable',
-      hostApiPort = 'hostApiPort',
-      hostApiToken = 'hostApiToken';
+      historySyncSnapshotInitialized = 'historySyncSnapshotInitialized';
 }

@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -10,8 +9,6 @@ part 'popular_controller.g.dart';
 class PopularController = _PopularController with _$PopularController;
 
 abstract class _PopularController with Store {
-  final ScrollController scrollController = ScrollController();
-
   @observable
   String currentTag = '';
 
@@ -40,6 +37,9 @@ abstract class _PopularController with Store {
     bangumiList.clear();
   }
 
+  // Async actions commit each segment between awaits as one transaction,
+  // batching the completion writes into a single notification.
+  @action
   Future<void> queryBangumiByTrend({String type = 'add'}) async {
     if (type == 'init') {
       trendList.clear();
@@ -54,6 +54,7 @@ abstract class _PopularController with Store {
     isTimeOut = trendList.isEmpty;
   }
 
+  @action
   Future<void> queryBangumiByTag({String type = 'add'}) async {
     if (type == 'init') {
       bangumiList.clear();

@@ -16,11 +16,11 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.1.5+20105
+version: 2.2.0+20200
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.44.1
+  flutter: 3.44.5
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -37,7 +37,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
-  flutter_modular: ^6.3.4
+  flutter_modular: ^7.1.0
   mobx: ^2.6.0
   flutter_mobx: ^2.3.0
   dio: ^5.0.0
@@ -72,13 +72,13 @@ dependencies:
       ref: 8ad650c6eb487208b9861d44755c8e58db061c88
   audio_session: ^0.2.2
   dynamic_color: ^1.8.1
-  provider: ^6.1.2
   flutter_displaymode: ^0.6.0
 
   url_launcher: ^6.3.0
   window_manager: ^0.5.1
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1
+  json_path: ^0.9.0
 
   canvas_danmaku: ^0.3.1
   webdav_client: ^1.2.2
@@ -108,6 +108,8 @@ dependencies:
   material_color_utilities: any
   path: any
   photo_view: ^0.15.0
+  win32: ^5.15.0
+  ffi: ^2.1.0
   image_picker: ^1.2.1
   webview_windows:
     git:
@@ -120,52 +122,54 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 11f72195b4b1298ad5a96b56fe66be63b39e0797
+      ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 11f72195b4b1298ad5a96b56fe66be63b39e0797
+      ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./media_kit_video
   media_kit_libs_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 11f72195b4b1298ad5a96b56fe66be63b39e0797
+      ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./libs/universal/media_kit_libs_video
 
 dependency_overrides:
   media_kit_libs_linux:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 11f72195b4b1298ad5a96b56fe66be63b39e0797
+      ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./libs/linux/media_kit_libs_linux
   media_kit_libs_ios_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 11f72195b4b1298ad5a96b56fe66be63b39e0797
+      ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 11f72195b4b1298ad5a96b56fe66be63b39e0797
+      ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./libs/android/media_kit_libs_android_video
   media_kit_libs_windows_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 11f72195b4b1298ad5a96b56fe66be63b39e0797
+      ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./libs/windows/media_kit_libs_windows_video
   media_kit_libs_macos_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 11f72195b4b1298ad5a96b56fe66be63b39e0797
+      ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./libs/macos/media_kit_libs_macos_video
   media_kit_libs_ohos:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 11f72195b4b1298ad5a96b56fe66be63b39e0797
+      ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./libs/ohos/media_kit_libs_ohos
 
 dev_dependencies:
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
   flutter_test:
     sdk: flutter
 

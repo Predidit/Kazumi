@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
+import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
+import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -13,7 +15,6 @@ import 'package:flutter/services.dart';
 import 'package:kazumi/services/player/remote.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
@@ -25,12 +26,13 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   const SmallestPlayerItemPanel({
     super.key,
     required this.playerController,
+    required this.videoPageController,
     required this.onBackPressed,
     required this.setPlaybackSpeed,
     required this.showDanmakuSwitch,
     required this.handleFullscreen,
     required this.handleProgressBarDragStart,
-    required this.handleProgressBarDragEnd,
+    required this.handleProgressBarSeek,
     required this.handleSuperResolutionChange,
     required this.panelVisibilityController,
     required this.keyboardFocus,
@@ -45,15 +47,17 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   });
 
   final PlayerController playerController;
+  final VideoPageController videoPageController;
   final void Function(BuildContext) onBackPressed;
   final Future<void> Function(double) setPlaybackSpeed;
   final void Function() showDanmakuSwitch;
   final void Function() handleDanmaku;
   final void Function() skipOP;
   final void Function() handleFullscreen;
-  final void Function(ThumbDragDetails details) handleProgressBarDragStart;
-  final void Function() handleProgressBarDragEnd;
-  final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
+  final VoidCallback handleProgressBarDragStart;
+  final Future<void> Function(Duration duration) handleProgressBarSeek;
+  final Future<void> Function(SuperResolutionMode mode)
+      handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
   final FocusNode keyboardFocus;
   final PlayerPanelHold Function() acquirePlayerPanelHold;
@@ -69,28 +73,18 @@ class SmallestPlayerItemPanel extends StatefulWidget {
 }
 
 class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
-  late bool haEnable;
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
-  late Animation<Offset> leftOffsetAnimation;
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
+  late final VideoPageController videoPageController =
+      widget.videoPageController;
   late final PlayerController playerController;
-  final TextEditingController textController = TextEditingController();
 
-  // SVG Caches
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
   Widget? cachedDanmakuOffIcon;
 
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
-
-  @override
-  void dispose() {
-    textController.dispose();
-    super.dispose();
-  }
 
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
@@ -101,11 +95,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             builder: (BuildContext context, StateSetter setState) {
           return TextField(
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly, // 只允许输入数字
+              FilteringTextInputFormatter.digitsOnly,
             ],
             decoration: InputDecoration(
-              floatingLabelBehavior:
-                  FloatingLabelBehavior.never, // 控制label的显示方式
+              floatingLabelBehavior: FloatingLabelBehavior.never,
               labelText: playerController.playback.buttonSkipTime.toString(),
             ),
             onChanged: (value) {
@@ -155,14 +148,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       parent: widget.panelVisibilityController,
       curve: Curves.easeInOut,
     ));
-    leftOffsetAnimation = Tween<Offset>(
-      begin: const Offset(1.0, 0.0),
-      end: const Offset(0.0, 0.0),
-    ).animate(CurvedAnimation(
-      parent: widget.panelVisibilityController,
-      curve: Curves.easeInOut,
-    ));
-    haEnable = GStorage.getSetting(SettingsKeys.hAenable);
     cacheSvgIcons();
   }
 
@@ -337,11 +322,19 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
         Positioned(
           top: 25,
           child: Observer(builder: (context) {
+            // PlayerSeekHud latches values only while visible, so skipping the
+            // position reads when hidden keeps the 1s tick from rebuilding this.
+            final visible = playerController.panel.showSeekTime;
             return PlayerSeekHud(
-              visible: playerController.panel.showSeekTime,
-              currentPosition: playerController.playback.currentPosition,
-              playerPosition: playerController.playback.playerPosition,
-              duration: playerController.playback.duration,
+              visible: visible,
+              currentPosition: visible
+                  ? playerController.playback.currentPosition
+                  : Duration.zero,
+              playerPosition: visible
+                  ? playerController.playback.playerPosition
+                  : Duration.zero,
+              duration:
+                  visible ? playerController.playback.duration : Duration.zero,
               direction: playerController.panel.seekDirection,
               disableAnimations: widget.disableAnimations,
             );
@@ -417,46 +410,45 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     return Row(
       children: [
         IconButton(
-          color: Colors.white,
-          icon: Icon(playerController.playback.playing
-              ? Icons.pause_rounded
-              : Icons.play_arrow_rounded),
+          icon: PlayPauseIcon(
+            iconColor: Colors.white,
+            playing: playerController.playback.playing,
+          ),
           tooltip: playerController.playback.playing ? '暂停' : '播放',
           onPressed: () {
             playerController.playOrPause();
           },
         ),
+        // Position reads stay inside these narrow Observers so the 1s progress
+        // tick rebuilds only the bar and time text, not the whole bottom bar.
         Expanded(
-          child: ProgressBar(
-            thumbRadius: 8,
-            thumbGlowRadius: 18,
-            timeLabelLocation: TimeLabelLocation.none,
-            progress: playerController.playback.currentPosition,
-            buffered: playerController.playback.buffer,
-            total: playerController.playback.duration,
-            onSeek: (duration) {
-              playerController.seek(duration);
-            },
-            onDragStart: (details) {
-              widget.handleProgressBarDragStart(details);
-            },
-            onDragUpdate: (details) =>
-                {playerController.playback.currentPosition = details.timeStamp},
-            onDragEnd: () {
-              widget.handleProgressBarDragEnd();
-            },
-          ),
+          child: Observer(builder: (context) {
+            return ProgressBar(
+              thumbRadius: 8,
+              thumbGlowRadius: 18,
+              timeLabelLocation: TimeLabelLocation.none,
+              progress: playerController.playback.currentPosition,
+              buffered: playerController.playback.buffer,
+              total: playerController.playback.duration,
+              onSeek: widget.handleProgressBarSeek,
+              onDragStart: (_) => widget.handleProgressBarDragStart(),
+              onDragUpdate: (details) => playerController.seeking
+                  .updateInteractiveSeek(details.timeStamp),
+            );
+          }),
         ),
-        Text(
-          "    ${durationToString(playerController.playback.currentPosition)} / ${durationToString(playerController.playback.duration)}",
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12.0,
-            fontFeatures: [
-              FontFeature.tabularFigures(),
-            ],
-          ),
-        ),
+        Observer(builder: (context) {
+          return Text(
+            "    ${durationToString(playerController.playback.currentPosition)} / ${durationToString(playerController.playback.duration)}",
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12.0,
+              fontFeatures: [
+                FontFeature.tabularFigures(),
+              ],
+            ),
+          );
+        }),
         (!videoPageController.isPip)
             ? IconButton(
                 color: Colors.white,
@@ -485,11 +477,9 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
               widget.onBackPressed(context);
             },
           ),
-          // 拖动条
           const Expanded(
             child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
           ),
-          // 跳过
           forwardIcon(),
           if (isDesktop() || Platform.isAndroid)
             IconButton(
@@ -498,7 +488,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     if (videoPageController.isPip) {
                       await PipUtils.exitDesktopPIPWindow();
                     } else {
-                      // 进入画中画时使用播放源比例，避免窗口比例与视频比例不一致产生黑边
+                      // Size the PiP window to the video aspect ratio to
+                      // avoid letterboxing.
                       await PipUtils.enterDesktopPIPWindow(
                         width: playerController.debug.playerWidth,
                         height: playerController.debug.playerHeight,
@@ -529,9 +520,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                 tooltip: '画中画',
                 icon:
                     const Icon(Icons.picture_in_picture, color: Colors.white)),
-          // 弹幕开关
           _buildDanmakuToggleButton(context),
-          // 追番
           PlayerPanelHoldCollectButton(
             acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
             bangumiItem: videoPageController.bangumiItem,
@@ -558,32 +547,28 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             },
             menuChildren: [
               SubmenuButton(
-                menuChildren: List<MenuItemButton>.generate(
-                  3,
-                  (int index) => MenuItemButton(
-                    onPressed: () =>
-                        playerController.panel.aspectRatioType = index + 1,
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          index + 1 == 1
-                              ? '自动'
-                              : index + 1 == 2
-                                  ? '裁切填充'
-                                  : '拉伸填充',
-                          style: TextStyle(
-                              color: index + 1 ==
-                                      playerController.panel.aspectRatioType
-                                  ? Theme.of(context).colorScheme.primary
-                                  : null),
+                menuChildren: [
+                  for (final aspectRatioMode in PlayerAspectRatio.values)
+                    MenuItemButton(
+                      onPressed: () => playerController.panel.aspectRatioMode =
+                          aspectRatioMode,
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            aspectRatioMode.label,
+                            style: TextStyle(
+                                color: aspectRatioMode ==
+                                        playerController.panel.aspectRatioMode
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                ],
                 child: Container(
                   height: 48,
                   constraints: BoxConstraints(minWidth: 112),
@@ -629,34 +614,29 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                 ),
               ),
               SubmenuButton(
-                menuChildren: List<MenuItemButton>.generate(
-                  3,
-                  (int index) => MenuItemButton(
-                    onPressed: () =>
-                        widget.handleSuperResolutionChange(index + 1),
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          index + 1 == 1
-                              ? '关闭'
-                              : index + 1 == 2
-                                  ? '效率档'
-                                  : '质量档',
-                          style: TextStyle(
-                            color:
-                                playerController.playback.superResolutionType ==
-                                        index + 1
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
+                menuChildren: [
+                  for (final mode in SuperResolutionMode.values)
+                    MenuItemButton(
+                      onPressed: () => widget.handleSuperResolutionChange(mode),
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            mode.label,
+                            style: TextStyle(
+                              color: playerController
+                                          .playback.superResolutionMode ==
+                                      mode
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                ],
                 child: Container(
                   height: 48,
                   constraints: BoxConstraints(minWidth: 112),
@@ -754,25 +734,13 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
               ),
               MenuItemButton(
                 onPressed: () {
-                  showModalBottomSheet(
-                    isScrollControlled: true,
-                    constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-                        maxWidth: (isDesktop() || isTablet())
-                            ? MediaQuery.of(context).size.width * 9 / 16
-                            : MediaQuery.of(context).size.width),
-                    clipBehavior: Clip.antiAlias,
+                  showDanmakuSettingsSheet(
                     context: context,
-                    builder: (context) {
-                      return DanmakuSettingsSheet(
-                        danmakuController:
-                            playerController.danmaku.canvasController,
-                        onUpdateDanmakuSpeed:
-                            playerController.updateDanmakuSpeed,
-                        onTimelineOffsetChanged: playerController
-                            .danmaku.clearAndInvalidateScheduledDanmakus,
-                      );
-                    },
+                    danmakuController:
+                        playerController.danmaku.canvasController,
+                    onUpdateDanmakuSpeed: playerController.updateDanmakuSpeed,
+                    onTimelineOffsetChanged: playerController
+                        .danmaku.clearAndInvalidateScheduledDanmakus,
                   );
                 },
                 child: Container(
@@ -832,7 +800,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                   ),
                 ),
               ),
-              // 定时关闭
               SubmenuButton(
                 menuChildren: [
                   MenuItemButton(

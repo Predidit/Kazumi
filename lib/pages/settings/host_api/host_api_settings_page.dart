@@ -17,7 +17,7 @@ class HostApiSettingsPage extends StatefulWidget {
 }
 
 class _HostApiSettingsPageState extends State<HostApiSettingsPage> {
-  final HostApiController controller = Modular.get<HostApiController>();
+  final HostApiController controller = inject<HostApiController>();
   bool _tokenVisible = false;
 
   Future<void> _toggle(bool value) async {

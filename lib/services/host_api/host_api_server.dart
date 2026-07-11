@@ -254,7 +254,7 @@ class HostApiServer {
     }
 
     try {
-      final roads = await plugin.querychapterRoads(src);
+      final roads = await plugin.queryChapterRoads(src);
       return _json({
         'pluginName': plugin.name,
         'roads': roads
@@ -364,9 +364,22 @@ class HostApiServer {
   }
 
   // ====== History ======
-  IHistoryRepository get _historyRepo => Modular.get<IHistoryRepository>();
+  IHistoryRepository get _historyRepo => inject<IHistoryRepository>();
   ICollectCrudRepository get _collectRepo =>
-      Modular.get<ICollectCrudRepository>();
+      inject<ICollectCrudRepository>();
+
+  /// 按插件名 + bangumiId 查在线观看历史。走仓库遍历而非手拼 box 键，
+  /// 与 History 的存储键格式解耦（scoped key 与 legacy key 都能命中）。
+  History? _findOnlineHistory(String pluginName, int bangumiId) {
+    for (final h in _historyRepo.getAllHistories()) {
+      if (h.adapterName == pluginName &&
+          h.bangumiItem.id == bangumiId &&
+          HistoryEntryKind.normalize(h.entryKind) == HistoryEntryKind.online) {
+        return h;
+      }
+    }
+    return null;
+  }
 
   Response _handleGetHistory(Request request) {
     final bangumiId =
@@ -377,7 +390,7 @@ class HostApiServer {
       return _jsonError(400, 'invalid_params',
           'bangumiId and pluginName are required');
     }
-    final history = GStorage.histories.get('$pluginName$bangumiId');
+    final history = _findOnlineHistory(pluginName, bangumiId);
     if (history == null) {
       return _json({'history': null});
     }
@@ -422,13 +435,17 @@ class HostApiServer {
 
     try {
       await _historyRepo.updateHistory(
-        episode: episode,
-        road: road,
-        adapterName: pluginName,
-        bangumiItem: bangumi,
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: bangumi,
+          pluginName: pluginName,
+          episodeNumber: episode,
+          episodeTitle: episodeName,
+          road: road,
+          onlineBangumiSrc: lastSrc,
+          // 扩展的进度上报没有单集页面 URL；恢复播放时由扩展自行重新解析。
+          episodePageUrl: '',
+        ),
         progress: Duration(milliseconds: progressMs),
-        lastSrc: lastSrc,
-        lastWatchEpisodeName: episodeName,
       );
       return _json({'ok': true});
     } catch (e, st) {
@@ -447,7 +464,7 @@ class HostApiServer {
       return _jsonError(400, 'invalid_params',
           'bangumiId and pluginName are required');
     }
-    final history = GStorage.histories.get('$pluginName$bangumiId');
+    final history = _findOnlineHistory(pluginName, bangumiId);
     if (history == null) return _json({'ok': true});
     await _historyRepo.deleteHistory(history);
     return _json({'ok': true});
@@ -557,7 +574,7 @@ class HostApiServer {
   Future<BangumiItem?> _resolveBangumiItem(
       int bangumiId, String? pluginName) async {
     if (pluginName != null && pluginName.isNotEmpty) {
-      final existing = GStorage.histories.get('$pluginName$bangumiId');
+      final existing = _findOnlineHistory(pluginName, bangumiId);
       if (existing != null) return existing.bangumiItem;
     }
     final collected = _collectRepo.getCollectible(bangumiId);

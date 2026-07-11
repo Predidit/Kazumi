@@ -1,8 +1,21 @@
-# Kazumi
+<div align=center>
 
-[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/kazumi_app)
+  <h1>Kazumi</h1>
 
-使用 Flutter 开发的基于自定义规则的番剧采集与在线观看程序。使用最多五行基于 `Xpath` 语法的选择器构建自己的规则。支持规则导入与规则分享。支持基于 `Anime4K` 的实时超分辨率。绝赞开发中 (～￣▽￣)～
+  <img src="assets/images/logo/logo_rounded.png" width=200></img>
+
+  <a href="https://t.me/kazumi_app"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"></img></a>
+
+  <img src="https://img.shields.io/badge/Flutter-03A9F4?style=for-the-badge&logo=flutter&logoColor=white"></img>
+  <img src="https://img.shields.io/badge/Dart-00B4AB?style=for-the-badge&logo=Dart&logoColor=white"></img>
+
+  <a href="https://trendshift.io/repositories/11432"><img src="https://trendshift.io/api/badge/trendshift/repositories/11432/yearly?language=Dart"></img></a>
+  <a href="https://hellogithub.com/repository/Predidit/Kazumi" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=68d824ea55ee4b07aba6fe1dd61ac939&claim_uid=J9Qu6aDd8LT1nU0"/></img></a>
+  
+  <p>使用 Flutter 开发的基于自定义规则的番剧采集与在线观看程序。使用最多五行基于 <code>Xpath</code> 语法的选择器构建自己的规则。支持规则导入与规则分享。支持基于 <code>Anime4K</code> 的实时超分辨率。绝赞开发中 (～￣▽￣)～</p>
+</div>
+
+
 
 ## 支持平台
 
@@ -10,21 +23,21 @@
 - Windows 10 及以上
 - MacOS 10.15 及以上
 - Linux (实验性)
-- iOS 13 及以上 (需要[自签名](https://kazumi.app/docs/misc/how-to-install-in-ios.html))
-- HarmonyOS 5.0 及以上 (位于[分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要[侧载](https://kazumi.app/docs/misc/how-to-install-in-ohos.html))
+- iOS 13 及以上 (需要 [侧载](https://kazumi.app/docs/misc/how-to-install-in-ios.html))
+- HarmonyOS 5.0 及以上 (位于 [分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要 [侧载](https://kazumi.app/docs/misc/how-to-install-in-ohos.html))
 
 ## 屏幕截图 
 
 <table>
   <tr>
-    <td><img alt="" src="static/screenshot/img_1.png"></td>
-    <td><img alt="" src="static/screenshot/img_2.png"></td>
-    <td><img alt="" src="static/screenshot/img_3.png"></td>
+    <td><img alt="homepage" src="static/screenshot/img_1.png"></td>
+    <td><img alt="timetable" src="static/screenshot/img_2.png"></td>
+    <td><img alt="details" src="static/screenshot/img_3.png"></td>
   <tr>
   <tr>
-    <td><img alt="" src="static/screenshot/img_4.png"></td>
-    <td><img alt="" src="static/screenshot/img_5.png"></td>
-    <td><img alt="" src="static/screenshot/img_6.png"></td>
+    <td><img alt="selection-page" src="static/screenshot/img_4.png"></td>
+    <td><img alt="rules-mange" src="static/screenshot/img_5.png"></td>
+    <td><img alt="rules-edit" src="static/screenshot/img_6.png"></td>
   <tr>
 </table>
 
@@ -58,7 +71,7 @@
 
 ## 下载
 
-通过本页面 [releases](https://github.com/Predidit/Kazumi/releases) 选项卡下载：
+通过本页面 [Releases](https://github.com/Predidit/Kazumi/releases/latest) 选项卡下载：
 
 <a href="https://github.com/Predidit/Kazumi/releases">
   <img src="static/svg/get_it_on_github.svg" alt="Get it on Github" width="200"/>
@@ -67,14 +80,14 @@
 ### Android
 
 <a href="https://f-droid.org/packages/com.predidit.kazumi">
-  <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on-en-us.svg"
+  <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on-zh-hans.svg"
   alt="Get it on F-Droid" width="200">
 </a>
 
 ### GNU/Linux
 
 <a href="https://flathub.org/apps/io.github.Predidit.Kazumi">
-  <img src="https://flathub.org/api/badge?svg&locale=en" alt="Get it on Flathub" width="175"/>
+  <img src="https://flathub.org/api/badge?svg&locale=zh-Hans" alt="Get it on Flathub" width="175"/>
 </a>
 
 #### Arch Linux
@@ -96,7 +109,7 @@ sudo pacman -S kazumi
 
 ## 贡献
 
-欢迎向我们的 [规则仓库](https://github.com/Predidit/KazumiRules) 提交您的自定义规则。您可以自由选择是否在规则中留下您的ID
+欢迎向我们的 [规则仓库](https://github.com/Predidit/KazumiRules) 提交您的自定义规则。您可以自由选择是否在规则中留下您的ID。详细的规则编写教程可以参考 [规则开发文档](https://kazumi.app/docs/rules/develop-rules)
 
 ## Q&A
 
@@ -153,7 +166,7 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 
 此图标由其原作者 [Yuquanaaa](https://www.pixiv.net/users/66219277) 拥有版权。我们已获得原作者的授权和许可, 可以在本项目中使用这一图标。这一图标不是自由使用的, 未经原作者明确授权, 任何人不得擅自使用、复制、修改或分发这一图标。
 
-本项目内嵌字体为 [Mi Sans](https://hyperos.mi.com/font/en/details/sc/) 字体, 由 [Xiaomi](https://www.mi.com/) 开发和拥有版权。
+本项目内嵌字体为 [Mi Sans](https://hyperos.mi.com/font/zh/details/sc/) 字体, 由 [Xiaomi](https://www.mi.com/index.html) 开发和拥有版权。
 
 ## 免责声明
 
@@ -161,18 +174,20 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 
 使用本项目需遵守所在地法律法规, 不得进行任何侵犯第三方知识产权的行为。因使用本项目而产生的数据和缓存应在24小时内清除, 超出 24 小时的使用需获得相关权利人的授权。
 
-## 隐私政策 (Privacy policy)
+## 隐私政策
 
 我们不收集任何用户数据, 不使用任何遥测组件。
 
-## 代码签名策略 (Code signing policy)
-提交者: [Contributors](https://github.com/Predidit/Kazumi/graphs/contributors)
-审阅者: [Owner](https://github.com/Predidit)
+## 代码签名策略
+提交者: [贡献者](https://github.com/Predidit/Kazumi/graphs/contributors)
+审阅者: [所有者](https://github.com/Predidit)
 
-## 赞助 (Sponsors)
+## 赞助
+
 | ![signpath](https://signpath.org/assets/favicon-50x50.png) | Free code signing on Windows provided by [SignPath.io](https://about.signpath.io/), certficate by [SignPath Foundation](https://signpath.org/) |
 |------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| <img src="https://kilo.ai/favicon/apple-touch-icon.png" width="50" height="50"> | **Automatic PR review provided by [Kilo Code](https://kilo.ai/), sponsored by the [Kilo OSS Program](https://kilo.ai/oss)** |
+| <img src="https://kilo.ai/favicon/favicon.svg" width="50"> | **Automatic PR review provided by [Kilo Code](https://kilo.ai/), sponsored by the [Kilo OSS Program](https://kilo.ai/oss)** |
+| <a href="https://m.do.co/c/0062035db3e4"><img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_icon_blue.svg" width="50" height="50"></a> | **Cloud infrastructure is supported by [DigitalOcean](https://m.do.co/c/0062035db3e4)** |
 
 ## 致谢
 
@@ -185,6 +200,8 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 特别感谢 [Anime4K](https://github.com/bloc97/Anime4K) 本项目使用 Anime4K 进行实时超分。
 
 特别感谢 [SyncPlay](https://github.com/Syncplay/syncplay) 本项目使用 SyncPlay 协议并通过 SyncPlay 公共服务器实现一起看功能。
+
+特别感谢 [所有贡献者](https://github.com/Predidit/Kazumi/graphs/contributors) 本项目因为你们变得更好。
 
 特别感谢 [trace.moe](https://trace.moe) 本项目使用了 trace.moe 提供的图片识别番剧功能。
 

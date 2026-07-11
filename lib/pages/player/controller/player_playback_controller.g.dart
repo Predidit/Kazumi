@@ -9,19 +9,19 @@ part of 'player_playback_controller.dart';
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
 mixin _$PlayerPlaybackController on _PlayerPlaybackController, Store {
-  late final _$superResolutionTypeAtom = Atom(
-      name: '_PlayerPlaybackController.superResolutionType', context: context);
+  late final _$superResolutionModeAtom = Atom(
+      name: '_PlayerPlaybackController.superResolutionMode', context: context);
 
   @override
-  int get superResolutionType {
-    _$superResolutionTypeAtom.reportRead();
-    return super.superResolutionType;
+  SuperResolutionMode get superResolutionMode {
+    _$superResolutionModeAtom.reportRead();
+    return super.superResolutionMode;
   }
 
   @override
-  set superResolutionType(int value) {
-    _$superResolutionTypeAtom.reportWrite(value, super.superResolutionType, () {
-      super.superResolutionType = value;
+  set superResolutionMode(SuperResolutionMode value) {
+    _$superResolutionModeAtom.reportWrite(value, super.superResolutionMode, () {
+      super.superResolutionMode = value;
     });
   }
 
@@ -219,7 +219,7 @@ mixin _$PlayerPlaybackController on _PlayerPlaybackController, Store {
   @override
   String toString() {
     return '''
-superResolutionType: ${superResolutionType},
+superResolutionMode: ${superResolutionMode},
 volume: ${volume},
 loading: ${loading},
 playing: ${playing},

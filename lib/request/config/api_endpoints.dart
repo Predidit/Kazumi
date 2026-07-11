@@ -1,9 +1,9 @@
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.1.5';
+  static const String version = '2.2.0';
 
   /// 规则API级别
-  static const int apiLevel = 7;
+  static const int apiLevel = 8;
 
   /// 项目主页
   static const String projectUrl = "https://kazumi.app/";
@@ -18,12 +18,13 @@ class ApiEndpoints {
   static const String pluginShop =
       'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
 
+  /// 规则仓库镜像
+  static const String pluginShopMirror =
+      'https://raw.gitcode.com/gh_mirrors/ka/KazumiRules/raw/main/';
+
   /// 在线升级
   static const String latestApp =
       'https://api.github.com/repos/Predidit/Kazumi/releases/latest';
-
-  /// Github镜像
-  static const String gitMirror = 'https://ghfast.top/';
 
   /// Bangumi 镜像测试后端
   static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
@@ -38,8 +39,11 @@ class ApiEndpoints {
   /// Bangumi 官网
   static const String bangumiIndex = 'https://bangumi.tv/';
 
-  /// bangumi API Domain
+  /// bangumi API
   static const String bangumiAPIDomain = 'https://api.bgm.tv';
+
+  /// Bangumi 鉴权 API
+  static const String bangumiAuthAPIMirrorDomain = 'https://api.bgmapi.com';
 
   /// Telegram 群组
   static const String telegramGroup = 'https://t.me/kazumi_app';

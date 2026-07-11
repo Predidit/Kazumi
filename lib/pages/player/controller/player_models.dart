@@ -5,6 +5,11 @@ class PlaybackInitParams {
   final int bangumiId;
   final String pluginName;
   final int episode;
+  final int danmakuEpisodeNumber;
+  final String pageUrl;
+
+  /// 集数排序号，语义同 EpisodeRef.sortNumber（在线解析自标题、离线为 episodeNumber）。
+  final int? sortNumber;
   final Map<String, String> httpHeaders;
   final bool adBlockerEnabled;
   final String episodeTitle;
@@ -20,11 +25,14 @@ class PlaybackInitParams {
     required this.bangumiId,
     required this.pluginName,
     required this.episode,
+    required this.danmakuEpisodeNumber,
     required this.httpHeaders,
     required this.adBlockerEnabled,
     required this.episodeTitle,
     required this.referer,
     required this.currentRoad,
+    this.pageUrl = '',
+    this.sortNumber,
     this.coverUrl,
     this.bangumiName,
   });

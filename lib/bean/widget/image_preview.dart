@@ -48,7 +48,7 @@ class ImageViewer extends StatefulWidget {
         (imageUrls.length > 1
             ? ImageViewer.heroTagFor(imageUrls[index], index)
             : imageUrls[index]);
-    await Modular.to.pushNamed(
+    await context.pushNamed(
       routePath,
       arguments: ImageViewerRouteArgs(
         imageUrls: imageUrls,
@@ -68,7 +68,8 @@ class _ImageViewerState extends State<ImageViewer> {
   late final PageController _pageController;
   late int _currentIndex;
   final Map<int, PhotoViewController> _galleryControllers = {};
-  final Map<int, PhotoViewScaleStateController> _galleryScaleStateControllers = {};
+  final Map<int, PhotoViewScaleStateController> _galleryScaleStateControllers =
+      {};
   final Map<int, double?> _initialScales = {};
 
   /// 滚轮单次缩放步长
@@ -146,7 +147,7 @@ class _ImageViewerState extends State<ImageViewer> {
   }
 
   void _closePreview() {
-    Navigator.of(context).pop();
+    context.pop();
   }
 
   Object _heroTagForIndex(int index) {
@@ -292,8 +293,7 @@ class _ImageViewerState extends State<ImageViewer> {
       child: GestureDetector(
         onTap: _closePreview,
         child: PhotoView(
-          imageProvider:
-              CachedNetworkImageProvider(widget.imageUrls.first),
+          imageProvider: CachedNetworkImageProvider(widget.imageUrls.first),
           controller: _photoViewController,
           scaleStateController: _scaleStateController,
           minScale: PhotoViewComputedScale.contained,

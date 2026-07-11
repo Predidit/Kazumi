@@ -1,9 +1,13 @@
-import 'package:kazumi/pages/my/my_page.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/my/my_page.dart';
 
-class MyModule extends Module {
-  @override
-  void routes(r) {
-    r.child("/", child: (_) => const MyPage());
-  }
-}
+final myModule = createModule(
+  path: '/my',
+  register: (c) {
+    c.route(
+      '/',
+      transition: TransitionType.none,
+      child: (context, state) => const MyPage(),
+    );
+  },
+);

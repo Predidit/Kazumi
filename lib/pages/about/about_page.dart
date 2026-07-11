@@ -14,7 +14,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/utils/device.dart';
 
 class AboutPage extends StatefulWidget {
-  const AboutPage({super.key});
+  const AboutPage({
+    super.key,
+    required this.controller,
+  });
+
+  final MyController controller;
 
   @override
   State<AboutPage> createState() => _AboutPageState();
@@ -27,14 +32,17 @@ class _AboutPageState extends State<AboutPage> {
   late dynamic defaultThemeColor;
   late int exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
   late bool autoUpdate;
+  late bool checkPluginUpdateOnStartup;
   double _cacheSizeMB = -1;
-  final MyController myController = Modular.get<MyController>();
+  MyController get myController => widget.controller;
   final MenuController menuController = MenuController();
 
   @override
   void initState() {
     super.initState();
     autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
+    checkPluginUpdateOnStartup =
+        GStorage.getSetting(SettingsKeys.checkPluginUpdateOnStartup);
     _getCacheSize();
   }
 
@@ -143,7 +151,7 @@ class _AboutPageState extends State<AboutPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/about/license');
+                    context.pushNamed('/settings/about/license');
                   },
                   title:
                       Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
@@ -279,7 +287,7 @@ class _AboutPageState extends State<AboutPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/about/logs');
+                    context.pushNamed('/settings/about/logs');
                   },
                   title: Text('错误日志', style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -305,16 +313,37 @@ class _AboutPageState extends State<AboutPage> {
                         SettingsKeys.autoUpdate, autoUpdate);
                     setState(() {});
                   },
-                  title: Text('自动更新', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('启动时检查应用更新',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoUpdate,
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     myController.checkUpdate();
                   },
-                  title: Text('检查更新', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('检查应用更新', style: TextStyle(fontFamily: fontFamily)),
                   value: Text('当前版本 ${ApiEndpoints.version}',
                       style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('规则更新', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    checkPluginUpdateOnStartup =
+                        value ?? !checkPluginUpdateOnStartup;
+                    await GStorage.putSetting(
+                      SettingsKeys.checkPluginUpdateOnStartup,
+                      checkPluginUpdateOnStartup,
+                    );
+                    setState(() {});
+                  },
+                  title: Text('启动时检查规则更新',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: checkPluginUpdateOnStartup,
                 ),
               ],
             ),

@@ -1,9 +1,15 @@
-import 'package:kazumi/pages/history/history_page.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/history/history_page.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
 
-class HistoryModule extends Module {
-  @override
-  void routes(r) {
-    r.child("/", child: (_) => const HistoryPage());
-  }
-}
+final historyModule = createModule(
+  path: '/history',
+  register: (c) {
+    c.route(
+      '/',
+      child: (context, state) => HistoryPage(
+        controller: inject<HistoryController>(),
+      ),
+    );
+  },
+);

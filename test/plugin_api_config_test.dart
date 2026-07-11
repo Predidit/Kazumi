@@ -177,6 +177,34 @@ void main() {
     expect(restored.toJson(), plugin.toJson());
     expect(restored.chapterApiConfig.request.method, 'GET');
   });
+
+  test('kazumi link decoder accepts wrapped and percent-encoded links', () {
+    final link = jsonToKazumiBase64(jsonEncode(_legacyRule));
+    final payload = link.substring('kazumi://'.length);
+    final wrappedPayload =
+        '${payload.substring(0, 16)}\n${payload.substring(16)}';
+    final percentEncodedPayload = Uri.encodeComponent(payload);
+
+    expect(
+      jsonDecode(kazumiBase64ToJson('  kazumi://$wrappedPayload  ')),
+      _legacyRule,
+    );
+    expect(
+      jsonDecode(kazumiBase64ToJson('kazumi:$percentEncodedPayload')),
+      _legacyRule,
+    );
+  });
+
+  test('kazumi link decoder reports malformed links', () {
+    expect(
+      () => kazumiBase64ToJson('https://example.com/rule'),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
+      () => kazumiBase64ToJson('kazumi://not-base64!'),
+      throwsA(isA<FormatException>()),
+    );
+  });
 }
 
 final Map<String, dynamic> _legacyRule = {

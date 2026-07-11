@@ -9,6 +9,7 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/encoding.dart';
 
 class PluginViewPage extends StatefulWidget {
@@ -129,7 +130,12 @@ class _PluginViewPageState extends State<PluginViewPage> {
                     await pluginsController.updatePlugin(plugin);
                     KazumiDialog.dismiss();
                     KazumiDialog.showToast(message: '导入成功');
-                  } catch (e) {
+                  } catch (e, stackTrace) {
+                    KazumiLogger().e(
+                      'Plugin: failed to import rule link',
+                      error: e,
+                      stackTrace: stackTrace,
+                    );
                     KazumiDialog.dismiss();
                     KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
                   }

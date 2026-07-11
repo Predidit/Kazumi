@@ -3,7 +3,6 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
@@ -37,7 +36,6 @@ final coreModule = createModule(
       ..addSingleton<CollectController>(CollectController.new)
       ..addSingleton<HistoryController>(HistoryController.new)
       ..addSingleton<MyController>(MyController.new)
-      ..addSingleton<DownloadController>(DownloadController.new)
-      ..addSingleton<VideoPageController>(VideoPageController.new);
+      ..addSingleton<DownloadController>(DownloadController.new);
   },
 );

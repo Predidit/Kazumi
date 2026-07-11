@@ -23,9 +23,7 @@ class HistoryAdapter extends TypeAdapter<History> {
       fields[4] as DateTime,
       fields[5] as String,
       fields[6] == null ? '' : fields[6] as String,
-      entryKind: fields[7] == null
-          ? HistoryEntryKind.online
-          : fields[7] as String,
+      entryKind: fields[7] == null ? 'online' : fields[7] as String,
       episodePageUrl: fields[8] == null ? '' : fields[8] as String,
     )..progresses = (fields[0] as Map).cast<int, Progress>();
   }

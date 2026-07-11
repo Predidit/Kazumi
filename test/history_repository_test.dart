@@ -178,6 +178,53 @@ void main() {
       expect(repository.getHistory('plugin', item), isNull);
     });
 
+    test('stores zero progress when position is near the end of the video',
+        () async {
+      final repository = HistoryRepository(
+        historiesBox: historiesBox,
+        privateModeReader: () => privateMode,
+        progressSyncAppender: _noopHistorySync,
+        deleteSyncAppender: _noopDeleteSync,
+        clearSyncAppender: _noopClearSync,
+      );
+      final item = _item(5);
+      final identity = PlaybackHistoryIdentity.online(
+        bangumiItem: item,
+        pluginName: 'plugin',
+        episodeNumber: 1,
+        episodeTitle: 'EP1',
+        road: 0,
+        onlineBangumiSrc: 'https://example.com/source',
+        episodePageUrl: '/online/1',
+      );
+
+      await repository.updateHistory(
+        identity: identity,
+        progress: const Duration(minutes: 23, seconds: 57),
+        duration: const Duration(minutes: 24),
+      );
+      var history = repository.getHistory('plugin', item);
+      expect(history!.progresses[1]!.progress, Duration.zero);
+
+      await repository.updateHistory(
+        identity: identity,
+        progress: const Duration(minutes: 20),
+        duration: const Duration(minutes: 24),
+      );
+      history = repository.getHistory('plugin', item);
+      expect(history!.progresses[1]!.progress, const Duration(minutes: 20));
+
+      await repository.updateHistory(
+        identity: identity,
+        progress: const Duration(minutes: 23, seconds: 57),
+      );
+      history = repository.getHistory('plugin', item);
+      expect(
+        history!.progresses[1]!.progress,
+        const Duration(minutes: 23, seconds: 57),
+      );
+    });
+
     test('serializes repository writes with snapshot reconciliation', () async {
       final appendStarted = Completer<void>();
       final allowAppendToFinish = Completer<void>();

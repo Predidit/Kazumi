@@ -56,7 +56,11 @@ abstract final class _RuleEditorText {
   static const fieldSeparator = '名称与地址分隔符';
   static const responseVariables = '响应变量（JSON：变量名 → JSONPath）';
   static const playPageUrl = '播放页地址模板（URL，可选）';
+  static const playPageUrlHelper = '可用变量：@source、@episodeUrl、'
+      '@roadIndex/@episodeIndex（从 0 起）、@roadNumber/@episodeNumber（从 1 起）'
+      '及响应变量。';
   static const playPageQuery = '播放页查询参数（JSON）';
+  static const playPageQueryHelper = '与地址模板可用变量相同，合并进最终 URL 的查询参数。';
 
   static const userAgent = '用户代理（User-Agent）';
   static const userAgentHelper = '仅用于播放器和下载器。';
@@ -683,7 +687,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
             onPressed: () async {
               try {
                 final editedPlugin = _buildEditedPlugin();
-                pluginsController.updatePlugin(editedPlugin);
+                await pluginsController.updatePlugin(editedPlugin);
+                if (!context.mounted) return;
                 context.pop();
               } catch (error) {
                 _showEditorError(error);
@@ -886,10 +891,12 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         _editorField(
           chapterApiPageURLController,
           _RuleEditorText.playPageUrl,
+          helper: _RuleEditorText.playPageUrlHelper,
         ),
         _editorField(
           chapterApiPageQueryController,
           _RuleEditorText.playPageQuery,
+          helper: _RuleEditorText.playPageQueryHelper,
           maxLines: 5,
         ),
       ];
@@ -1002,13 +1009,9 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     if (config.request.url.isEmpty) {
       throw const FormatException('搜索请求地址不能为空');
     }
-    const ApiRuleStrategy().prepareRequest(
-      config.request,
-      const {'keyword': 'test'},
-    );
-    RestrictedJsonPath.validate(config.listPath);
-    RestrictedJsonPath.validate(config.namePath);
-    RestrictedJsonPath.validate(config.sourcePath);
+    const ApiRuleStrategy()
+      ..prepareRequest(config.request, const {'keyword': 'test'})
+      ..validateSearchConfig(config);
     return config;
   }
 
@@ -1059,36 +1062,9 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     if (config.request.url.isEmpty) {
       throw const FormatException('选集请求地址不能为空');
     }
-    const ApiRuleStrategy().prepareRequest(
-      config.request,
-      const {'source': 'test'},
-    );
-    for (final path in config.variables.values) {
-      RestrictedJsonPath.validate(path);
-    }
-    if (config.format == ApiChapterFormat.nested) {
-      if (config.roadsPath.isNotEmpty) {
-        RestrictedJsonPath.validate(config.roadsPath);
-      }
-      if (config.roadNamePath.isNotEmpty) {
-        RestrictedJsonPath.validate(config.roadNamePath);
-      }
-      RestrictedJsonPath.validate(config.episodesPath);
-      RestrictedJsonPath.validate(config.episodeNamePath);
-      if (config.episodeUrlPath.isNotEmpty) {
-        RestrictedJsonPath.validate(config.episodeUrlPath);
-      } else if (config.episodePage == null) {
-        throw const FormatException('必须配置播放入口地址路径或播放页地址模板');
-      }
-    } else {
-      RestrictedJsonPath.validate(config.roadNamesPath);
-      RestrictedJsonPath.validate(config.roadEpisodesPath);
-      if (config.roadSeparator.isEmpty ||
-          config.episodeSeparator.isEmpty ||
-          config.fieldSeparator.isEmpty) {
-        throw const FormatException('章节分隔符不能为空');
-      }
-    }
+    const ApiRuleStrategy()
+      ..prepareRequest(config.request, const {'source': 'test'})
+      ..validateChapterConfig(config);
     return config;
   }
 

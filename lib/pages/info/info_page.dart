@@ -12,7 +12,6 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
@@ -28,13 +27,11 @@ class InfoPage extends StatefulWidget {
     super.key,
     required this.inputBangumiItem,
     required this.infoController,
-    required this.videoPageController,
     required this.pluginsController,
   });
 
   final BangumiItem inputBangumiItem;
   final InfoController infoController;
-  final VideoPageController videoPageController;
   final PluginsController pluginsController;
 
   @override
@@ -54,7 +51,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       Duration(milliseconds: 600);
 
   InfoController get infoController => widget.infoController;
-  VideoPageController get videoPageController => widget.videoPageController;
   PluginsController get pluginsController => widget.pluginsController;
   late TabController infoTabController;
   late bool showRating;
@@ -210,7 +206,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
     infoController.pluginSearchStatus.clear();
-    videoPageController.resetEpisodeState();
     // Search results can miss rating distribution or summaries, so fill those
     // fields without replacing image URLs that are already rendered.
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
@@ -294,7 +289,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
     infoController.pluginSearchStatus.clear();
-    videoPageController.resetEpisodeState();
     infoTabController.dispose();
     super.dispose();
   }

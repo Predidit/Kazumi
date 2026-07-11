@@ -8,9 +8,11 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/services/plugin/rule_engine_models.dart'
+    show RuleCancelToken;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/date_time.dart';
@@ -21,37 +23,36 @@ String historySourceText(String entryKind) {
       : '在线';
 }
 
-Future<HistoryPlaybackOpenResult> openHistoryPlaybackForEntry({
+Future<_HistoryPlaybackOpenResult> _openHistoryPlaybackForEntry({
   required String entryKind,
-  required Future<bool> Function() openOnlinePlayback,
-  required Future<bool> Function() openOfflinePlayback,
+  required Future<VideoPlaybackArgs?> Function() openOnlinePlayback,
+  required Future<VideoPlaybackArgs?> Function() openOfflinePlayback,
 }) async {
   if (HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline) {
-    final opened = await openOfflinePlayback();
-    return HistoryPlaybackOpenResult(
-      opened: opened,
-      failureMessage: opened ? null : '未找到可用缓存',
+    final args = await openOfflinePlayback();
+    return _HistoryPlaybackOpenResult(
+      args: args,
+      failureMessage: args != null ? null : '未找到可用缓存',
     );
   }
 
-  final opened = await openOnlinePlayback();
-  return HistoryPlaybackOpenResult(
-    opened: opened,
-    failureMessage: opened ? null : '在线源不可用，请重新选择播放源',
+  final args = await openOnlinePlayback();
+  return _HistoryPlaybackOpenResult(
+    args: args,
+    failureMessage: args != null ? null : '在线源不可用，请重新选择播放源',
   );
 }
 
-class HistoryPlaybackOpenResult {
-  const HistoryPlaybackOpenResult({
-    required this.opened,
+class _HistoryPlaybackOpenResult {
+  const _HistoryPlaybackOpenResult({
+    required this.args,
     required this.failureMessage,
   });
 
-  final bool opened;
+  final VideoPlaybackArgs? args;
   final String? failureMessage;
 }
 
-// 视频历史记录卡片 - 水平布局
 class BangumiHistoryCardV extends StatefulWidget {
   const BangumiHistoryCardV({
     super.key,
@@ -69,10 +70,17 @@ class BangumiHistoryCardV extends StatefulWidget {
 }
 
 class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
-  final VideoPageController videoPageController = inject<VideoPageController>();
   final PluginsController pluginsController = inject<PluginsController>();
   final CollectController collectController = inject<CollectController>();
   final DownloadController downloadController = inject<DownloadController>();
+
+  RuleCancelToken? _queryRoadsCancelToken;
+
+  @override
+  void dispose() {
+    _queryRoadsCancelToken?.cancel();
+    super.dispose();
+  }
 
   Future<void> _onTap() async {
     if (widget.showDelete) {
@@ -83,26 +91,27 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       msg: '获取中',
       barrierDismissible: isDesktop(),
       onDismiss: () {
-        videoPageController.cancelQueryRoads();
+        _queryRoadsCancelToken?.cancel();
       },
     );
-    final result = await openHistoryPlaybackForEntry(
+    final result = await _openHistoryPlaybackForEntry(
       entryKind: widget.historyItem.entryKind,
       openOnlinePlayback: _openOnlinePlayback,
       openOfflinePlayback: _openOfflinePlayback,
     );
     KazumiDialog.dismiss();
     if (!mounted) return;
-    if (result.opened) {
-      context.pushNamed('/video/');
+    final args = result.args;
+    if (args != null) {
+      context.pushNamed('/video/', arguments: args);
       return;
     }
     KazumiDialog.showToast(message: result.failureMessage ?? '未找到可用播放入口');
   }
 
-  Future<bool> _openOnlinePlayback() async {
+  Future<VideoPlaybackArgs?> _openOnlinePlayback() async {
     if (widget.historyItem.lastSrc.isEmpty) {
-      return false;
+      return null;
     }
     Plugin? targetPlugin;
     for (Plugin plugin in pluginsController.pluginList) {
@@ -112,33 +121,40 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       }
     }
     if (targetPlugin == null) {
-      return false;
+      return null;
     }
-    videoPageController.bangumiItem = widget.historyItem.bangumiItem;
-    videoPageController.currentPlugin = targetPlugin;
-    videoPageController.title = widget.historyItem.bangumiItem.nameCn == ''
-        ? widget.historyItem.bangumiItem.name
-        : widget.historyItem.bangumiItem.nameCn;
-    videoPageController.src = widget.historyItem.lastSrc;
     try {
-      await videoPageController.queryRoads(
+      _queryRoadsCancelToken?.cancel();
+      _queryRoadsCancelToken = RuleCancelToken();
+      final roads = await targetPlugin.queryChapterRoads(
         widget.historyItem.lastSrc,
-        targetPlugin.name,
+        cancelToken: _queryRoadsCancelToken,
       );
-      return true;
+      if (roads.isEmpty) {
+        return null;
+      }
+      return OnlineVideoPlaybackArgs(
+        bangumiItem: widget.historyItem.bangumiItem,
+        plugin: targetPlugin,
+        title: widget.historyItem.bangumiItem.nameCn == ''
+            ? widget.historyItem.bangumiItem.name
+            : widget.historyItem.bangumiItem.nameCn,
+        src: widget.historyItem.lastSrc,
+        roads: roads,
+      );
     } catch (_) {
       KazumiLogger().w("QueryManager: failed to query roads");
-      return false;
+      return null;
     }
   }
 
-  Future<bool> _openOfflinePlayback() async {
+  Future<VideoPlaybackArgs?> _openOfflinePlayback() async {
     final downloadedEpisodes = downloadController.getCompletedEpisodes(
       widget.historyItem.bangumiItem.id,
       widget.historyItem.adapterName,
     );
     if (downloadedEpisodes.isEmpty) {
-      return false;
+      return null;
     }
 
     DownloadEpisode? targetEpisode;
@@ -155,7 +171,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       widget.historyItem.lastWatchEpisode,
     );
     if (targetEpisode == null) {
-      return false;
+      return null;
     }
 
     final localPath = downloadController.getLocalVideoPath(
@@ -164,17 +180,16 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       targetEpisode.episodeNumber,
     );
     if (localPath == null) {
-      return false;
+      return null;
     }
 
-    videoPageController.initForOfflinePlayback(
+    return OfflineVideoPlaybackArgs(
       bangumiItem: widget.historyItem.bangumiItem,
       pluginName: widget.historyItem.adapterName,
       episodeNumber: targetEpisode.episodeNumber,
       road: targetEpisode.road,
       downloadedEpisodes: downloadedEpisodes,
     );
-    return true;
   }
 
   DownloadEpisode? _episodeByNumber(

@@ -845,6 +845,124 @@ void main() {
       expect(await file.readAsString(), malformed);
     });
 
+    test('salvages valid lines from a corrupted local event log', () async {
+      final directory =
+          await Directory.systemTemp.createTemp('kazumi_history_salvage_');
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+      final file = File('${directory.path}/events.jsonl');
+      final beforeCrash = HistorySyncCodec.eventsToJsonLines([
+        _upsert(
+          deviceId: 'device-a',
+          seq: 1,
+          updatedAt: 1000,
+          episode: 1,
+          progressMs: 10,
+        ),
+      ]);
+      final afterCrash = HistorySyncCodec.eventsToJsonLines([
+        _upsert(
+          deviceId: 'device-a',
+          seq: 2,
+          updatedAt: 2000,
+          episode: 2,
+          progressMs: 20,
+        ),
+      ]);
+      await file.writeAsString(
+        '$beforeCrash{"eventId":"truncated"\n$afterCrash',
+        flush: true,
+      );
+
+      final merged = await HistorySyncService().mergeEventFiles(
+        snapshot: HistorySyncSnapshot.empty(),
+        eventFiles: [file],
+        inMemoryEvents: const [],
+        tolerateMalformedLines: true,
+      );
+
+      expect(merged.histories, hasLength(1));
+      expect(merged.histories.single.progresses, contains(1));
+      expect(merged.histories.single.progresses, contains(2));
+    });
+
+    test('upload copy drops malformed lines but keeps valid events', () async {
+      final directory =
+          await Directory.systemTemp.createTemp('kazumi_history_upload_');
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+      final service = HistorySyncService.forTesting(directory);
+      final runDirectory = await directory.createTemp('run-');
+      await service.appendEvents([
+        _upsert(
+          deviceId: 'device-a',
+          seq: 1,
+          updatedAt: 1000,
+          episode: 1,
+          progressMs: 10,
+        ),
+      ]);
+      final activeFile = await service.localChangeLogFile();
+      await activeFile.writeAsString(
+        '{"eventId":"truncated"\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+      await service.appendEvents([
+        _upsert(
+          deviceId: 'device-a',
+          seq: 2,
+          updatedAt: 2000,
+          episode: 2,
+          progressMs: 20,
+        ),
+      ]);
+
+      final uploadFile = await service.copyActiveLogForUpload(runDirectory);
+
+      expect(uploadFile, isNotNull);
+      final content = await uploadFile!.readAsString();
+      expect(content, contains('device-a:1'));
+      expect(content, contains('device-a:2'));
+      expect(content, isNot(contains('truncated')));
+      expect(HistorySyncCodec.eventsFromJsonLines(content), hasLength(2));
+
+      // The damaged active log converges: malformed lines are gone for good
+      // instead of being re-skipped on every following sync.
+      final repairedContent = await activeFile.readAsString();
+      expect(repairedContent, isNot(contains('truncated')));
+      expect(HistorySyncCodec.eventsFromJsonLines(repairedContent),
+          hasLength(2));
+    });
+
+    test('upload copy returns null when log has no valid events', () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'kazumi_history_upload_invalid_',
+      );
+      addTearDown(() async {
+        if (await directory.exists()) {
+          await directory.delete(recursive: true);
+        }
+      });
+      final service = HistorySyncService.forTesting(directory);
+      final runDirectory = await directory.createTemp('run-');
+      final activeFile = await service.localChangeLogFile();
+      await activeFile.parent.create(recursive: true);
+      await activeFile.writeAsString('{"eventId":"truncated"\n', flush: true);
+
+      final uploadFile = await service.copyActiveLogForUpload(runDirectory);
+
+      expect(uploadFile, isNull);
+      // Fully-damaged log converges to empty instead of lingering.
+      expect(await activeFile.readAsString(), isEmpty);
+    });
+
     test('skips malformed remote files transactionally', () async {
       final directory = await Directory.systemTemp.createTemp(
         'kazumi_history_remote_invalid_',

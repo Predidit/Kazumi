@@ -89,6 +89,24 @@ mixin _$PopularController on _PopularController, Store {
     });
   }
 
+  late final _$queryBangumiByTrendAsyncAction =
+      AsyncAction('_PopularController.queryBangumiByTrend', context: context);
+
+  @override
+  Future<void> queryBangumiByTrend({String type = 'add'}) {
+    return _$queryBangumiByTrendAsyncAction
+        .run(() => super.queryBangumiByTrend(type: type));
+  }
+
+  late final _$queryBangumiByTagAsyncAction =
+      AsyncAction('_PopularController.queryBangumiByTag', context: context);
+
+  @override
+  Future<void> queryBangumiByTag({String type = 'add'}) {
+    return _$queryBangumiByTagAsyncAction
+        .run(() => super.queryBangumiByTag(type: type));
+  }
+
   @override
   String toString() {
     return '''

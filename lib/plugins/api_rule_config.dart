@@ -62,9 +62,9 @@ class ApiRequestConfig {
   Map<String, dynamic> toJson() => {
         'method': method.toUpperCase(),
         'url': url,
-        'headers': headers,
-        'query': query,
-        'bodyType': bodyType,
+        if (headers.isNotEmpty) 'headers': headers,
+        if (query.isNotEmpty) 'query': query,
+        if (bodyType != ApiBodyType.none) 'bodyType': bodyType,
         if (bodyType != ApiBodyType.none && body != null) 'body': body,
       };
 }
@@ -145,7 +145,8 @@ class ApiChapterConfig {
   String episodeSeparator;
   String fieldSeparator;
 
-  String defaultRoadName;
+  /// Named JSONPath captures over the chapter response, exposed as template
+  /// variables to [episodePage].
   Map<String, String> variables;
 
   /// Optional final playback page template used instead of a response URL.
@@ -164,7 +165,6 @@ class ApiChapterConfig {
     this.roadSeparator = r'$$$',
     this.episodeSeparator = '#',
     this.fieldSeparator = r'$',
-    this.defaultRoadName = '播放线路',
     Map<String, String>? variables,
     this.episodePage,
   })  : request = request ?? ApiRequestConfig(),
@@ -185,7 +185,6 @@ class ApiChapterConfig {
       roadSeparator: json['roadSeparator'] as String? ?? r'$$$',
       episodeSeparator: json['episodeSeparator'] as String? ?? '#',
       fieldSeparator: json['fieldSeparator'] as String? ?? r'$',
-      defaultRoadName: json['defaultRoadName'] as String? ?? '播放线路',
       variables: rawVariables.map(
         (key, value) => MapEntry(key, value.toString()),
       ),
@@ -195,21 +194,39 @@ class ApiChapterConfig {
     );
   }
 
+  /// Whether any nested-format field deviates from its default. Persisting
+  /// re-serializes every plugin, so a customized inactive side must survive
+  /// even while [format] points at the other one.
+  bool get _hasNestedConfig =>
+      roadsPath != r'$.data.roads[*]' ||
+      roadNamePath != r'$.name' ||
+      episodesPath != r'$.episodes[*]' ||
+      episodeNamePath != r'$.name' ||
+      episodeUrlPath != r'$.url';
+
+  bool get _hasDelimitedConfig =>
+      roadNamesPath.isNotEmpty || roadEpisodesPath.isNotEmpty;
+
+  /// Serializes the active [format]'s fields, plus the inactive format's
+  /// fields when they carry non-default configuration.
   Map<String, dynamic> toJson() => {
         'request': request.toJson(),
         'format': format,
-        'roadsPath': roadsPath,
-        'roadNamePath': roadNamePath,
-        'episodesPath': episodesPath,
-        'episodeNamePath': episodeNamePath,
-        'episodeUrlPath': episodeUrlPath,
-        'roadNamesPath': roadNamesPath,
-        'roadEpisodesPath': roadEpisodesPath,
-        'roadSeparator': roadSeparator,
-        'episodeSeparator': episodeSeparator,
-        'fieldSeparator': fieldSeparator,
-        'defaultRoadName': defaultRoadName,
-        'variables': variables,
+        if (format == ApiChapterFormat.nested || _hasNestedConfig) ...{
+          'roadsPath': roadsPath,
+          'roadNamePath': roadNamePath,
+          'episodesPath': episodesPath,
+          'episodeNamePath': episodeNamePath,
+          'episodeUrlPath': episodeUrlPath,
+        },
+        if (format == ApiChapterFormat.delimited || _hasDelimitedConfig) ...{
+          'roadNamesPath': roadNamesPath,
+          'roadEpisodesPath': roadEpisodesPath,
+          'roadSeparator': roadSeparator,
+          'episodeSeparator': episodeSeparator,
+          'fieldSeparator': fieldSeparator,
+        },
+        if (variables.isNotEmpty) 'variables': variables,
         if (episodePage != null) 'episodePage': episodePage!.toJson(),
       };
 }

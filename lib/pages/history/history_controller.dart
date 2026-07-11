@@ -22,10 +22,14 @@ abstract class _HistoryController with Store {
   }
 
   Future<void> updateHistory(
-      PlaybackHistoryIdentity identity, Duration progress) async {
+    PlaybackHistoryIdentity identity,
+    Duration progress, {
+    Duration duration = Duration.zero,
+  }) async {
     await _historyRepository.updateHistory(
       identity: identity,
       progress: progress,
+      duration: duration,
     );
     init();
   }
@@ -58,21 +62,6 @@ abstract class _HistoryController with Store {
 
   Future<void> deleteHistory(History history) async {
     await _historyRepository.deleteHistory(history);
-    init();
-  }
-
-  Future<void> clearProgress(
-    BangumiItem bangumiItem,
-    String adapterName,
-    int episode, {
-    String entryKind = HistoryEntryKind.online,
-  }) async {
-    await _historyRepository.clearProgress(
-      bangumiItem,
-      adapterName,
-      episode,
-      entryKind: entryKind,
-    );
     init();
   }
 

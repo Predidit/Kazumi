@@ -23,7 +23,6 @@ import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
@@ -43,6 +42,7 @@ class PlayerItem extends StatefulWidget {
   const PlayerItem({
     super.key,
     required this.playerController,
+    required this.videoPageController,
     required this.toggleMenu,
     required this.showMenuImmediately,
     required this.hideMenuImmediately,
@@ -56,6 +56,7 @@ class PlayerItem extends StatefulWidget {
   });
 
   final PlayerController playerController;
+  final VideoPageController videoPageController;
   final VoidCallback toggleMenu;
   final VoidCallback showMenuImmediately;
   final VoidCallback hideMenuImmediately;
@@ -75,25 +76,18 @@ class PlayerItem extends StatefulWidget {
 class _PlayerItemState extends State<PlayerItem>
     with WindowListener, WidgetsBindingObserver, TickerProviderStateMixin {
   late final PlayerController playerController;
-  final VideoPageController videoPageController = inject<VideoPageController>();
+  late final VideoPageController videoPageController =
+      widget.videoPageController;
   final HistoryController historyController = inject<HistoryController>();
-  final CollectController collectController = inject<CollectController>();
   final MyController myController = inject<MyController>();
   AudioController get _audioController => playerController.audioController;
   late Map<String, List<String>> keyboardShortcuts;
   late List<String> keyboardActionsNeedLongPress;
   late Map<String, void Function()> keyboardActions;
 
-  // 1. 在看
-  // 2. 想看
-  // 3. 搁置
-  // 4. 看过
-  // 5. 抛弃
-  late int collectType;
   late bool webDavEnable;
   late bool webDavEnableHistory;
 
-  // 弹幕
   final _danmuKey = GlobalKey();
   late bool _border;
   late double _opacity;
@@ -113,13 +107,12 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuUseSystemFont;
   late double _danmakuBorderSize;
 
-  // 硬件解码
   late bool haEnable;
   late bool autoPlayNext;
   late bool backgroundPlayback;
   late bool brightnessVolumeGesture;
 
-  // 播放器控制面板无交互后自动隐藏所需时间 （单位：毫秒）
+  /// Idle timeout before the player panel auto-hides, in milliseconds.
   late int playerControllerLayerDisappearTime;
 
   Timer? hideTimer;
@@ -137,14 +130,14 @@ class _PlayerItemState extends State<PlayerItem>
 
   double lastPlayerSpeed = 1.0;
   late double longPressPlaySpeed;
-  int episodeNum = 0;
   bool? _lastPipPlaying;
   bool? _lastPipDanmakuEnabled;
   late mobx.ReactionDisposer _playerSizeListener;
 
   late mobx.ReactionDisposer _fullscreenListener;
 
-  /// 处理 Android/iOS 应用后台或熄屏
+  /// Pauses playback when the app is backgrounded on Android/iOS, unless
+  /// background playback is enabled.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
@@ -244,9 +237,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _initKeyboardActions() {
-    //需要实现长按的功能列表。
     keyboardActionsNeedLongPress = ["forward"];
-    //快捷键功能对应表
     keyboardActions = {
       'playorpause': () => playerController.playOrPause(),
       'forward': () async => handleShortcutForwardDown(),
@@ -266,24 +257,21 @@ class _PlayerItemState extends State<PlayerItem>
       'speed3': () async => setPlaybackSpeed(3.0),
       'speedup': () async => handleSpeedChange('up'),
       'speeddown': () async => handleSpeedChange('down'),
-      // 开始对应长按功能
-      // 如需对应长按功能，例如对功能'func'对应长按，请分别添加'funcRepeat'和'funcUp'。
+      // Long-press support for action 'func' requires paired entries named
+      // 'funcRepeat' and 'funcUp'.
       'forwardRepeat': () async => handleShortcutForwardRepeat(),
       'forwardUp': () async => handleShortcutForwardUp(),
     };
   }
 
-  //初始化播放器菜单
   void _initPlayerMenu() {
     PlayerMenuService.initialize(keyboardActions);
   }
 
-  //销毁播放器菜单
   void _disposePlayerMenu() {
     PlayerMenuService.dispose();
   }
 
-  //快捷键按下
   bool handleShortcutDown(String keyLabel) {
     for (final entry in keyboardShortcuts.entries) {
       final func = entry.key;
@@ -299,7 +287,6 @@ class _PlayerItemState extends State<PlayerItem>
     return false;
   }
 
-  // 快捷键长按
   bool handleShortcutLongPress(String keyLabel, String mode) {
     for (final func in keyboardActionsNeedLongPress) {
       final keys = keyboardShortcuts[func];
@@ -314,7 +301,6 @@ class _PlayerItemState extends State<PlayerItem>
     return false;
   }
 
-  //上一集下一集动作
   Future<void> handlePreNextEpisode(String direction) async {
     if (videoPageController.loading) return;
     final selection = videoPageController.selectedEpisode;
@@ -342,12 +328,12 @@ class _PlayerItemState extends State<PlayerItem>
       episode: targetEpisode,
       road: currentRoad,
     );
+    // Resolution failures surface through the controller's failed state;
+    // the toast here is progress feedback only.
     final targetRef = videoPageController.resolveEpisode(targetSelection);
-    if (targetRef == null) {
-      KazumiDialog.showToast(message: '集数解析失败');
-      return;
+    if (targetRef != null) {
+      KazumiDialog.showToast(message: '正在加载${targetRef.displayTitle}');
     }
-    KazumiDialog.showToast(message: '正在加载${targetRef.displayTitle}');
     widget.changeEpisode(targetEpisode, currentRoad: currentRoad);
   }
 
@@ -394,12 +380,10 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  //全屏快捷键动作
   void handleShortcutFullscreen() {
     if (!videoPageController.isPip) handleFullscreen();
   }
 
-  //退出全屏快捷键动作
   void handleShortcutExitFullscreen() {
     if (videoPageController.isFullscreen && !isTablet()) {
       try {
@@ -672,7 +656,6 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  //截图
   Future<void> handleScreenshot() async {
     _playScreenshotFeedback();
 
@@ -712,7 +695,7 @@ class _PlayerItemState extends State<PlayerItem>
   Future<void> handleSuperResolutionChange(SuperResolutionMode mode) async {
     if (!mounted) return;
 
-    // mediacodec_embed 不支持超分辨率
+    // The mediacodec_embed renderer cannot apply super-resolution shaders.
     if (Platform.isAndroid && mode != SuperResolutionMode.off) {
       final String androidVideoRenderer =
           GStorage.getSetting(SettingsKeys.androidVideoRenderer);
@@ -1033,14 +1016,12 @@ class _PlayerItemState extends State<PlayerItem>
       unawaited(_updateAndroidPIPActions());
       _syncAudioServiceState();
       _emitDanmakusForCurrentPosition();
-      // 音量相关
       if (!playerController.panel.volumeSeeking) {
         if (isDesktop()) {
           playerController.playback
               .applyExternalVolume(playerController.playback.playerVolume);
         }
       }
-      // 亮度相关
       if (!Platform.isWindows &&
           !Platform.isMacOS &&
           !Platform.isLinux &&
@@ -1050,7 +1031,6 @@ class _PlayerItemState extends State<PlayerItem>
           playerController.panel.brightness = value;
         });
       }
-      // 历史记录相关
       final historyIdentity = videoPageController.currentHistoryIdentity;
       if (playerController.playback.playerPlaying &&
           !videoPageController.loading &&
@@ -1059,32 +1039,36 @@ class _PlayerItemState extends State<PlayerItem>
         historyController.updateHistory(
           historyIdentity,
           playerController.playback.playerPosition,
+          duration: playerController.playback.playerDuration,
         );
       }
-      // 自动播放下一集
       final playingSelection = videoPageController.playbackEpisode;
       final playingRoadData =
           videoPageController.roadList[playingSelection.road];
-      if (playerController.playback.completed &&
-          playingSelection.episode < playingRoadData.data.length &&
-          !videoPageController.loading &&
-          autoPlayNext) {
-        final nextSelection = VideoEpisodeSelection(
-          episode: playingSelection.episode + 1,
-          road: playingSelection.road,
-        );
-        final nextRef = videoPageController.resolveEpisode(nextSelection);
-        if (nextRef == null) {
-          return;
+      if (playerController.playback.completed && !videoPageController.loading) {
+        if (playerController.playback.resumedNearEnd) {
+          // Completion of a stale near-end resume is not a real watch;
+          // replay from the beginning instead of advancing.
+          unawaited(playerController.playback.restartFromBeginning());
+        } else if (playingSelection.episode < playingRoadData.data.length &&
+            autoPlayNext) {
+          final nextSelection = VideoEpisodeSelection(
+            episode: playingSelection.episode + 1,
+            road: playingSelection.road,
+          );
+          // Resolution failures surface through the controller's failed state
+          // instead of silently retrying here every second.
+          final nextRef = videoPageController.resolveEpisode(nextSelection);
+          if (nextRef != null) {
+            KazumiDialog.showToast(message: '正在加载${nextRef.displayTitle}');
+          }
+          try {
+            playerTimer!.cancel();
+          } catch (_) {}
+          widget.changeEpisode(playingSelection.episode + 1,
+              currentRoad: playingSelection.road);
         }
-        KazumiDialog.showToast(message: '正在加载${nextRef.displayTitle}');
-        try {
-          playerTimer!.cancel();
-        } catch (_) {}
-        widget.changeEpisode(playingSelection.episode + 1,
-            currentRoad: playingSelection.road);
       }
-      // 一起去看相关
       playerController.setSyncPlayCurrentPosition();
     });
   }
@@ -1183,7 +1167,6 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
-  // 弹幕查询
   void showDanmakuSwitch() {
     String searchKeyword = videoPageController.title;
     KazumiDialog.show(
@@ -1770,8 +1753,6 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   Widget build(BuildContext context) {
-    collectType =
-        collectController.getCollectType(videoPageController.bangumiItem);
     return Observer(
       builder: (context) {
         return ClipRect(
@@ -1901,7 +1882,6 @@ class _PlayerItemState extends State<PlayerItem>
                         height: double.infinity,
                       ),
                     ),
-                    // 弹幕面板
                     Positioned(
                       top: 0,
                       left: 0,
@@ -1942,10 +1922,10 @@ class _PlayerItemState extends State<PlayerItem>
                         animation: _screenshotFeedbackAnimation,
                       ),
                     ),
-                    // 播放器控制面板
                     (needFullPanel(context))
                         ? PlayerItemPanel(
                             playerController: playerController,
+                            videoPageController: videoPageController,
                             onBackPressed: widget.onBackPressed,
                             setPlaybackSpeed: setPlaybackSpeed,
                             showDanmakuSwitch: showDanmakuSwitch,
@@ -1978,6 +1958,7 @@ class _PlayerItemState extends State<PlayerItem>
                           )
                         : SmallestPlayerItemPanel(
                             playerController: playerController,
+                            videoPageController: videoPageController,
                             onBackPressed: widget.onBackPressed,
                             setPlaybackSpeed: setPlaybackSpeed,
                             showDanmakuSwitch: showDanmakuSwitch,
@@ -2001,7 +1982,6 @@ class _PlayerItemState extends State<PlayerItem>
                             disableAnimations: widget.disableAnimations,
                             skipOP: skipOP,
                           ),
-                    // 播放器手势控制
                     Positioned.fill(
                       left: 16,
                       top: 25,
@@ -2056,7 +2036,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 final double delta = details.delta.dy;
 
                                 if (tapPosition < sectionWidth) {
-                                  // 左边区域
+                                  // Left half adjusts brightness.
                                   playerController.panel.brightnessSeeking =
                                       true;
                                   _showBrightnessAdjustmentHud();
@@ -2069,7 +2049,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   setBrightness(result);
                                   playerController.panel.brightness = result;
                                 } else {
-                                  // 右边区域
+                                  // Right half adjusts volume.
                                   _showVolumeAdjustmentHud();
                                   if (!playerController.panel.volumeSeeking) {
                                     playerController.panel.volumeSeeking = true;

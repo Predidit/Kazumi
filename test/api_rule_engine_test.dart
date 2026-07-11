@@ -169,6 +169,45 @@ void main() {
     );
   });
 
+  test('renders every documented episode page template variable', () {
+    final raw = jsonEncode({
+      'data': {
+        'slug': 'abc',
+        'roads': [
+          {
+            'name': '线路',
+            'episodes': [
+              {'name': '第01集', 'url': 'ep-token'},
+            ],
+          },
+        ],
+      },
+    });
+    final roads = engine.parseChapters(
+      raw,
+      ApiChapterConfig(
+        variables: {'slug': r'$.data.slug'},
+        episodePage: ApiEpisodePageConfig(
+          url: 'https://example.com/@slug/@episodeUrl',
+          query: {
+            'ri': '@roadIndex',
+            'rn': '@roadNumber',
+            'ei': '@episodeIndex',
+            'en': '@episodeNumber',
+            'src': '@source',
+          },
+        ),
+      ),
+      source: 'vid-1',
+      baseUrl: 'https://example.com/',
+    );
+
+    expect(
+      roads.roads.single.data.single,
+      'https://example.com/abc/ep-token?ri=0&rn=1&ei=0&en=1&src=vid-1',
+    );
+  });
+
   test('skips malformed delimited episode entries', () {
     const raw = r'''
 {"names":"线路","episodes":"损坏条目#第02集$https://cdn.test/2.m3u8"}

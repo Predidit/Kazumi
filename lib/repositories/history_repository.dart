@@ -1,5 +1,6 @@
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/services/sync/history_sync_service.dart';
@@ -40,9 +41,12 @@ abstract class IHistoryRepository {
   ///
   /// [identity] 播放历史身份
   /// [progress] 观看进度
+  /// [duration] 视频总时长；距结尾 [nearEndWatchedThreshold] 以内的进度视为
+  /// 已看完，归零保存。传 [Duration.zero] 表示时长未知，不做该判断
   Future<void> updateHistory({
     required PlaybackHistoryIdentity identity,
     required Duration progress,
+    Duration duration = Duration.zero,
   });
 
   /// 获取上次观看的进度
@@ -73,18 +77,6 @@ abstract class IHistoryRepository {
   ///
   /// [history] 要删除的历史记录
   Future<void> deleteHistory(History history);
-
-  /// 清空特定集数的观看进度
-  ///
-  /// [bangumiItem] 番剧信息
-  /// [adapterName] 适配器名称
-  /// [episode] 集数
-  Future<void> clearProgress(
-    BangumiItem bangumiItem,
-    String adapterName,
-    int episode, {
-    String entryKind = HistoryEntryKind.online,
-  });
 
   /// 清空所有历史记录
   Future<void> clearAllHistories();
@@ -202,7 +194,13 @@ class HistoryRepository implements IHistoryRepository {
   Future<void> updateHistory({
     required PlaybackHistoryIdentity identity,
     required Duration progress,
+    Duration duration = Duration.zero,
   }) async {
+    // 距结尾过近视为已看完，归零保存
+    if (duration > Duration.zero &&
+        progress >= duration - nearEndWatchedThreshold) {
+      progress = Duration.zero;
+    }
     await _storageCoordinator.run(() async {
       try {
         if (!identity.canRecord) {
@@ -346,39 +344,6 @@ class HistoryRepository implements IHistoryRepository {
       } catch (e, stackTrace) {
         KazumiLogger().e(
           'GStorage: delete history failed. bangumi=${history.bangumiItem.name}',
-          error: e,
-          stackTrace: stackTrace,
-        );
-      }
-    });
-  }
-
-  @override
-  Future<void> clearProgress(
-    BangumiItem bangumiItem,
-    String adapterName,
-    int episode, {
-    String entryKind = HistoryEntryKind.online,
-  }) async {
-    await _storageCoordinator.run(() async {
-      try {
-        var history = _findHistory(adapterName, bangumiItem, entryKind);
-        if (history != null && history.progresses[episode] != null) {
-          final nowMs = DateTime.now().millisecondsSinceEpoch;
-          history.progresses[episode]!.progress = Duration.zero;
-          history.progresses[episode]!.updatedAtMs = nowMs;
-          await _historiesBox.put(history.key, history);
-          await _progressSyncAppender(
-            history: history,
-            episode: episode,
-            road: history.progresses[episode]!.road,
-            progressMs: 0,
-            updatedAt: nowMs,
-          );
-        }
-      } catch (e, stackTrace) {
-        KazumiLogger().e(
-          'GStorage: clear progress failed. bangumi=${bangumiItem.name}, episode=$episode',
           error: e,
           stackTrace: stackTrace,
         );

@@ -13,6 +13,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/services/download/background_download_service.dart';
 import 'package:kazumi/services/platform/windows_shortcut.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
@@ -278,8 +279,14 @@ class _InitPageState extends State<InitPage> {
       await pluginsController.init();
       statementsText =
           await rootBundle.loadString("assets/statements/statements.txt");
-      _pluginUpdate();
-    } catch (_) {}
+      unawaited(_pluginUpdate());
+    } catch (error, stackTrace) {
+      KazumiLogger().e(
+        'Plugin: failed to initialize rules',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
     if (pluginsController.pluginList.isEmpty) {
       await KazumiDialog.show(
         clickMaskDismiss: false,
@@ -305,7 +312,16 @@ class _InitPageState extends State<InitPage> {
                   onPressed: () async {
                     try {
                       await pluginsController.copyPluginsToExternalDirectory();
-                    } catch (_) {}
+                    } catch (error, stackTrace) {
+                      KazumiLogger().e(
+                        'Plugin: failed to install bundled rules',
+                        error: error,
+                        stackTrace: stackTrace,
+                      );
+                      KazumiDialog.dismiss();
+                      KazumiDialog.showToast(message: '初始化规则失败');
+                      return;
+                    }
                     KazumiDialog.dismiss();
                     if (!Platform.isAndroid) {
                       return;
@@ -322,10 +338,8 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
-  // The function is not completed yet
-  // We simply disable update when the user is using F-Droid mirror
-  // We are trying to meet F-Droid requirement to submit the app
-  // After the app is submitted, we will complete the function
+  // Selecting F-Droid delegates application updates to the store and disables
+  // Kazumi's in-app application update checks.
   Future<void> _switchUpdateMirror() async {
     await KazumiDialog.show(
       clickMaskDismiss: false,
@@ -390,15 +404,27 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _pluginUpdate() async {
-    await pluginsController.queryPluginHTTPList();
-    int count = 0;
-    for (var plugin in pluginsController.pluginList) {
-      if (pluginsController.pluginUpdateStatus(plugin) == 'updatable') {
-        count++;
-      }
+    final checkOnStartup =
+        GStorage.getSetting(SettingsKeys.checkPluginUpdateOnStartup);
+    late final int count;
+    try {
+      count = await pluginsController.checkPluginUpdatesOnStartup(
+        enabled: checkOnStartup,
+      );
+    } catch (_) {
+      return;
     }
     if (count != 0) {
-      KazumiDialog.showToast(message: '检测到 $count 条规则可以更新');
+      KazumiDialog.showToast(
+        message: '检测到 $count 条规则可以更新',
+        showActionButton: true,
+        actionLabel: '全部更新',
+        onActionPressed: () => updateAllPluginsWithFeedback(
+          pluginsController,
+          ensureCatalog: false,
+        ),
+        duration: const Duration(seconds: 5),
+      );
     }
   }
 

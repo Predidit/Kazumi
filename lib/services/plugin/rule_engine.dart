@@ -48,22 +48,15 @@ class RuleEngine {
           : _xpathStrategy.prepareSearchRequest(config, keyword);
     } catch (error, stackTrace) {
       _logFailure(config, 'search request preparation', error, stackTrace);
-      throw SearchErrorException(
-        config.pluginName,
-        cause: error,
-        kind: RuleFailureKind.parse,
-      );
+      throw SearchErrorException(config.pluginName, cause: error);
     }
 
     final raw = await _executeRequest(
       request,
       config,
       phase: 'search request',
-      wrapError: (error) => SearchErrorException(
-        config.pluginName,
-        cause: error,
-        kind: RuleFailureKind.request,
-      ),
+      wrapError: (error) =>
+          SearchErrorException(config.pluginName, cause: error),
       cancelToken: cancelToken,
     );
     try {
@@ -73,6 +66,7 @@ class RuleEngine {
       if (parsed.items.isEmpty) {
         throw NoResultException(config.pluginName);
       }
+      _logDiagnostics(config, 'search', parsed.diagnostics);
       return RuleSearchTrace(
         rawResponse: raw,
         response: PluginSearchResponse(
@@ -89,11 +83,7 @@ class RuleEngine {
     } catch (error, stackTrace) {
       if (_isCancellation(error)) rethrow;
       _logFailure(config, 'search response parsing', error, stackTrace);
-      throw SearchErrorException(
-        config.pluginName,
-        cause: error,
-        kind: RuleFailureKind.parse,
-      );
+      throw SearchErrorException(config.pluginName, cause: error);
     }
   }
 
@@ -112,22 +102,15 @@ class RuleEngine {
           : _xpathStrategy.prepareChapterRequest(config, source);
     } catch (error, stackTrace) {
       _logFailure(config, 'chapter request preparation', error, stackTrace);
-      throw ChapterErrorException(
-        config.pluginName,
-        cause: error,
-        kind: RuleFailureKind.parse,
-      );
+      throw ChapterErrorException(config.pluginName, cause: error);
     }
 
     final raw = await _executeRequest(
       request,
       config,
       phase: 'chapter request',
-      wrapError: (error) => ChapterErrorException(
-        config.pluginName,
-        cause: error,
-        kind: RuleFailureKind.request,
-      ),
+      wrapError: (error) =>
+          ChapterErrorException(config.pluginName, cause: error),
       cancelToken: cancelToken,
     );
     try {
@@ -140,15 +123,12 @@ class RuleEngine {
             )
           : _xpathStrategy.parseChapters(raw, config);
       if (parsed.roads.isEmpty) {
-        throw ChapterErrorException(
-          config.pluginName,
-          kind: RuleFailureKind.noResult,
-        );
+        throw ChapterErrorException(config.pluginName);
       }
+      _logDiagnostics(config, 'chapter', parsed.diagnostics);
       return RuleChapterTrace(
         rawResponse: raw,
         roads: parsed.roads,
-        matchedFragments: parsed.matchedFragments,
         diagnostics: parsed.diagnostics,
       );
     } on ChapterErrorException {
@@ -156,11 +136,7 @@ class RuleEngine {
     } catch (error, stackTrace) {
       if (_isCancellation(error)) rethrow;
       _logFailure(config, 'chapter response parsing', error, stackTrace);
-      throw ChapterErrorException(
-        config.pluginName,
-        cause: error,
-        kind: RuleFailureKind.parse,
-      );
+      throw ChapterErrorException(config.pluginName, cause: error);
     }
   }
 
@@ -187,6 +163,21 @@ class RuleEngine {
   bool _isCancellation(Object error) {
     return error is NetworkException &&
         error.type == NetworkExceptionType.cancel;
+  }
+
+  /// Surfaces partially-skipped nodes so incomplete results are traceable
+  /// from logs even when the rule succeeds overall.
+  void _logDiagnostics(
+    RuleExecutionConfig config,
+    String phase,
+    List<String> diagnostics,
+  ) {
+    if (!_logFailures || diagnostics.isEmpty) return;
+    final preview = diagnostics.take(3).join('; ');
+    KazumiLogger().w(
+      'Plugin: ${config.pluginName} $phase skipped ${diagnostics.length} '
+      'node(s): $preview',
+    );
   }
 
   void _logFailure(

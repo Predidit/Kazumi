@@ -90,6 +90,8 @@ class XPathRuleStrategy {
         kind: XPathRuleFormatKind.invalidUrl,
       );
     }
+    // XPath chapter requests historically go out without stored cookies;
+    // only search requests attach them.
     return PreparedRuleRequest(method: 'GET', url: url);
   }
 
@@ -154,7 +156,6 @@ class XPathRuleStrategy {
   ) {
     final root = _documentElement(raw);
     final roads = <Road>[];
-    final fragments = <String>[];
     final diagnostics = <String>[];
     final roadNodes = _runSelector(
       XPathRuleField.chapterRoads,
@@ -163,7 +164,6 @@ class XPathRuleStrategy {
     );
     for (var roadIndex = 0; roadIndex < roadNodes.length; roadIndex++) {
       final roadNode = roadNodes[roadIndex];
-      fragments.add(_fragment(roadNode.node));
       try {
         final urls = <String>[];
         final names = <String>[];
@@ -212,7 +212,6 @@ class XPathRuleStrategy {
     }
     return RuleChapterParseResult(
       roads: roads,
-      matchedFragments: fragments,
       diagnostics: diagnostics,
     );
   }

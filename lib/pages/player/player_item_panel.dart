@@ -19,7 +19,6 @@ import 'package:kazumi/services/player/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
@@ -30,6 +29,7 @@ class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
     super.key,
     required this.playerController,
+    required this.videoPageController,
     required this.onBackPressed,
     required this.setPlaybackSpeed,
     required this.showDanmakuSwitch,
@@ -56,6 +56,7 @@ class PlayerItemPanel extends StatefulWidget {
   });
 
   final PlayerController playerController;
+  final VideoPageController videoPageController;
   final void Function(BuildContext) onBackPressed;
   final Future<void> Function(double) setPlaybackSpeed;
   final void Function() showDanmakuSwitch;
@@ -86,18 +87,17 @@ class PlayerItemPanel extends StatefulWidget {
 }
 
 class _PlayerItemPanelState extends State<PlayerItemPanel> {
-  late bool haEnable;
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
-  final VideoPageController videoPageController = inject<VideoPageController>();
+  late final VideoPageController videoPageController =
+      widget.videoPageController;
   late final PlayerController playerController;
   final DownloadController downloadController = inject<DownloadController>();
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
   PlayerPanelHold? _danmakuTextFieldHold;
 
-  // SVG Caches
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
   Widget? cachedDanmakuOffIcon;
@@ -210,7 +210,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     });
   }
 
-  // 选择倍速
   void showSetSpeedSheet() {
     final double currentSpeed = playerController.playback.playerSpeed;
     KazumiDialog.show(builder: (context) {
@@ -272,11 +271,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             builder: (BuildContext context, StateSetter setState) {
           return TextField(
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly, // 只允许输入数字
+              FilteringTextInputFormatter.digitsOnly,
             ],
             decoration: InputDecoration(
-              floatingLabelBehavior:
-                  FloatingLabelBehavior.never, // 控制label的显示方式
+              floatingLabelBehavior: FloatingLabelBehavior.never,
               labelText: playerController.playback.buttonSkipTime.toString(),
             ),
             onChanged: (value) {
@@ -333,7 +331,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       parent: widget.panelVisibilityController,
       curve: Curves.easeInOut,
     ));
-    haEnable = GStorage.getSetting(SettingsKeys.hAenable);
     cacheSvgIcons();
   }
 
@@ -515,11 +512,19 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         Positioned(
           top: 25,
           child: Observer(builder: (context) {
+            // PlayerSeekHud latches values only while visible, so skipping the
+            // position reads when hidden keeps the 1s tick from rebuilding this.
+            final visible = playerController.panel.showSeekTime;
             return PlayerSeekHud(
-              visible: playerController.panel.showSeekTime,
-              currentPosition: playerController.playback.currentPosition,
-              playerPosition: playerController.playback.playerPosition,
-              duration: playerController.playback.duration,
+              visible: visible,
+              currentPosition: visible
+                  ? playerController.playback.currentPosition
+                  : Duration.zero,
+              playerPosition: visible
+                  ? playerController.playback.playerPosition
+                  : Duration.zero,
+              duration:
+                  visible ? playerController.playback.duration : Duration.zero,
               direction: playerController.panel.seekDirection,
               disableAnimations: widget.disableAnimations,
             );
@@ -625,43 +630,50 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Position reads stay inside these narrow Observers so the 1s
+            // progress tick rebuilds only the bar and time text, not the
+            // whole bottom bar.
             if (!isDesktop() && !isTablet())
               Container(
                 padding: const EdgeInsets.only(left: 10.0, bottom: 10),
-                child: Text(
-                  "${durationToString(playerController.playback.currentPosition)} / ${durationToString(playerController.playback.duration)}",
-                  style: const TextStyle(
+                child: Observer(builder: (context) {
+                  return Text(
+                    "${durationToString(playerController.playback.currentPosition)} / ${durationToString(playerController.playback.duration)}",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.0,
+                      fontFeatures: [
+                        FontFeature.tabularFigures(),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Observer(builder: (context) {
+                return ProgressBar(
+                  thumbRadius: 8,
+                  thumbGlowRadius: 18,
+                  timeLabelLocation: isTablet()
+                      ? TimeLabelLocation.sides
+                      : TimeLabelLocation.none,
+                  timeLabelTextStyle: const TextStyle(
                     color: Colors.white,
                     fontSize: 12.0,
                     fontFeatures: [
                       FontFeature.tabularFigures(),
                     ],
                   ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: ProgressBar(
-                thumbRadius: 8,
-                thumbGlowRadius: 18,
-                timeLabelLocation: isTablet()
-                    ? TimeLabelLocation.sides
-                    : TimeLabelLocation.none,
-                timeLabelTextStyle: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12.0,
-                  fontFeatures: [
-                    FontFeature.tabularFigures(),
-                  ],
-                ),
-                progress: playerController.playback.currentPosition,
-                buffered: playerController.playback.buffer,
-                total: playerController.playback.duration,
-                onSeek: widget.handleProgressBarSeek,
-                onDragStart: (_) => widget.handleProgressBarDragStart(),
-                onDragUpdate: (details) => playerController.seeking
-                    .updateInteractiveSeek(details.timeStamp),
-              ),
+                  progress: playerController.playback.currentPosition,
+                  buffered: playerController.playback.buffer,
+                  total: playerController.playback.duration,
+                  onSeek: widget.handleProgressBarSeek,
+                  onDragStart: (_) => widget.handleProgressBarDragStart(),
+                  onDragUpdate: (details) => playerController.seeking
+                      .updateInteractiveSeek(details.timeStamp),
+                );
+              }),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -675,7 +687,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       playing: playerController.playback.playing,
                     ),
                   ),
-                  // 更换选集
                   if (videoPageController.isFullscreen ||
                       isTablet() ||
                       isDesktop())
@@ -688,16 +699,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   if (isDesktop())
                     Container(
                       padding: const EdgeInsets.only(left: 10.0),
-                      child: Text(
-                        "${durationToString(playerController.playback.currentPosition)} / ${durationToString(playerController.playback.duration)}",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.0,
-                          fontFeatures: [
-                            FontFeature.tabularFigures(),
-                          ],
-                        ),
-                      ),
+                      child: Observer(builder: (context) {
+                        return Text(
+                          "${durationToString(playerController.playback.currentPosition)} / ${durationToString(playerController.playback.duration)}",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.0,
+                            fontFeatures: [
+                              FontFeature.tabularFigures(),
+                            ],
+                          ),
+                        );
+                      }),
                     ),
                   if (isDesktop())
                     Expanded(
@@ -767,7 +780,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     ],
                     if (!playerController.danmaku.danmakuOn) const Spacer(),
                   ],
-                  // 超分辨率
                   PlayerPanelHoldMenuAnchor(
                     acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                     consumeOutsideTap: true,
@@ -812,7 +824,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         ),
                     ],
                   ),
-                  // 倍速播放
                   PlayerPanelHoldMenuAnchor(
                     acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                     consumeOutsideTap: true,
@@ -967,7 +978,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   widget.onBackPressed(context);
                 },
               ),
-              // 拖动条
               Expanded(
                 child: dtb.DragToMoveArea(
                   child: Text(
@@ -981,7 +991,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   ),
                 ),
               ),
-              // 跳过
               forwardIcon(),
               if ((isDesktop() && !videoPageController.isFullscreen) ||
                   Platform.isAndroid)
@@ -1025,7 +1034,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     color: Colors.white,
                   ),
                 ),
-              // 追番
               PlayerPanelHoldCollectButton(
                 acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                 bangumiItem: videoPageController.bangumiItem,
@@ -1112,7 +1120,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       ),
                     ),
                   ),
-                  // 定时关闭
                   SubmenuButton(
                     menuChildren: [
                       MenuItemButton(

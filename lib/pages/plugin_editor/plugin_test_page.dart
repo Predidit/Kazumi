@@ -55,6 +55,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
   List<Road>? chapters;
   bool isTesting = false;
   String errorMsg = "";
+  List<String> searchDiagnostics = [];
+  List<String> chapterDiagnostics = [];
   final Map<int, String> _itemFragmentMap = {};
   int? _shownFragmentIndex;
 
@@ -102,6 +104,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
         searchRes = null;
         chapters = null;
         errorMsg = "";
+        searchDiagnostics = [];
+        chapterDiagnostics = [];
         _itemFragmentMap.clear();
         _shownFragmentIndex = null;
       });
@@ -126,6 +130,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
       );
       searchRaw = searchTrace.rawResponse;
       searchRes = searchTrace.response;
+      searchDiagnostics = searchTrace.diagnostics;
       _itemFragmentMap.addAll(searchTrace.matchedFragments.asMap());
       if (_hasSearchData && _needChapterParse) {
         final firstItem = searchRes!.data.first;
@@ -138,6 +143,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
           );
           chapterRaw = chapterTrace.rawResponse;
           chapters = chapterTrace.roads;
+          chapterDiagnostics = chapterTrace.diagnostics;
         }
       }
     } catch (e, stack) {
@@ -325,7 +331,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
     }
     if (subtitle.contains('失败') ||
         subtitle.contains('无可用') ||
-        subtitle.contains('无有效')) {
+        subtitle.contains('无有效') ||
+        subtitle.contains('跳过')) {
       return theme.getCoreColor(CoreColorType.error);
     }
     return theme.getCoreColor(CoreColorType.success);
@@ -358,7 +365,9 @@ class _PluginTestPageState extends State<PluginTestPage> {
     if (isTesting && _shownFragmentIndex == null) return '解析中...';
     if (!_hasSearchRaw) return '未执行解析';
     if (!_hasSearchData) return '未解析到结果';
-    return '解析到 ${searchRes?.data.length ?? 0} 条结果';
+    final skipped =
+        searchDiagnostics.isEmpty ? '' : '，跳过 ${searchDiagnostics.length} 条';
+    return '解析到 ${searchRes?.data.length ?? 0} 条结果$skipped';
   }
 
   Widget _buildParseContent(ThemeData theme) {
@@ -367,6 +376,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
     if (!_hasSearchData) return _buildEmpty('未解析到搜索结果', theme, isError: true);
 
     return Column(children: [
+      _buildDiagnosticsWidget(searchDiagnostics, theme),
       ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -376,6 +386,44 @@ class _PluginTestPageState extends State<PluginTestPage> {
       ),
       _h8,
     ]);
+  }
+
+  /// Nodes the rule skipped during parsing; empty when every node matched.
+  Widget _buildDiagnosticsWidget(List<String> diagnostics, ThemeData theme) {
+    if (diagnostics.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer,
+        border: Border.all(color: theme.getCoreColor(CoreColorType.error)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.warning_amber_outlined,
+                color: theme.getCoreColor(CoreColorType.error), size: 20),
+            const SizedBox(width: 8.0),
+            Text('部分节点被跳过（${diagnostics.length}）',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onErrorContainer,
+                    fontWeight: FontWeight.w500)),
+          ]),
+          _h8,
+          ...diagnostics.map(
+            (message) => Padding(
+              padding: const EdgeInsets.only(bottom: 4.0),
+              child: SelectableText(message,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onErrorContainer)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSearchItemCard(SearchItem item, int i, ThemeData theme) {
@@ -446,7 +494,9 @@ class _PluginTestPageState extends State<PluginTestPage> {
     if (!_hasSearchData) return '无有效搜索结果';
     if (!_needChapterParse) return '无需解析章节';
     if (chapters == null) return '未获取章节数据';
-    return '获取到 ${chapters?.length ?? 0} 个播放线路';
+    final skipped =
+        chapterDiagnostics.isEmpty ? '' : '，跳过 ${chapterDiagnostics.length} 条';
+    return '获取到 ${chapters?.length ?? 0} 个播放线路$skipped';
   }
 
   Widget _buildChapterContent(ThemeData theme) {
@@ -458,6 +508,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
     return Column(
       children: [
+        _buildDiagnosticsWidget(chapterDiagnostics, theme),
         if (chapterRaw.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(bottom: 8),

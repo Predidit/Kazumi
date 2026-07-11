@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
@@ -28,12 +29,14 @@ import 'package:kazumi/services/platform/display_mode_service.dart';
 class VideoPage extends StatefulWidget {
   const VideoPage({
     super.key,
+    required this.args,
     required this.playerController,
     required this.videoPageController,
     required this.historyController,
     required this.downloadController,
   });
 
+  final VideoPlaybackArgs args;
   final PlayerController playerController;
   final VideoPageController videoPageController;
   final HistoryController historyController;
@@ -78,6 +81,7 @@ class _VideoPageState extends State<VideoPage>
   @override
   void initState() {
     super.initState();
+    videoPageController.applyPlaybackArgs(widget.args);
     windowManager.addListener(this);
     // Window fullscreen can be changed outside this page through system chrome.
     videoPageController.isDesktopFullscreen();
@@ -169,7 +173,6 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void _initOnlineMode(PlayerController playerController) {
-    videoPageController.resetEpisodeState();
     videoPageController.historyOffset = 0;
     _showTabBodyImmediately(locateEpisode: false);
 
@@ -230,14 +233,13 @@ class _VideoPageState extends State<VideoPage>
     try {
       _logSubscription?.cancel();
     } catch (_) {}
-    videoPageController.cancelVideoSourceResolution();
+    // Cancellation and log-stream teardown happen in VideoPageController's
+    // own dispose when Modular releases the route scope.
     if (!isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
       } catch (_) {}
     }
-    videoPageController.resetEpisodeComments();
-    videoPageController.resetOfflineMode();
     DisplayModeService.unlockScreenRotation();
     keyboardFocus.dispose();
     tabController.dispose();
@@ -870,6 +872,7 @@ class _VideoPageState extends State<VideoPage>
               ? Container()
               : PlayerItem(
                   playerController: playerController,
+                  videoPageController: videoPageController,
                   toggleMenu: _toggleTabBodyAnimated,
                   showMenuImmediately: _showTabBodyImmediately,
                   hideMenuImmediately: _hideTabBodyImmediately,
@@ -983,7 +986,6 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget _buildDownloadStatusIcon(int episodeNumber, String episodePageUrl) {
-    // 离线模式下不显示下载状态图标
     if (videoPageController.isOfflineMode) return const SizedBox.shrink();
     final episode = _getEpisodeFromRecords(episodeNumber, episodePageUrl);
     if (episode == null) return const SizedBox.shrink();
@@ -1231,7 +1233,10 @@ class _VideoPageState extends State<VideoPage>
                               showAdaptiveBottomSheet<void>(
                                 context: context,
                                 builder: (context) =>
-                                    DownloadEpisodeSheet(road: visibleRoad),
+                                    DownloadEpisodeSheet(
+                                      road: visibleRoad,
+                                      videoPageController: videoPageController,
+                                    ),
                               );
                             },
                           ),

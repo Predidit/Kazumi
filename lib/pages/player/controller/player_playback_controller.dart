@@ -11,6 +11,7 @@ import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/player/player_screenshot_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:media_kit/media_kit.dart';
@@ -77,6 +78,9 @@ abstract class _PlayerPlaybackController with Store {
   int buttonSkipTime = 80;
   int arrowKeySkipTime = 10;
 
+  /// 历史记录传入的 offset
+  int startOffset = 0;
+
   /// 当前超分辨率模式
   @observable
   SuperResolutionMode superResolutionMode = SuperResolutionMode.off;
@@ -131,6 +135,36 @@ abstract class _PlayerPlaybackController with Store {
     buffer = Duration.zero;
     duration = Duration.zero;
     completed = false;
+    startOffset = 0;
+  }
+
+  /// 本次会话是否从距结尾 [nearEndWatchedThreshold] 以内的位置起播。
+  /// 这样的"播放完成"并非真正看完，应从头重播而非切下一集
+  bool get resumedNearEnd {
+    if (startOffset <= 0 || duration <= Duration.zero) {
+      return false;
+    }
+    return Duration(seconds: startOffset) >= duration - nearEndWatchedThreshold;
+  }
+
+  /// 从头重播当前视频。[startOffset] 在重播落地后才归零，
+  /// 避免自动连播在此期间抢先触发
+  Future<void> restartFromBeginning() async {
+    final player = mediaPlayer;
+    if (player == null) {
+      return;
+    }
+    try {
+      await player.seek(Duration.zero);
+      if (!isCurrentPlayer(player)) {
+        return;
+      }
+      await player.play();
+      startOffset = 0;
+    } catch (e) {
+      KazumiLogger()
+          .w('PlayerController: failed to restart from beginning', error: e);
+    }
   }
 
   bool get playerPlaying {
@@ -195,6 +229,7 @@ abstract class _PlayerPlaybackController with Store {
     required bool Function() canInstall,
     int offset = 0,
   }) async {
+    startOffset = offset;
     superResolutionMode = SuperResolutionMode.fromStorageValue(
       GStorage.getSetting(SettingsKeys.defaultSuperResolutionMode),
     );
@@ -274,6 +309,15 @@ abstract class _PlayerPlaybackController with Store {
             return await _discardIfNotCurrent(candidate);
           }
           KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
+        }
+      } else if (SystemProxyService.isActive) {
+        final proxy = SystemProxyService.proxyFor('https');
+        if (proxy != null) {
+          await pp.setProperty("http-proxy", 'http://${proxy.$1}:${proxy.$2}');
+          if (!isCurrentPlayer(player)) {
+            return await _discardIfNotCurrent(candidate);
+          }
+          KazumiLogger().i('Player: 跟随系统代理 http://${proxy.$1}:${proxy.$2}');
         }
       }
 

@@ -81,7 +81,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
                 requireOffset: needTopOffset,
                 child: leading!,
               )
-            : context.canPop()
+            : (ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
                 ? EmbeddedNativeControlArea(
                     requireOffset: needTopOffset,
                     child: IconButton(

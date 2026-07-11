@@ -10,7 +10,7 @@ class DioFactory {
   DioFactory._();
 
   static Dio? _apiDio;
-  static Dio? _githubDio;
+  static Dio? _rulesRepoDio;
   static Dio? _pluginDio;
   static Dio? _downloadDio;
 
@@ -23,13 +23,12 @@ class DioFactory {
         interceptors: [_BangumiMirrorInterceptor()],
       );
 
-  static Dio get githubDio => _githubDio ??= _create(
+  static Dio get rulesRepoDio => _rulesRepoDio ??= _create(
         NetworkConfig.fromSettings(),
         defaultHeaders: {
-          'accept': 'application/vnd.github+json',
           'user-agent': getRandomUA(),
         },
-        interceptors: [_GithubMirrorInterceptor()],
+        interceptors: [_RulesMirrorInterceptor()],
       );
 
   static Dio get pluginDio => _pluginDio ??= _create(
@@ -56,7 +55,7 @@ class DioFactory {
 
   static void reset() {
     _apiDio = null;
-    _githubDio = null;
+    _rulesRepoDio = null;
     _pluginDio = null;
     _downloadDio = null;
   }
@@ -119,15 +118,7 @@ class _BangumiMirrorInterceptor extends Interceptor {
   }
 }
 
-class _GithubMirrorInterceptor extends Interceptor {
-  static const _mirrorableHosts = {
-    'api.github.com',
-    'github.com',
-    'raw.githubusercontent.com',
-    'objects.githubusercontent.com',
-    'github-releases.githubusercontent.com',
-  };
-
+class _RulesMirrorInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
@@ -136,14 +127,15 @@ class _GithubMirrorInterceptor extends Interceptor {
       return;
     }
 
-    final uri = options.uri;
-    if (!_mirrorableHosts.contains(uri.host)) {
+    final url = options.uri.toString();
+    if (!url.startsWith(ApiEndpoints.pluginShop)) {
       handler.next(options);
       return;
     }
 
-    final mirrored = '${ApiEndpoints.gitMirror}${uri.toString()}';
-    KazumiLogger().d('GitHub mirror: $mirrored');
+    final mirrored = ApiEndpoints.pluginShopMirror +
+        url.substring(ApiEndpoints.pluginShop.length);
+    KazumiLogger().d('Rules mirror: $mirrored');
     options.path = mirrored;
     handler.next(options);
   }

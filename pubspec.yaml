@@ -46,7 +46,6 @@ dependencies:
   connectivity_plus: ^6.0.5
   shelf: ^1.4.1
   shelf_router: ^1.1.4
-  bonsoir: ^5.1.11
 
   path_provider: ^2.1.5
   hive_ce: ^2.16.0
@@ -238,7 +237,6 @@ flutter:
     - assets/shaders/
     - assets/images/logo/
     - assets/statements/
-    - assets/lan_web/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

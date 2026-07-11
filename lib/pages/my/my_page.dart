@@ -170,12 +170,12 @@ class _MyPageState extends State<MyPage> {
                 tiles: [
                   SettingsTile.navigation(
                     onPressed: (_) {
-                      Modular.to.pushNamed('/settings/lan/');
+                      Modular.to.pushNamed('/settings/hostapi/');
                     },
-                    leading: const Icon(Icons.lan_rounded),
-                    title: Text('局域网 Web 服务',
+                    leading: const Icon(Icons.extension_rounded),
+                    title: Text('外部扩展 API',
                         style: TextStyle(fontFamily: fontFamily)),
-                    description: Text('在本机开启 HTTP 服务，让局域网内其他设备访问',
+                    description: Text('为本机的外部扩展程序提供接口，如局域网 Web 服务扩展',
                         style: TextStyle(fontFamily: fontFamily)),
                   ),
                 ],

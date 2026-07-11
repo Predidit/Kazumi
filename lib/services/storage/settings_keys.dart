@@ -476,14 +476,19 @@ class SettingsKeys {
     false,
     group: SettingGroup.sync,
   );
-  static const lanServerEnable = SettingKey<bool>(
-    _SettingBoxKey.lanServerEnable,
+  static const hostApiEnable = SettingKey<bool>(
+    _SettingBoxKey.hostApiEnable,
     false,
     group: SettingGroup.misc,
   );
-  static const lanServerPort = SettingKey<int>(
-    _SettingBoxKey.lanServerPort,
-    0,
+  static const hostApiPort = SettingKey<int>(
+    _SettingBoxKey.hostApiPort,
+    21327,
+    group: SettingGroup.misc,
+  );
+  static const hostApiToken = SettingKey<String>(
+    _SettingBoxKey.hostApiToken,
+    '',
     group: SettingGroup.misc,
   );
 
@@ -575,8 +580,9 @@ class SettingsKeys {
     historySyncDeviceId,
     historySyncSequence,
     historySyncSnapshotInitialized,
-    lanServerEnable,
-    lanServerPort,
+    hostApiEnable,
+    hostApiPort,
+    hostApiToken,
   ];
 
   static List<SettingKey<Object?>> byGroup(SettingGroup group) {
@@ -683,6 +689,7 @@ class _SettingBoxKey {
       historySyncDeviceId = 'historySyncDeviceId',
       historySyncSequence = 'historySyncSequence',
       historySyncSnapshotInitialized = 'historySyncSnapshotInitialized',
-      lanServerEnable = 'lanServerEnable',
-      lanServerPort = 'lanServerPort';
+      hostApiEnable = 'hostApiEnable',
+      hostApiPort = 'hostApiPort',
+      hostApiToken = 'hostApiToken';
 }

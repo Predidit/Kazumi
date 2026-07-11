@@ -17,7 +17,7 @@ import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/services/download/background_download_service.dart';
 import 'package:kazumi/services/platform/windows_shortcut.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
-import 'package:kazumi/lan/lan_server_controller.dart';
+import 'package:kazumi/services/host_api/host_api_controller.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -49,7 +49,7 @@ class _InitPageState extends State<InitPage> {
     _loadDanmakuShield();
     _webDavInit();
     _bangumiInit();
-    _lanServerInit();
+    _hostApiInit();
     try {
       await downloadController.init();
       _setupBackgroundDownloadNavigation();
@@ -162,14 +162,13 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
-  Future<void> _lanServerInit() async {
-    final enabled = GStorage.getSetting(SettingsKeys.lanServerEnable);
+  Future<void> _hostApiInit() async {
+    final enabled = GStorage.getSetting(SettingsKeys.hostApiEnable);
     if (!enabled) return;
     try {
-      await Modular.get<LanServerController>()
-          .start(persistPreference: false);
+      await Modular.get<HostApiController>().start(persistPreference: false);
     } catch (e) {
-      KazumiLogger().w('LanServer: auto start failed', error: e);
+      KazumiLogger().w('HostApi: auto start failed', error: e);
     }
   }
 

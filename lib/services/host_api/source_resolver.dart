@@ -7,14 +7,14 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/video_source/video_source_service.dart';
 import 'package:kazumi/services/video_source/webview_video_source_service.dart';
 
-/// 让 LAN HTTP server 复用宿主的 WebView 视频源解析能力。
+/// 让 Host API 复用宿主的 WebView 视频源解析能力。
 ///
 /// [WebViewVideoSourceService] 同实例不能并发（内部用 `_resolveId` 互踢），
-/// 所以这里用一个 [Lock] 把所有 LAN 来源的 resolve 调用排队执行。
-/// 桌面端用户本人在 Kazumi UI 里看番时另开了一个 provider 实例，跟这里互不
+/// 所以这里用一个 [Lock] 把所有来自外部扩展的 resolve 调用排队执行。
+/// 桌面端用户本人在 Kazumi UI 里看番时另开了一个 service 实例，跟这里互不
 /// 影响（虽然底层 WebView 资源仍是共享的，但目前看库内部实现允许多实例共存）。
-class LanSourceResolver {
-  LanSourceResolver();
+class HostSourceResolver {
+  HostSourceResolver();
 
   final Lock _lock = Lock();
   WebViewVideoSourceService? _provider;
@@ -33,11 +33,11 @@ class LanSourceResolver {
           timeout: timeout,
         );
         KazumiLogger().i(
-            'LanSourceResolver: resolved ${plugin.name} -> ${source.url}');
+            'HostSourceResolver: resolved ${plugin.name} -> ${source.url}');
         return source;
       } catch (e) {
         KazumiLogger().w(
-            'LanSourceResolver: resolve failed for ${plugin.name}', error: e);
+            'HostSourceResolver: resolve failed for ${plugin.name}', error: e);
         rethrow;
       }
     });

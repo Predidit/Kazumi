@@ -16,7 +16,7 @@ import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/download_settings.dart';
 import 'package:kazumi/pages/download/download_page_module.dart';
 import 'package:kazumi/pages/bangumi/bangumi_module.dart';
-import 'package:kazumi/pages/settings/lan/lan_server_module.dart';
+import 'package:kazumi/pages/settings/host_api/host_api_module.dart';
 
 class SettingsModule extends Module {
   @override
@@ -41,6 +41,6 @@ class SettingsModule extends Module {
     r.module("/download", module: DownloadModule());
     r.child("/download-settings", child: (_) => const DownloadSettingsPage());
     r.module("/bangumi", module: BangumiModule());
-    r.module("/lan", module: LanServerModule());
+    r.module("/hostapi", module: HostApiModule());
   }
 }

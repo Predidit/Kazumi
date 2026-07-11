@@ -6,6 +6,7 @@ import 'dart:io';
 
 const double PING_MOVING_AVERAGE_WEIGHT = 0.85;
 const Duration _defaultTLSHandshakeTimeout = Duration(seconds: 10);
+const Duration _defaultSocketWriteTimeout = Duration(seconds: 10);
 
 class SyncplayException implements Exception {
   final String message;
@@ -203,13 +204,19 @@ class SyncplayClient {
     String host,
   ) _secureSocketUpgrader;
   final Duration _tlsHandshakeTimeout;
+  final Duration _socketWriteTimeout;
   bool _isTLS = false;
   RawSocket? _socket;
+  // Retained across STARTTLS so a stalled RawSecureSocket can be force-closed.
+  RawSocket? _transportSocket;
   RawSocket? _tlsUpgradeSocket;
   StreamSubscription<RawSocketEvent>? _socketSubscription;
   Completer<void>? _tlsHandshakeCompleter;
   final List<int> _pendingWrites = [];
   Completer<void>? _pendingWriteCompleter;
+  Timer? _pendingWriteTimer;
+  RawSocket? _pendingWriteSocket;
+  int? _pendingWriteGeneration;
   int _connectionGeneration = 0;
   int? _tlsHandshakeGeneration;
   String? _username;
@@ -285,6 +292,7 @@ class SyncplayClient {
       String host,
     )? secureSocketUpgrader,
     Duration tlsHandshakeTimeout = _defaultTLSHandshakeTimeout,
+    Duration socketWriteTimeout = _defaultSocketWriteTimeout,
   })  : _host = host,
         _port = port,
         _socketConnector =
@@ -295,33 +303,40 @@ class SyncplayClient {
                   subscription: subscription,
                   host: host,
                 )),
-        _tlsHandshakeTimeout = tlsHandshakeTimeout;
+        _tlsHandshakeTimeout = tlsHandshakeTimeout,
+        _socketWriteTimeout = socketWriteTimeout;
 
   Future<void> connect({bool enableTLS = true}) async {
     final generation = ++_connectionGeneration;
-    _completeTLSHandshakeError(
-      SyncplayConnectionException('SyncPlay: connection superseded'),
-    );
+    final supersededException =
+        SyncplayConnectionException('SyncPlay: connection superseded');
+    _completeTLSHandshakeError(supersededException);
     _ensureMessageControllers();
     try {
-      await _closeSockets();
+      await _closeSockets(pendingWriteError: supersededException);
       _isTLS = false;
       print('SyncPlay: connecting to Syncplay server: $_host:$_port');
       final socket = await _socketConnector(_host, _port);
       if (generation != _connectionGeneration) {
-        await socket.close();
+        await _forceCloseSocket(socket);
         throw SyncplayConnectionException('SyncPlay: connection superseded');
       }
       _socket = socket;
+      _transportSocket = socket;
       print('SyncPlay: connected to Syncplay server: $_host:$_port');
       _setupSocketHandlers(socket, generation);
       if (enableTLS) {
         final handshakeCompleter = Completer<void>();
         _tlsHandshakeCompleter = handshakeCompleter;
         _tlsHandshakeGeneration = generation;
-        await requestTLS();
         try {
-          await handshakeCompleter.future.timeout(_tlsHandshakeTimeout);
+          await Future.wait<void>(
+            [
+              requestTLS(),
+              handshakeCompleter.future,
+            ],
+            eagerError: true,
+          ).timeout(_tlsHandshakeTimeout);
           if (generation != _connectionGeneration) {
             throw SyncplayConnectionException(
               'SyncPlay: connection superseded',
@@ -345,7 +360,10 @@ class SyncplayClient {
       }
     } catch (error, stackTrace) {
       if (generation == _connectionGeneration) {
-        await _closeSockets();
+        await _closeSockets(
+          pendingWriteError: error,
+          stackTrace: stackTrace,
+        );
         _isTLS = false;
       }
       if (error is SyncplayException) {
@@ -416,7 +434,7 @@ class SyncplayClient {
   }
 
   Future<void> sendSyncPlaySyncRequest({bool? doSeek}) async {
-    _sendState(
+    await _sendState(
       position: _currentPositon,
       paused: _isPaused,
       doSeek: doSeek,
@@ -427,10 +445,10 @@ class SyncplayClient {
   Future<void> disconnect() async {
     print('SyncPlay: disconnecting from Syncplay server: $_host:$_port');
     _connectionGeneration++;
-    _completeTLSHandshakeError(
-      SyncplayConnectionException('SyncPlay: connection closed'),
-    );
-    await _closeSockets();
+    final exception =
+        SyncplayConnectionException('SyncPlay: connection closed');
+    _completeTLSHandshakeError(exception);
+    await _closeSockets(pendingWriteError: exception);
     _isTLS = false;
     await _generalMessageController?.close();
     _generalMessageController = null;
@@ -465,21 +483,54 @@ class SyncplayClient {
     _isPaused = paused;
   }
 
-  Future<void> _closeSockets() async {
+  Future<void> _closeSockets({
+    Object? pendingWriteError,
+    StackTrace? stackTrace,
+  }) async {
     final socket = _socket;
+    final transportSocket = _transportSocket;
     final upgradeSocket = _tlsUpgradeSocket;
+    final subscription = _socketSubscription;
     _socket = null;
+    _transportSocket = null;
     _tlsUpgradeSocket = null;
     _socketSubscription = null;
-    _clearPendingWrites();
+    _isTLS = false;
+    _failPendingWrites(
+      pendingWriteError ??
+          SyncplayConnectionException('SyncPlay: connection closed'),
+      stackTrace,
+    );
     try {
-      await socket?.close();
+      await subscription?.cancel();
     } catch (_) {}
-    if (!identical(socket, upgradeSocket)) {
-      try {
-        await upgradeSocket?.close();
-      } catch (_) {}
+
+    // RawSecureSocket.close() can wait for buffered TLS writes indefinitely.
+    // Closing its retained transport is the force-close path in that case.
+    final sockets = <RawSocket>[];
+    for (final candidate in <RawSocket?>[
+      transportSocket,
+      upgradeSocket,
+      if (socket is! RawSecureSocket ||
+          transportSocket == null ||
+          identical(socket, transportSocket))
+        socket,
+    ]) {
+      if (candidate != null &&
+          !sockets.any((existing) => identical(existing, candidate))) {
+        sockets.add(candidate);
+      }
     }
+    await Future.wait(sockets.map(_forceCloseSocket));
+  }
+
+  Future<void> _forceCloseSocket(RawSocket socket) async {
+    try {
+      socket.shutdown(SocketDirection.both);
+    } catch (_) {}
+    try {
+      await socket.close();
+    } catch (_) {}
   }
 
   void _ensureMessageControllers() {
@@ -510,7 +561,7 @@ class SyncplayClient {
           return;
         }
         if (event == RawSocketEvent.write) {
-          _flushPendingWrites(socket);
+          _flushPendingWrites(socket, generation);
           return;
         }
         if (event == RawSocketEvent.readClosed ||
@@ -570,7 +621,7 @@ class SyncplayClient {
       onDone: () => _handleSocketClosed(socket, generation),
     );
     socket.readEventsEnabled = true;
-    _flushPendingWrites(socket);
+    _flushPendingWrites(socket, generation);
   }
 
   void _handleSocketError(
@@ -583,19 +634,10 @@ class SyncplayClient {
         !identical(socket, _socket)) {
       return;
     }
-    _socket = null;
-    _socketSubscription = null;
-    _isTLS = false;
-    unawaited(socket.close());
     final exception = SyncplayConnectionException(
       'SyncPlay: socket error: $error',
     );
-    _clearPendingWrites();
-    final handshakePending = _tlsHandshakeGeneration == generation;
-    _completeTLSHandshakeError(exception, stackTrace, generation);
-    if (!handshakePending) {
-      _generalMessageController?.addError(exception, stackTrace);
-    }
+    _failCurrentSocket(socket, generation, exception, stackTrace);
   }
 
   void _handleSocketClosed(RawSocket socket, int generation) {
@@ -603,19 +645,32 @@ class SyncplayClient {
         !identical(socket, _socket)) {
       return;
     }
-    _socket = null;
-    _socketSubscription = null;
-    _isTLS = false;
-    unawaited(socket.close());
     final exception = SyncplayConnectionException(
       'SyncPlay: connection closed',
     );
-    _clearPendingWrites();
-    final handshakePending = _tlsHandshakeGeneration == generation;
-    _completeTLSHandshakeError(exception, null, generation);
-    if (!handshakePending) {
-      _generalMessageController?.addError(exception);
+    _failCurrentSocket(socket, generation, exception);
+  }
+
+  void _failCurrentSocket(
+    RawSocket socket,
+    int generation,
+    SyncplayConnectionException exception, [
+    StackTrace? stackTrace,
+  ]) {
+    if (generation != _connectionGeneration ||
+        !identical(socket, _socket)) {
+      return;
     }
+    final handshakePending = _tlsHandshakeGeneration == generation;
+    final closeFuture = _closeSockets(
+      pendingWriteError: exception,
+      stackTrace: stackTrace,
+    );
+    _completeTLSHandshakeError(exception, stackTrace, generation);
+    if (!handshakePending) {
+      _generalMessageController?.addError(exception, stackTrace);
+    }
+    unawaited(closeFuture);
   }
 
   void _handleMessage(dynamic data, RawSocket sourceSocket, int generation) {
@@ -648,7 +703,7 @@ class SyncplayClient {
         _currentRoom = json['Hello']['room']['name'];
         print(
             'SyncPlay: joined room: $_currentRoom as $_username, version: ${json['Hello']['version']}');
-        _setReady();
+        _runInBackground(_setReady());
       }
       _generalMessageController?.add({
         'username': json['Hello']['username'],
@@ -698,9 +753,11 @@ class SyncplayClient {
           'fd': _fd,
         });
       }
-      _sendState(
-        position: _currentPositon,
-        paused: _isPaused,
+      _runInBackground(
+        _sendState(
+          position: _currentPositon,
+          paused: _isPaused,
+        ),
       );
       return;
     }
@@ -778,7 +835,7 @@ class SyncplayClient {
           await _secureSocketUpgrader(plainSocket, subscription, _host);
       if (generation != _connectionGeneration ||
           !identical(_tlsUpgradeSocket, plainSocket)) {
-        await secureSocket.close();
+        await _forceCloseSocket(secureSocket);
         return;
       }
       _tlsUpgradeSocket = null;
@@ -791,14 +848,15 @@ class SyncplayClient {
         handshakeCompleter.complete();
       }
     } catch (error, stackTrace) {
-      try {
-        await plainSocket.close();
-      } catch (_) {}
+      await _forceCloseSocket(plainSocket);
       if (generation != _connectionGeneration ||
           !identical(_tlsUpgradeSocket, plainSocket)) {
         return;
       }
       _tlsUpgradeSocket = null;
+      if (identical(_transportSocket, plainSocket)) {
+        _transportSocket = null;
+      }
       _isTLS = false;
       final exception = SyncplayConnectionException(
         'SyncPlay: TLS connection upgrade failed: $error',
@@ -847,64 +905,113 @@ class SyncplayClient {
   Future<void> _sendMessage(SyncplayMessage message) async {
     final socket = _socket;
     if (socket == null) {
-      _generalMessageController?.addError(
-        SyncplayConnectionException('SyncPlay: not connected to server'),
-      );
-      return;
+      final exception =
+          SyncplayConnectionException('SyncPlay: not connected to server');
+      _generalMessageController?.addError(exception);
+      throw exception;
     }
+    final generation = _connectionGeneration;
     final json = message.toJson();
     final jsonStr = jsonEncode(json);
     // print(
     //     'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] sending message: $jsonStr');
     _pendingWrites.addAll(utf8.encode('$jsonStr\r\n'));
-    final completer = _pendingWriteCompleter ??= Completer<void>();
-    _flushPendingWrites(socket);
+    var completer = _pendingWriteCompleter;
+    if (completer == null) {
+      completer = Completer<void>();
+      _pendingWriteCompleter = completer;
+      _pendingWriteSocket = socket;
+      _pendingWriteGeneration = generation;
+      _restartPendingWriteTimer(socket, generation, completer);
+    }
+    _flushPendingWrites(socket, generation);
     await completer.future;
   }
 
-  void _flushPendingWrites(RawSocket socket) {
-    if (!identical(socket, _socket)) {
+  void _flushPendingWrites(RawSocket socket, int generation) {
+    if (generation != _connectionGeneration ||
+        !identical(socket, _socket)) {
       return;
     }
+    final completer = _pendingWriteCompleter;
+    if (completer == null) {
+      socket.writeEventsEnabled = false;
+      return;
+    }
+    var madeProgress = false;
     try {
       while (_pendingWrites.isNotEmpty) {
         final written = socket.write(_pendingWrites);
         if (written <= 0) {
+          if (madeProgress) {
+            _restartPendingWriteTimer(socket, generation, completer);
+          }
           socket.writeEventsEnabled = true;
           return;
         }
         _pendingWrites.removeRange(0, written);
+        madeProgress = true;
       }
       socket.writeEventsEnabled = false;
-      final completer = _pendingWriteCompleter;
-      _pendingWriteCompleter = null;
-      if (completer != null && !completer.isCompleted) {
-        completer.complete();
-      }
+      _completePendingWrites();
     } catch (error, stackTrace) {
       final exception = SyncplayConnectionException(
         'SyncPlay: socket write failed: $error',
       );
-      _clearPendingWrites();
-      final handshakePending = _tlsHandshakeCompleter != null &&
-          !_tlsHandshakeCompleter!.isCompleted;
-      _completeTLSHandshakeError(exception, stackTrace);
-      if (!handshakePending) {
-        _generalMessageController?.addError(exception, stackTrace);
-      }
+      _failCurrentSocket(socket, generation, exception, stackTrace);
     }
   }
 
-  void _clearPendingWrites() {
-    _pendingWrites.clear();
+  void _restartPendingWriteTimer(
+    RawSocket socket,
+    int generation,
+    Completer<void> completer,
+  ) {
+    _pendingWriteTimer?.cancel();
+    _pendingWriteTimer = Timer(_socketWriteTimeout, () {
+      if (generation != _connectionGeneration ||
+          !identical(socket, _socket) ||
+          !identical(socket, _pendingWriteSocket) ||
+          generation != _pendingWriteGeneration ||
+          !identical(completer, _pendingWriteCompleter) ||
+          _pendingWrites.isEmpty) {
+        return;
+      }
+      _failCurrentSocket(
+        socket,
+        generation,
+        SyncplayConnectionException('SyncPlay: socket write timed out'),
+        StackTrace.current,
+      );
+    });
+  }
+
+  void _completePendingWrites() {
     final completer = _pendingWriteCompleter;
-    _pendingWriteCompleter = null;
+    _clearPendingWriteState();
     if (completer != null && !completer.isCompleted) {
       completer.complete();
     }
   }
 
-  void _sendState(
+  void _failPendingWrites(Object error, [StackTrace? stackTrace]) {
+    _pendingWrites.clear();
+    final completer = _pendingWriteCompleter;
+    _clearPendingWriteState();
+    if (completer != null && !completer.isCompleted) {
+      completer.completeError(error, stackTrace ?? StackTrace.current);
+    }
+  }
+
+  void _clearPendingWriteState() {
+    _pendingWriteTimer?.cancel();
+    _pendingWriteTimer = null;
+    _pendingWriteCompleter = null;
+    _pendingWriteSocket = null;
+    _pendingWriteGeneration = null;
+  }
+
+  Future<void> _sendState(
       {double? position,
       bool? paused,
       bool? doSeek,
@@ -921,7 +1028,7 @@ class SyncplayClient {
     if (_clientIgnoringOnTheFly > 0) {
       clientArck = _clientIgnoringOnTheFly;
     }
-    _sendMessage(StateMessage(
+    return _sendMessage(StateMessage(
       position: position ?? _currentPositon,
       paused: paused ?? _isPaused,
       latencyCalculation: _lastLatencyCalculation,
@@ -932,6 +1039,15 @@ class SyncplayClient {
       serverAck: serverAck,
       doSeek: doSeek,
     ));
+  }
+
+  void _runInBackground(Future<void> future) {
+    unawaited(
+      future.then<void>(
+        (_) {},
+        onError: (Object _, StackTrace __) {},
+      ),
+    );
   }
 
   void _updateClientRttAndFd(double? timestamp, double senderRtt) {

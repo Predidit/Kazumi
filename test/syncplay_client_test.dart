@@ -399,6 +399,205 @@ void main() {
       await upgradedSocket.close();
     });
   });
+
+  group('SyncplayClient socket writes', () {
+    test('TLS deadline includes a stalled STARTTLS write', () async {
+      final socket = _FakeRawSocket(stallWrites: true);
+      final client = SyncplayClient(
+        host: 'syncplay.test',
+        port: 8995,
+        socketConnector: (host, port) async => socket,
+        tlsHandshakeTimeout: const Duration(milliseconds: 50),
+        socketWriteTimeout: const Duration(seconds: 5),
+      );
+
+      addTearDown(() async {
+        await client.disconnect();
+        await socket.dispose();
+      });
+
+      await expectLater(
+        client.connect(),
+        throwsA(
+          isA<SyncplayConnectionException>().having(
+            (error) => error.message,
+            'message',
+            contains('TLS connection upgrade timed out'),
+          ),
+        ),
+      );
+
+      expect(socket.writeCalls, greaterThan(0));
+      expect(socket.closeCalls, 1);
+      expect(client.isConnected, isFalse);
+    });
+
+    test('a stalled write times out and closes the connection', () async {
+      final socket = _FakeRawSocket(stallWrites: true);
+      final client = SyncplayClient(
+        host: 'syncplay.test',
+        port: 8995,
+        socketConnector: (host, port) async => socket,
+        socketWriteTimeout: const Duration(milliseconds: 50),
+      );
+      final streamError = Completer<Object>();
+      final subscription = client.onGeneralMessage.listen(
+        (_) {},
+        onError: (Object error) {
+          if (!streamError.isCompleted) {
+            streamError.complete(error);
+          }
+        },
+      );
+
+      addTearDown(() async {
+        await subscription.cancel();
+        await client.disconnect();
+        await socket.dispose();
+      });
+
+      await client.connect(enableTLS: false);
+      await expectLater(
+        client.joinRoom('stalled-room', 'Tester'),
+        throwsA(
+          isA<SyncplayConnectionException>().having(
+            (error) => error.message,
+            'message',
+            contains('socket write timed out'),
+          ),
+        ),
+      );
+
+      expect(await streamError.future, isA<SyncplayConnectionException>());
+      await socket.closeStarted.future;
+      expect(socket.closeCalls, 1);
+      expect(client.isConnected, isFalse);
+    });
+
+    test(
+      'socket close fails a pending write instead of completing it',
+      () async {
+        final socket = _FakeRawSocket(stallWrites: true);
+        final client = SyncplayClient(
+          host: 'syncplay.test',
+          port: 8995,
+          socketConnector: (host, port) async => socket,
+          socketWriteTimeout: const Duration(seconds: 5),
+        );
+
+        addTearDown(() async {
+          await client.disconnect();
+          await socket.dispose();
+        });
+
+        await client.connect(enableTLS: false);
+        final sendExpectation = expectLater(
+          client.joinRoom('closing-room', 'Tester'),
+          throwsA(
+            isA<SyncplayConnectionException>().having(
+              (error) => error.message,
+              'message',
+              contains('connection closed'),
+            ),
+          ),
+        );
+        socket.emit(RawSocketEvent.closed);
+
+        await sendExpectation;
+        await socket.closeStarted.future;
+        expect(socket.closeCalls, 1);
+        expect(client.isConnected, isFalse);
+      },
+    );
+
+    test('a stale write timer cannot close a newer connection', () async {
+      final firstSocket = _FakeRawSocket(stallWrites: true);
+      final secondSocket = _FakeRawSocket();
+      var connectionCount = 0;
+      final client = SyncplayClient(
+        host: 'syncplay.test',
+        port: 8995,
+        socketConnector: (host, port) async {
+          connectionCount++;
+          return connectionCount == 1 ? firstSocket : secondSocket;
+        },
+        socketWriteTimeout: const Duration(milliseconds: 50),
+      );
+
+      addTearDown(() async {
+        await client.disconnect();
+        await firstSocket.dispose();
+        await secondSocket.dispose();
+      });
+
+      await client.connect(enableTLS: false);
+      final firstSend = client
+          .joinRoom('old-room', 'OldUser')
+          .then<Object?>((_) => null, onError: (Object error) => error);
+
+      await client.connect(enableTLS: false);
+      expect(
+        await firstSend,
+        isA<SyncplayConnectionException>().having(
+          (error) => error.message,
+          'message',
+          contains('connection superseded'),
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(client.isConnected, isTrue);
+      expect(secondSocket.closeCalls, 0);
+
+      await client.joinRoom('new-room', 'NewUser');
+      final hello =
+          jsonDecode(utf8.decode(secondSocket.writtenBytes).trim())
+              as Map<String, dynamic>;
+      expect(hello['Hello']['room']['name'], 'new-room');
+    });
+
+    test(
+      'disconnect awaits subscription cancellation before closing',
+      () async {
+        final operations = <String>[];
+        final cancelStarted = Completer<void>();
+        final allowCancel = Completer<void>();
+        final socket = _FakeRawSocket(
+          operations: operations,
+          onCancel: () async {
+            operations.add('cancel');
+            cancelStarted.complete();
+            await allowCancel.future;
+          },
+        );
+        final client = SyncplayClient(
+          host: 'syncplay.test',
+          port: 8995,
+          socketConnector: (host, port) async => socket,
+        );
+
+        addTearDown(() async {
+          if (!allowCancel.isCompleted) {
+            allowCancel.complete();
+          }
+          await client.disconnect();
+          await socket.dispose();
+        });
+
+        await client.connect(enableTLS: false);
+        final disconnectFuture = client.disconnect();
+        await cancelStarted.future;
+
+        expect(operations, ['cancel']);
+        expect(socket.closeCalls, 0);
+
+        allowCancel.complete();
+        await disconnectFuture;
+        expect(operations, ['cancel', 'close']);
+        expect(socket.closeCalls, 1);
+      },
+    );
+  });
 }
 
 StreamIterator<String> _socketMessages(Socket socket) {
@@ -427,4 +626,77 @@ Future<String> _nextRawLine(StreamIterator<List<int>> messages) async {
     }
   }
   fail('Socket closed before the next raw line');
+}
+
+class _FakeRawSocket extends Stream<RawSocketEvent> implements RawSocket {
+  _FakeRawSocket({
+    this.stallWrites = false,
+    this.operations,
+    FutureOr<void> Function()? onCancel,
+  }) {
+    _events = StreamController<RawSocketEvent>(onCancel: onCancel);
+  }
+
+  final bool stallWrites;
+  final List<String>? operations;
+  late final StreamController<RawSocketEvent> _events;
+  final List<int> writtenBytes = [];
+  final Completer<void> closeStarted = Completer<void>();
+  int writeCalls = 0;
+  int closeCalls = 0;
+
+  @override
+  bool readEventsEnabled = false;
+
+  @override
+  bool writeEventsEnabled = false;
+
+  void emit(RawSocketEvent event) {
+    _events.add(event);
+  }
+
+  Future<void> dispose() async {
+    if (!_events.isClosed) {
+      await _events.close();
+    }
+  }
+
+  @override
+  int write(List<int> buffer, [int offset = 0, int? count]) {
+    writeCalls++;
+    if (stallWrites) {
+      return 0;
+    }
+    final bytesToWrite = count ?? buffer.length - offset;
+    writtenBytes.addAll(buffer.getRange(offset, offset + bytesToWrite));
+    return bytesToWrite;
+  }
+
+  @override
+  Future<RawSocket> close() async {
+    closeCalls++;
+    if (!closeStarted.isCompleted) {
+      closeStarted.complete();
+    }
+    operations?.add('close');
+    return this;
+  }
+
+  @override
+  StreamSubscription<RawSocketEvent> listen(
+    void Function(RawSocketEvent event)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    return _events.stream.listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

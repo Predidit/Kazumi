@@ -32,7 +32,10 @@ class CharacterCard extends StatelessWidget {
         showAdaptiveBottomSheet<void>(
           context: context,
           builder: (context) {
-            return CharacterPage(characterID: characterItem.id);
+            return CharacterPage(
+              characterID: characterItem.id,
+              characterName: characterItem.name,
+            );
           },
         );
       },

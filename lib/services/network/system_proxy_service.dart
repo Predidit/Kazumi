@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -40,11 +39,10 @@ class SystemProxyState {
 
 /// Follows the WinINET system proxy on Windows, Chrome-style.
 ///
-/// The registry snapshot lives in memory only and is never persisted, so the
-/// app always starts from the actual system state. A background isolate
-/// watches the registry key and refreshes the snapshot on change. Like
-/// Chrome, an unreachable proxy endpoint surfaces as a network error rather
-/// than silently falling back to a direct connection.
+/// The registry snapshot lives in memory only. Change notifications arrive
+/// via an async `RegNotifyChangeKeyValue` event awaited on the OS thread
+/// pool, so no Dart isolate ever blocks in native code (a blocked isolate
+/// stalls hot reload).
 ///
 /// The in-app manual proxy takes precedence structurally: call sites only
 /// install [findProxy] when no manual proxy is configured.
@@ -58,7 +56,6 @@ class SystemProxyService {
   static bool _watcherStarted = false;
   static Timer? _debounce;
 
-  /// Reads the registry synchronously and starts the change watcher.
   /// Windows only; call before `runApp` so the first requests see the
   /// correct state.
   static void init() {
@@ -95,13 +92,12 @@ class SystemProxyService {
     return scheme == 'https' ? _state.httpsProxy : _state.httpProxy;
   }
 
-  /// PAC-style callback for `HttpClient.findProxy`. Evaluates the current
-  /// snapshot per request; never throws.
+  /// PAC-style callback for `HttpClient.findProxy`; never throws.
   static String findProxy(Uri url) {
     try {
       if (!isActive) return 'DIRECT';
       final state = _state;
-      if (shouldBypass(url, state)) return 'DIRECT';
+      if (_shouldBypass(url, state)) return 'DIRECT';
       final proxy =
           url.scheme == 'https' ? state.httpsProxy : state.httpProxy;
       if (proxy == null) return 'DIRECT';
@@ -111,20 +107,15 @@ class SystemProxyService {
     }
   }
 
-  // Pure parsing helpers, public for unit tests.
-
-  /// Parses the registry `ProxyServer` value into (http, https) proxies.
-  ///
-  /// Accepts a single `host:port` (applies to both schemes) or a
-  /// per-protocol list like `http=h:p;https=h:p;socks=h:p`. `http` and
-  /// `https` fall back to each other; `ftp`/`socks` entries are ignored
-  /// because `HttpClient` cannot use them.
-  static ((String, int)?, (String, int)?) parseProxyServer(String raw) {
+  /// Parses `ProxyServer`: either a single `host:port` for both schemes or
+  /// a per-protocol list like `http=h:p;https=h:p`. `http`/`https` fall
+  /// back to each other; `ftp`/`socks` are unusable by `HttpClient`.
+  static ((String, int)?, (String, int)?) _parseProxyServer(String raw) {
     raw = raw.trim();
     if (raw.isEmpty) return (null, null);
 
     if (!raw.contains('=')) {
-      final parsed = parseHostPort(raw);
+      final parsed = _parseHostPort(raw);
       return (parsed, parsed);
     }
 
@@ -134,7 +125,7 @@ class SystemProxyService {
       final idx = entry.indexOf('=');
       if (idx <= 0) continue;
       final scheme = entry.substring(0, idx).trim().toLowerCase();
-      final parsed = parseHostPort(entry.substring(idx + 1));
+      final parsed = _parseHostPort(entry.substring(idx + 1));
       if (parsed == null) continue;
       if (scheme == 'http') http = parsed;
       if (scheme == 'https') https = parsed;
@@ -143,7 +134,7 @@ class SystemProxyService {
   }
 
   /// Parses `host:port`, tolerating a `scheme://` prefix and `[IPv6]:port`.
-  static (String, int)? parseHostPort(String value) {
+  static (String, int)? _parseHostPort(String value) {
     value = value.trim();
     if (value.isEmpty) return null;
 
@@ -167,9 +158,7 @@ class SystemProxyService {
     return (host, port);
   }
 
-  /// Parses the registry `ProxyOverride` (bypass) list into wildcard
-  /// patterns and whether `<local>` is present.
-  static (List<String>, bool) parseBypassList(String raw) {
+  static (List<String>, bool) _parseBypassList(String raw) {
     final patterns = <String>[];
     var bypassLocal = false;
     for (final part in raw.split(RegExp(r'[;,]'))) {
@@ -188,9 +177,9 @@ class SystemProxyService {
     return (patterns, bypassLocal);
   }
 
-  /// Loopback hosts always bypass (as in Chrome); `<local>` matches dotless
-  /// hostnames; patterns containing a `:port` match against `host:port`.
-  static bool shouldBypass(Uri url, SystemProxyState state) {
+  /// Loopback always bypasses; `<local>` matches dotless hostnames;
+  /// patterns containing a `:port` match against `host:port`.
+  static bool _shouldBypass(Uri url, SystemProxyState state) {
     final host = url.host.toLowerCase();
     if (host.isEmpty) return true;
     if (_isLoopback(host)) return true;
@@ -219,9 +208,10 @@ class SystemProxyService {
     return regex.hasMatch(target);
   }
 
-  static SystemProxyState buildState(String proxyServer, String proxyOverride) {
-    final (http, https) = parseProxyServer(proxyServer);
-    final (patterns, bypassLocal) = parseBypassList(proxyOverride);
+  static SystemProxyState _buildState(
+      String proxyServer, String proxyOverride) {
+    final (http, https) = _parseProxyServer(proxyServer);
+    final (patterns, bypassLocal) = _parseBypassList(proxyOverride);
     return SystemProxyState(
       httpProxy: http,
       httpsProxy: https,
@@ -255,32 +245,97 @@ class SystemProxyService {
         return status == ERROR_SUCCESS ? buffer.toDartString() : null;
       }
 
-      // WinINET semantics: ProxyEnable=0 means no proxy regardless of a
-      // leftover ProxyServer value. PAC (AutoConfigURL) and WPAD are not
-      // supported and are treated as no proxy.
+      // ProxyEnable=0 wins over a leftover ProxyServer; PAC/WPAD are
+      // treated as no proxy.
       if ((readDword('ProxyEnable') ?? 0) == 0) {
         return const SystemProxyState();
       }
-      return buildState(
+      return _buildState(
         readString('ProxyServer') ?? '',
         readString('ProxyOverride') ?? '',
       );
     });
   }
 
+  // Watcher handles live for the process lifetime; the NativeCallable is
+  // held here so it is never garbage collected.
+  static int _hKey = 0;
+  static int _hEvent = 0;
+  static NativeCallable<_WaitOrTimerCallback>? _waitCallback;
+
   static void _startWatcher() {
     if (_watcherStarted) return;
     _watcherStarted = true;
-    final port = ReceivePort();
-    port.listen((_) => _onRegistryChanged());
-    Isolate.spawn(
-      _watchRegistry,
-      port.sendPort,
-      debugName: 'SystemProxyWatcher',
-    ).then((_) {}, onError: (Object e) {
-      KazumiLogger().w('Proxy: 系统代理监视启动失败 $e');
-      port.close();
+    using((arena) {
+      final subKey = _regPath.toNativeUtf16(allocator: arena);
+      final phKey = arena<IntPtr>();
+      if (RegOpenKeyEx(HKEY_CURRENT_USER, subKey, 0, KEY_NOTIFY, phKey) !=
+          ERROR_SUCCESS) {
+        KazumiLogger().w('Proxy: 系统代理监视启动失败（注册表键打开失败）');
+        return;
+      }
+      _hKey = phKey.value;
+
+      // Auto-reset event: each signal wakes the thread-pool wait once.
+      _hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+      if (_hEvent == 0) {
+        _stopWatcher('CreateEvent 失败');
+        return;
+      }
+
+      _waitCallback =
+          NativeCallable<_WaitOrTimerCallback>.listener(_onWaitSignaled);
+
+      final phWait = arena<IntPtr>();
+      if (_registerWaitForSingleObject(phWait, _hEvent,
+              _waitCallback!.nativeFunction, nullptr, INFINITE, 0) ==
+          0) {
+        _stopWatcher('RegisterWaitForSingleObject 失败');
+        return;
+      }
+
+      if (!_armNotification()) _stopWatcher(null);
     });
+  }
+
+  /// Requests the next one-shot notification. Re-arm before reading the
+  /// registry so a change landing in the gap is caught by that read.
+  static bool _armNotification() {
+    final status = RegNotifyChangeKeyValue(
+      _hKey,
+      TRUE,
+      REG_NOTIFY_CHANGE_NAME |
+          REG_NOTIFY_CHANGE_LAST_SET |
+          REG_NOTIFY_THREAD_AGNOSTIC,
+      _hEvent,
+      TRUE,
+    );
+    if (status != ERROR_SUCCESS) {
+      KazumiLogger().w('Proxy: 系统代理变更通知注册失败 ($status)');
+      return false;
+    }
+    return true;
+  }
+
+  static void _onWaitSignaled(Pointer<Void> context, int timerOrWaitFired) {
+    _armNotification();
+    _onRegistryChanged();
+  }
+
+  static void _stopWatcher(String? reason) {
+    if (reason != null) {
+      KazumiLogger().w('Proxy: 系统代理监视启动失败（$reason）');
+    }
+    _waitCallback?.close();
+    _waitCallback = null;
+    if (_hEvent != 0) {
+      CloseHandle(_hEvent);
+      _hEvent = 0;
+    }
+    if (_hKey != 0) {
+      RegCloseKey(_hKey);
+      _hKey = 0;
+    }
   }
 
   static void _onRegistryChanged() {
@@ -294,33 +349,25 @@ class SystemProxyService {
       ProxyManager.applyProxy();
     });
   }
-
-  /// Isolate entry: blocks on registry change notifications for the process
-  /// lifetime and pings the main isolate on each change.
-  static void _watchRegistry(SendPort sendPort) {
-    using((arena) {
-      final subKey = _regPath.toNativeUtf16(allocator: arena);
-      final phKey = arena<IntPtr>();
-      if (RegOpenKeyEx(HKEY_CURRENT_USER, subKey, 0, KEY_NOTIFY, phKey) !=
-          ERROR_SUCCESS) {
-        return;
-      }
-      final hKey = phKey.value;
-      try {
-        while (true) {
-          final status = RegNotifyChangeKeyValue(
-            hKey,
-            TRUE,
-            REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET,
-            NULL,
-            FALSE,
-          );
-          if (status != ERROR_SUCCESS) break;
-          sendPort.send(true);
-        }
-      } finally {
-        RegCloseKey(hKey);
-      }
-    });
-  }
 }
+
+/// `WAITORTIMERCALLBACK`: void (PVOID lpParameter, BOOLEAN TimerOrWaitFired).
+typedef _WaitOrTimerCallback = Void Function(Pointer<Void>, Uint8);
+
+/// Thread-pool wait on an event handle; not bound by package:win32.
+final _registerWaitForSingleObject = DynamicLibrary.open('kernel32.dll')
+    .lookupFunction<
+        Int32 Function(
+            Pointer<IntPtr> phNewWaitObject,
+            IntPtr hObject,
+            Pointer<NativeFunction<_WaitOrTimerCallback>> callback,
+            Pointer<Void> context,
+            Uint32 dwMilliseconds,
+            Uint32 dwFlags),
+        int Function(
+            Pointer<IntPtr> phNewWaitObject,
+            int hObject,
+            Pointer<NativeFunction<_WaitOrTimerCallback>> callback,
+            Pointer<Void> context,
+            int dwMilliseconds,
+            int dwFlags)>('RegisterWaitForSingleObject');

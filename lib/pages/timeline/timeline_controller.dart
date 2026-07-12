@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/request/apis/anilist_api.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
@@ -18,6 +21,8 @@ abstract class _TimelineController with Store {
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =
       ObservableList<List<BangumiItem>>();
+
+  final ObservableMap<int, DateTime> airingTimes = ObservableMap();
 
   @observable
   String seasonString = '';
@@ -46,6 +51,8 @@ abstract class _TimelineController with Store {
   late DateTime _selectedDate;
   DateTime get selectedDate => _selectedDate;
 
+  int _scheduleRequestId = 0;
+
   bool get _bangumiMirrorEnabled =>
       GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 
@@ -59,32 +66,40 @@ abstract class _TimelineController with Store {
   // clear+addAll never shows observers an intermediate empty list.
   @action
   Future<void> getSchedules() async {
+    final requestId = ++_scheduleRequestId;
     isLoading = true;
     isTimeOut = false;
     bangumiCalendar.clear();
+    airingTimes.clear();
     final resBangumiCalendar = await BangumiApi.getCalendar();
+    if (requestId != _scheduleRequestId) return;
     bangumiCalendar.clear();
     bangumiCalendar.addAll(resBangumiCalendar);
     changeSortType(sortType);
     isLoading = false;
     isTimeOut = bangumiCalendar.isEmpty;
+    unawaited(_loadAiringTimes(resBangumiCalendar, requestId));
   }
 
   @action
   Future<void> getSchedulesBySeason() async {
+    final requestId = ++_scheduleRequestId;
     if (_bangumiMirrorEnabled) {
       isLoading = true;
       isTimeOut = false;
       bangumiCalendar.clear();
+      airingTimes.clear();
       final resBangumiCalendar =
           await BangumiApi.getBangumiMirrorSeasonCalendar(
               AnimeSeason(selectedDate).toSeasonStartAndEnd());
+      if (requestId != _scheduleRequestId) return;
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);
       isLoading = false;
       isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
       if (!isTimeOut) {
         changeSortType(sortType);
+        unawaited(_loadAiringTimes(resBangumiCalendar, requestId));
       }
       return;
     }
@@ -92,6 +107,7 @@ abstract class _TimelineController with Store {
     isLoading = true;
     isTimeOut = false;
     bangumiCalendar.clear();
+    airingTimes.clear();
     var time = 0;
     const maxTime = 4;
     const limit = 20;
@@ -100,6 +116,7 @@ abstract class _TimelineController with Store {
       final offset = time * limit;
       var newList = await BangumiApi.getCalendarBySearch(
           AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
+      if (requestId != _scheduleRequestId) return;
       for (int i = 0; i < resBangumiCalendar.length; ++i) {
         resBangumiCalendar[i].addAll(newList[i]);
       }
@@ -114,7 +131,22 @@ abstract class _TimelineController with Store {
     }
     if (!isTimeOut) {
       changeSortType(sortType);
+      unawaited(_loadAiringTimes(resBangumiCalendar, requestId));
     }
+  }
+
+  Future<void> _loadAiringTimes(
+      List<List<BangumiItem>> calendar, int requestId) async {
+    final airingTimesById = await AniListApi.getAiringTimes(
+      calendar.expand((items) => items),
+      selectedDate: selectedDate,
+    );
+    if (requestId != _scheduleRequestId) return;
+    runInAction(() {
+      airingTimes
+        ..clear()
+        ..addAll(airingTimesById);
+    });
   }
 
   void tryEnterSeason(DateTime date) {

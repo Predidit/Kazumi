@@ -74,6 +74,9 @@ class ApiEndpoints {
   /// Bangumi Next API Domain
   static const String bangumiAPINextDomain = 'https://next.bgm.tv';
 
+  /// AniList GraphQL API
+  static const String aniListAPIDomain = 'https://graphql.anilist.co';
+
   /// 每日放送
   static const String bangumiCalendar = '/p1/calendar';
 

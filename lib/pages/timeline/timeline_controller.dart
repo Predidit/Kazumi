@@ -71,6 +71,7 @@ abstract class _TimelineController with Store {
     isTimeOut = false;
     bangumiCalendar.clear();
     airingTimes.clear();
+    unawaited(AniListApi.preloadSeason(_selectedDate));
     final resBangumiCalendar = await BangumiApi.getCalendar();
     if (requestId != _scheduleRequestId) return;
     bangumiCalendar.clear();
@@ -84,6 +85,7 @@ abstract class _TimelineController with Store {
   @action
   Future<void> getSchedulesBySeason() async {
     final requestId = ++_scheduleRequestId;
+    unawaited(AniListApi.preloadSeason(selectedDate));
     if (_bangumiMirrorEnabled) {
       isLoading = true;
       isTimeOut = false;

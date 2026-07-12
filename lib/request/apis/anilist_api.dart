@@ -29,6 +29,11 @@ query ($page: Int!, $season: MediaSeason!, $seasonYear: Int!) {
   static final Map<String, _SeasonCache> _cache = {};
   static final Map<String, Future<List<_AniListMedia>>> _requests = {};
 
+  /// Starts loading a season so a timeline request can run in parallel.
+  static Future<void> preloadSeason(DateTime date) async {
+    await _getSeasonMedia(date);
+  }
+
   static Future<Map<int, DateTime>> getAiringTimes(
     Iterable<BangumiItem> items, {
     required DateTime selectedDate,

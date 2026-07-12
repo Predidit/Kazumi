@@ -5,6 +5,7 @@ import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/character_comments_card.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
 
@@ -76,19 +77,21 @@ class _CharacterPageState extends State<CharacterPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: Column(
           children: [
-            const PreferredSize(
-              preferredSize: Size.fromHeight(kToolbarHeight),
-              child: Material(
-                child: TabBar(
-                  tabs: [
-                    Tab(text: '人物资料'),
-                    Tab(text: '吐槽箱'),
-                  ],
-                ),
-              ),
+            MaterialBottomSheetHeader(
+              title: '人物详情',
+              description: loadingCharacter ? '正在加载人物资料' : null,
+              onClose: () => Navigator.of(context).pop(),
             ),
+            const MaterialBottomSheetTabBar(
+              tabs: [
+                Tab(text: '人物资料'),
+                Tab(text: '吐槽箱'),
+              ],
+            ),
+            const SizedBox(height: 4),
             Expanded(
               child: TabBarView(
                 children: [characterInfoBody, characterCommentsBody],

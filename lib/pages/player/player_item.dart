@@ -21,6 +21,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -1208,126 +1209,151 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
+  void _copyVideoInfo(String label, String value) {
+    Clipboard.setData(ClipboardData(text: '$label\n$value'));
+    KazumiDialog.showToast(message: '已复制到剪贴板');
+  }
+
+  Widget _buildVideoInfoSection(
+    BuildContext context, {
+    required String title,
+    required List<({IconData icon, String label, String value})> items,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: MaterialBottomSheetGroup(
+        title: title,
+        children: [
+          for (final item in items)
+            ListTile(
+              contentPadding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  item.icon,
+                  color: colorScheme.onSecondaryContainer,
+                  size: 22,
+                ),
+              ),
+              title: Text(
+                item.label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  item.value.isEmpty ? '暂无数据' : item.value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: item.value.isEmpty
+                        ? colorScheme.outline
+                        : colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              trailing: IconButton(
+                onPressed: item.value.isEmpty
+                    ? null
+                    : () => _copyVideoInfo(item.label, item.value),
+                tooltip: '复制${item.label}',
+                icon: const Icon(Icons.copy_rounded),
+              ),
+              onTap: item.value.isEmpty
+                  ? null
+                  : () => _copyVideoInfo(item.label, item.value),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget get videoInfoBody {
     return Observer(builder: (context) {
+      final debug = playerController.debug;
+      final resolution = debug.playerWidth > 0 && debug.playerHeight > 0
+          ? '${debug.playerWidth} × ${debug.playerHeight}'
+          : '';
+
       return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         children: [
-          ListTile(
-            title: const Text("Source"),
-            subtitle: Text(playerController.videoUrl),
-            onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
-              Clipboard.setData(
-                ClipboardData(text: playerController.videoUrl),
-              );
-            },
+          _buildVideoInfoSection(
+            context,
+            title: '播放源',
+            items: [
+              (
+                icon: Icons.link_rounded,
+                label: '媒体地址',
+                value: playerController.videoUrl,
+              ),
+            ],
           ),
-          ListTile(
-            title: const Text("Resolution"),
-            subtitle: Text(
-                '${playerController.debug.playerWidth}x${playerController.debug.playerHeight}'),
-            onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
-              Clipboard.setData(
-                ClipboardData(
-                  text:
-                      "Resolution\n${playerController.debug.playerWidth}x${playerController.debug.playerHeight}",
-                ),
-              );
-            },
+          _buildVideoInfoSection(
+            context,
+            title: '视频',
+            items: [
+              (
+                icon: Icons.aspect_ratio_rounded,
+                label: '分辨率',
+                value: resolution,
+              ),
+              (
+                icon: Icons.tune_rounded,
+                label: '视频参数',
+                value: debug.playerVideoParams,
+              ),
+              (
+                icon: Icons.video_file_rounded,
+                label: '视频轨道',
+                value: debug.playerVideoTracks,
+              ),
+              (
+                icon: Icons.speed_rounded,
+                label: '视频码率',
+                value: debug.playerVideoBitrate,
+              ),
+            ],
           ),
-          ListTile(
-            title: const Text("VideoParams"),
-            subtitle: Text(playerController.debug.playerVideoParams.toString()),
-            onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
-              Clipboard.setData(
-                ClipboardData(
-                  text:
-                      "VideoParams\n${playerController.debug.playerVideoParams.toString()}",
-                ),
-              );
-            },
+          _buildVideoInfoSection(
+            context,
+            title: '音频',
+            items: [
+              (
+                icon: Icons.graphic_eq_rounded,
+                label: '音频参数',
+                value: debug.playerAudioParams,
+              ),
+              (
+                icon: Icons.audio_file_rounded,
+                label: '音频轨道',
+                value: debug.playerAudioTracks,
+              ),
+              (
+                icon: Icons.speed_rounded,
+                label: '音频码率',
+                value: debug.playerAudioBitrate,
+              ),
+            ],
           ),
-          ListTile(
-            title: const Text("AudioParams"),
-            subtitle: Text(playerController.debug.playerAudioParams.toString()),
-            onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
-              Clipboard.setData(
-                ClipboardData(
-                  text:
-                      "AudioParams\n${playerController.debug.playerAudioParams.toString()}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("Media"),
-            subtitle: Text(playerController.debug.playerPlaylist.toString()),
-            onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
-              Clipboard.setData(
-                ClipboardData(
-                  text:
-                      "Media\n${playerController.debug.playerPlaylist.toString()}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("AudioTrack"),
-            subtitle: Text(playerController.debug.playerAudioTracks.toString()),
-            onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
-              Clipboard.setData(
-                ClipboardData(
-                  text:
-                      "AudioTrack\n${playerController.debug.playerAudioTracks.toString()}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("VideoTrack"),
-            subtitle: Text(playerController.debug.playerVideoTracks.toString()),
-            onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
-              Clipboard.setData(
-                ClipboardData(
-                  text:
-                      "VideoTrack\n${playerController.debug.playerVideoTracks.toString()}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("VideoBitrate"),
-            subtitle:
-                Text(playerController.debug.playerVideoBitrate.toString()),
-            onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
-              Clipboard.setData(
-                ClipboardData(
-                  text:
-                      "VideoBitrate\n${playerController.debug.playerVideoBitrate.toString()}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("AudioBitrate"),
-            subtitle:
-                Text(playerController.debug.playerAudioBitrate.toString()),
-            onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
-              Clipboard.setData(
-                ClipboardData(
-                  text:
-                      "AudioBitrate\n${playerController.debug.playerAudioBitrate.toString()}",
-                ),
-              );
-            },
+          _buildVideoInfoSection(
+            context,
+            title: '媒体',
+            items: [
+              (
+                icon: Icons.playlist_play_rounded,
+                label: '播放列表',
+                value: debug.playerPlaylist,
+              ),
+            ],
           ),
         ],
       );
@@ -1335,48 +1361,112 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Widget get videoDebugLogBody {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 0),
-        child: Observer(builder: (context) {
-          return ListView.builder(
-            itemCount: playerController.debug.playerLog.length,
-            itemBuilder: (context, index) {
-              return Text(playerController.debug.playerLog[index]);
-            },
-          );
-        }),
-      ),
-      floatingActionButton: FloatingActionButton(
-          child: const Icon(Icons.copy),
-          onPressed: () {
-            Clipboard.setData(
-              ClipboardData(text: playerController.debug.playerLog.join('\n')),
-            );
-          }),
-    );
+    return Observer(builder: (context) {
+      final theme = Theme.of(context);
+      final colorScheme = theme.colorScheme;
+      final logs = playerController.debug.playerLog;
+
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${logs.length} 条运行日志',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: logs.isEmpty
+                      ? null
+                      : () => _copyVideoInfo('播放器日志', logs.join('\n')),
+                  icon: const Icon(Icons.copy_all_rounded),
+                  label: const Text('全部复制'),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: logs.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.receipt_long_rounded,
+                          size: 48,
+                          color: colorScheme.outline,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '暂无运行日志',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    itemCount: logs.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: SelectableText(
+                          logs[index],
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.45,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      );
+    });
   }
 
   void showVideoInfo() {
     showAdaptiveBottomSheet<void>(
       context: context,
+      maxHeightFactor: 0.86,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (context) {
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
+
         return DefaultTabController(
           length: 2,
           child: Scaffold(
+            backgroundColor: colorScheme.surface,
             body: Column(
               children: [
-                const PreferredSize(
-                  preferredSize: Size.fromHeight(kToolbarHeight),
-                  child: Material(
-                    child: TabBar(
-                      tabs: [
-                        Tab(text: '状态'),
-                        Tab(text: '日志'),
-                      ],
-                    ),
-                  ),
+                MaterialBottomSheetHeader(
+                  title: '视频详情',
+                  description: '实时播放状态与诊断信息',
+                  onClose: () => Navigator.of(context).pop(),
                 ),
+                const MaterialBottomSheetTabBar(
+                  tabs: [
+                    Tab(text: '状态'),
+                    Tab(text: '日志'),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 Expanded(
                   child: TabBarView(
                     children: [

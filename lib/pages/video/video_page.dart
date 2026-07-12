@@ -14,6 +14,7 @@ import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
@@ -550,43 +551,42 @@ class _VideoPageState extends State<VideoPage>
         await showAdaptiveBottomSheet<DanmakuDestination>(
       context: context,
       builder: (context) {
-        final theme = Theme.of(context);
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          padding: const EdgeInsets.only(bottom: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              MaterialBottomSheetHeader(
+                title: '发送弹幕至',
+                description: '选择这条弹幕的发送位置',
+                onClose: () => Navigator.of(context).pop(),
+              ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  '发送弹幕至',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: MaterialBottomSheetGroup(
+                  title: '发送位置',
+                  children: [
+                    ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      leading: const Icon(Icons.groups_rounded),
+                      title: const Text('发送到聊天室'),
+                      subtitle: const Text('同步观看成员均可看到'),
+                      onTap: () => Navigator.of(context)
+                          .pop(DanmakuDestination.chatRoom),
+                    ),
+                    ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      leading: const Icon(Icons.cloud_upload_rounded),
+                      title: const Text('发送到远程弹幕库'),
+                      subtitle: const Text('作为视频弹幕发送'),
+                      onTap: () => Navigator.of(context)
+                          .pop(DanmakuDestination.remoteDanmaku),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                leading: const Icon(Icons.groups_rounded),
-                title: const Text('发送到聊天室'),
-                subtitle: const Text('同步观看成员均可看到'),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                onTap: () =>
-                    Navigator.of(context).pop(DanmakuDestination.chatRoom),
-              ),
-              const SizedBox(height: 4),
-              ListTile(
-                leading: const Icon(Icons.cloud_upload_rounded),
-                title: const Text('发送到远程弹幕库'),
-                subtitle: const Text('作为视频弹幕发送'),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                onTap: () =>
-                    Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
               ),
             ],
           ),
@@ -1232,11 +1232,10 @@ class _VideoPageState extends State<VideoPage>
                             onPressed: () {
                               showAdaptiveBottomSheet<void>(
                                 context: context,
-                                builder: (context) =>
-                                    DownloadEpisodeSheet(
-                                      road: visibleRoad,
-                                      videoPageController: videoPageController,
-                                    ),
+                                builder: (context) => DownloadEpisodeSheet(
+                                  road: visibleRoad,
+                                  videoPageController: videoPageController,
+                                ),
                               );
                             },
                           ),

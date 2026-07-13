@@ -5,10 +5,15 @@ import 'dart:convert';
 import 'dart:io';
 
 const double PING_MOVING_AVERAGE_WEIGHT = 0.85;
+const Duration _tlsHandshakeTimeout = Duration(seconds: 10);
+const Duration _socketWriteTimeout = Duration(seconds: 10);
 
 class SyncplayException implements Exception {
   final String message;
   SyncplayException(this.message);
+
+  @override
+  String toString() => message;
 }
 
 class SyncplayConnectionException extends SyncplayException {
@@ -189,11 +194,23 @@ class TLSMessage extends SyncplayMessage {
       };
 }
 
+/// Single-use connection to a Syncplay server: [connect] may be called once,
+/// and [disconnect] permanently closes the client. Callers create a new
+/// instance for every connection attempt.
 class SyncplayClient {
   final String _host;
   final int _port;
+  bool _connectCalled = false;
+  bool _closed = false;
   bool _isTLS = false;
-  Socket? _socket;
+  RawSocket? _socket;
+  // Retained across STARTTLS so a stalled RawSecureSocket can be force-closed.
+  RawSocket? _transportSocket;
+  StreamSubscription<RawSocketEvent>? _socketSubscription;
+  Completer<void>? _tlsHandshakeCompleter;
+  final List<int> _pendingWrites = [];
+  Completer<void>? _pendingWriteCompleter;
+  Timer? _pendingWriteTimer;
   String? _username;
   String? _currentRoom;
   String? _currentFileName;
@@ -221,7 +238,10 @@ class SyncplayClient {
   int _clientIgnoringOnTheFly = 0;
   int _serverIgnoringOnTheFly = 0;
 
-  bool get isConnected => _socket != null;
+  bool get isConnected =>
+      !_closed &&
+      _socket != null &&
+      (_tlsHandshakeCompleter == null || _isTLS);
   bool get isTLS => _isTLS;
   String? get username => _username;
   String? get currentRoom => _currentRoom;
@@ -261,34 +281,79 @@ class SyncplayClient {
         _port = port;
 
   Future<void> connect({bool enableTLS = true}) async {
-    if (_generalMessageController?.isClosed ?? true) {
-      _generalMessageController = StreamController.broadcast();
+    if (_closed) {
+      throw StateError('SyncplayClient cannot connect after disconnect');
     }
-    if (_flieChangedMessageController?.isClosed ?? true) {
-      _flieChangedMessageController = StreamController.broadcast();
+    if (_connectCalled) {
+      throw StateError('SyncplayClient.connect may only be called once');
     }
-    if (_positionChangedMessageController?.isClosed ?? true) {
-      _positionChangedMessageController = StreamController.broadcast();
-    }
+    _connectCalled = true;
     try {
-      await _socket?.close();
-      _socket = null;
       print('SyncPlay: connecting to Syncplay server: $_host:$_port');
-      _socket = await Socket.connect(_host, _port);
-      print('SyncPlay: connected to Syncplay server: $_host:$_port');
-      _setupSocketHandlers();
-      if (enableTLS) {
-        requestTLS();
+      final socket = await RawSocket.connect(_host, _port);
+      if (_closed) {
+        await _forceCloseSocket(socket);
+        throw SyncplayConnectionException('SyncPlay: connection closed');
       }
-    } on SocketException catch (e) {
-      _generalMessageController?.addError(
-        SyncplayConnectionException(
-            'SyncPlay: connection failed: ${e.message}'),
+      _socket = socket;
+      _transportSocket = socket;
+      print('SyncPlay: connected to Syncplay server: $_host:$_port');
+      _setupSocketHandlers(socket);
+      if (enableTLS) {
+        final handshakeCompleter = Completer<void>();
+        _tlsHandshakeCompleter = handshakeCompleter;
+        try {
+          await Future.wait<void>(
+            [
+              requestTLS(),
+              handshakeCompleter.future,
+            ],
+            eagerError: true,
+          ).timeout(_tlsHandshakeTimeout);
+          if (_socket == null || !_isTLS) {
+            throw SyncplayConnectionException(
+              'SyncPlay: TLS connection closed during upgrade',
+            );
+          }
+        } on TimeoutException {
+          throw SyncplayConnectionException(
+            'SyncPlay: TLS connection upgrade timed out',
+          );
+        } finally {
+          _tlsHandshakeCompleter = null;
+        }
+      }
+    } catch (error, stackTrace) {
+      if (!_closed) {
+        await _closeSockets(
+          pendingWriteError: error,
+          stackTrace: stackTrace,
+        );
+      }
+      if (error is SyncplayException) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      if (error is SocketException) {
+        Error.throwWithStackTrace(
+          SyncplayConnectionException(
+            'SyncPlay: connection failed: ${error.message}',
+          ),
+          stackTrace,
+        );
+      }
+      Error.throwWithStackTrace(
+        SyncplayConnectionException('SyncPlay: connection failed: $error'),
+        stackTrace,
       );
     }
   }
 
   Future<void> requestTLS() async {
+    if (_socket == null) {
+      throw SyncplayConnectionException(
+        'SyncPlay: cannot request TLS before connecting',
+      );
+    }
     print('SyncPlay: requesting TLS connection upgrade');
     await _sendMessage(TLSMessage(message: 'send'));
   }
@@ -332,8 +397,8 @@ class SyncplayClient {
         room: _currentRoom ?? ''));
   }
 
-  Future<void> sendSyncPlaySyncRequest({bool? doSeek}) async {
-    _sendState(
+  Future<void> sendSyncPlaySyncRequest({bool? doSeek}) {
+    return _sendState(
       position: _currentPositon,
       paused: _isPaused,
       doSeek: doSeek,
@@ -342,7 +407,15 @@ class SyncplayClient {
   }
 
   Future<void> disconnect() async {
+    if (_closed) {
+      return;
+    }
+    _closed = true;
     print('SyncPlay: disconnecting from Syncplay server: $_host:$_port');
+    final exception =
+        SyncplayConnectionException('SyncPlay: connection closed');
+    _completeTLSHandshakeError(exception);
+    await _closeSockets(pendingWriteError: exception);
     await _generalMessageController?.close();
     _generalMessageController = null;
     await _roomMessageController?.close();
@@ -353,16 +426,11 @@ class SyncplayClient {
     _flieChangedMessageController = null;
     await _positionChangedMessageController?.close();
     _positionChangedMessageController = null;
-    try {
-      await _socket?.close();
-    } catch (_) {}
-    _socket = null;
     _currentRoom = null;
     _username = null;
     _currentFileName = null;
     _currentPositon = 0.0;
     _isPaused = true;
-    _isTLS = false;
     _lastLatencyCalculation = null;
     _clientIgnoringOnTheFly = 0;
     _serverIgnoringOnTheFly = 0;
@@ -380,77 +448,173 @@ class SyncplayClient {
     _isPaused = paused;
   }
 
-  void _setupSocketHandlers() {
+  Future<void> _closeSockets({
+    Object? pendingWriteError,
+    StackTrace? stackTrace,
+  }) async {
+    final socket = _socket;
+    final transportSocket = _transportSocket;
+    final subscription = _socketSubscription;
+    _socket = null;
+    _transportSocket = null;
+    _socketSubscription = null;
+    _isTLS = false;
+    _failPendingWrites(
+      pendingWriteError ??
+          SyncplayConnectionException('SyncPlay: connection closed'),
+      stackTrace,
+    );
+    try {
+      await subscription?.cancel();
+    } catch (_) {}
+
+    // RawSecureSocket.close() can wait for buffered TLS writes indefinitely.
+    // Closing its retained transport is the force-close path in that case.
+    if (transportSocket != null) {
+      await _forceCloseSocket(transportSocket);
+    }
+    if (socket != null &&
+        !identical(socket, transportSocket) &&
+        socket is! RawSecureSocket) {
+      await _forceCloseSocket(socket);
+    }
+  }
+
+  Future<void> _forceCloseSocket(RawSocket socket) async {
+    try {
+      socket.shutdown(SocketDirection.both);
+    } catch (_) {}
+    try {
+      await socket.close();
+    } catch (_) {}
+  }
+
+  void _setupSocketHandlers(RawSocket socket) {
     String buffer = '';
 
-    _socket?.listen(
-      (data) {
-        final dataStr = utf8.decode(data);
-        buffer += dataStr;
-        while (true) {
-          final startIndex = buffer.indexOf('{');
-          if (startIndex == -1) {
-            break;
-          }
-
-          int braceCount = 0;
-          int? endIndex;
-          for (int i = startIndex; i < buffer.length; i++) {
-            if (buffer[i] == '{') {
-              braceCount++;
-            } else if (buffer[i] == '}') {
-              braceCount--;
-              if (braceCount == 0) {
-                endIndex = i;
+    _socketSubscription = socket.listen(
+      (event) {
+        if (!identical(socket, _socket)) {
+          return;
+        }
+        if (event == RawSocketEvent.write) {
+          _flushPendingWrites(socket);
+          return;
+        }
+        if (event == RawSocketEvent.readClosed ||
+            event == RawSocketEvent.closed) {
+          _handleSocketClosed(socket);
+          return;
+        }
+        if (event == RawSocketEvent.read) {
+          while (true) {
+            final data = socket.read();
+            if (data == null || data.isEmpty) {
+              break;
+            }
+            buffer += utf8.decode(data);
+            while (true) {
+              final startIndex = buffer.indexOf('{');
+              if (startIndex == -1) {
                 break;
+              }
+
+              int braceCount = 0;
+              int? endIndex;
+              for (int i = startIndex; i < buffer.length; i++) {
+                if (buffer[i] == '{') {
+                  braceCount++;
+                } else if (buffer[i] == '}') {
+                  braceCount--;
+                  if (braceCount == 0) {
+                    endIndex = i;
+                    break;
+                  }
+                }
+              }
+              if (endIndex == null) break;
+
+              final jsonStr = buffer.substring(startIndex, endIndex + 1);
+              try {
+                _handleMessage(json.decode(jsonStr), socket);
+              } catch (e) {
+                _generalMessageController?.addError(
+                  SyncplayProtocolException(
+                      'SyncPlay: received data parse failed: $e'),
+                );
+              }
+              buffer = buffer.substring(endIndex + 1);
+              if (!identical(socket, _socket)) {
+                return;
               }
             }
           }
-          if (endIndex == null) break;
-
-          final jsonStr = buffer.substring(startIndex, endIndex + 1);
-          try {
-            // print(
-            //     'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] received message: $jsonStr');
-            _handleMessage(json.decode(jsonStr));
-          } catch (e) {
-            _generalMessageController?.addError(
-              SyncplayProtocolException(
-                  'SyncPlay: received data parse failed: $e'),
-            );
-          }
-          buffer = buffer.substring(endIndex + 1);
         }
       },
-      onError: (error) => _generalMessageController?.addError(
-        SyncplayConnectionException('SyncPlay: socket error: $error'),
-      ),
-      onDone: () => _generalMessageController?.addError(
-        SyncplayConnectionException('SyncPlay: connection closed'),
-      ),
+      onError: (error, stackTrace) =>
+          _handleSocketError(socket, error, stackTrace),
+      onDone: () => _handleSocketClosed(socket),
+    );
+    socket.readEventsEnabled = true;
+    _flushPendingWrites(socket);
+  }
+
+  void _handleSocketError(
+    RawSocket socket,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    _failCurrentSocket(
+      socket,
+      SyncplayConnectionException('SyncPlay: socket error: $error'),
+      stackTrace,
     );
   }
 
-  void _handleMessage(dynamic data) async {
+  void _handleSocketClosed(RawSocket socket) {
+    _failCurrentSocket(
+      socket,
+      SyncplayConnectionException('SyncPlay: connection closed'),
+    );
+  }
+
+  void _failCurrentSocket(
+    RawSocket socket,
+    SyncplayConnectionException exception, [
+    StackTrace? stackTrace,
+  ]) {
+    if (!identical(socket, _socket)) {
+      return;
+    }
+    final handshakePending =
+        !(_tlsHandshakeCompleter?.isCompleted ?? true);
+    final closeFuture = _closeSockets(
+      pendingWriteError: exception,
+      stackTrace: stackTrace,
+    );
+    _completeTLSHandshakeError(exception, stackTrace);
+    if (!handshakePending) {
+      _generalMessageController?.addError(exception, stackTrace);
+    }
+    unawaited(closeFuture);
+  }
+
+  void _handleMessage(dynamic data, RawSocket sourceSocket) {
     final json = data as Map<String, dynamic>;
     if (json.containsKey('TLS')) {
-      if (json['TLS'].containsKey('startTLS')) {
-        if (json['TLS']['startTLS'] == 'true') {
-          var plainSocket = _socket;
-          try {
-            _socket = await SecureSocket.secure(plainSocket!);
-            _setupSocketHandlers();
-            _isTLS = true;
-            print('SyncPlay: TLS connection established');
-            try {
-              plainSocket.close();
-            } catch (_) {}
-          } catch (e) {
-            print('SyncPlay: TLS connection upgrade failed: $e');
-            _socket = plainSocket;
-            _isTLS = false;
-          }
-        }
+      final tlsData = json['TLS'];
+      if (tlsData is! Map || !tlsData.containsKey('startTLS')) {
+        _completeTLSHandshakeError(
+          SyncplayProtocolException('SyncPlay: invalid TLS response'),
+        );
+      } else if (tlsData['startTLS'] == 'true') {
+        unawaited(_upgradeToTLS(sourceSocket));
+      } else {
+        _completeTLSHandshakeError(
+          SyncplayConnectionException(
+            'SyncPlay: server rejected TLS connection upgrade',
+          ),
+        );
       }
       return;
     }
@@ -461,7 +625,7 @@ class SyncplayClient {
         _currentRoom = json['Hello']['room']['name'];
         print(
             'SyncPlay: joined room: $_currentRoom as $_username, version: ${json['Hello']['version']}');
-        _setReady();
+        _runInBackground(_setReady());
       }
       _generalMessageController?.add({
         'username': json['Hello']['username'],
@@ -511,9 +675,11 @@ class SyncplayClient {
           'fd': _fd,
         });
       }
-      _sendState(
-        position: _currentPositon,
-        paused: _isPaused,
+      _runInBackground(
+        _sendState(
+          position: _currentPositon,
+          paused: _isPaused,
+        ),
       );
       return;
     }
@@ -567,6 +733,61 @@ class SyncplayClient {
     );
   }
 
+  Future<void> _upgradeToTLS(RawSocket plainSocket) async {
+    if (!identical(plainSocket, _socket)) {
+      return;
+    }
+    final subscription = _socketSubscription;
+    if (subscription == null) {
+      _completeTLSHandshakeError(
+        SyncplayConnectionException(
+          'SyncPlay: TLS connection upgrade lost its socket subscription',
+        ),
+      );
+      return;
+    }
+    _socketSubscription = null;
+    _socket = null;
+    try {
+      final secureSocket = await RawSecureSocket.secure(
+        plainSocket,
+        subscription: subscription,
+        host: _host,
+      );
+      if (!identical(_transportSocket, plainSocket)) {
+        await _forceCloseSocket(secureSocket);
+        return;
+      }
+      _socket = secureSocket;
+      _isTLS = true;
+      _setupSocketHandlers(secureSocket);
+      print('SyncPlay: TLS connection established');
+      final handshakeCompleter = _tlsHandshakeCompleter;
+      if (handshakeCompleter != null && !handshakeCompleter.isCompleted) {
+        handshakeCompleter.complete();
+      }
+    } catch (error, stackTrace) {
+      await _forceCloseSocket(plainSocket);
+      if (!identical(_transportSocket, plainSocket)) {
+        return;
+      }
+      _transportSocket = null;
+      final exception = SyncplayConnectionException(
+        'SyncPlay: TLS connection upgrade failed: $error',
+      );
+      print(exception.message);
+      _completeTLSHandshakeError(exception, stackTrace);
+    }
+  }
+
+  void _completeTLSHandshakeError(Object error, [StackTrace? stackTrace]) {
+    final handshakeCompleter = _tlsHandshakeCompleter;
+    if (handshakeCompleter == null || handshakeCompleter.isCompleted) {
+      return;
+    }
+    handshakeCompleter.completeError(error, stackTrace ?? StackTrace.current);
+  }
+
   Future<void> _setReady() async {
     if (_currentRoom == null || _username == null) {
       _generalMessageController?.addError(
@@ -589,20 +810,95 @@ class SyncplayClient {
   }
 
   Future<void> _sendMessage(SyncplayMessage message) async {
-    if (_socket == null) {
-      _generalMessageController?.addError(
-        SyncplayConnectionException('SyncPlay: not connected to server'),
-      );
-      return;
+    final socket = _socket;
+    if (_closed || socket == null) {
+      throw SyncplayConnectionException('SyncPlay: not connected to server');
     }
-    final json = message.toJson();
-    final jsonStr = jsonEncode(json);
-    // print(
-    //     'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] sending message: $jsonStr');
-    _socket?.write('$jsonStr\r\n');
+    final jsonStr = jsonEncode(message.toJson());
+    _pendingWrites.addAll(utf8.encode('$jsonStr\r\n'));
+    var completer = _pendingWriteCompleter;
+    if (completer == null) {
+      completer = Completer<void>();
+      _pendingWriteCompleter = completer;
+      _restartPendingWriteTimer(socket, completer);
+    }
+    _flushPendingWrites(socket);
+    await completer.future;
   }
 
-  void _sendState(
+  void _flushPendingWrites(RawSocket socket) {
+    if (!identical(socket, _socket)) {
+      return;
+    }
+    final completer = _pendingWriteCompleter;
+    if (completer == null) {
+      socket.writeEventsEnabled = false;
+      return;
+    }
+    var madeProgress = false;
+    try {
+      while (_pendingWrites.isNotEmpty) {
+        final written = socket.write(_pendingWrites);
+        if (written <= 0) {
+          if (madeProgress) {
+            _restartPendingWriteTimer(socket, completer);
+          }
+          socket.writeEventsEnabled = true;
+          return;
+        }
+        _pendingWrites.removeRange(0, written);
+        madeProgress = true;
+      }
+      socket.writeEventsEnabled = false;
+      _completePendingWrites();
+    } catch (error, stackTrace) {
+      final exception = SyncplayConnectionException(
+        'SyncPlay: socket write failed: $error',
+      );
+      _failCurrentSocket(socket, exception, stackTrace);
+    }
+  }
+
+  void _restartPendingWriteTimer(RawSocket socket, Completer<void> completer) {
+    _pendingWriteTimer?.cancel();
+    _pendingWriteTimer = Timer(_socketWriteTimeout, () {
+      if (!identical(socket, _socket) ||
+          !identical(completer, _pendingWriteCompleter) ||
+          _pendingWrites.isEmpty) {
+        return;
+      }
+      _failCurrentSocket(
+        socket,
+        SyncplayConnectionException('SyncPlay: socket write timed out'),
+        StackTrace.current,
+      );
+    });
+  }
+
+  void _completePendingWrites() {
+    final completer = _pendingWriteCompleter;
+    _clearPendingWriteState();
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
+    }
+  }
+
+  void _failPendingWrites(Object error, [StackTrace? stackTrace]) {
+    _pendingWrites.clear();
+    final completer = _pendingWriteCompleter;
+    _clearPendingWriteState();
+    if (completer != null && !completer.isCompleted) {
+      completer.completeError(error, stackTrace ?? StackTrace.current);
+    }
+  }
+
+  void _clearPendingWriteState() {
+    _pendingWriteTimer?.cancel();
+    _pendingWriteTimer = null;
+    _pendingWriteCompleter = null;
+  }
+
+  Future<void> _sendState(
       {double? position,
       bool? paused,
       bool? doSeek,
@@ -619,7 +915,7 @@ class SyncplayClient {
     if (_clientIgnoringOnTheFly > 0) {
       clientArck = _clientIgnoringOnTheFly;
     }
-    _sendMessage(StateMessage(
+    return _sendMessage(StateMessage(
       position: position ?? _currentPositon,
       paused: paused ?? _isPaused,
       latencyCalculation: _lastLatencyCalculation,
@@ -630,6 +926,16 @@ class SyncplayClient {
       serverAck: serverAck,
       doSeek: doSeek,
     ));
+  }
+
+  void _runInBackground(Future<void> future) {
+    unawaited(
+      future.catchError((Object error, StackTrace stackTrace) {
+        if (error is! SyncplayConnectionException) {
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+      }),
+    );
   }
 
   void _updateClientRttAndFd(double? timestamp, double senderRtt) {

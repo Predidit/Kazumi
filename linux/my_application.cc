@@ -6,6 +6,7 @@
 #include <gdk/gdkx.h>
 #endif
 
+#include "external_player_portal.h"
 #include "flutter/generated_plugin_registrant.h"
 
 struct _MyApplication {
@@ -17,6 +18,51 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+static void respond_to_method_call(FlMethodCall* method_call,
+                                   FlMethodResponse* response) {
+  g_autoptr(GError) error = nullptr;
+  if (!fl_method_call_respond(method_call, response, &error)) {
+    g_warning("Failed to send response: %s", error->message);
+  }
+}
+
+static void external_player_portal_callback(
+    ExternalPlayerPortalResult result,
+    const gchar* error_message,
+    gpointer user_data) {
+  auto* method_call = FL_METHOD_CALL(user_data);
+  g_autoptr(FlMethodResponse) response = nullptr;
+
+  switch (result) {
+    case ExternalPlayerPortalResult::kLaunched: {
+      g_autoptr(FlValue) value = fl_value_new_string("launched");
+      response = FL_METHOD_RESPONSE(fl_method_success_response_new(value));
+      break;
+    }
+    case ExternalPlayerPortalResult::kCancelled: {
+      g_autoptr(FlValue) value = fl_value_new_string("cancelled");
+      response = FL_METHOD_RESPONSE(fl_method_success_response_new(value));
+      break;
+    }
+    case ExternalPlayerPortalResult::kUnavailable: {
+      g_autoptr(FlValue) value = fl_value_new_string("unavailable");
+      response = FL_METHOD_RESPONSE(fl_method_success_response_new(value));
+      break;
+    }
+    case ExternalPlayerPortalResult::kInvalidArgument:
+      response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "INVALID_ARGUMENT", error_message, nullptr));
+      break;
+    case ExternalPlayerPortalResult::kFailed:
+      response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "EXTERNAL_PLAYER_LAUNCH_FAILED", error_message, nullptr));
+      break;
+  }
+
+  respond_to_method_call(method_call, response);
+  g_object_unref(method_call);
+}
+
 static FlMethodResponse* is_running_on_x11() {
   GdkDisplay* display = gdk_display_get_default();
   gboolean is_x11 = GDK_IS_X11_DISPLAY(display);
@@ -24,9 +70,9 @@ static FlMethodResponse* is_running_on_x11() {
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
-static void storage_method_call_handler(FlMethodChannel* channel,
-                                         FlMethodCall* method_call,
-                                         gpointer user_data) {
+static void storage_method_call_handler(FlMethodChannel*,
+                                        FlMethodCall* method_call,
+                                        gpointer) {
   g_autoptr(FlMethodResponse) response = nullptr;
   if (strcmp(fl_method_call_get_name(method_call), "getAvailableStorage") == 0) {
     const gchar* path = "/";
@@ -51,26 +97,35 @@ static void storage_method_call_handler(FlMethodChannel* channel,
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
 
-  g_autoptr(GError) error = nullptr;
-  if (!fl_method_call_respond(method_call, response, &error)) {
-    g_warning("Failed to send response: %s", error->message);
-  }
+  respond_to_method_call(method_call, response);
 }
 
-static void intent_method_call_handler(FlMethodChannel* channel,
+static void intent_method_call_handler(FlMethodChannel*,
                                         FlMethodCall* method_call,
-                                        gpointer user_data) {
+                                        gpointer) {
   g_autoptr(FlMethodResponse) response = nullptr;
   if (strcmp(fl_method_call_get_name(method_call), "isRunningOnX11") == 0) {
     response = is_running_on_x11();
+  } else if (strcmp(fl_method_call_get_name(method_call),
+                    "openWithDesktopPlayer") == 0) {
+    const gchar* url = nullptr;
+    FlValue* args = fl_method_call_get_args(method_call);
+    if (fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
+      FlValue* url_value = fl_value_lookup_string(args, "url");
+      if (url_value != nullptr &&
+          fl_value_get_type(url_value) == FL_VALUE_TYPE_STRING) {
+        url = fl_value_get_string(url_value);
+      }
+    }
+
+    OpenExternalPlayerWithPortal(
+        url, external_player_portal_callback, g_object_ref(method_call));
+    return;
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
 
-  g_autoptr(GError) error = nullptr;
-  if (!fl_method_call_respond(method_call, response, &error)) {
-    g_warning("Failed to send response: %s", error->message);
-  }
+  respond_to_method_call(method_call, response);
 }
 
 // Implements GApplication::activate.
@@ -151,20 +206,9 @@ static gboolean my_application_local_command_line(GApplication* application, gch
   return TRUE;
 }
 
-// Implements GApplication::startup.
-static void my_application_startup(GApplication* application) {
-  //MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application startup.
-
-  G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
-}
-
 // Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication* application) {
-  //MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application shutdown.
+  CancelExternalPlayerPortalRequests();
 
   G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
 }
@@ -181,7 +225,6 @@ static void my_application_dispose(GObject* object) {
 static void my_application_class_init(MyApplicationClass* klass) {
   G_APPLICATION_CLASS(klass)->activate = my_application_activate;
   G_APPLICATION_CLASS(klass)->local_command_line = my_application_local_command_line;
-  G_APPLICATION_CLASS(klass)->startup = my_application_startup;
   G_APPLICATION_CLASS(klass)->shutdown = my_application_shutdown;
   G_OBJECT_CLASS(klass)->dispose = my_application_dispose;
 }

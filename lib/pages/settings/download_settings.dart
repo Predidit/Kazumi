@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/file_system.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
@@ -52,7 +53,11 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   }
 
   Future<void> _selectDownloadDirectory() async {
-    if (!_canPickDirectory || isSelectingDirectory) return;
+    if (!_canPickDirectory) {
+      KazumiDialog.showToast(message: '当前平台不支持手动选择目录');
+      return;
+    }
+    if (isSelectingDirectory) return;
 
     setState(() => isSelectingDirectory = true);
     try {
@@ -65,28 +70,21 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
         dialogTitle: '选择下载位置',
         initialDirectory: initialDirectory,
       );
-      if (!mounted || selectedPath == null || selectedPath.isEmpty) return;
+      if (selectedPath == null || selectedPath.isEmpty) return;
 
       await ensureDirectoryWritable(selectedPath);
       await GStorage.putSetting(
         SettingsKeys.downloadDirectory,
         selectedPath,
       );
-      if (!mounted) return;
-      setState(() => downloadDirectory = selectedPath);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('下载位置已更新，仅对新下载生效')),
-      );
+      if (mounted) {
+        setState(() => downloadDirectory = selectedPath);
+      }
+      KazumiDialog.showToast(message: '下载位置已更新，仅对新下载生效');
     } on FileSystemException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('无法写入该目录: ${e.message}')),
-      );
+      KazumiDialog.showToast(message: '无法写入该目录: ${e.message}');
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('选择下载位置失败: $e')),
-      );
+      KazumiDialog.showToast(message: '选择下载位置失败: $e');
     } finally {
       if (mounted) {
         setState(() => isSelectingDirectory = false);
@@ -96,11 +94,10 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
 
   Future<void> _resetDownloadDirectory() async {
     await GStorage.putSetting(SettingsKeys.downloadDirectory, '');
-    if (!mounted) return;
-    setState(() => downloadDirectory = '');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已恢复默认下载位置，仅对新下载生效')),
-    );
+    if (mounted) {
+      setState(() => downloadDirectory = '');
+    }
+    KazumiDialog.showToast(message: '已恢复默认下载位置，仅对新下载生效');
   }
 
   @override
@@ -192,16 +189,6 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                         fontFamily: fontFamily,
                       ),
                     ),
-                    if (!_canPickDirectory) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        '当前平台不支持手动选择目录',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontFamily: fontFamily,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
                 trailing: isSelectingDirectory
@@ -217,9 +204,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                             onPressed: _resetDownloadDirectory,
                           )
                         : null,
-                onPressed: _canPickDirectory
-                    ? (_) => _selectDownloadDirectory()
-                    : null,
+                onPressed: (_) => _selectDownloadDirectory(),
               ),
               SettingsTile.switchTile(
                 onToggle: (value) {

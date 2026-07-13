@@ -5,8 +5,8 @@ import 'dart:convert';
 import 'dart:io';
 
 const double PING_MOVING_AVERAGE_WEIGHT = 0.85;
-const Duration _defaultTLSHandshakeTimeout = Duration(seconds: 10);
-const Duration _defaultSocketWriteTimeout = Duration(seconds: 10);
+const Duration _tlsHandshakeTimeout = Duration(seconds: 10);
+const Duration _socketWriteTimeout = Duration(seconds: 10);
 
 class SyncplayException implements Exception {
   final String message;
@@ -200,14 +200,6 @@ class TLSMessage extends SyncplayMessage {
 class SyncplayClient {
   final String _host;
   final int _port;
-  final Future<RawSocket> Function(String host, int port) _socketConnector;
-  final Future<RawSocket> Function(
-    RawSocket socket,
-    StreamSubscription<RawSocketEvent> subscription,
-    String host,
-  ) _secureSocketUpgrader;
-  final Duration _tlsHandshakeTimeout;
-  final Duration _socketWriteTimeout;
   bool _connectCalled = false;
   bool _closed = false;
   bool _isTLS = false;
@@ -284,29 +276,9 @@ class SyncplayClient {
     return _positionChangedMessageController!.stream;
   }
 
-  SyncplayClient({
-    required String host,
-    required int port,
-    Future<RawSocket> Function(String host, int port)? socketConnector,
-    Future<RawSocket> Function(
-      RawSocket socket,
-      StreamSubscription<RawSocketEvent> subscription,
-      String host,
-    )? secureSocketUpgrader,
-    Duration tlsHandshakeTimeout = _defaultTLSHandshakeTimeout,
-    Duration socketWriteTimeout = _defaultSocketWriteTimeout,
-  })  : _host = host,
-        _port = port,
-        _socketConnector =
-            socketConnector ?? ((host, port) => RawSocket.connect(host, port)),
-        _secureSocketUpgrader = secureSocketUpgrader ??
-            ((socket, subscription, host) => RawSecureSocket.secure(
-                  socket,
-                  subscription: subscription,
-                  host: host,
-                )),
-        _tlsHandshakeTimeout = tlsHandshakeTimeout,
-        _socketWriteTimeout = socketWriteTimeout;
+  SyncplayClient({required String host, required int port})
+      : _host = host,
+        _port = port;
 
   Future<void> connect({bool enableTLS = true}) async {
     if (_closed) {
@@ -318,7 +290,7 @@ class SyncplayClient {
     _connectCalled = true;
     try {
       print('SyncPlay: connecting to Syncplay server: $_host:$_port');
-      final socket = await _socketConnector(_host, _port);
+      final socket = await RawSocket.connect(_host, _port);
       if (_closed) {
         await _forceCloseSocket(socket);
         throw SyncplayConnectionException('SyncPlay: connection closed');
@@ -777,8 +749,11 @@ class SyncplayClient {
     _socketSubscription = null;
     _socket = null;
     try {
-      final secureSocket =
-          await _secureSocketUpgrader(plainSocket, subscription, _host);
+      final secureSocket = await RawSecureSocket.secure(
+        plainSocket,
+        subscription: subscription,
+        host: _host,
+      );
       if (!identical(_transportSocket, plainSocket)) {
         await _forceCloseSocket(secureSocket);
         return;

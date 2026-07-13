@@ -214,34 +214,52 @@ class DownloadManager implements IDownloadManager {
   bool isDownloading(String recordKey, int episodeNumber) =>
       _activeTasks.containsKey(_taskKey(recordKey, episodeNumber));
 
-  Future<String> get _defaultDownloadBaseDir async {
+  Future<String> get _downloadBaseDir async {
+    if (supportsCustomDownloadDirectory) {
+      final customDir =
+          GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
+      if (customDir.isNotEmpty) return customDir;
+    }
     return getDefaultDownloadDirectory();
   }
 
-  Future<String> get _downloadBaseDir async {
-    if (!Platform.isWindows) return _defaultDownloadBaseDir;
-    final customDir =
-        GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
-    if (customDir.isNotEmpty) return customDir;
-    return _defaultDownloadBaseDir;
-  }
-
-  String getEpisodeDir(String downloadBase, int bangumiId, String pluginName,
+  String _getEpisodeDir(String downloadBase, int bangumiId, String pluginName,
       int episodeNumber) {
     return path.join(
         downloadBase, '${bangumiId}_$pluginName', '$episodeNumber');
   }
 
-  Future<String> _resolveEpisodeDir(
+  /// Resolves the episode directory (kept from a previous attempt if any),
+  /// verifies it is writable, and persists it on the episode.
+  Future<String> _prepareEpisodeDir(
     DownloadEpisode episode,
     int bangumiId,
     String pluginName,
     int episodeNumber,
   ) async {
-    final existingDir = episode.downloadDirectory.trim();
-    if (existingDir.isNotEmpty) return existingDir;
-    return getEpisodeDir(
-        await _downloadBaseDir, bangumiId, pluginName, episodeNumber);
+    final storedDir = episode.downloadDirectory.trim();
+    final episodeDir = storedDir.isNotEmpty
+        ? storedDir
+        : _getEpisodeDir(
+            await _downloadBaseDir, bangumiId, pluginName, episodeNumber);
+    await ensureDirectoryWritable(episodeDir);
+    episode.downloadDirectory = episodeDir;
+    await _checkStorageSpace(episodeDir);
+    return episodeDir;
+  }
+
+  /// Directory to remove for an episode: the recorded one, or the default
+  /// location for episodes that never started downloading.
+  Future<String> _episodeDirForDeletion(
+    DownloadEpisode? episode,
+    int bangumiId,
+    String pluginName,
+    int episodeNumber,
+  ) async {
+    final storedDir = episode?.downloadDirectory.trim() ?? '';
+    if (storedDir.isNotEmpty) return storedDir;
+    return _getEpisodeDir(await getDefaultDownloadDirectory(), bangumiId,
+        pluginName, episodeNumber);
   }
 
   @override
@@ -389,11 +407,8 @@ class DownloadManager implements IDownloadManager {
   }) async {
     final key = _taskKey(task.recordKey, task.episodeNumber);
     try {
-      final episodeDir = await _resolveEpisodeDir(
+      final episodeDir = await _prepareEpisodeDir(
           episode, bangumiId, pluginName, task.episodeNumber);
-      await ensureDirectoryWritable(episodeDir);
-      episode.downloadDirectory = episodeDir;
-      await _checkStorageSpace(episodeDir);
 
       episode.status = DownloadStatus.downloading;
       episode.networkM3u8Url = m3u8Url;
@@ -652,11 +667,8 @@ class DownloadManager implements IDownloadManager {
   }) async {
     final key = _taskKey(task.recordKey, task.episodeNumber);
     try {
-      final episodeDir = await _resolveEpisodeDir(
+      final episodeDir = await _prepareEpisodeDir(
           episode, bangumiId, pluginName, task.episodeNumber);
-      await ensureDirectoryWritable(episodeDir);
-      episode.downloadDirectory = episodeDir;
-      await _checkStorageSpace(episodeDir);
 
       final filePath = path.join(episodeDir, 'video.mp4');
       final tmpPath = '$filePath.tmp';
@@ -893,11 +905,8 @@ class DownloadManager implements IDownloadManager {
   Future<void> deleteEpisodeFiles(
       int bangumiId, String pluginName, int episodeNumber,
       {DownloadEpisode? episode}) async {
-    final episodeDir = episode?.downloadDirectory.trim();
-    final dir = Directory(episodeDir != null && episodeDir.isNotEmpty
-        ? episodeDir
-        : getEpisodeDir(await _defaultDownloadBaseDir, bangumiId, pluginName,
-            episodeNumber));
+    final dir = Directory(await _episodeDirForDeletion(
+        episode, bangumiId, pluginName, episodeNumber));
     if (await dir.exists()) {
       await dir.delete(recursive: true);
     }
@@ -906,35 +915,33 @@ class DownloadManager implements IDownloadManager {
   @override
   Future<void> deleteRecordFiles(int bangumiId, String pluginName,
       {DownloadRecord? record}) async {
-    final parentDirs = <String>{};
-    if (record != null) {
-      for (final entry in record.episodes.entries) {
-        final episode = entry.value;
-        final episodeDir = episode.downloadDirectory.trim().isNotEmpty
-            ? episode.downloadDirectory.trim()
-            : getEpisodeDir(await _defaultDownloadBaseDir, bangumiId,
-                pluginName, entry.key);
-        final dir = Directory(episodeDir);
-        if (await dir.exists()) {
-          await dir.delete(recursive: true);
-        }
-        parentDirs.add(path.dirname(episodeDir));
-      }
-    } else {
-      final dir = Directory(
-          path.join(await _defaultDownloadBaseDir, '${bangumiId}_$pluginName'));
+    if (record == null) {
+      final dir = Directory(path.join(
+          await getDefaultDownloadDirectory(), '${bangumiId}_$pluginName'));
       if (await dir.exists()) {
         await dir.delete(recursive: true);
       }
+      return;
+    }
+
+    // Episodes may live under different base directories, so delete each
+    // episode directory individually.
+    final parentDirs = <String>{};
+    for (final entry in record.episodes.entries) {
+      final episodeDir = await _episodeDirForDeletion(
+          entry.value, bangumiId, pluginName, entry.key);
+      final dir = Directory(episodeDir);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
+      parentDirs.add(path.dirname(episodeDir));
     }
 
     for (final parentDir in parentDirs) {
-      final dir = Directory(parentDir);
-      if (!await dir.exists()) continue;
       try {
-        await dir.delete();
+        await Directory(parentDir).delete();
       } on FileSystemException {
-        // Keep non-empty parent directories because they may contain other files.
+        // Parent is missing or still holds other files; leave it.
       }
     }
   }

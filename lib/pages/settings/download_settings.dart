@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/file_system.dart';
@@ -31,17 +30,18 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
     parallelSegments =
         GStorage.getSetting(SettingsKeys.downloadParallelSegments);
     downloadDanmaku = GStorage.getSetting(SettingsKeys.downloadDanmaku);
-    downloadDirectory = GStorage.getSetting(SettingsKeys.downloadDirectory);
+    downloadDirectory =
+        GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
     _loadDefaultDownloadDirectory();
   }
 
-  bool get _canPickDirectory =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+  bool get _canPickDirectory => supportsCustomDownloadDirectory;
+
+  bool get _hasCustomDirectory =>
+      _canPickDirectory && downloadDirectory.isNotEmpty;
 
   String get _effectiveDownloadDirectory =>
-      _canPickDirectory && downloadDirectory.trim().isNotEmpty
-          ? downloadDirectory.trim()
-          : defaultDownloadDirectory;
+      _hasCustomDirectory ? downloadDirectory : defaultDownloadDirectory;
 
   Future<void> _loadDefaultDownloadDirectory() async {
     final directory = await getDefaultDownloadDirectory();
@@ -184,9 +184,9 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      !_canPickDirectory || downloadDirectory.trim().isEmpty
-                          ? '当前使用默认下载位置，修改后仅对新下载生效'
-                          : '当前使用自定义下载位置，修改后仅对新下载生效',
+                      _hasCustomDirectory
+                          ? '当前使用自定义下载位置，修改后仅对新下载生效'
+                          : '当前使用默认下载位置，修改后仅对新下载生效',
                       style: TextStyle(
                         color: Theme.of(context).textTheme.bodySmall?.color,
                         fontFamily: fontFamily,
@@ -219,8 +219,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                       onPressed:
                           _canPickDirectory ? _selectDownloadDirectory : null,
                     ),
-                    if (_canPickDirectory &&
-                        downloadDirectory.trim().isNotEmpty)
+                    if (_hasCustomDirectory)
                       IconButton(
                         tooltip: '恢复默认',
                         icon: const Icon(Icons.restore_rounded),

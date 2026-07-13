@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/services/player/syncplay_client.dart';
@@ -474,6 +475,47 @@ void main() {
       expect(client.isConnected, isFalse);
     });
 
+    test('runtime state send failure does not escape playback flow', () async {
+      final socket = _FakeRawSocket(stallWrites: true);
+      final client = SyncplayClient(
+        host: 'syncplay.test',
+        port: 8995,
+        socketConnector: (host, port) async => socket,
+        socketWriteTimeout: const Duration(milliseconds: 50),
+      );
+      final streamError = Completer<Object>();
+      final subscription = client.onGeneralMessage.listen(
+        (_) {},
+        onError: (Object error) {
+          if (!streamError.isCompleted) {
+            streamError.complete(error);
+          }
+        },
+      );
+
+      addTearDown(() async {
+        await subscription.cancel();
+        await client.disconnect();
+        await socket.dispose();
+      });
+
+      await client.connect(enableTLS: false);
+      await client
+          .sendSyncPlaySyncRequest(doSeek: true)
+          .timeout(const Duration(milliseconds: 200));
+
+      expect(
+        await streamError.future.timeout(const Duration(seconds: 1)),
+        isA<SyncplayConnectionException>().having(
+          (error) => error.message,
+          'message',
+          contains('socket write timed out'),
+        ),
+      );
+      await socket.closeStarted.future;
+      expect(client.isConnected, isFalse);
+    });
+
     test(
       'socket close fails a pending write instead of completing it',
       () async {
@@ -554,6 +596,123 @@ void main() {
           jsonDecode(utf8.decode(secondSocket.writtenBytes).trim())
               as Map<String, dynamic>;
       expect(hello['Hello']['room']['name'], 'new-room');
+    });
+
+    test('a superseded connect stops after slow socket cleanup', () async {
+      final cancelStarted = Completer<void>();
+      final allowCancel = Completer<void>();
+      final firstSocket = _FakeRawSocket(
+        onCancel: () async {
+          cancelStarted.complete();
+          await allowCancel.future;
+        },
+      );
+      final secondSocket = _FakeRawSocket();
+      var connectionCount = 0;
+      final client = SyncplayClient(
+        host: 'syncplay.test',
+        port: 8995,
+        socketConnector: (host, port) async {
+          connectionCount++;
+          if (connectionCount == 1) {
+            return firstSocket;
+          }
+          if (connectionCount == 2) {
+            return secondSocket;
+          }
+          throw StateError('stale connect reached the socket connector');
+        },
+      );
+
+      addTearDown(() async {
+        if (!allowCancel.isCompleted) {
+          allowCancel.complete();
+        }
+        await client.disconnect();
+        await firstSocket.dispose();
+        await secondSocket.dispose();
+      });
+
+      await client.connect(enableTLS: false);
+      final staleResult = client
+          .connect(enableTLS: false)
+          .then<Object?>((_) => null, onError: (Object error) => error);
+      await cancelStarted.future;
+
+      await client.connect(enableTLS: false);
+      allowCancel.complete();
+
+      expect(
+        await staleResult,
+        isA<SyncplayConnectionException>().having(
+          (error) => error.message,
+          'message',
+          contains('connection superseded'),
+        ),
+      );
+      expect(connectionCount, 2);
+      expect(client.isConnected, isTrue);
+    });
+
+    test('stale cleanup cannot clear a newer TLS connection', () async {
+      final cancelStarted = Completer<void>();
+      final allowCancel = Completer<void>();
+      final firstSocket = _FakeRawSocket(
+        onCancel: () async {
+          cancelStarted.complete();
+          await allowCancel.future;
+        },
+      );
+      final secondSocket = _FakeRawSocket();
+      final secureSocket = _FakeRawSocket();
+      var connectionCount = 0;
+      final client = SyncplayClient(
+        host: 'syncplay.test',
+        port: 8995,
+        socketConnector: (host, port) async {
+          connectionCount++;
+          return connectionCount == 1 ? firstSocket : secondSocket;
+        },
+        secureSocketUpgrader: (socket, subscription, host) async {
+          await subscription.cancel();
+          await socket.close();
+          return secureSocket;
+        },
+        tlsHandshakeTimeout: const Duration(milliseconds: 50),
+      );
+
+      addTearDown(() async {
+        if (!allowCancel.isCompleted) {
+          allowCancel.complete();
+        }
+        await client.disconnect();
+        await firstSocket.dispose();
+        await secondSocket.dispose();
+        await secureSocket.dispose();
+      });
+
+      final staleResult = client
+          .connect()
+          .then<Object?>((_) => null, onError: (Object error) => error);
+      await cancelStarted.future.timeout(const Duration(seconds: 1));
+
+      final currentConnect = client.connect();
+      await Future<void>.delayed(Duration.zero);
+      secondSocket.emitData('{"TLS":{"startTLS":"true"}}\r\n');
+      await currentConnect.timeout(const Duration(seconds: 1));
+      expect(client.isTLS, isTrue);
+
+      allowCancel.complete();
+      expect(
+        await staleResult,
+        isA<SyncplayConnectionException>().having(
+          (error) => error.message,
+          'message',
+          contains('timed out'),
+        ),
+      );
+      expect(client.isConnected, isTrue);
+      expect(client.isTLS, isTrue);
     });
 
     test(
@@ -640,6 +799,7 @@ class _FakeRawSocket extends Stream<RawSocketEvent> implements RawSocket {
   final bool stallWrites;
   final List<String>? operations;
   late final StreamController<RawSocketEvent> _events;
+  final List<Uint8List> _readBuffers = [];
   final List<int> writtenBytes = [];
   final Completer<void> closeStarted = Completer<void>();
   int writeCalls = 0;
@@ -653,6 +813,11 @@ class _FakeRawSocket extends Stream<RawSocketEvent> implements RawSocket {
 
   void emit(RawSocketEvent event) {
     _events.add(event);
+  }
+
+  void emitData(String data) {
+    _readBuffers.add(Uint8List.fromList(utf8.encode(data)));
+    emit(RawSocketEvent.read);
   }
 
   Future<void> dispose() async {
@@ -670,6 +835,11 @@ class _FakeRawSocket extends Stream<RawSocketEvent> implements RawSocket {
     final bytesToWrite = count ?? buffer.length - offset;
     writtenBytes.addAll(buffer.getRange(offset, offset + bytesToWrite));
     return bytesToWrite;
+  }
+
+  @override
+  Uint8List? read([int? len]) {
+    return _readBuffers.isEmpty ? null : _readBuffers.removeAt(0);
   }
 
   @override

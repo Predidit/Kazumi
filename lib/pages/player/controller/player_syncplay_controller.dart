@@ -8,6 +8,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/syncplay_client.dart';
 import 'package:kazumi/services/player/syncplay_endpoint.dart';
+import 'package:kazumi/utils/async_session.dart';
 import 'package:mobx/mobx.dart';
 
 part 'player_syncplay_controller.g.dart';
@@ -41,7 +42,7 @@ abstract class _PlayerSyncPlayController with Store {
   final Future<void> Function(Duration duration, {bool enableSync}) seek;
 
   SyncplayClient? syncplayController;
-  int _connectionAttempt = 0;
+  final AsyncSessionOwner _connectionSessions = AsyncSessionOwner();
   @observable
   String syncplayRoom = '';
   @observable
@@ -73,13 +74,16 @@ abstract class _PlayerSyncPlayController with Store {
       Future<void> Function(int episode, {int currentRoad, int offset})
           changeEpisode,
       {bool enableTLS = true}) async {
-    final attempt = ++_connectionAttempt;
+    if (_connectionSessions.isClosed) {
+      return;
+    }
+    final session = _connectionSessions.begin();
     final previousClient = syncplayController;
     syncplayController = null;
     syncplayRoom = '';
     syncplayClientRtt = 0;
     await previousClient?.disconnect();
-    if (attempt != _connectionAttempt) {
+    if (session.isStale) {
       return;
     }
     final String syncPlayEndPoint =
@@ -106,7 +110,7 @@ abstract class _PlayerSyncPlayController with Store {
     syncplayController = client;
     try {
       await client.connect(enableTLS: enableTLS);
-      if (!_isCurrentConnection(attempt, client)) {
+      if (!_isCurrentConnection(session, client)) {
         await client.disconnect();
         return;
       }
@@ -117,7 +121,7 @@ abstract class _PlayerSyncPlayController with Store {
           // print('SyncPlay: general message: ${message.toString()}');
         },
         onError: (error) {
-          if (!_isCurrentConnection(attempt, client)) {
+          if (!_isCurrentConnection(session, client)) {
             return;
           }
           final message =
@@ -138,7 +142,7 @@ abstract class _PlayerSyncPlayController with Store {
       );
       client.onRoomMessage.listen(
         (message) {
-          if (!_isCurrentConnection(attempt, client)) {
+          if (!_isCurrentConnection(session, client)) {
             return;
           }
           if (message['type'] == 'init') {
@@ -167,7 +171,7 @@ abstract class _PlayerSyncPlayController with Store {
       );
       client.onFileChangedMessage.listen(
         (message) {
-          if (!_isCurrentConnection(attempt, client)) {
+          if (!_isCurrentConnection(session, client)) {
             return;
           }
           KazumiLogger().i(
@@ -189,7 +193,7 @@ abstract class _PlayerSyncPlayController with Store {
       );
       client.onChatMessage.listen(
         (message) {
-          if (!_isCurrentConnection(attempt, client)) {
+          if (!_isCurrentConnection(session, client)) {
             return;
           }
           final String sender = (message['username'] ?? '').toString();
@@ -203,7 +207,7 @@ abstract class _PlayerSyncPlayController with Store {
           );
         },
         onError: (error) {
-          if (!_isCurrentConnection(attempt, client)) {
+          if (!_isCurrentConnection(session, client)) {
             return;
           }
           final message =
@@ -213,7 +217,7 @@ abstract class _PlayerSyncPlayController with Store {
       );
       client.onPositionChangedMessage.listen(
         (message) {
-          if (!_isCurrentConnection(attempt, client)) {
+          if (!_isCurrentConnection(session, client)) {
             return;
           }
           syncplayClientRtt = (message['clientRtt'].toDouble() * 1000).toInt();
@@ -253,14 +257,14 @@ abstract class _PlayerSyncPlayController with Store {
         },
       );
       await client.joinRoom(room, username);
-      if (!_isCurrentConnection(attempt, client)) {
+      if (!_isCurrentConnection(session, client)) {
         await client.disconnect();
         return;
       }
       syncplayRoom = room;
     } catch (e) {
       KazumiLogger().e('SyncPlay: error', error: e);
-      if (!_isCurrentConnection(attempt, client)) {
+      if (!_isCurrentConnection(session, client)) {
         await client.disconnect();
         return;
       }
@@ -276,9 +280,8 @@ abstract class _PlayerSyncPlayController with Store {
     }
   }
 
-  bool _isCurrentConnection(int attempt, SyncplayClient client) {
-    return attempt == _connectionAttempt &&
-        identical(syncplayController, client);
+  bool _isCurrentConnection(AsyncSession session, SyncplayClient client) {
+    return session.isActive && identical(syncplayController, client);
   }
 
   void setCurrentPosition({bool? forceSyncPlaying, double? forceSyncPosition}) {
@@ -297,28 +300,51 @@ abstract class _PlayerSyncPlayController with Store {
 
   Future<void> setPlayingBangumi(
       {bool? forceSyncPlaying, double? forceSyncPosition}) async {
-    await syncplayController!.setSyncPlayPlaying(
-        "${bangumiId()}[${currentEpisode()}]", 10800, 220514438);
-    setCurrentPosition(
-        forceSyncPlaying: forceSyncPlaying,
-        forceSyncPosition: forceSyncPosition);
-    await requestSync(doSeek: null);
+    final client = syncplayController;
+    if (client == null) {
+      return;
+    }
+    await _runBestEffortSync(() async {
+      await client.setSyncPlayPlaying(
+          "${bangumiId()}[${currentEpisode()}]", 10800, 220514438);
+      if (!identical(syncplayController, client)) {
+        return;
+      }
+      setCurrentPosition(
+          forceSyncPlaying: forceSyncPlaying,
+          forceSyncPosition: forceSyncPosition);
+      await client.sendSyncPlaySyncRequest(doSeek: null);
+    });
   }
 
   Future<void> requestSync({bool? doSeek}) async {
-    await syncplayController!.sendSyncPlaySyncRequest(doSeek: doSeek);
+    final client = syncplayController;
+    if (client == null) {
+      return;
+    }
+    await _runBestEffortSync(
+        () => client.sendSyncPlaySyncRequest(doSeek: doSeek));
   }
 
   Future<void> sendChatMessage(String message) async {
-    if (syncplayController == null) {
+    final client = syncplayController;
+    if (client == null) {
       return;
     }
-    await syncplayController!.sendChatMessage(message);
+    await _runBestEffortSync(() => client.sendChatMessage(message));
+  }
+
+  Future<void> _runBestEffortSync(Future<void> Function() operation) async {
+    try {
+      await operation();
+    } on SyncplayConnectionException {
+      // Socket handlers report active connection failures.
+    }
   }
 
   @action
   Future<void> exitRoom() async {
-    _connectionAttempt++;
+    _connectionSessions.cancel();
     final controller = syncplayController;
     syncplayController = null;
     syncplayRoom = '';
@@ -330,6 +356,7 @@ abstract class _PlayerSyncPlayController with Store {
   }
 
   Future<void> dispose() async {
+    _connectionSessions.close();
     await exitRoom();
     await _chatStreamController.close();
   }

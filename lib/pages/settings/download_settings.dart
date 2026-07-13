@@ -204,29 +204,19 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                     ],
                   ],
                 ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: '选择目录',
-                      icon: isSelectingDirectory
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.folder_open_rounded),
-                      onPressed:
-                          _canPickDirectory ? _selectDownloadDirectory : null,
-                    ),
-                    if (_hasCustomDirectory)
-                      IconButton(
-                        tooltip: '恢复默认',
-                        icon: const Icon(Icons.restore_rounded),
-                        onPressed: _resetDownloadDirectory,
-                      ),
-                  ],
-                ),
+                trailing: isSelectingDirectory
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : _hasCustomDirectory
+                        ? IconButton(
+                            tooltip: '恢复默认',
+                            icon: const Icon(Icons.restore_rounded),
+                            onPressed: _resetDownloadDirectory,
+                          )
+                        : null,
                 onPressed: _canPickDirectory
                     ? (_) => _selectDownloadDirectory()
                     : null,

@@ -315,89 +315,24 @@ void main() {
       },
     );
 
-    test('a stale TLS failure does not overwrite a newer connection', () async {
-      final firstServer = await ServerSocket.bind(
-        InternetAddress.loopbackIPv4,
-        0,
-      );
-      final secondServer = await ServerSocket.bind(
-        InternetAddress.loopbackIPv4,
-        0,
-      );
-      final upgradedServer = await ServerSocket.bind(
-        InternetAddress.loopbackIPv4,
-        0,
-      );
-      final firstUpgradeStarted = Completer<void>();
-      final failFirstUpgrade = Completer<void>();
-      var connectionCount = 0;
-      var upgradeCount = 0;
-
+    test('connect may only be called once per client', () async {
+      final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
       final client = SyncplayClient(
         host: InternetAddress.loopbackIPv4.address,
-        port: 1,
-        socketConnector: (host, port) {
-          connectionCount++;
-          final target = connectionCount == 1 ? firstServer : secondServer;
-          return RawSocket.connect(InternetAddress.loopbackIPv4, target.port);
-        },
-        secureSocketUpgrader: (socket, subscription, host) async {
-          upgradeCount++;
-          if (upgradeCount == 1) {
-            firstUpgradeStarted.complete();
-            await failFirstUpgrade.future;
-            throw StateError('stale TLS failure');
-          }
-          await subscription.cancel();
-          await socket.close();
-          return RawSocket.connect(
-            InternetAddress.loopbackIPv4,
-            upgradedServer.port,
-          );
-        },
+        port: server.port,
       );
 
       addTearDown(() async {
         await client.disconnect();
-        await firstServer.close();
-        await secondServer.close();
-        await upgradedServer.close();
+        await server.close();
       });
 
-      final firstConnection = firstServer.first;
-      final firstConnect = client.connect();
-      final firstSocket = await firstConnection;
-      final firstMessages = _socketMessages(firstSocket);
-      await _nextMessage(firstMessages);
-      firstSocket.write('{"TLS":{"startTLS":"true"}}\r\n');
-      await firstUpgradeStarted.future;
+      await client.connect(enableTLS: false);
+      await expectLater(client.connect(enableTLS: false), throwsStateError);
 
-      final firstResult = firstConnect.then<Object?>(
-        (_) => null,
-        onError: (Object error) => error,
-      );
-      final secondConnection = secondServer.first;
-      final secondConnect = client.connect();
-      final secondSocket = await secondConnection;
-      final secondMessages = _socketMessages(secondSocket);
-      await _nextMessage(secondMessages);
-      secondSocket.write('{"TLS":{"startTLS":"true"}}\r\n');
-
-      final upgradedConnection = upgradedServer.first;
-      final upgradedSocket = await upgradedConnection;
-      await secondConnect;
-      expect(client.isConnected, isTrue);
-      expect(client.isTLS, isTrue);
-
-      failFirstUpgrade.complete();
-      expect(await firstResult, isA<SyncplayConnectionException>());
-      await Future<void>.delayed(Duration.zero);
-      expect(client.isConnected, isTrue);
-      expect(client.isTLS, isTrue);
-
-      await firstMessages.cancel();
-      await secondMessages.cancel();
-      await upgradedSocket.close();
+      await client.disconnect();
+      await expectLater(client.connect(enableTLS: false), throwsStateError);
+      expect(client.isConnected, isFalse);
     });
   });
 
@@ -475,7 +410,7 @@ void main() {
       expect(client.isConnected, isFalse);
     });
 
-    test('runtime state send failure does not escape playback flow', () async {
+    test('sync request surfaces a write timeout to its caller', () async {
       final socket = _FakeRawSocket(stallWrites: true);
       final client = SyncplayClient(
         host: 'syncplay.test',
@@ -500,9 +435,16 @@ void main() {
       });
 
       await client.connect(enableTLS: false);
-      await client
-          .sendSyncPlaySyncRequest(doSeek: true)
-          .timeout(const Duration(milliseconds: 200));
+      await expectLater(
+        client.sendSyncPlaySyncRequest(doSeek: true),
+        throwsA(
+          isA<SyncplayConnectionException>().having(
+            (error) => error.message,
+            'message',
+            contains('socket write timed out'),
+          ),
+        ),
+      );
 
       expect(
         await streamError.future.timeout(const Duration(seconds: 1)),
@@ -551,169 +493,6 @@ void main() {
         expect(client.isConnected, isFalse);
       },
     );
-
-    test('a stale write timer cannot close a newer connection', () async {
-      final firstSocket = _FakeRawSocket(stallWrites: true);
-      final secondSocket = _FakeRawSocket();
-      var connectionCount = 0;
-      final client = SyncplayClient(
-        host: 'syncplay.test',
-        port: 8995,
-        socketConnector: (host, port) async {
-          connectionCount++;
-          return connectionCount == 1 ? firstSocket : secondSocket;
-        },
-        socketWriteTimeout: const Duration(milliseconds: 50),
-      );
-
-      addTearDown(() async {
-        await client.disconnect();
-        await firstSocket.dispose();
-        await secondSocket.dispose();
-      });
-
-      await client.connect(enableTLS: false);
-      final firstSend = client
-          .joinRoom('old-room', 'OldUser')
-          .then<Object?>((_) => null, onError: (Object error) => error);
-
-      await client.connect(enableTLS: false);
-      expect(
-        await firstSend,
-        isA<SyncplayConnectionException>().having(
-          (error) => error.message,
-          'message',
-          contains('connection superseded'),
-        ),
-      );
-
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-      expect(client.isConnected, isTrue);
-      expect(secondSocket.closeCalls, 0);
-
-      await client.joinRoom('new-room', 'NewUser');
-      final hello =
-          jsonDecode(utf8.decode(secondSocket.writtenBytes).trim())
-              as Map<String, dynamic>;
-      expect(hello['Hello']['room']['name'], 'new-room');
-    });
-
-    test('a superseded connect stops after slow socket cleanup', () async {
-      final cancelStarted = Completer<void>();
-      final allowCancel = Completer<void>();
-      final firstSocket = _FakeRawSocket(
-        onCancel: () async {
-          cancelStarted.complete();
-          await allowCancel.future;
-        },
-      );
-      final secondSocket = _FakeRawSocket();
-      var connectionCount = 0;
-      final client = SyncplayClient(
-        host: 'syncplay.test',
-        port: 8995,
-        socketConnector: (host, port) async {
-          connectionCount++;
-          if (connectionCount == 1) {
-            return firstSocket;
-          }
-          if (connectionCount == 2) {
-            return secondSocket;
-          }
-          throw StateError('stale connect reached the socket connector');
-        },
-      );
-
-      addTearDown(() async {
-        if (!allowCancel.isCompleted) {
-          allowCancel.complete();
-        }
-        await client.disconnect();
-        await firstSocket.dispose();
-        await secondSocket.dispose();
-      });
-
-      await client.connect(enableTLS: false);
-      final staleResult = client
-          .connect(enableTLS: false)
-          .then<Object?>((_) => null, onError: (Object error) => error);
-      await cancelStarted.future;
-
-      await client.connect(enableTLS: false);
-      allowCancel.complete();
-
-      expect(
-        await staleResult,
-        isA<SyncplayConnectionException>().having(
-          (error) => error.message,
-          'message',
-          contains('connection superseded'),
-        ),
-      );
-      expect(connectionCount, 2);
-      expect(client.isConnected, isTrue);
-    });
-
-    test('stale cleanup cannot clear a newer TLS connection', () async {
-      final cancelStarted = Completer<void>();
-      final allowCancel = Completer<void>();
-      final firstSocket = _FakeRawSocket(
-        onCancel: () async {
-          cancelStarted.complete();
-          await allowCancel.future;
-        },
-      );
-      final secondSocket = _FakeRawSocket();
-      final secureSocket = _FakeRawSocket();
-      var connectionCount = 0;
-      final client = SyncplayClient(
-        host: 'syncplay.test',
-        port: 8995,
-        socketConnector: (host, port) async {
-          connectionCount++;
-          return connectionCount == 1 ? firstSocket : secondSocket;
-        },
-        secureSocketUpgrader: (socket, subscription, host) async {
-          await subscription.cancel();
-          await socket.close();
-          return secureSocket;
-        },
-        tlsHandshakeTimeout: const Duration(milliseconds: 50),
-      );
-
-      addTearDown(() async {
-        if (!allowCancel.isCompleted) {
-          allowCancel.complete();
-        }
-        await client.disconnect();
-        await firstSocket.dispose();
-        await secondSocket.dispose();
-        await secureSocket.dispose();
-      });
-
-      final staleResult = client
-          .connect()
-          .then<Object?>((_) => null, onError: (Object error) => error);
-      await cancelStarted.future.timeout(const Duration(seconds: 1));
-
-      final currentConnect = client.connect();
-      await Future<void>.delayed(Duration.zero);
-      secondSocket.emitData('{"TLS":{"startTLS":"true"}}\r\n');
-      await currentConnect.timeout(const Duration(seconds: 1));
-      expect(client.isTLS, isTrue);
-
-      allowCancel.complete();
-      expect(
-        await staleResult,
-        isA<SyncplayConnectionException>().having(
-          (error) => error.message,
-          'message',
-          contains('timed out'),
-        ),
-      );
-      expect(client.isConnected, isTrue);
-      expect(client.isTLS, isTrue);
-    });
 
     test(
       'disconnect awaits subscription cancellation before closing',

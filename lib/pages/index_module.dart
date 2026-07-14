@@ -6,6 +6,7 @@ import 'package:kazumi/pages/index_page.dart';
 import 'package:kazumi/pages/info/info_module.dart';
 import 'package:kazumi/pages/init_page.dart';
 import 'package:kazumi/pages/my/my_module.dart';
+import 'package:kazumi/pages/onboarding/onboarding_page.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/popular/popular_module.dart';
 import 'package:kazumi/pages/route_error_page.dart';
@@ -75,6 +76,14 @@ final indexModule = createModule(
           shaderAssetService: inject<ShaderAssetService>(),
           myController: inject<MyController>(),
           downloadController: inject<DownloadController>(),
+        ),
+        transition: TransitionType.none,
+      )
+      ..route(
+        '/onboarding',
+        child: (context, state) => OnboardingPage(
+          pluginsController: inject<PluginsController>(),
+          myController: inject<MyController>(),
         ),
         transition: TransitionType.none,
       )

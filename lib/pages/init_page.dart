@@ -9,7 +9,6 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
@@ -67,6 +66,18 @@ class _InitPageState extends State<InitPage> {
 
     await _checkRunningOnX11();
     await _pluginInit();
+
+    if (!mounted) {
+      return;
+    }
+    // First launch: no installed rules yet, hand over to the onboarding flow.
+    // OnboardingPage takes care of navigating to the default page and
+    // triggering the auto update check afterwards.
+    if (pluginsController.pluginList.isEmpty) {
+      context.navigate('/onboarding');
+      return;
+    }
+
     await _showShortcutDialog();
 
     if (!mounted) {
@@ -274,11 +285,8 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _pluginInit() async {
-    String statementsText = '';
     try {
       await pluginsController.init();
-      statementsText =
-          await rootBundle.loadString("assets/statements/statements.txt");
       unawaited(_pluginUpdate());
     } catch (error, stackTrace) {
       KazumiLogger().e(
@@ -287,113 +295,6 @@ class _InitPageState extends State<InitPage> {
         stackTrace: stackTrace,
       );
     }
-    if (pluginsController.pluginList.isEmpty) {
-      await KazumiDialog.show(
-        clickMaskDismiss: false,
-        builder: (context) {
-          return PopScope(
-            canPop: false,
-            child: AlertDialog(
-              title: const Text('免责声明'),
-              scrollable: true,
-              content: Text(statementsText),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    exit(0);
-                  },
-                  child: Text(
-                    '退出',
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.outline),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    try {
-                      await pluginsController.copyPluginsToExternalDirectory();
-                    } catch (error, stackTrace) {
-                      KazumiLogger().e(
-                        'Plugin: failed to install bundled rules',
-                        error: error,
-                        stackTrace: stackTrace,
-                      );
-                      KazumiDialog.dismiss();
-                      KazumiDialog.showToast(message: '初始化规则失败');
-                      return;
-                    }
-                    KazumiDialog.dismiss();
-                    if (!Platform.isAndroid) {
-                      return;
-                    }
-                    await _switchUpdateMirror();
-                  },
-                  child: const Text('已阅读并同意'),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    }
-  }
-
-  // Selecting F-Droid delegates application updates to the store and disables
-  // Kazumi's in-app application update checks.
-  Future<void> _switchUpdateMirror() async {
-    await KazumiDialog.show(
-      clickMaskDismiss: false,
-      builder: (context) {
-        return PopScope(
-          canPop: false,
-          child: AlertDialog(
-            title: const Text('更新来源'),
-            content: const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    '您希望从哪里获取应用更新？',
-                    textAlign: TextAlign.left,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'Github 检查更新为大多数情况下的最佳选择。如果您使用 F-Droid 应用商店，请选择 F-Droid。',
-                    textAlign: TextAlign.left,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  GStorage.putSetting(SettingsKeys.autoUpdate, true);
-                  KazumiDialog.dismiss();
-                },
-                child: const Text(
-                  'Github',
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  GStorage.putSetting(SettingsKeys.autoUpdate, false);
-                  KazumiDialog.dismiss();
-                },
-                child: Text(
-                  'F-Droid',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   Future<void> _update() async {

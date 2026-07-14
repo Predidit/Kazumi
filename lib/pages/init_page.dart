@@ -65,6 +65,7 @@ class _InitPageState extends State<InitPage> {
     }
 
     await _checkRunningOnX11();
+    await _showShortcutDialog();
     await _pluginInit();
 
     if (!mounted) {
@@ -77,8 +78,6 @@ class _InitPageState extends State<InitPage> {
       context.navigate('/onboarding');
       return;
     }
-
-    await _showShortcutDialog();
 
     if (!mounted) {
       return;

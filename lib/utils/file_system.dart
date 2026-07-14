@@ -3,8 +3,11 @@ import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
-/// Custom download directories are currently Windows-only.
-bool get supportsCustomDownloadDirectory => Platform.isWindows;
+/// Custom download directories are supported on desktop platforms where the
+/// user can grant persistent access to an arbitrary directory. On macOS this
+/// additionally requires a security-scoped bookmark (SecureBookmarkService).
+bool get supportsCustomDownloadDirectory =>
+    Platform.isWindows || Platform.isMacOS;
 
 Future<String> getDefaultDownloadDirectory() async {
   final appSupport = await getApplicationSupportDirectory();

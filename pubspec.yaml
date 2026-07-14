@@ -133,6 +133,7 @@ dependencies:
       url: https://github.com/Predidit/media-kit.git
       ref: 652cfc765a43792be8bec429ea72296d5d96fb7d
       path: ./libs/universal/media_kit_libs_video
+  macos_secure_bookmarks: ^0.2.1
 
 dependency_overrides:
   media_kit_libs_linux:

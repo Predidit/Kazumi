@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
@@ -76,7 +77,6 @@ class _PluginShopStepState extends State<PluginShopStep> {
   Widget get pluginListBody {
     return Observer(builder: (context) {
       final colorScheme = Theme.of(context).colorScheme;
-      final textTheme = Theme.of(context).textTheme;
       final sortedList = pluginsController.pluginHTTPList.toList()
         ..sort((a, b) => b.lastUpdate.compareTo(a.lastUpdate));
 
@@ -86,65 +86,44 @@ class _PluginShopStepState extends State<PluginShopStep> {
         itemBuilder: (context, index) {
           final item = sortedList[index];
           final status = pluginsController.pluginStatus(item);
-          return Card(
-            elevation: 0,
-            color: colorScheme.surfaceContainerLow,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              title: Text(item.name, style: textTheme.titleMedium),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _InfoChip(
-                      label: item.version,
-                      background: colorScheme.secondaryContainer,
-                      foreground: colorScheme.onSecondaryContainer,
-                    ),
-                    if (item.antiCrawlerEnabled)
-                      _InfoChip(
-                        label: 'captcha',
-                        background: colorScheme.tertiaryContainer,
-                        foreground: colorScheme.onTertiaryContainer,
-                      ),
-                    if (item.lastUpdate > 0)
-                      Text(
-                        DateTime.fromMillisecondsSinceEpoch(item.lastUpdate)
-                            .toString()
-                            .split(' ')[0],
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: colorScheme.onSurfaceVariant),
-                      ),
-                  ],
-                ),
+          return RuleCard(
+            title: item.name,
+            tags: [
+              RuleTag(
+                label: item.version,
+                background: colorScheme.secondaryContainer,
+                foreground: colorScheme.onSecondaryContainer,
               ),
-              trailing: status == PluginCatalogItemStatus.installed
-                  ? Text(
-                      '已安装',
-                      style: textTheme.labelLarge
-                          ?.copyWith(color: colorScheme.outline),
-                    )
-                  : FilledButton.tonal(
-                      onPressed: () async {
-                        final result = await updatePluginWithFeedback(
-                          pluginsController,
-                          item.name,
-                          installing:
-                              status == PluginCatalogItemStatus.install,
-                        );
-                        if (result == PluginUpdateResult.updated && mounted) {
-                          setState(() {});
-                        }
-                      },
-                      child: Text(status == PluginCatalogItemStatus.install
-                          ? '安装'
-                          : '更新'),
-                    ),
+              if (item.antiCrawlerEnabled)
+                RuleTag(
+                  label: 'captcha',
+                  background: colorScheme.tertiaryContainer,
+                  foreground: colorScheme.onTertiaryContainer,
+                ),
+            ],
+            caption: item.lastUpdate > 0
+                ? DateTime.fromMillisecondsSinceEpoch(item.lastUpdate)
+                    .toString()
+                    .split(' ')[0]
+                : null,
+            trailing: RuleCardActionButton(
+              label: switch (status) {
+                PluginCatalogItemStatus.install => '安装',
+                PluginCatalogItemStatus.installed => '已安装',
+                PluginCatalogItemStatus.update => '更新',
+              },
+              onPressed: status == PluginCatalogItemStatus.installed
+                  ? null
+                  : () async {
+                      final result = await updatePluginWithFeedback(
+                        pluginsController,
+                        item.name,
+                        installing: status == PluginCatalogItemStatus.install,
+                      );
+                      if (result == PluginUpdateResult.updated && mounted) {
+                        setState(() {});
+                      }
+                    },
             ),
           );
         },
@@ -203,34 +182,6 @@ class _PluginShopStepState extends State<PluginShopStep> {
                         : pluginListBody,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.label,
-    required this.background,
-    required this.foreground,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style:
-            Theme.of(context).textTheme.labelSmall?.copyWith(color: foreground),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -273,8 +274,10 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   child: Text('啊咧（⊙.⊙） 没有可用规则的说'),
                 )
               : Builder(builder: (context) {
+                  final colorScheme = Theme.of(context).colorScheme;
                   return ReorderableListView.builder(
                       buildDefaultDragHandles: false,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       proxyDecorator: (child, index, animation) {
                         return Material(
                           elevation: 0,
@@ -291,106 +294,54 @@ class _PluginViewPageState extends State<PluginViewPage> {
                         bool canUpdate =
                             pluginsController.pluginUpdateStatus(plugin) ==
                                 PluginUpdateAvailability.updatable;
-                        return Card(
-                            key: ObjectKey(plugin),
-                            margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                            child: ListTile(
-                              trailing: pluginCardTrailing(index),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              onLongPress: () {
-                                if (!isMultiSelectMode) {
-                                  setState(() {
-                                    isMultiSelectMode = true;
-                                    selectedNames.add(plugin.name);
-                                  });
+                        return RuleCard(
+                          key: ObjectKey(plugin),
+                          title: plugin.name,
+                          selected: selectedNames.contains(plugin.name),
+                          trailing: pluginCardTrailing(index),
+                          onLongPress: () {
+                            if (!isMultiSelectMode) {
+                              setState(() {
+                                isMultiSelectMode = true;
+                                selectedNames.add(plugin.name);
+                              });
+                            }
+                          },
+                          onTap: () {
+                            if (isMultiSelectMode) {
+                              setState(() {
+                                if (selectedNames.contains(plugin.name)) {
+                                  selectedNames.remove(plugin.name);
+                                  if (selectedNames.isEmpty) {
+                                    isMultiSelectMode = false;
+                                  }
+                                } else {
+                                  selectedNames.add(plugin.name);
                                 }
-                              },
-                              onTap: () {
-                                if (isMultiSelectMode) {
-                                  setState(() {
-                                    if (selectedNames.contains(plugin.name)) {
-                                      selectedNames.remove(plugin.name);
-                                      if (selectedNames.isEmpty) {
-                                        isMultiSelectMode = false;
-                                      }
-                                    } else {
-                                      selectedNames.add(plugin.name);
-                                    }
-                                  });
-                                }
-                              },
-                              selected: selectedNames.contains(plugin.name),
-                              selectedTileColor: Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer,
-                              title: Text(
-                                plugin.name,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
+                              });
+                            }
+                          },
+                          tags: [
+                            RuleTag(
+                              label: plugin.version,
+                              background: colorScheme.secondaryContainer,
+                              foreground: colorScheme.onSecondaryContainer,
+                            ),
+                            if (canUpdate)
+                              RuleTag(
+                                label: '可更新',
+                                background: colorScheme.errorContainer,
+                                foreground: colorScheme.onErrorContainer,
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'Version: ${plugin.version}',
-                                        style:
-                                            const TextStyle(color: Colors.grey),
-                                      ),
-                                      if (canUpdate) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .errorContainer,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            '可更新',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onErrorContainer,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                      if (pluginsController.validityTracker
-                                          .isSearchValid(plugin.name)) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .tertiaryContainer,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            '搜索有效',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onTertiaryContainer,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ],
+                            if (pluginsController.validityTracker
+                                .isSearchValid(plugin.name))
+                              RuleTag(
+                                label: '搜索有效',
+                                background: colorScheme.tertiaryContainer,
+                                foreground: colorScheme.onTertiaryContainer,
                               ),
-                            ));
+                          ],
+                        );
                       });
                 });
         }),

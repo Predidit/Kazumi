@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -103,90 +104,50 @@ class _PluginShopPageState extends State<PluginShopPage> {
         sortedList.sort((a, b) => b.lastUpdate.compareTo(a.lastUpdate));
       }
 
+      final colorScheme = Theme.of(context).colorScheme;
       return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         itemCount: sortedList.length,
         itemBuilder: (context, index) {
           final item = sortedList[index];
           final status = pluginsController.pluginStatus(item);
-          return Card(
-            margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-            child: ListTile(
-                title: Row(
-                  children: [
-                    Text(
-                      item.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
+          return RuleCard(
+            title: item.name,
+            tags: [
+              RuleTag(
+                label: item.version,
+                background: colorScheme.secondaryContainer,
+                foreground: colorScheme.onSecondaryContainer,
+              ),
+              if (item.antiCrawlerEnabled)
+                RuleTag(
+                  label: 'captcha',
+                  background: colorScheme.tertiaryContainer,
+                  foreground: colorScheme.onTertiaryContainer,
                 ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8.0, vertical: 1.0),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.secondary,
-                            borderRadius: BorderRadius.circular(16.0),
-                          ),
-                          child: Text(
-                            item.version,
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.surface),
-                          ),
-                        ),
-                        if (item.antiCrawlerEnabled) ...[
-                          const SizedBox(width: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0, vertical: 1.0),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.tertiary,
-                              borderRadius: BorderRadius.circular(16.0),
-                            ),
-                            child: Text(
-                              'captcha',
-                              style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.onTertiary),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (item.lastUpdate > 0) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '更新时间: ${DateTime.fromMillisecondsSinceEpoch(item.lastUpdate).toString().split('.')[0]}',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ],
-                ),
-                trailing: TextButton(
-                  onPressed: status == PluginCatalogItemStatus.installed
-                      ? null
-                      : () async {
-                          final result = await updatePluginWithFeedback(
-                            pluginsController,
-                            item.name,
-                            installing:
-                                status == PluginCatalogItemStatus.install,
-                          );
-                          if (result == PluginUpdateResult.updated && mounted) {
-                            setState(() {});
-                          }
-                        },
-                  child: Text(
-                    switch (status) {
-                      PluginCatalogItemStatus.install => '安装',
-                      PluginCatalogItemStatus.installed => '已安装',
-                      PluginCatalogItemStatus.update => '更新',
+            ],
+            caption: item.lastUpdate > 0
+                ? '更新时间: ${DateTime.fromMillisecondsSinceEpoch(item.lastUpdate).toString().split('.')[0]}'
+                : null,
+            trailing: RuleCardActionButton(
+              label: switch (status) {
+                PluginCatalogItemStatus.install => '安装',
+                PluginCatalogItemStatus.installed => '已安装',
+                PluginCatalogItemStatus.update => '更新',
+              },
+              onPressed: status == PluginCatalogItemStatus.installed
+                  ? null
+                  : () async {
+                      final result = await updatePluginWithFeedback(
+                        pluginsController,
+                        item.name,
+                        installing: status == PluginCatalogItemStatus.install,
+                      );
+                      if (result == PluginUpdateResult.updated && mounted) {
+                        setState(() {});
+                      }
                     },
-                  ),
-                )),
+            ),
           );
         },
       );

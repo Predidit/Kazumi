@@ -40,6 +40,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int get stepCount => Platform.isAndroid ? 4 : 3;
 
   @override
+  void initState() {
+    super.initState();
+    // Recommended defaults for new users: enable both mirrors. The user can
+    // turn them off on the mirror step or later in the sync settings.
+    unawaited(GStorage.putSetting(SettingsKeys.enableBangumiProxy, true));
+    unawaited(GStorage.putSetting(SettingsKeys.enableGitProxy, true));
+  }
+
+  @override
   void dispose() {
     pageController.dispose();
     super.dispose();

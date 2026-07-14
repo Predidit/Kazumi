@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
@@ -581,58 +582,19 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     return SafeArea(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '筛选条件',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '组合标签、季度和评分等条件，更快找到想看的番剧。',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  IconButton.filledTonal(
-                    tooltip: '关闭',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
+          MaterialBottomSheetHeader(
+            title: '筛选条件',
+            description: '组合标签、季度和评分等条件，更快找到想看的番剧。',
+            onClose: () => Navigator.pop(context),
           ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
               children: [
-                _WorkbenchSection(
+                MaterialBottomSheetSection(
                   title: '排序',
                   description: '选择列表优先展示的内容。',
                   icon: Icons.sort_rounded,
@@ -655,7 +617,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _WorkbenchSection(
+                MaterialBottomSheetSection(
                   title: '标签',
                   description: '选择多个标签时，会优先寻找同时包含这些标签的番剧。',
                   icon: Icons.sell_outlined,
@@ -739,7 +701,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _WorkbenchSection(
+                MaterialBottomSheetSection(
                   title: '季度与日期',
                   description: '按播出季度查找，也可以指定更精确的日期范围。',
                   icon: Icons.calendar_month,
@@ -803,7 +765,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _WorkbenchSection(
+                MaterialBottomSheetSection(
                   title: '数值范围',
                   description: '只显示符合评分或排名范围的番剧。',
                   icon: Icons.tune_rounded,
@@ -846,7 +808,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _WorkbenchSection(
+                MaterialBottomSheetSection(
                   title: '星期',
                   description: '按放送星期过滤，多个星期按任一匹配处理。',
                   icon: Icons.today_outlined,
@@ -876,7 +838,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _WorkbenchSection(
+                MaterialBottomSheetSection(
                   title: '过滤',
                   description: '控制是否隐藏已经看过或放弃的番剧。',
                   icon: Icons.filter_alt_outlined,
@@ -936,72 +898,6 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WorkbenchSection extends StatelessWidget {
-  const _WorkbenchSection({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.child,
-  });
-
-  final String title;
-  final String description;
-  final IconData icon;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.45),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: colorScheme.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          child,
         ],
       ),
     );

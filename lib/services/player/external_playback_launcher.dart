@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/player/external_player.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class ExternalPlaybackLauncher {
   final String Function() videoUrl;
@@ -17,7 +16,7 @@ class ExternalPlaybackLauncher {
     final currentVideoUrl = videoUrl();
     final currentReferer = referer();
     if ((Platform.isAndroid || Platform.isWindows) && currentReferer.isEmpty) {
-      if (await ExternalPlayer.launchURLWithMIME(
+      if (await ExternalPlayer.launchUrlWithMime(
           currentVideoUrl, 'video/mp4')) {
         KazumiDialog.dismiss();
         KazumiDialog.showToast(
@@ -29,7 +28,7 @@ class ExternalPlaybackLauncher {
         );
       }
     } else if (Platform.isMacOS || Platform.isIOS) {
-      if (await ExternalPlayer.launchURLWithReferer(
+      if (await ExternalPlayer.launchUrlWithReferer(
           currentVideoUrl, currentReferer)) {
         KazumiDialog.dismiss();
         KazumiDialog.showToast(
@@ -42,15 +41,17 @@ class ExternalPlaybackLauncher {
       }
     } else if (Platform.isLinux && currentReferer.isEmpty) {
       KazumiDialog.dismiss();
-      if (await canLaunchUrlString(currentVideoUrl)) {
-        launchUrlString(currentVideoUrl);
-        KazumiDialog.showToast(
-          message: '尝试唤起外部播放器',
-        );
-      } else {
-        KazumiDialog.showToast(
-          message: '无法使用外部播放器',
-        );
+      final result =
+          await ExternalPlayer.launchLinuxDesktopPlayer(currentVideoUrl);
+      switch (result) {
+        case LinuxExternalPlayerResult.launched:
+          KazumiDialog.showToast(message: '尝试唤起外部播放器');
+        case LinuxExternalPlayerResult.cancelled:
+          break;
+        case LinuxExternalPlayerResult.unavailable:
+          KazumiDialog.showToast(message: '系统应用选择器不可用');
+        case LinuxExternalPlayerResult.failed:
+          KazumiDialog.showToast(message: '唤起外部播放器失败');
       }
     } else {
       if (currentReferer.isEmpty) {

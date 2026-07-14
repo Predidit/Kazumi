@@ -248,12 +248,12 @@ class SettingsKeys {
   );
   static const enableGitProxy = SettingKey<bool>(
     _SettingBoxKey.enableGitProxy,
-    false,
+    true,
     group: SettingGroup.proxy,
   );
   static const enableBangumiProxy = SettingKey<bool>(
     _SettingBoxKey.enableBangumiProxy,
-    false,
+    true,
     group: SettingGroup.proxy,
   );
   static const enableSystemProxy = SettingKey<bool>(
@@ -441,6 +441,11 @@ class SettingsKeys {
     true,
     group: SettingGroup.download,
   );
+  static const downloadDirectory = SettingKey<String>(
+    _SettingBoxKey.downloadDirectory,
+    '',
+    group: SettingGroup.download,
+  );
   static const shortcutDialogShown = SettingKey<bool>(
     _SettingBoxKey.shortcutDialogShown,
     false,
@@ -583,6 +588,7 @@ class SettingsKeys {
     downloadParallelEpisodes,
     downloadParallelSegments,
     downloadDanmaku,
+    downloadDirectory,
     shortcutDialogShown,
     bangumiSyncEnable,
     bangumiAccessToken,
@@ -693,6 +699,7 @@ class _SettingBoxKey {
       downloadParallelEpisodes = 'downloadParallelEpisodes',
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',
+      downloadDirectory = 'downloadDirectory',
       shortcutDialogShown = 'shortcutDialogShown',
       bangumiSyncEnable = 'bangumiSyncEnable',
       bangumiAccessToken = 'bangumiAccessToken',

@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -121,64 +122,6 @@ class _TimelinePageState extends State<TimelinePage>
     );
   }
 
-  Widget buildTimelineBottomSheetHeaderCard(
-    BuildContext context, {
-    required String title,
-    required String description,
-    required Widget footer,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: textTheme.headlineSmall?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      description,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              IconButton.filledTonal(
-                onPressed: KazumiDialog.dismiss,
-                tooltip: '关闭',
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          footer,
-        ],
-      ),
-    );
-  }
-
   Widget buildTimelineBottomSheetShell(
     BuildContext context, {
     required Widget header,
@@ -194,10 +137,7 @@ class _TimelinePageState extends State<TimelinePage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: header,
-          ),
+          header,
           Flexible(child: body),
         ],
       ),
@@ -270,10 +210,10 @@ class _TimelinePageState extends State<TimelinePage>
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return buildTimelineBottomSheetHeaderCard(
-      context,
+    return MaterialBottomSheetHeader(
       title: '时间机器',
       description: '按季度回到任意放送季，时间线会立即切换。',
+      onClose: KazumiDialog.dismiss,
       footer: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
@@ -487,10 +427,10 @@ class _TimelinePageState extends State<TimelinePage>
   }
 
   Widget buildTimelineOptionsSheetHeader(BuildContext context) {
-    return buildTimelineBottomSheetHeaderCard(
-      context,
+    return MaterialBottomSheetHeader(
       title: '时间线选项',
       description: '调整排序和过滤条件，结果会立即应用到当前时间线。',
+      onClose: KazumiDialog.dismiss,
       footer: Observer(
         builder: (context) {
           final enabledFilterCount = getEnabledTimelineFilterCount();
@@ -513,51 +453,6 @@ class _TimelinePageState extends State<TimelinePage>
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget buildTimelineOptionSection(
-    BuildContext context, {
-    required String title,
-    required String description,
-    required Widget child,
-    Key? sectionKey,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      key: sectionKey,
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            description,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
       ),
     );
   }
@@ -688,9 +583,8 @@ class _TimelinePageState extends State<TimelinePage>
   }
 
   Widget showFilterSwitcher() {
-    return buildTimelineOptionSection(
-      context,
-      sectionKey: filterSectionKey,
+    return MaterialBottomSheetSection(
+      key: filterSectionKey,
       title: '过滤器',
       description: '按收藏状态收起不需要显示的条目，支持连续调整。',
       child: Column(
@@ -739,8 +633,7 @@ class _TimelinePageState extends State<TimelinePage>
   }
 
   Widget showSortSwitcher() {
-    return buildTimelineOptionSection(
-      context,
+    return MaterialBottomSheetSection(
       title: '排序方式',
       description: '选择每一天内番剧卡片的排列方式。',
       child: Column(

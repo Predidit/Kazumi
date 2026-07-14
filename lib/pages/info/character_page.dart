@@ -5,13 +5,19 @@ import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/character_comments_card.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
 
 class CharacterPage extends StatefulWidget {
-  const CharacterPage({super.key, required this.characterID});
+  const CharacterPage({
+    super.key,
+    required this.characterID,
+    required this.characterName,
+  });
 
   final int characterID;
+  final String characterName;
 
   @override
   State<CharacterPage> createState() => _CharacterPageState();
@@ -76,19 +82,21 @@ class _CharacterPageState extends State<CharacterPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: Column(
           children: [
-            const PreferredSize(
-              preferredSize: Size.fromHeight(kToolbarHeight),
-              child: Material(
-                child: TabBar(
-                  tabs: [
-                    Tab(text: '人物资料'),
-                    Tab(text: '吐槽箱'),
-                  ],
-                ),
-              ),
+            MaterialBottomSheetHeader(
+              title: _headerTitle,
+              description: _headerDescription,
+              onClose: () => Navigator.of(context).pop(),
             ),
+            const MaterialBottomSheetTabBar(
+              tabs: [
+                Tab(text: '资料'),
+                Tab(text: '吐槽'),
+              ],
+            ),
+            const SizedBox(height: 8),
             Expanded(
               child: TabBarView(
                 children: [characterInfoBody, characterCommentsBody],
@@ -100,146 +108,146 @@ class _CharacterPageState extends State<CharacterPage> {
     );
   }
 
+  String get _headerTitle {
+    if (loadingCharacter) {
+      final initialName = widget.characterName.trim();
+      return initialName.isEmpty ? '正在加载…' : initialName;
+    }
+
+    final localizedName = characterFullItem.nameCN.trim();
+    if (localizedName.isNotEmpty) return localizedName;
+    final originalName = characterFullItem.name.trim();
+    if (originalName.isNotEmpty) return originalName;
+    return '人物';
+  }
+
+  String? get _headerDescription {
+    if (loadingCharacter) return null;
+    if (characterFullItem.id == 0) return '未能加载人物资料';
+
+    final localizedName = characterFullItem.nameCN.trim();
+    final originalName = characterFullItem.name.trim();
+    if (originalName.isNotEmpty && originalName != localizedName) {
+      return originalName;
+    }
+    return null;
+  }
+
   Widget get characterInfoBody {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: LayoutBuilder(builder: (context, constraints) {
-        return Column(
+    if (loadingCharacter) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (characterFullItem.id == 0) {
+      return GeneralErrorWidget(
+        errMsg: '什么都没有找到 (´;ω;`)',
+        actions: [
+          GeneralErrorButton(
+            onPressed: loadCharacter,
+            text: '点击重试',
+          ),
+        ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final portraitWidth =
+            (constraints.maxWidth * 0.3).clamp(104.0, 176.0).toDouble();
+        final contentHeight =
+            constraints.maxHeight - materialBottomSheetContentPadding.vertical;
+        final details = Column(
           children: [
-            Expanded(
-              child: loadingCharacter
-                  ? const Center(child: CircularProgressIndicator())
-                  : (characterFullItem.id == 0
-                      ? GeneralErrorWidget(
-                          errMsg: '什么都没有找到 (´;ω;`)',
-                          actions: [
-                            GeneralErrorButton(
-                              onPressed: () {
-                                loadCharacter();
-                              },
-                              text: '点击重试',
-                            ),
-                          ],
-                        )
-                      : SizedBox(
-                          width: double.infinity,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: constraints.maxWidth * 0.3,
-                                height: constraints.maxHeight,
-                                child: GestureDetector(
-                                  onTap: () => ImageViewer.show(
-                                    context,
-                                    imageUrls: [characterFullItem.image],
-                                    heroTag: ImageViewer.heroTagFor(
-                                      characterFullItem.image,
-                                      0,
-                                    ),
-                                  ),
-                                  child: Hero(
-                                    tag: ImageViewer.heroTagFor(
-                                      characterFullItem.image,
-                                      0,
-                                    ),
-                                    child: NetworkImgLayer(
-                                      width: constraints.maxWidth,
-                                      height: constraints.maxHeight,
-                                      src: characterFullItem.image,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          characterFullItem.name,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .headlineSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .tertiary,
-                                              ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 2,
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              top: 4.0, bottom: 12.0),
-                                          child: Text(
-                                            characterFullItem.nameCN,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  color: Colors.grey[700],
-                                                ),
-                                          ),
-                                        ),
-                                        const Divider(),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 8.0),
-                                          child: Text(
-                                            '基本信息',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                        ),
-                                        Text(
-                                          characterFullItem.info,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium,
-                                          textAlign: TextAlign.justify,
-                                        ),
-                                        const SizedBox(height: 16.0),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 8.0),
-                                          child: Text(
-                                            '角色简介',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                        ),
-                                        Text(
-                                          characterFullItem.summary,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium,
-                                          textAlign: TextAlign.justify,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )),
+            _buildInfoSection(
+              context,
+              title: '基本信息',
+              icon: Icons.badge_outlined,
+              content: characterFullItem.info,
+              emptyText: '暂无基本信息',
+            ),
+            const SizedBox(height: 12),
+            _buildInfoSection(
+              context,
+              title: '角色简介',
+              icon: Icons.auto_stories_outlined,
+              content: characterFullItem.summary,
+              emptyText: '暂无角色简介',
             ),
           ],
         );
-      }),
+
+        return Padding(
+          padding: materialBottomSheetContentPadding,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildPortrait(context, portraitWidth, contentHeight),
+              const SizedBox(width: 16),
+              Expanded(
+                child: SingleChildScrollView(child: details),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPortrait(BuildContext context, double width, double height) {
+    final heroTag = ImageViewer.heroTagFor(characterFullItem.image, 0);
+
+    return Semantics(
+      button: true,
+      label: '查看人物图片',
+      child: Tooltip(
+        message: '查看原图',
+        child: Material(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(materialBottomSheetRadius),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => ImageViewer.show(
+              context,
+              imageUrls: [characterFullItem.image],
+              heroTag: heroTag,
+            ),
+            child: Hero(
+              tag: heroTag,
+              child: NetworkImgLayer(
+                width: width,
+                height: height,
+                src: characterFullItem.image,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required String content,
+    required String emptyText,
+  }) {
+    final text = content.trim();
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return MaterialBottomSheetSection(
+      title: title,
+      icon: icon,
+      child: SelectionArea(
+        child: Text(
+          text.isEmpty ? emptyText : text,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: text.isEmpty
+                    ? colorScheme.onSurfaceVariant
+                    : colorScheme.onSurface,
+                height: 1.55,
+              ),
+        ),
+      ),
     );
   }
 

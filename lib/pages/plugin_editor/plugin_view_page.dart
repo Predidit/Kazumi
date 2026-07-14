@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/encoding.dart';
 
 class PluginViewPage extends StatefulWidget {
@@ -61,7 +63,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
   void _handleAdd() {
     KazumiDialog.show(builder: (context) {
       return AlertDialog(
-        // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
         content: SingleChildScrollView(
           // 使用可滚动的SingleChildScrollView包装Column
           child: Column(
@@ -137,7 +138,12 @@ class _PluginViewPageState extends State<PluginViewPage> {
                     await pluginsController.updatePlugin(plugin);
                     KazumiDialog.dismiss();
                     KazumiDialog.showToast(message: '导入成功');
-                  } catch (e) {
+                  } catch (e, stackTrace) {
+                    KazumiLogger().e(
+                      'Plugin: failed to import rule link',
+                      error: e,
+                      stackTrace: stackTrace,
+                    );
                     KazumiDialog.dismiss();
                     KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
                   }
@@ -180,28 +186,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
             enabled ? '已启用 ${names.length} 条规则' : '已禁用 ${names.length} 条规则');
   }
 
-  Widget _statusBadge(
-    BuildContext context,
-    String text, {
-    required Color backgroundColor,
-    required Color foregroundColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          color: foregroundColor,
-        ),
-      ),
-    );
-  }
-
   @override
   void initState() {
     super.initState();
@@ -224,6 +208,9 @@ class _PluginViewPageState extends State<PluginViewPage> {
     return PopScope(
       canPop: !isMultiSelectMode,
       onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
         if (isMultiSelectMode) {
           setState(() {
             isMultiSelectMode = false;
@@ -333,8 +320,10 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   child: Text('啊咧（⊙.⊙） 没有可用规则的说'),
                 )
               : Builder(builder: (context) {
+                  final colorScheme = Theme.of(context).colorScheme;
                   return ReorderableListView.builder(
                       buildDefaultDragHandles: false,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       proxyDecorator: (child, index, animation) {
                         return Material(
                           elevation: 0,
@@ -348,105 +337,65 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       itemCount: pluginsController.pluginList.length,
                       itemBuilder: (context, index) {
                         var plugin = pluginsController.pluginList[index];
-                        final theme = Theme.of(context);
-                        final colorScheme = theme.colorScheme;
                         final isEnabled =
                             pluginsController.isPluginEnabled(plugin.name);
                         bool canUpdate =
                             pluginsController.pluginUpdateStatus(plugin) ==
                                 PluginUpdateAvailability.updatable;
-                        return Card(
-                            key: ObjectKey(plugin),
-                            margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                            child: ListTile(
-                              trailing: pluginCardTrailing(index),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              onLongPress: () {
-                                if (!isMultiSelectMode) {
-                                  setState(() {
-                                    isMultiSelectMode = true;
-                                    selectedNames.add(plugin.name);
-                                  });
+                        return RuleCard(
+                          key: ObjectKey(plugin),
+                          title: plugin.name,
+                          selected: selectedNames.contains(plugin.name),
+                          trailing: pluginCardTrailing(index),
+                          onLongPress: () {
+                            if (!isMultiSelectMode) {
+                              setState(() {
+                                isMultiSelectMode = true;
+                                selectedNames.add(plugin.name);
+                              });
+                            }
+                          },
+                          onTap: () {
+                            if (isMultiSelectMode) {
+                              setState(() {
+                                if (selectedNames.contains(plugin.name)) {
+                                  selectedNames.remove(plugin.name);
+                                  if (selectedNames.isEmpty) {
+                                    isMultiSelectMode = false;
+                                  }
+                                } else {
+                                  selectedNames.add(plugin.name);
                                 }
-                              },
-                              onTap: () {
-                                if (isMultiSelectMode) {
-                                  setState(() {
-                                    if (selectedNames.contains(plugin.name)) {
-                                      selectedNames.remove(plugin.name);
-                                      if (selectedNames.isEmpty) {
-                                        isMultiSelectMode = false;
-                                      }
-                                    } else {
-                                      selectedNames.add(plugin.name);
-                                    }
-                                  });
-                                }
-                              },
-                              selected: selectedNames.contains(plugin.name),
-                              selectedTileColor: Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer,
-                              title: Text(
-                                plugin.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: isEnabled
-                                      ? null
-                                      : colorScheme.onSurfaceVariant,
-                                ),
+                              });
+                            }
+                          },
+                          tags: [
+                            RuleTag(
+                              label: plugin.version,
+                              background: colorScheme.secondaryContainer,
+                              foreground: colorScheme.onSecondaryContainer,
+                            ),
+                            if (canUpdate)
+                              RuleTag(
+                                label: '可更新',
+                                background: colorScheme.errorContainer,
+                                foreground: colorScheme.onErrorContainer,
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 4,
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    children: [
-                                      Text(
-                                        'Version: ${plugin.version}',
-                                        style: TextStyle(
-                                          color: isEnabled
-                                              ? Colors.grey
-                                              : colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                      if (canUpdate)
-                                        _statusBadge(
-                                          context,
-                                          '可更新',
-                                          backgroundColor:
-                                              colorScheme.errorContainer,
-                                          foregroundColor:
-                                              colorScheme.onErrorContainer,
-                                        ),
-                                      if (pluginsController.validityTracker
-                                          .isSearchValid(plugin.name))
-                                        _statusBadge(
-                                          context,
-                                          '搜索有效',
-                                          backgroundColor:
-                                              colorScheme.tertiaryContainer,
-                                          foregroundColor:
-                                              colorScheme.onTertiaryContainer,
-                                        ),
-                                      if (!isEnabled)
-                                        _statusBadge(
-                                          context,
-                                          '已禁用',
-                                          backgroundColor: colorScheme
-                                              .surfaceContainerHighest,
-                                          foregroundColor:
-                                              colorScheme.onSurfaceVariant,
-                                        ),
-                                    ],
-                                  ),
-                                ],
+                            if (pluginsController.validityTracker
+                                .isSearchValid(plugin.name))
+                              RuleTag(
+                                label: '搜索有效',
+                                background: colorScheme.tertiaryContainer,
+                                foreground: colorScheme.onTertiaryContainer,
                               ),
-                            ));
+                            if (!isEnabled)
+                              RuleTag(
+                                label: '已禁用',
+                                background: colorScheme.surfaceContainerHighest,
+                                foreground: colorScheme.onSurfaceVariant,
+                              ),
+                          ],
+                        );
                       });
                 });
         }),

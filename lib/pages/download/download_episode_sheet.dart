@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
@@ -56,30 +57,13 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
       builder: (context, scrollController) {
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            MaterialBottomSheetHeader(
+              title: '选择要下载的集数',
+              description: '已选 ${_selectedEpisodes.length} 集',
+              onClose: () => Navigator.of(context).pop(),
+              footer: Row(
                 children: [
-                  const Text(
-                    '选择要下载的集数',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    '已选 ${_selectedEpisodes.length} 集',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  TextButton(
+                  FilledButton.tonal(
                     onPressed: () {
                       setState(() {
                         _selectedEpisodes.clear();
@@ -93,23 +77,20 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                     },
                     child: const Text('全选'),
                   ),
+                  const SizedBox(width: 8),
                   TextButton(
                     onPressed: () {
-                      setState(() {
-                        _selectedEpisodes.clear();
-                      });
+                      setState(_selectedEpisodes.clear);
                     },
                     child: const Text('取消全选'),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 8),
-            // Grid
             Expanded(
               child: GridView.builder(
                 controller: scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 8,
@@ -131,9 +112,9 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                             .surfaceContainerHighest
                             .withValues(alpha: 0.5)
                         : isSelected
-                            ? Theme.of(context).colorScheme.primaryContainer
-                            : Theme.of(context).colorScheme.onInverseSurface,
-                    borderRadius: BorderRadius.circular(8),
+                            ? Theme.of(context).colorScheme.secondaryContainer
+                            : Theme.of(context).colorScheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
                     clipBehavior: Clip.hardEdge,
                     child: InkWell(
                       onTap: isDownloaded
@@ -194,7 +175,6 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                 },
               ),
             ),
-            // Action buttons
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: SafeArea(

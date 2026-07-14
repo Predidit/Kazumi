@@ -46,7 +46,10 @@ Future<T?> showAdaptiveBottomSheet<T>({
       maxHeightFactor: maxHeightFactor,
       compactLandscapeMaxHeightFactor: compactLandscapeMaxHeightFactor,
     ),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
     clipBehavior: Clip.antiAlias,
-    backgroundColor: backgroundColor,
+    backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.surface,
   );
 }

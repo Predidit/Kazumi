@@ -321,7 +321,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
     showAdaptiveBottomSheet<void>(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      showDragHandle: true,
       context: context,
       builder: (context) {
         return SourceSheet(infoController: infoController);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/scrollable_wrapper.dart';
 
 const double materialBottomSheetRadius = 24;
 const EdgeInsets materialBottomSheetContentPadding =
@@ -79,7 +80,7 @@ class MaterialBottomSheetHeader extends StatelessWidget {
   }
 }
 
-class MaterialBottomSheetTabBar extends StatelessWidget {
+class MaterialBottomSheetTabBar extends StatefulWidget {
   const MaterialBottomSheetTabBar({
     super.key,
     required this.tabs,
@@ -96,12 +97,44 @@ class MaterialBottomSheetTabBar extends StatelessWidget {
   final TabAlignment? tabAlignment;
 
   @override
+  State<MaterialBottomSheetTabBar> createState() =>
+      _MaterialBottomSheetTabBarState();
+}
+
+class _MaterialBottomSheetTabBarState extends State<MaterialBottomSheetTabBar> {
+  TabBarScrollController? _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isScrollable) {
+      _scrollController = TabBarScrollController();
+    }
+  }
+
+  @override
+  void didUpdateWidget(MaterialBottomSheetTabBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isScrollable != oldWidget.isScrollable) {
+      _scrollController?.dispose();
+      _scrollController = widget.isScrollable ? TabBarScrollController() : null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final tabBar = TabBar(
-      controller: controller,
-      isScrollable: isScrollable,
-      tabAlignment: tabAlignment,
+    Widget tabBar = TabBar(
+      controller: widget.controller,
+      isScrollable: widget.isScrollable,
+      scrollController: _scrollController,
+      tabAlignment: widget.tabAlignment,
       dividerColor: Colors.transparent,
       indicatorSize: TabBarIndicatorSize.tab,
       splashBorderRadius: BorderRadius.circular(20),
@@ -111,8 +144,14 @@ class MaterialBottomSheetTabBar extends StatelessWidget {
       ),
       labelColor: colorScheme.onSecondaryContainer,
       unselectedLabelColor: colorScheme.onSurfaceVariant,
-      tabs: tabs,
+      tabs: widget.tabs,
     );
+    if (_scrollController != null) {
+      tabBar = ScrollableWrapper(
+        scrollController: _scrollController!,
+        child: tabBar,
+      );
+    }
 
     return Container(
       height: 48,
@@ -123,14 +162,14 @@ class MaterialBottomSheetTabBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(materialBottomSheetRadius),
       ),
       clipBehavior: Clip.antiAlias,
-      child: trailing == null
+      child: widget.trailing == null
           ? tabBar
           : Row(
               children: [
                 Expanded(child: tabBar),
                 SizedBox.square(
                   dimension: 40,
-                  child: trailing!,
+                  child: widget.trailing!,
                 ),
               ],
             ),

@@ -55,7 +55,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
   void _handleAdd() {
     KazumiDialog.show(builder: (context) {
       return AlertDialog(
-        // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
         content: SingleChildScrollView(
           // 使用可滚动的SingleChildScrollView包装Column
           child: Column(
@@ -179,6 +178,9 @@ class _PluginViewPageState extends State<PluginViewPage> {
     return PopScope(
       canPop: !isMultiSelectMode,
       onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
         if (isMultiSelectMode) {
           setState(() {
             isMultiSelectMode = false;

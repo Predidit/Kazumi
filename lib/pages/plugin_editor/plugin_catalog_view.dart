@@ -20,7 +20,6 @@ class PluginCatalogView extends StatefulWidget {
     this.showRefreshButton = false,
     this.compactLastUpdate = false,
     this.errorMessage = '无法访问规则仓库',
-    this.onMirrorAction,
   });
 
   final PluginsController controller;
@@ -29,7 +28,6 @@ class PluginCatalogView extends StatefulWidget {
   final bool showRefreshButton;
   final bool compactLastUpdate;
   final String errorMessage;
-  final VoidCallback? onMirrorAction;
 
   @override
   State<PluginCatalogView> createState() => PluginCatalogViewState();
@@ -86,15 +84,6 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
     await GStorage.putSetting(SettingsKeys.enableGitProxy, !enableGitProxy);
     if (!mounted) return;
     refresh();
-  }
-
-  void _handleMirrorAction() {
-    final onMirrorAction = widget.onMirrorAction;
-    if (onMirrorAction != null) {
-      onMirrorAction();
-      return;
-    }
-    unawaited(_toggleGitProxyAndRefresh());
   }
 
   List<PluginHTTPItem> _sortedItems() {
@@ -180,7 +169,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
             '${widget.errorMessage}\n${enableGitProxy ? '规则仓库镜像已启用' : '规则仓库镜像已禁用'}',
         actions: [
           GeneralErrorButton(
-            onPressed: _handleMirrorAction,
+            onPressed: () => unawaited(_toggleGitProxyAndRefresh()),
             text: enableGitProxy ? '禁用规则镜像' : '启用规则镜像',
           ),
           GeneralErrorButton(onPressed: refresh, text: '刷新'),

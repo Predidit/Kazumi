@@ -35,8 +35,8 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.handleProgressBarSeek,
     required this.handleSuperResolutionChange,
     required this.panelVisibilityController,
-    required this.keyboardFocus,
     required this.acquirePlayerPanelHold,
+    required this.onMenuVisibilityChanged,
     required this.handleDanmaku,
     required this.skipOP,
     required this.showVideoInfo,
@@ -59,8 +59,8 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final Future<void> Function(SuperResolutionMode mode)
       handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
-  final FocusNode keyboardFocus;
   final PlayerPanelHold Function() acquirePlayerPanelHold;
+  final ValueChanged<bool> onMenuVisibilityChanged;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
@@ -527,6 +527,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
           ),
           PlayerPanelHoldMenuAnchor(
             acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+            onVisibilityChanged: widget.onMenuVisibilityChanged,
             consumeOutsideTap: true,
             builder: (BuildContext context, MenuController controller,
                 Widget? child) {

@@ -59,7 +59,8 @@ class _VideoPageState extends State<VideoPage>
   bool showDebugLog = false;
   List<String> webviewLogLines = [];
   StreamSubscription<String>? _logSubscription;
-  final FocusNode keyboardFocus = FocusNode();
+  final FocusNode keyboardFocus =
+      FocusNode(debugLabel: 'Video player shortcut scope');
 
   ScrollController scrollController = ScrollController();
   late GridObserverController observerController;
@@ -655,7 +656,11 @@ class _VideoPageState extends State<VideoPage>
                                 ? MediaQuery.sizeOf(context).height
                                 : MediaQuery.sizeOf(context).width * 9 / 16,
                             width: MediaQuery.sizeOf(context).width,
-                            child: playerBody,
+                            child: Focus(
+                              focusNode: keyboardFocus,
+                              autofocus: true,
+                              child: playerBody,
+                            ),
                           ),
                         ),
                         if (!isLandscape) Expanded(child: tabBody),

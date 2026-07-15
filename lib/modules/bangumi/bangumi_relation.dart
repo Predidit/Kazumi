@@ -1,5 +1,25 @@
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
+typedef BangumiRelationFetcher = Future<List<BangumiRelation>> Function(int id);
+
+const String bangumiPrequelRelation = '前传';
+const String bangumiSequelRelation = '续集';
+
+const Set<String> _bangumiMainlineRelations = {
+  bangumiPrequelRelation,
+  bangumiSequelRelation,
+};
+
+class _BangumiRelationTraversalNode {
+  const _BangumiRelationTraversalNode({
+    required this.subjectId,
+    required this.direction,
+  });
+
+  final int subjectId;
+  final String direction;
+}
+
 class BangumiRelation {
   const BangumiRelation({
     required this.relation,
@@ -68,4 +88,141 @@ List<BangumiRelation> selectRelatedAnime(
         item.id != currentSubjectId &&
         seenIds.add(item.id);
   }).toList(growable: false);
+}
+
+Future<List<BangumiRelation>> resolveRelatedAnimeChain({
+  required int currentSubjectId,
+  required BangumiRelationFetcher fetchRelations,
+  int maxDepth = 12,
+  int maxFetchCount = 20,
+}) async {
+  if (maxDepth < 1) {
+    throw ArgumentError.value(maxDepth, 'maxDepth', 'must be at least 1');
+  }
+  if (maxFetchCount < 1) {
+    throw ArgumentError.value(
+      maxFetchCount,
+      'maxFetchCount',
+      'must be at least 1',
+    );
+  }
+
+  var fetchCount = 1;
+  final rootRelations = await fetchRelations(currentSubjectId);
+  final directRelations = selectRelatedAnime(
+    rootRelations,
+    currentSubjectId: currentSubjectId,
+  );
+  final relationById = <int, BangumiRelation>{
+    for (final relation in directRelations) relation.bangumiItem.id: relation,
+  };
+  final mainlineDirectionById = <int, String>{};
+  final layersByDirection = <String, List<List<BangumiRelation>>>{
+    bangumiPrequelRelation: <List<BangumiRelation>>[],
+    bangumiSequelRelation: <List<BangumiRelation>>[],
+  };
+  final scheduledIds = <int>{currentSubjectId};
+  var depth = 1;
+  var frontier = <_BangumiRelationTraversalNode>[];
+  final directLayers = <String, List<BangumiRelation>>{
+    bangumiPrequelRelation: <BangumiRelation>[],
+    bangumiSequelRelation: <BangumiRelation>[],
+  };
+  for (final relation in rootRelations) {
+    final item = relation.bangumiItem;
+    final direction = relation.relation;
+    if (!_bangumiMainlineRelations.contains(direction) ||
+        item.type != 2 ||
+        item.id == currentSubjectId) {
+      continue;
+    }
+    final displayRelation = relationById.putIfAbsent(
+      item.id,
+      () => BangumiRelation(
+        relation: direction,
+        bangumiItem: item,
+      ),
+    );
+    if (!mainlineDirectionById.containsKey(item.id)) {
+      mainlineDirectionById[item.id] = direction;
+      directLayers[direction]!.add(displayRelation);
+    }
+    if (scheduledIds.add(item.id)) {
+      frontier.add(
+        _BangumiRelationTraversalNode(
+          subjectId: item.id,
+          direction: direction,
+        ),
+      );
+    }
+  }
+  for (final direction in _bangumiMainlineRelations) {
+    final layer = directLayers[direction]!;
+    if (layer.isNotEmpty) {
+      layersByDirection[direction]!.add(layer);
+    }
+  }
+
+  while (
+      frontier.isNotEmpty && depth < maxDepth && fetchCount < maxFetchCount) {
+    final nextFrontier = <_BangumiRelationTraversalNode>[];
+    final nextLayers = <String, List<BangumiRelation>>{
+      bangumiPrequelRelation: <BangumiRelation>[],
+      bangumiSequelRelation: <BangumiRelation>[],
+    };
+    for (final node in frontier) {
+      if (fetchCount >= maxFetchCount) break;
+      final relations = await fetchRelations(node.subjectId);
+      fetchCount++;
+      for (final relation in relations) {
+        final item = relation.bangumiItem;
+        if (relation.relation != node.direction ||
+            item.type != 2 ||
+            item.id == currentSubjectId) {
+          continue;
+        }
+        final displayRelation = relationById.putIfAbsent(
+          item.id,
+          () => BangumiRelation(
+            relation: node.direction,
+            bangumiItem: item,
+          ),
+        );
+        if (!mainlineDirectionById.containsKey(item.id)) {
+          mainlineDirectionById[item.id] = node.direction;
+          nextLayers[node.direction]!.add(displayRelation);
+        }
+        if (scheduledIds.add(item.id)) {
+          nextFrontier.add(
+            _BangumiRelationTraversalNode(
+              subjectId: item.id,
+              direction: node.direction,
+            ),
+          );
+        }
+      }
+    }
+    for (final direction in _bangumiMainlineRelations) {
+      final layer = nextLayers[direction]!;
+      if (layer.isNotEmpty) {
+        layersByDirection[direction]!.add(layer);
+      }
+    }
+    frontier = nextFrontier;
+    depth++;
+  }
+
+  final result = <BangumiRelation>[];
+  for (final layer in layersByDirection[bangumiPrequelRelation]!.reversed) {
+    result.addAll(layer);
+  }
+  for (final layer in layersByDirection[bangumiSequelRelation]!) {
+    result.addAll(layer);
+  }
+  result.addAll(
+    directRelations.where(
+      (relation) => !mainlineDirectionById.containsKey(relation.bangumiItem.id),
+    ),
+  );
+  return List.unmodifiable(result);
 }

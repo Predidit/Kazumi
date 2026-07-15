@@ -232,7 +232,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.characterList.clear();
     infoController.clearComments();
     infoController.staffList.clear();
-    infoController.relationList.clear();
+    infoController.clearRelations();
     infoController.pluginSearchResponseList.clear();
     // Search results can miss rating distribution or summaries, so fill those
     // fields without replacing image URLs that are already rendered.
@@ -318,7 +318,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.characterList.clear();
     infoController.clearComments();
     infoController.staffList.clear();
-    infoController.relationList.clear();
+    infoController.clearRelations();
     infoController.pluginSearchResponseList.clear();
     sourceTabController.dispose();
     infoTabController.dispose();

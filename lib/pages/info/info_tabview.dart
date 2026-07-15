@@ -237,7 +237,7 @@ class _InfoTabViewState extends State<InfoTabView>
                   (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
                       crossAxisCount;
               final cardHeight =
-                  cardWidth / 0.65 + MediaQuery.textScalerOf(context).scale(32);
+                  cardWidth / 0.65 + BangumiContent.requiredHeightFor(context);
               final itemCount = widget.relationsIsLoading
                   ? crossAxisCount
                   : widget.relationList.length;

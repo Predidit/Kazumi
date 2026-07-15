@@ -42,6 +42,8 @@ abstract class _InfoController with Store {
 
   final relationList = <BangumiRelation>[];
 
+  int _relationRequestGeneration = 0;
+
   bool _isFillingInterestUserProfile = false;
 
   int _commentsOffset = 0;
@@ -207,17 +209,37 @@ abstract class _InfoController with Store {
         .i('InfoController: loaded staff list length ${staffList.length}');
   }
 
-  Future<void> queryBangumiRelationsByID(int id) async {
-    final relations = await BangumiApi.getBangumiRelationsByID(id);
-    relationList
-      ..clear()
-      ..addAll(
-        selectRelatedAnime(relations, currentSubjectId: id),
-      );
-    KazumiLogger().i(
-      'InfoController: loaded related anime list length ${relationList.length}',
-    );
+  void clearRelations() {
+    _relationRequestGeneration++;
+    relationList.clear();
   }
+
+  Future<void> queryBangumiRelationsByID(int id) async {
+    final requestGeneration = ++_relationRequestGeneration;
+    try {
+      final relations = await resolveRelatedAnimeChain(
+        currentSubjectId: id,
+        fetchRelations: BangumiApi.getBangumiRelationsByID,
+      );
+      if (!_isCurrentRelationRequest(requestGeneration, id)) {
+        return;
+      }
+      relationList
+        ..clear()
+        ..addAll(relations);
+      KazumiLogger().i(
+        'InfoController: loaded related anime list length ${relationList.length}',
+      );
+    } catch (_) {
+      if (_isCurrentRelationRequest(requestGeneration, id)) {
+        rethrow;
+      }
+    }
+  }
+
+  bool _isCurrentRelationRequest(int requestGeneration, int subjectId) =>
+      requestGeneration == _relationRequestGeneration &&
+      bangumiItem.id == subjectId;
 
   Future<bool> rateBangumi(RatingReviewResult data,
       {required int localType}) async {

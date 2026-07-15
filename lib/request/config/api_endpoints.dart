@@ -51,6 +51,9 @@ class ApiEndpoints {
   /// 番剧信息
   static const String bangumiInfoByID = '/v0/subjects/{0}';
 
+  /// 条目关联信息
+  static const String bangumiRelationsByID = '/v0/subjects/{0}/subjects';
+
   /// 条目搜索
   static const String bangumiRankSearch =
       '/v0/search/subjects?limit={0}&offset={1}';

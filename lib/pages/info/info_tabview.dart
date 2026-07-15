@@ -5,11 +5,14 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
+import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
 
 class InfoTabView extends StatefulWidget {
@@ -21,16 +24,20 @@ class InfoTabView extends StatefulWidget {
     required this.charactersIsEmpty,
     required this.staffQueryTimeout,
     required this.staffIsEmpty,
+    required this.relationsQueryTimeout,
+    required this.relationsIsLoading,
     required this.tabController,
     required this.loadMoreComments,
     required this.loadCharacters,
     required this.loadStaff,
+    required this.loadRelations,
     required this.bangumiItem,
     required this.commentsList,
     required this.commentsIsLoading,
     this.onCommentsTabSelected,
     required this.characterList,
     required this.staffList,
+    required this.relationList,
     required this.isLoading,
   });
 
@@ -42,14 +49,18 @@ class InfoTabView extends StatefulWidget {
   final bool charactersIsEmpty;
   final bool staffQueryTimeout;
   final bool staffIsEmpty;
+  final bool relationsQueryTimeout;
+  final bool relationsIsLoading;
   final TabController tabController;
   final Future<void> Function({bool loadMore}) loadMoreComments;
   final Future<void> Function() loadCharacters;
   final Future<void> Function() loadStaff;
+  final Future<void> Function() loadRelations;
   final BangumiItem bangumiItem;
   final List<CommentItem> commentsList;
   final List<CharacterItem> characterList;
   final List<StaffFullItem> staffList;
+  final List<BangumiRelation> relationList;
   final bool isLoading;
 
   @override
@@ -187,12 +198,90 @@ class _InfoTabViewState extends State<InfoTabView>
                     },
                   );
                 }).toList(),
-              )
+              ),
+              _buildRelationsSection(),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildRelationsSection() {
+    if (!widget.relationsIsLoading &&
+        !widget.relationsQueryTimeout &&
+        widget.relationList.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        const Text('关联条目', style: TextStyle(fontSize: 18)),
+        const SizedBox(height: 8),
+        if (widget.relationsQueryTimeout)
+          TextButton.icon(
+            onPressed: widget.loadRelations,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('获取关联条目失败，点击重试'),
+          )
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = _relationCrossAxisCount(
+                constraints.maxWidth,
+              );
+              final spacing = StyleString.cardSpace;
+              final cardWidth =
+                  (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
+                      crossAxisCount;
+              final cardHeight =
+                  cardWidth / 0.65 + MediaQuery.textScalerOf(context).scale(32);
+              final itemCount = widget.relationsIsLoading
+                  ? crossAxisCount
+                  : widget.relationList.length;
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  mainAxisSpacing: spacing - 2,
+                  crossAxisSpacing: spacing,
+                  mainAxisExtent: cardHeight,
+                ),
+                itemCount: itemCount,
+                itemBuilder: (context, index) {
+                  if (widget.relationsIsLoading) {
+                    return Skeletonizer.zone(
+                      child: Bone(
+                        width: cardWidth,
+                        height: cardHeight,
+                        uniRadius: 12,
+                      ),
+                    );
+                  }
+                  return _RelatedBangumiCard(
+                    relation: widget.relationList[index],
+                  );
+                },
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  int _relationCrossAxisCount(double width) {
+    if (width > LayoutBreakpoint.medium['width']!) {
+      return 5;
+    }
+    if (width > LayoutBreakpoint.compact['width']!) {
+      return 4;
+    }
+    return 2;
   }
 
   /// Bone for Skeleton Loader
@@ -591,6 +680,46 @@ class _InfoTabViewState extends State<InfoTabView>
           },
         ),
         staffListBody,
+      ],
+    );
+  }
+}
+
+class _RelatedBangumiCard extends StatelessWidget {
+  const _RelatedBangumiCard({required this.relation});
+
+  final BangumiRelation relation;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final relationLabel = relation.relation.isEmpty ? '关联' : relation.relation;
+
+    return Stack(
+      children: [
+        BangumiCardV(bangumiItem: relation.toBangumiItem()),
+        Positioned(
+          top: 8,
+          left: 8,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  relationLabel,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }

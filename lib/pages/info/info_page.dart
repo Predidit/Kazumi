@@ -65,6 +65,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool staffIsLoading = false;
   bool staffQueryTimeout = false;
   bool staffIsEmpty = false;
+  bool relationsIsLoading = false;
+  bool relationsQueryTimeout = false;
   bool _showBangumiInfoSkeleton = false;
   int _fabTabIndex = 0;
 
@@ -138,6 +140,31 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> loadRelations() async {
+    if (relationsIsLoading) return;
+    setState(() {
+      relationsIsLoading = true;
+      relationsQueryTimeout = false;
+    });
+    try {
+      await infoController
+          .queryBangumiRelationsByID(infoController.bangumiItem.id);
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load relations', error: e);
+      if (mounted) {
+        setState(() {
+          relationsQueryTimeout = true;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          relationsIsLoading = false;
+        });
+      }
+    }
+  }
+
   Future<void> loadMoreComments({bool loadMore = false}) async {
     if (commentsIsLoading) return;
     setState(() {
@@ -205,6 +232,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.characterList.clear();
     infoController.clearComments();
     infoController.staffList.clear();
+    infoController.relationList.clear();
     infoController.pluginSearchResponseList.clear();
     // Search results can miss rating distribution or summaries, so fill those
     // fields without replacing image URLs that are already rendered.
@@ -216,6 +244,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         enforceMinimumLoadingDuration: true,
       );
     }
+    loadRelations();
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
@@ -289,6 +318,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.characterList.clear();
     infoController.clearComments();
     infoController.staffList.clear();
+    infoController.relationList.clear();
     infoController.pluginSearchResponseList.clear();
     sourceTabController.dispose();
     infoTabController.dispose();
@@ -480,6 +510,10 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 onCommentsTabSelected: onCommentsTabSelected,
                 characterList: infoController.characterList,
                 staffList: infoController.staffList,
+                relationList: infoController.relationList,
+                relationsIsLoading: relationsIsLoading,
+                relationsQueryTimeout: relationsQueryTimeout,
+                loadRelations: loadRelations,
                 isLoading: showBangumiInfoSkeleton,
               );
             }),

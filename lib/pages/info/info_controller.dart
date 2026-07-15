@@ -1,6 +1,7 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
@@ -38,6 +39,8 @@ abstract class _InfoController with Store {
 
   @observable
   var staffList = ObservableList<StaffFullItem>();
+
+  final relationList = <BangumiRelation>[];
 
   bool _isFillingInterestUserProfile = false;
 
@@ -202,6 +205,18 @@ abstract class _InfoController with Store {
     });
     KazumiLogger()
         .i('InfoController: loaded staff list length ${staffList.length}');
+  }
+
+  Future<void> queryBangumiRelationsByID(int id) async {
+    final relations = await BangumiApi.getBangumiRelationsByID(id);
+    relationList
+      ..clear()
+      ..addAll(
+        selectRelatedAnime(relations, currentSubjectId: id),
+      );
+    KazumiLogger().i(
+      'InfoController: loaded related anime list length ${relationList.length}',
+    );
   }
 
   Future<bool> rateBangumi(RatingReviewResult data,

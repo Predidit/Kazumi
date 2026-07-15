@@ -368,13 +368,6 @@ class DownloadEmptyState extends StatelessWidget {
           '暂无下载内容',
           style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 8),
-        Text(
-          '缓存的番剧会显示在这里，随时离线观看',
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
       ],
     );
   }

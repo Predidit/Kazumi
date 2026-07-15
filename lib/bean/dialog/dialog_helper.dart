@@ -329,10 +329,7 @@ class _TimedSuccessDialogState extends State<_TimedSuccessDialog> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 24),
-              LinearProgressIndicator(
-                value: _progress,
-                borderRadius: BorderRadius.circular(4),
-              ),
+              LinearProgressIndicator(value: _progress),
             ],
           ),
         ),

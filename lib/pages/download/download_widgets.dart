@@ -168,14 +168,7 @@ class DownloadRecordCard extends StatelessWidget {
           if (!allCompleted)
             Padding(
               padding: EdgeInsets.fromLTRB(16, 0, 16, expanded ? 4 : 16),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: aggregateProgress,
-                  minHeight: 4,
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                ),
-              ),
+              child: LinearProgressIndicator(value: aggregateProgress),
             ),
           AnimatedSize(
             duration: _kExpandDuration,
@@ -255,14 +248,7 @@ class DownloadEpisodeTile extends StatelessWidget {
                   ),
                   if (showProgress) ...[
                     const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(2),
-                      child: LinearProgressIndicator(
-                        value: episode.progressPercent,
-                        minHeight: 4,
-                        backgroundColor: colorScheme.surfaceContainerHighest,
-                      ),
-                    ),
+                    LinearProgressIndicator(value: episode.progressPercent),
                   ],
                 ],
               ),
@@ -305,7 +291,6 @@ class _EpisodeStatusBadge extends StatelessWidget {
           child: CircularProgressIndicator(
             value: episode.progressPercent,
             strokeWidth: 2.5,
-            backgroundColor: colorScheme.surfaceContainerHighest,
           ),
         );
         break;

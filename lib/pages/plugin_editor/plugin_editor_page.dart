@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:card_settings_ui/card_settings_ui.dart';
-import 'package:card_settings_ui/tile/settings_tile_info.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -9,10 +7,65 @@ import 'package:kazumi/plugins/api_rule_config.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/pages/plugin_editor/editor_form_widgets.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/plugin/api_rule_engine.dart';
 
 abstract final class _RuleEditorText {
+  static const pageTitle = '规则编辑器';
+  static const testRule = '测试规则';
+  static const save = '保存';
+
+  static const modeXPath = 'XPath';
+  static const modeApi = 'API';
+  static const methodGet = 'GET';
+  static const methodPost = 'POST';
+  static const bodyTypeNone = '无';
+  static const bodyTypeJson = 'JSON';
+  static const bodyTypeForm = '表单';
+  static const formatNested = '嵌套 JSON';
+  static const formatDelimited = '分隔字符串';
+
+  static const legacyParser = '简易解析';
+  static const legacyParserDesc = '使用简易解析器而不是现代解析器';
+  static const adBlocker = '广告过滤';
+  static const adBlockerDesc = '启用 HLS 广告过滤';
+
+  static const antiCrawlerEnable = '启用反反爬虫';
+  static const antiCrawlerEnableDesc = '检索失败时显示验证码验证按钮而非重试';
+  static const captchaTypeLabel = '验证类型';
+  static const captchaTypeImage = '图片验证码';
+  static const captchaTypeAutoClick = '自动点击';
+  static const captchaTypeScript = '自定义脚本';
+  static const captchaTypeImageDesc = '展示验证码图片，由用户手动输入';
+  static const captchaTypeAutoClickDesc = '检测到验证按钮后自动模拟点击';
+  static const captchaTypeScriptDesc = '加载页面后执行规则内的验证脚本';
+  static const captchaTypeUnknownDesc = '未知验证类型';
+  static const captchaDetectTypeLabel = '验证页检测方式';
+  static const captchaDetectTypeDesc = '优先使用该标记判断搜索响应是否为验证页';
+  static const captchaDetectText = '文本';
+  static const captchaDetectRegex = '正则';
+  static const captchaDetectValueHintText = '身份验证';
+  static const captchaDetectValueHintRegex = '身份验证|smart_verify';
+  static const captchaDetectValueHintXPath = '//button[@id="verify"]';
+  static const captchaImageHint = '//img[@class="captcha"]';
+  static const captchaInputHint = '//input[@name="captcha"]';
+  static const captchaButtonHint = '//button[@type="submit"]';
+  static const captchaScriptHint =
+      'KazumiCaptcha.log("ready"); KazumiCaptcha.done();';
+
+  static const sectionBasic = '基本信息';
+  static const sectionBasicDesc = '规则的名称、版本与站点地址';
+  static const sectionSearch = '搜索规则';
+  static const sectionSearchDesc = '定义如何在站点内检索条目';
+  static const sectionChapter = '选集规则';
+  static const sectionChapterDesc = '定义如何获取播放线路与剧集列表';
+  static const advancedOptions = '高级选项';
+  static const advancedOptionsDesc = '行为、网络与反反爬虫配置';
+  static const groupBehavior = '行为设置';
+  static const groupNetwork = '网络设置';
+  static const groupAntiCrawler = '反反爬虫';
+
   static const ruleName = '规则名称';
   static const ruleVersion = '规则版本';
   static const baseUrl = '基础地址（URL）';
@@ -98,8 +151,6 @@ class PluginEditorPage extends StatefulWidget {
 
 class _PluginEditorPageState extends State<PluginEditorPage> {
   PluginsController get pluginsController => widget.controller;
-  final TextEditingController apiController = TextEditingController();
-  final TextEditingController typeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController versionController = TextEditingController();
   final TextEditingController userAgentController = TextEditingController();
@@ -164,6 +215,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   String chapterApiBodyType = ApiBodyType.none;
   String chapterApiFormat = ApiChapterFormat.nested;
   // Legacy schema values retained on save but no longer exposed as settings.
+  late String _api;
+  late String _type;
   late bool _muliSources;
   late bool _useWebview;
   late bool _useNativePlayer;
@@ -181,27 +234,41 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   bool antiCrawlerEnabled = false;
   int captchaType = CaptchaType.imageCaptcha;
   int captchaDetectType = CaptchaDetectType.xpath;
-  final MenuController captchaTypeMenuController = MenuController();
-  final MenuController captchaDetectTypeMenuController = MenuController();
 
-  static const Map<int, String> _captchaTypeMap = {
-    CaptchaType.imageCaptcha: '图片验证码',
-    CaptchaType.autoClickButton: '自动点击按钮',
-    CaptchaType.customJavaScript: '自定义 JavaScript 验证',
-  };
+  static const List<ButtonSegment<String>> _ruleModeSegments = [
+    ButtonSegment(
+      value: RuleMode.xpath,
+      label: Text(_RuleEditorText.modeXPath),
+    ),
+    ButtonSegment(value: RuleMode.api, label: Text(_RuleEditorText.modeApi)),
+  ];
 
-  static const Map<int, String> _captchaDetectTypeMap = {
-    CaptchaDetectType.xpath: 'XPath',
-    CaptchaDetectType.text: '文本',
-    CaptchaDetectType.regex: '正则',
-  };
+  static const List<ButtonSegment<String>> _methodSegments = [
+    ButtonSegment(value: 'GET', label: Text(_RuleEditorText.methodGet)),
+    ButtonSegment(value: 'POST', label: Text(_RuleEditorText.methodPost)),
+  ];
+
+  static const List<ButtonSegment<String>> _bodyTypeSegments = [
+    ButtonSegment(
+      value: ApiBodyType.none,
+      label: Text(_RuleEditorText.bodyTypeNone),
+    ),
+    ButtonSegment(
+      value: ApiBodyType.json,
+      label: Text(_RuleEditorText.bodyTypeJson),
+    ),
+    ButtonSegment(
+      value: ApiBodyType.form,
+      label: Text(_RuleEditorText.bodyTypeForm),
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
     final Plugin plugin = widget.plugin;
-    apiController.text = plugin.api;
-    typeController.text = plugin.type;
+    _api = plugin.api;
+    _type = plugin.type;
     nameController.text = plugin.name;
     versionController.text = plugin.version;
     userAgentController.text = plugin.userAgent;
@@ -281,8 +348,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
 
   @override
   void dispose() {
-    apiController.dispose();
-    typeController.dispose();
     nameController.dispose();
     versionController.dispose();
     userAgentController.dispose();
@@ -334,612 +399,497 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
-
     return Scaffold(
-      appBar: const SysAppBar(
-        title: Text('规则编辑器'),
+      appBar: SysAppBar(
+        title: const Text(_RuleEditorText.pageTitle),
+        actions: [
+          IconButton(
+            tooltip: _RuleEditorText.testRule,
+            icon: const Icon(Icons.bug_report_outlined),
+            onPressed: () {
+              final editedPlugin = _tryBuildEditedPlugin();
+              if (editedPlugin == null) return;
+              context.pushNamed(
+                '/settings/plugin/test',
+                arguments: editedPlugin,
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         child: Center(
-          child: SizedBox(
-            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
             child: Column(
+              spacing: 16,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                      labelText: _RuleEditorText.ruleName,
-                      border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: versionController,
-                  decoration: const InputDecoration(
-                      labelText: _RuleEditorText.ruleVersion,
-                      border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: baseURLController,
-                  decoration: const InputDecoration(
-                      labelText: _RuleEditorText.baseUrl,
-                      border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<String>(
-                  initialValue: searchMode,
-                  decoration: const InputDecoration(
-                    labelText: _RuleEditorText.searchRuleType,
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                        value: RuleMode.xpath, child: Text('XPath')),
-                    DropdownMenuItem(value: RuleMode.api, child: Text('API')),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => searchMode = value ?? RuleMode.xpath),
-                ),
-                const SizedBox(height: 20),
-                if (searchMode == RuleMode.xpath)
-                  ..._buildXPathSearchFields()
-                else
-                  ..._buildApiSearchFields(),
-                DropdownButtonFormField<String>(
-                  initialValue: chapterMode,
-                  decoration: const InputDecoration(
-                    labelText: _RuleEditorText.chapterRuleType,
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                        value: RuleMode.xpath, child: Text('XPath')),
-                    DropdownMenuItem(value: RuleMode.api, child: Text('API')),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => chapterMode = value ?? RuleMode.xpath),
-                ),
-                const SizedBox(height: 20),
-                if (chapterMode == RuleMode.xpath)
-                  ..._buildXPathChapterFields()
-                else
-                  ..._buildApiChapterFields(),
-                ExpansionTile(
-                  title: const Text('高级选项'),
-                  shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.zero),
+                EditorSectionCard(
+                  icon: Icons.badge_rounded,
+                  title: _RuleEditorText.sectionBasic,
+                  description: _RuleEditorText.sectionBasicDesc,
                   children: [
-                    SettingsSection(
-                      title: Text('行为设置',
-                          style: TextStyle(fontFamily: fontFamily)),
-                      tiles: [
-                        SettingsTile.switchTile(
-                          title: Text('简易解析',
-                              style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('使用简易解析器而不是现代解析器',
-                              style: TextStyle(fontFamily: fontFamily)),
-                          initialValue: useLegacyParser,
-                          onToggle: (v) => setState(
-                              () => useLegacyParser = v ?? !useLegacyParser),
-                        ),
-                        SettingsTile.switchTile(
-                          title: Text('广告过滤',
-                              style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('启用 HLS 广告过滤',
-                              style: TextStyle(fontFamily: fontFamily)),
-                          initialValue: adBlocker,
-                          onToggle: (v) =>
-                              setState(() => adBlocker = v ?? !adBlocker),
-                        ),
-                      ],
+                    EditorTextField(
+                      controller: nameController,
+                      label: _RuleEditorText.ruleName,
                     ),
-                    SettingsSection(
-                      title: Text('网络设置',
-                          style: TextStyle(fontFamily: fontFamily)),
-                      tiles: [
-                        CustomSettingsTile(
-                          child: (info) => _buildTextFieldTile(
-                            context,
-                            info,
-                            controller: userAgentController,
-                            label: _RuleEditorText.userAgent,
-                            helper: _RuleEditorText.userAgentHelper,
-                          ),
-                        ),
-                        CustomSettingsTile(
-                          child: (info) => _buildTextFieldTile(
-                            context,
-                            info,
-                            controller: refererController,
-                            label: _RuleEditorText.referer,
-                            helper: _RuleEditorText.refererHelper,
-                          ),
-                        ),
-                      ],
+                    EditorTextField(
+                      controller: versionController,
+                      label: _RuleEditorText.ruleVersion,
                     ),
-                    if (searchMode == RuleMode.xpath)
-                      SettingsSection(
-                        title: Text('反反爬虫配置',
-                            style: TextStyle(fontFamily: fontFamily)),
-                        tiles: [
-                          SettingsTile.switchTile(
-                            title: Text('启用反反爬虫',
-                                style: TextStyle(fontFamily: fontFamily)),
-                            description: Text('检索失败时显示验证码验证按钮而非重试',
-                                style: TextStyle(fontFamily: fontFamily)),
-                            initialValue: antiCrawlerEnabled,
-                            onToggle: (v) => setState(() =>
-                                antiCrawlerEnabled = v ?? !antiCrawlerEnabled),
-                          ),
-                          if (antiCrawlerEnabled) ...[
-                            SettingsTile.navigation(
-                              onPressed: (_) {
-                                if (captchaTypeMenuController.isOpen) {
-                                  captchaTypeMenuController.close();
-                                } else {
-                                  captchaTypeMenuController.open();
-                                }
-                              },
-                              title: Text('验证类型',
-                                  style: TextStyle(fontFamily: fontFamily)),
-                              description: Text(
-                                switch (captchaType) {
-                                  CaptchaType.imageCaptcha =>
-                                    '图片验证码（展示验证码图片，用户手动输入）',
-                                  CaptchaType.autoClickButton =>
-                                    '自动点击验证按钮（检测到按钮后自动模拟点击）',
-                                  CaptchaType.customJavaScript =>
-                                    '自定义 JavaScript 验证（加载页面后执行规则脚本）',
-                                  _ => '未知验证类型',
-                                },
-                                style: TextStyle(fontFamily: fontFamily),
-                              ),
-                              value: MenuAnchor(
-                                consumeOutsideTap: true,
-                                controller: captchaTypeMenuController,
-                                builder: (_, __, ___) => Text(
-                                  _captchaTypeMap[captchaType] ?? '未知',
-                                  style: TextStyle(fontFamily: fontFamily),
-                                ),
-                                menuChildren: [
-                                  for (final entry in _captchaTypeMap.entries)
-                                    MenuItemButton(
-                                      requestFocusOnHover: false,
-                                      onPressed: () => setState(
-                                          () => captchaType = entry.key),
-                                      child: Container(
-                                        height: 48,
-                                        constraints:
-                                            const BoxConstraints(minWidth: 160),
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            entry.value,
-                                            style: TextStyle(
-                                              color: entry.key == captchaType
-                                                  ? Theme.of(context)
-                                                      .colorScheme
-                                                      .primary
-                                                  : null,
-                                              fontFamily: fontFamily,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            SettingsTile.navigation(
-                              onPressed: (_) {
-                                if (captchaDetectTypeMenuController.isOpen) {
-                                  captchaDetectTypeMenuController.close();
-                                } else {
-                                  captchaDetectTypeMenuController.open();
-                                }
-                              },
-                              title: Text('验证页检测方式',
-                                  style: TextStyle(fontFamily: fontFamily)),
-                              description: Text('优先使用该标记判断搜索响应是否为验证页',
-                                  style: TextStyle(fontFamily: fontFamily)),
-                              value: MenuAnchor(
-                                consumeOutsideTap: true,
-                                controller: captchaDetectTypeMenuController,
-                                builder: (_, __, ___) => Text(
-                                  _captchaDetectTypeMap[captchaDetectType] ??
-                                      '未知',
-                                  style: TextStyle(fontFamily: fontFamily),
-                                ),
-                                menuChildren: [
-                                  for (final entry
-                                      in _captchaDetectTypeMap.entries)
-                                    MenuItemButton(
-                                      requestFocusOnHover: false,
-                                      onPressed: () => setState(
-                                          () => captchaDetectType = entry.key),
-                                      child: Container(
-                                        height: 48,
-                                        constraints:
-                                            const BoxConstraints(minWidth: 160),
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            entry.value,
-                                            style: TextStyle(
-                                              color:
-                                                  entry.key == captchaDetectType
-                                                      ? Theme.of(context)
-                                                          .colorScheme
-                                                          .primary
-                                                      : null,
-                                              fontFamily: fontFamily,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            CustomSettingsTile(
-                              child: (info) => _buildTextFieldTile(
-                                context,
-                                info,
-                                controller: captchaDetectValueController,
-                                label: _RuleEditorText.captchaDetectValue,
-                                hint:
-                                    captchaDetectType == CaptchaDetectType.text
-                                        ? '身份验证'
-                                        : captchaDetectType ==
-                                                CaptchaDetectType.regex
-                                            ? '身份验证|smart_verify'
-                                            : '//button[@id="verify"]',
-                                helper:
-                                    _RuleEditorText.captchaDetectValueHelper,
-                              ),
-                            ),
-                            if (captchaType == CaptchaType.imageCaptcha) ...[
-                              CustomSettingsTile(
-                                child: (info) => _buildTextFieldTile(
-                                  context,
-                                  info,
-                                  controller: captchaImageController,
-                                  label: _RuleEditorText.captchaImage,
-                                  hint: '//img[@class="captcha"]',
-                                  helper: _RuleEditorText.captchaImageHelper,
-                                ),
-                              ),
-                              CustomSettingsTile(
-                                child: (info) => _buildTextFieldTile(
-                                  context,
-                                  info,
-                                  controller: captchaInputController,
-                                  label: _RuleEditorText.captchaInput,
-                                  hint: '//input[@name="captcha"]',
-                                  helper: _RuleEditorText.captchaInputHelper,
-                                ),
-                              ),
-                            ],
-                            if (captchaType != CaptchaType.customJavaScript)
-                              CustomSettingsTile(
-                                child: (info) => _buildTextFieldTile(
-                                  context,
-                                  info,
-                                  controller: captchaButtonController,
-                                  label: captchaType == CaptchaType.imageCaptcha
-                                      ? _RuleEditorText.captchaSubmitButton
-                                      : _RuleEditorText.verifyButton,
-                                  hint: '//button[@type="submit"]',
-                                  helper:
-                                      captchaType == CaptchaType.imageCaptcha
-                                          ? _RuleEditorText
-                                              .captchaSubmitButtonHelper
-                                          : _RuleEditorText.verifyButtonHelper,
-                                ),
-                              ),
-                            if (captchaType == CaptchaType.customJavaScript)
-                              CustomSettingsTile(
-                                child: (info) => _buildTextFieldTile(
-                                  context,
-                                  info,
-                                  controller: captchaScriptController,
-                                  label: _RuleEditorText.captchaScript,
-                                  hint:
-                                      'KazumiCaptcha.log("ready"); KazumiCaptcha.done();',
-                                  helper: _RuleEditorText.captchaScriptHelper,
-                                  maxLines: 8,
-                                ),
-                              ),
-                          ],
-                        ],
-                      ),
+                    EditorTextField(
+                      controller: baseURLController,
+                      label: _RuleEditorText.baseUrl,
+                    ),
                   ],
                 ),
+                EditorSectionCard(
+                  icon: Icons.search_rounded,
+                  title: _RuleEditorText.sectionSearch,
+                  description: _RuleEditorText.sectionSearchDesc,
+                  children: [
+                    EditorSegmentedField<String>(
+                      label: _RuleEditorText.searchRuleType,
+                      value: searchMode,
+                      segments: _ruleModeSegments,
+                      onChanged: (value) => setState(() => searchMode = value),
+                    ),
+                    EditorAnimatedSection(
+                      activeKey: searchMode,
+                      child: Column(
+                        spacing: 16,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: searchMode == RuleMode.xpath
+                            ? _buildXPathSearchFields()
+                            : _buildApiSearchFields(),
+                      ),
+                    ),
+                  ],
+                ),
+                EditorSectionCard(
+                  icon: Icons.playlist_play_rounded,
+                  title: _RuleEditorText.sectionChapter,
+                  description: _RuleEditorText.sectionChapterDesc,
+                  children: [
+                    EditorSegmentedField<String>(
+                      label: _RuleEditorText.chapterRuleType,
+                      value: chapterMode,
+                      segments: _ruleModeSegments,
+                      onChanged: (value) => setState(() => chapterMode = value),
+                    ),
+                    EditorAnimatedSection(
+                      activeKey: chapterMode,
+                      child: Column(
+                        spacing: 16,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: chapterMode == RuleMode.xpath
+                            ? _buildXPathChapterFields()
+                            : _buildApiChapterFields(),
+                      ),
+                    ),
+                  ],
+                ),
+                _buildAdvancedOptionsCard(),
               ],
             ),
           ),
         ),
       ),
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: null,
-            child: const Icon(Icons.bug_report),
-            onPressed: () async {
-              try {
-                final pluginText = _buildEditedPlugin();
-                context.pushNamed(
-                  '/settings/plugin/test',
-                  arguments: pluginText,
-                );
-              } catch (error) {
-                _showEditorError(error);
-              }
-            },
-          ),
-          SizedBox(width: 15),
-          FloatingActionButton(
-            heroTag: null,
-            child: const Icon(Icons.save),
-            onPressed: () async {
-              try {
-                final editedPlugin = _buildEditedPlugin();
-                await pluginsController.updatePlugin(editedPlugin);
-                if (!context.mounted) return;
-                context.pop();
-              } catch (error) {
-                _showEditorError(error);
-              }
-            },
-          ),
-        ],
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
+        icon: const Icon(Icons.save_rounded),
+        label: const Text(_RuleEditorText.save),
+        onPressed: () async {
+          final editedPlugin = _tryBuildEditedPlugin();
+          if (editedPlugin == null) return;
+          try {
+            await pluginsController.updatePlugin(editedPlugin);
+          } catch (error) {
+            _showEditorError(error);
+            return;
+          }
+          if (!context.mounted) return;
+          context.pop();
+        },
       ),
     );
   }
 
+  Widget _buildAdvancedOptionsCard() {
+    return EditorExpandableSectionCard(
+      icon: Icons.tune_rounded,
+      title: _RuleEditorText.advancedOptions,
+      description: _RuleEditorText.advancedOptionsDesc,
+      children: [
+        const EditorSubheader(label: _RuleEditorText.groupBehavior),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text(_RuleEditorText.legacyParser),
+          subtitle: const Text(_RuleEditorText.legacyParserDesc),
+          value: useLegacyParser,
+          onChanged: (value) => setState(() => useLegacyParser = value),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text(_RuleEditorText.adBlocker),
+          subtitle: const Text(_RuleEditorText.adBlockerDesc),
+          value: adBlocker,
+          onChanged: (value) => setState(() => adBlocker = value),
+        ),
+        const EditorSubheader(label: _RuleEditorText.groupNetwork),
+        EditorTextField(
+          controller: userAgentController,
+          label: _RuleEditorText.userAgent,
+          helper: _RuleEditorText.userAgentHelper,
+        ),
+        const SizedBox(height: 16),
+        EditorTextField(
+          controller: refererController,
+          label: _RuleEditorText.referer,
+          helper: _RuleEditorText.refererHelper,
+        ),
+        if (searchMode == RuleMode.xpath) ...[
+          const EditorSubheader(label: _RuleEditorText.groupAntiCrawler),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text(_RuleEditorText.antiCrawlerEnable),
+            subtitle: const Text(_RuleEditorText.antiCrawlerEnableDesc),
+            value: antiCrawlerEnabled,
+            onChanged: (value) => setState(() => antiCrawlerEnabled = value),
+          ),
+          EditorAnimatedSection(
+            activeKey: antiCrawlerEnabled,
+            child: antiCrawlerEnabled
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Column(
+                      spacing: 16,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: _buildAntiCrawlerFields(),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  List<Widget> _buildAntiCrawlerFields() => [
+        EditorSegmentedField<int>(
+          label: _RuleEditorText.captchaTypeLabel,
+          value: captchaType,
+          segments: const [
+            ButtonSegment(
+              value: CaptchaType.imageCaptcha,
+              label: Text(_RuleEditorText.captchaTypeImage),
+            ),
+            ButtonSegment(
+              value: CaptchaType.autoClickButton,
+              label: Text(_RuleEditorText.captchaTypeAutoClick),
+            ),
+            ButtonSegment(
+              value: CaptchaType.customJavaScript,
+              label: Text(_RuleEditorText.captchaTypeScript),
+            ),
+          ],
+          onChanged: (value) => setState(() => captchaType = value),
+          description: (value) => switch (value) {
+            CaptchaType.imageCaptcha => _RuleEditorText.captchaTypeImageDesc,
+            CaptchaType.autoClickButton =>
+              _RuleEditorText.captchaTypeAutoClickDesc,
+            CaptchaType.customJavaScript =>
+              _RuleEditorText.captchaTypeScriptDesc,
+            _ => _RuleEditorText.captchaTypeUnknownDesc,
+          },
+        ),
+        EditorSegmentedField<int>(
+          label: _RuleEditorText.captchaDetectTypeLabel,
+          value: captchaDetectType,
+          segments: const [
+            ButtonSegment(
+              value: CaptchaDetectType.xpath,
+              label: Text(_RuleEditorText.modeXPath),
+            ),
+            ButtonSegment(
+              value: CaptchaDetectType.text,
+              label: Text(_RuleEditorText.captchaDetectText),
+            ),
+            ButtonSegment(
+              value: CaptchaDetectType.regex,
+              label: Text(_RuleEditorText.captchaDetectRegex),
+            ),
+          ],
+          onChanged: (value) => setState(() => captchaDetectType = value),
+          description: (_) => _RuleEditorText.captchaDetectTypeDesc,
+        ),
+        EditorTextField(
+          controller: captchaDetectValueController,
+          label: _RuleEditorText.captchaDetectValue,
+          hint: captchaDetectType == CaptchaDetectType.text
+              ? _RuleEditorText.captchaDetectValueHintText
+              : captchaDetectType == CaptchaDetectType.regex
+                  ? _RuleEditorText.captchaDetectValueHintRegex
+                  : _RuleEditorText.captchaDetectValueHintXPath,
+          helper: _RuleEditorText.captchaDetectValueHelper,
+        ),
+        EditorAnimatedSection(
+          activeKey: captchaType,
+          child: Column(
+            spacing: 16,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (captchaType == CaptchaType.imageCaptcha) ...[
+                EditorTextField(
+                  controller: captchaImageController,
+                  label: _RuleEditorText.captchaImage,
+                  hint: _RuleEditorText.captchaImageHint,
+                  helper: _RuleEditorText.captchaImageHelper,
+                ),
+                EditorTextField(
+                  controller: captchaInputController,
+                  label: _RuleEditorText.captchaInput,
+                  hint: _RuleEditorText.captchaInputHint,
+                  helper: _RuleEditorText.captchaInputHelper,
+                ),
+              ],
+              if (captchaType != CaptchaType.customJavaScript)
+                EditorTextField(
+                  controller: captchaButtonController,
+                  label: captchaType == CaptchaType.imageCaptcha
+                      ? _RuleEditorText.captchaSubmitButton
+                      : _RuleEditorText.verifyButton,
+                  hint: _RuleEditorText.captchaButtonHint,
+                  helper: captchaType == CaptchaType.imageCaptcha
+                      ? _RuleEditorText.captchaSubmitButtonHelper
+                      : _RuleEditorText.verifyButtonHelper,
+                ),
+              if (captchaType == CaptchaType.customJavaScript)
+                EditorTextField(
+                  controller: captchaScriptController,
+                  label: _RuleEditorText.captchaScript,
+                  hint: _RuleEditorText.captchaScriptHint,
+                  helper: _RuleEditorText.captchaScriptHelper,
+                  maxLines: 8,
+                ),
+            ],
+          ),
+        ),
+      ];
+
   List<Widget> _buildXPathSearchFields() => [
-        _requestMethodField(
+        EditorSegmentedField<String>(
           label: _RuleEditorText.searchMethod,
           value: usePost ? 'POST' : 'GET',
+          segments: _methodSegments,
           onChanged: (value) => setState(() => usePost = value == 'POST'),
         ),
-        const SizedBox(height: 20),
-        _editorField(searchURLController, _RuleEditorText.searchUrl),
-        _editorField(searchListController, _RuleEditorText.searchListXPath),
-        _editorField(searchNameController, _RuleEditorText.itemNameXPath),
-        _editorField(searchResultController, _RuleEditorText.itemLinkXPath),
+        EditorTextField(
+          controller: searchURLController,
+          label: _RuleEditorText.searchUrl,
+        ),
+        EditorTextField(
+          controller: searchListController,
+          label: _RuleEditorText.searchListXPath,
+        ),
+        EditorTextField(
+          controller: searchNameController,
+          label: _RuleEditorText.itemNameXPath,
+        ),
+        EditorTextField(
+          controller: searchResultController,
+          label: _RuleEditorText.itemLinkXPath,
+        ),
       ];
 
   List<Widget> _buildXPathChapterFields() => [
-        _editorField(chapterRoadsController, _RuleEditorText.roadListXPath),
-        _editorField(chapterResultController, _RuleEditorText.episodeListXPath),
+        EditorTextField(
+          controller: chapterRoadsController,
+          label: _RuleEditorText.roadListXPath,
+        ),
+        EditorTextField(
+          controller: chapterResultController,
+          label: _RuleEditorText.episodeListXPath,
+        ),
       ];
 
   List<Widget> _buildApiSearchFields() => [
-        _requestMethodField(
+        EditorSegmentedField<String>(
           label: _RuleEditorText.searchMethod,
           value: searchApiMethod,
+          segments: _methodSegments,
           onChanged: (value) => setState(() => searchApiMethod = value),
         ),
-        const SizedBox(height: 20),
-        _editorField(
-          searchApiURLController,
-          _RuleEditorText.searchRequestUrl,
+        EditorTextField(
+          controller: searchApiURLController,
+          label: _RuleEditorText.searchRequestUrl,
         ),
-        _editorField(
-          searchApiHeadersController,
-          _RuleEditorText.searchHeaders,
+        EditorTextField(
+          controller: searchApiHeadersController,
+          label: _RuleEditorText.searchHeaders,
           maxLines: 4,
         ),
-        _editorField(
-          searchApiQueryController,
-          _RuleEditorText.searchQuery,
+        EditorTextField(
+          controller: searchApiQueryController,
+          label: _RuleEditorText.searchQuery,
           maxLines: 4,
         ),
-        DropdownButtonFormField<String>(
-          initialValue: searchApiBodyType,
-          decoration: const InputDecoration(
-            labelText: _RuleEditorText.searchBodyType,
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(value: ApiBodyType.none, child: Text('无')),
-            DropdownMenuItem(value: ApiBodyType.json, child: Text('JSON')),
-            DropdownMenuItem(value: ApiBodyType.form, child: Text('表单')),
-          ],
-          onChanged: (value) => setState(
-            () => searchApiBodyType = value ?? ApiBodyType.none,
-          ),
+        EditorSegmentedField<String>(
+          label: _RuleEditorText.searchBodyType,
+          value: searchApiBodyType,
+          segments: _bodyTypeSegments,
+          onChanged: (value) => setState(() => searchApiBodyType = value),
         ),
-        const SizedBox(height: 20),
         if (searchApiBodyType != ApiBodyType.none)
-          _editorField(
-            searchApiBodyController,
-            _RuleEditorText.searchBody,
+          EditorTextField(
+            controller: searchApiBodyController,
+            label: _RuleEditorText.searchBody,
             maxLines: 5,
           ),
-        _editorField(
-          searchApiListPathController,
-          _RuleEditorText.searchListPath,
+        EditorTextField(
+          controller: searchApiListPathController,
+          label: _RuleEditorText.searchListPath,
         ),
-        _editorField(
-          searchApiNamePathController,
-          _RuleEditorText.itemNamePath,
+        EditorTextField(
+          controller: searchApiNamePathController,
+          label: _RuleEditorText.itemNamePath,
         ),
-        _editorField(
-          searchApiSourcePathController,
-          _RuleEditorText.itemSourcePath,
+        EditorTextField(
+          controller: searchApiSourcePathController,
+          label: _RuleEditorText.itemSourcePath,
         ),
       ];
 
   List<Widget> _buildApiChapterFields() => [
-        _requestMethodField(
+        EditorSegmentedField<String>(
           label: _RuleEditorText.chapterMethod,
           value: chapterApiMethod,
+          segments: _methodSegments,
           onChanged: (value) => setState(() => chapterApiMethod = value),
         ),
-        const SizedBox(height: 20),
-        _editorField(
-          chapterApiURLController,
-          _RuleEditorText.chapterRequestUrl,
+        EditorTextField(
+          controller: chapterApiURLController,
+          label: _RuleEditorText.chapterRequestUrl,
         ),
-        _editorField(
-          chapterApiHeadersController,
-          _RuleEditorText.chapterHeaders,
+        EditorTextField(
+          controller: chapterApiHeadersController,
+          label: _RuleEditorText.chapterHeaders,
           maxLines: 4,
         ),
-        _editorField(
-          chapterApiQueryController,
-          _RuleEditorText.chapterQuery,
+        EditorTextField(
+          controller: chapterApiQueryController,
+          label: _RuleEditorText.chapterQuery,
           maxLines: 4,
         ),
-        DropdownButtonFormField<String>(
-          initialValue: chapterApiBodyType,
-          decoration: const InputDecoration(
-            labelText: _RuleEditorText.chapterBodyType,
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(value: ApiBodyType.none, child: Text('无')),
-            DropdownMenuItem(value: ApiBodyType.json, child: Text('JSON')),
-            DropdownMenuItem(value: ApiBodyType.form, child: Text('表单')),
-          ],
-          onChanged: (value) => setState(
-            () => chapterApiBodyType = value ?? ApiBodyType.none,
-          ),
+        EditorSegmentedField<String>(
+          label: _RuleEditorText.chapterBodyType,
+          value: chapterApiBodyType,
+          segments: _bodyTypeSegments,
+          onChanged: (value) => setState(() => chapterApiBodyType = value),
         ),
-        const SizedBox(height: 20),
         if (chapterApiBodyType != ApiBodyType.none)
-          _editorField(
-            chapterApiBodyController,
-            _RuleEditorText.chapterBody,
+          EditorTextField(
+            controller: chapterApiBodyController,
+            label: _RuleEditorText.chapterBody,
             maxLines: 5,
           ),
-        DropdownButtonFormField<String>(
-          initialValue: chapterApiFormat,
-          decoration: const InputDecoration(
-            labelText: _RuleEditorText.chapterResponseFormat,
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(
+        EditorSegmentedField<String>(
+          label: _RuleEditorText.chapterResponseFormat,
+          value: chapterApiFormat,
+          segments: const [
+            ButtonSegment(
               value: ApiChapterFormat.nested,
-              child: Text('嵌套 JSON'),
+              label: Text(_RuleEditorText.formatNested),
             ),
-            DropdownMenuItem(
+            ButtonSegment(
               value: ApiChapterFormat.delimited,
-              child: Text('分隔字符串'),
+              label: Text(_RuleEditorText.formatDelimited),
             ),
           ],
-          onChanged: (value) => setState(
-            () => chapterApiFormat = value ?? ApiChapterFormat.nested,
+          onChanged: (value) => setState(() => chapterApiFormat = value),
+        ),
+        EditorAnimatedSection(
+          activeKey: chapterApiFormat,
+          child: Column(
+            spacing: 16,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: chapterApiFormat == ApiChapterFormat.nested
+                ? [
+                    EditorTextField(
+                      controller: chapterApiRoadsPathController,
+                      label: _RuleEditorText.roadListPath,
+                    ),
+                    EditorTextField(
+                      controller: chapterApiRoadNamePathController,
+                      label: _RuleEditorText.roadNamePath,
+                    ),
+                    EditorTextField(
+                      controller: chapterApiEpisodesPathController,
+                      label: _RuleEditorText.episodeListPath,
+                    ),
+                    EditorTextField(
+                      controller: chapterApiEpisodeNamePathController,
+                      label: _RuleEditorText.episodeNamePath,
+                    ),
+                    EditorTextField(
+                      controller: chapterApiEpisodeURLPathController,
+                      label: _RuleEditorText.playbackEntryPath,
+                      helper: _RuleEditorText.playbackEntryPathHelper,
+                    ),
+                  ]
+                : [
+                    EditorTextField(
+                      controller: chapterApiRoadNamesPathController,
+                      label: _RuleEditorText.roadNamesPath,
+                    ),
+                    EditorTextField(
+                      controller: chapterApiRoadEpisodesPathController,
+                      label: _RuleEditorText.roadEpisodesPath,
+                    ),
+                    EditorTextField(
+                      controller: chapterApiRoadSeparatorController,
+                      label: _RuleEditorText.roadSeparator,
+                    ),
+                    EditorTextField(
+                      controller: chapterApiEpisodeSeparatorController,
+                      label: _RuleEditorText.episodeSeparator,
+                    ),
+                    EditorTextField(
+                      controller: chapterApiFieldSeparatorController,
+                      label: _RuleEditorText.fieldSeparator,
+                    ),
+                  ],
           ),
         ),
-        const SizedBox(height: 20),
-        if (chapterApiFormat == ApiChapterFormat.nested) ...[
-          _editorField(
-            chapterApiRoadsPathController,
-            _RuleEditorText.roadListPath,
-          ),
-          _editorField(
-            chapterApiRoadNamePathController,
-            _RuleEditorText.roadNamePath,
-          ),
-          _editorField(
-            chapterApiEpisodesPathController,
-            _RuleEditorText.episodeListPath,
-          ),
-          _editorField(
-            chapterApiEpisodeNamePathController,
-            _RuleEditorText.episodeNamePath,
-          ),
-          _editorField(
-            chapterApiEpisodeURLPathController,
-            _RuleEditorText.playbackEntryPath,
-            helper: _RuleEditorText.playbackEntryPathHelper,
-          ),
-        ] else ...[
-          _editorField(
-            chapterApiRoadNamesPathController,
-            _RuleEditorText.roadNamesPath,
-          ),
-          _editorField(
-            chapterApiRoadEpisodesPathController,
-            _RuleEditorText.roadEpisodesPath,
-          ),
-          _editorField(
-            chapterApiRoadSeparatorController,
-            _RuleEditorText.roadSeparator,
-          ),
-          _editorField(
-            chapterApiEpisodeSeparatorController,
-            _RuleEditorText.episodeSeparator,
-          ),
-          _editorField(
-            chapterApiFieldSeparatorController,
-            _RuleEditorText.fieldSeparator,
-          ),
-        ],
-        _editorField(
-          chapterApiVariablesController,
-          _RuleEditorText.responseVariables,
+        EditorTextField(
+          controller: chapterApiVariablesController,
+          label: _RuleEditorText.responseVariables,
           maxLines: 5,
         ),
-        _editorField(
-          chapterApiPageURLController,
-          _RuleEditorText.playPageUrl,
+        EditorTextField(
+          controller: chapterApiPageURLController,
+          label: _RuleEditorText.playPageUrl,
           helper: _RuleEditorText.playPageUrlHelper,
         ),
-        _editorField(
-          chapterApiPageQueryController,
-          _RuleEditorText.playPageQuery,
+        EditorTextField(
+          controller: chapterApiPageQueryController,
+          label: _RuleEditorText.playPageQuery,
           helper: _RuleEditorText.playPageQueryHelper,
           maxLines: 5,
         ),
       ];
 
-  Widget _requestMethodField({
-    required String label,
-    required String value,
-    required ValueChanged<String> onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      items: const [
-        DropdownMenuItem(value: 'GET', child: Text('GET')),
-        DropdownMenuItem(value: 'POST', child: Text('POST')),
-      ],
-      onChanged: (value) {
-        if (value != null) onChanged(value);
-      },
-    );
-  }
-
-  Widget _editorField(
-    TextEditingController controller,
-    String label, {
-    String? helper,
-    int maxLines = 1,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: TextField(
-        controller: controller,
-        maxLines: maxLines,
-        decoration: InputDecoration(
-          labelText: label,
-          helperText: helper,
-          border: const OutlineInputBorder(),
-        ),
-      ),
-    );
+  /// Builds the edited plugin, surfacing build/validation errors to the
+  /// user. Returns null when the current input does not form a valid rule.
+  Plugin? _tryBuildEditedPlugin() {
+    try {
+      return _buildEditedPlugin();
+    } catch (error) {
+      _showEditorError(error);
+      return null;
+    }
   }
 
   Plugin _buildEditedPlugin() {
@@ -948,8 +898,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     return Plugin(
       api: searchMode == RuleMode.api || chapterMode == RuleMode.api
           ? ApiEndpoints.apiLevel.toString()
-          : apiController.text,
-      type: typeController.text,
+          : _api,
+      type: _type,
       name: nameController.text,
       version: versionController.text,
       muliSources: _muliSources,
@@ -1103,47 +1053,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(error.toString())),
-    );
-  }
-
-  Widget _buildTextFieldTile(
-    BuildContext context,
-    SettingsTileInfo info, {
-    required TextEditingController controller,
-    required String label,
-    String? hint,
-    String? helper,
-    int maxLines = 1,
-  }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(info.isTopTile ? 20 : 3),
-            bottom: Radius.circular(info.isBottomTile ? 20 : 3),
-          ),
-          child: Material(
-            color: Theme.of(context).brightness == Brightness.light
-                ? Theme.of(context).colorScheme.surfaceContainerLowest
-                : Theme.of(context).colorScheme.surfaceContainerHigh,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: TextField(
-                controller: controller,
-                maxLines: maxLines,
-                decoration: InputDecoration(
-                  labelText: label,
-                  hintText: hint,
-                  helperText: helper,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (info.needDivider) const SizedBox(height: 2),
-      ],
     );
   }
 }

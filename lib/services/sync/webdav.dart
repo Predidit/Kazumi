@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
@@ -80,7 +81,6 @@ class WebDav {
     await _publishRemoteFile(
       sourceFilePath: tempFilePath,
       destinationPath: webDavPath,
-      temporaryPath: '$webDavPath.cache',
     );
     try {
       await File(tempFilePath).delete();
@@ -242,7 +242,6 @@ class WebDav {
         await historySync.writeSnapshotFile(mergedSnapshot, snapshotFile);
         await _publishHistorySnapshot(
           snapshotFile: snapshotFile,
-          deviceId: deviceId,
         );
         await historySync.completeCheckpoint(localBatch);
         await _removeDeviceHistoryChanges(deviceId);
@@ -423,12 +422,10 @@ class WebDav {
 
   Future<void> _publishHistorySnapshot({
     required File snapshotFile,
-    required String deviceId,
   }) {
     return _publishRemoteFile(
       sourceFilePath: snapshotFile.path,
       destinationPath: _historySnapshotPath,
-      temporaryPath: '$_historySnapshotPath.$deviceId.cache',
     );
   }
 
@@ -440,18 +437,15 @@ class WebDav {
     return _publishRemoteFile(
       sourceFilePath: sourceFile.path,
       destinationPath: destinationPath,
-      temporaryPath: '$destinationPath.cache',
     );
   }
 
   Future<void> _publishRemoteFile({
     required String sourceFilePath,
     required String destinationPath,
-    required String temporaryPath,
   }) async {
     await _remoteFileCommitter.replaceFile(
       sourceFilePath: sourceFilePath,
-      temporaryPath: temporaryPath,
       destinationPath: destinationPath,
       remove: (path) => client.remove(path),
       uploadFromFile: (sourceFilePath, remotePath) =>
@@ -459,7 +453,22 @@ class WebDav {
       rename: (sourcePath, targetPath) =>
           client.rename(sourcePath, targetPath, true),
       exists: _remoteEntryExists,
+      verify: _verifyRemoteFile,
     );
+  }
+
+  Future<void> _verifyRemoteFile(
+    String sourceFilePath,
+    String destinationPath,
+  ) async {
+    final localDigest =
+        await sha256.bind(File(sourceFilePath).openRead()).first;
+    final remoteDigest = sha256.convert(await client.read(destinationPath));
+    if (localDigest != remoteDigest) {
+      throw StateError(
+        'WebDav: remote verification failed for $destinationPath',
+      );
+    }
   }
 
   Future<void> _removeDeviceHistoryChanges(String deviceId) async {

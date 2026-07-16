@@ -43,7 +43,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     '概览',
     '吐槽',
     '角色',
-    '评论',
+    '关联条目',
     '制作人员',
   ];
   static const int _commentsTabIndex = 1;

@@ -5,7 +5,7 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
-import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
@@ -199,7 +199,6 @@ class _InfoTabViewState extends State<InfoTabView>
                   );
                 }).toList(),
               ),
-              _buildRelationsSection(),
             ],
           ),
         ),
@@ -207,81 +206,95 @@ class _InfoTabViewState extends State<InfoTabView>
     );
   }
 
-  Widget _buildRelationsSection() {
-    if (!widget.relationsIsLoading &&
-        !widget.relationsQueryTimeout &&
-        widget.relationList.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        const Text('关联条目', style: TextStyle(fontSize: 18)),
-        const SizedBox(height: 8),
-        if (widget.relationsQueryTimeout)
-          TextButton.icon(
-            onPressed: widget.loadRelations,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('获取关联条目失败，点击重试'),
-          )
-        else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final crossAxisCount = _relationCrossAxisCount(
-                constraints.maxWidth,
-              );
-              final spacing = StyleString.cardSpace;
-              final cardWidth =
-                  (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
-                      crossAxisCount;
-              final cardHeight =
-                  cardWidth / 0.65 + BangumiContent.requiredHeightFor(context);
-              final itemCount = widget.relationsIsLoading
-                  ? crossAxisCount
-                  : widget.relationList.length;
-
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  mainAxisSpacing: spacing - 2,
-                  crossAxisSpacing: spacing,
-                  mainAxisExtent: cardHeight,
-                ),
-                itemCount: itemCount,
-                itemBuilder: (context, index) {
-                  if (widget.relationsIsLoading) {
-                    return Skeletonizer.zone(
-                      child: Bone(
-                        width: cardWidth,
-                        height: cardHeight,
-                        uniRadius: 12,
-                      ),
-                    );
-                  }
-                  return _RelatedBangumiCard(
-                    relation: widget.relationList[index],
-                  );
-                },
-              );
-            },
+  Widget get relationsListBody {
+    return Builder(
+      builder: (BuildContext context) {
+        return CustomScrollView(
+          scrollBehavior: const ScrollBehavior().copyWith(
+            scrollbars: false,
           ),
-      ],
-    );
-  }
+          key: const PageStorageKey<String>('关联条目'),
+          slivers: <Widget>[
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverLayoutBuilder(
+              builder: (context, constraints) {
+                if (widget.relationsQueryTimeout) {
+                  return SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: GeneralErrorWidget(
+                      errMsg: '获取关联条目失败，请重试',
+                      actions: [
+                        GeneralErrorButton(
+                          onPressed: widget.loadRelations,
+                          text: '重试',
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                if (!widget.relationsIsLoading && widget.relationList.isEmpty) {
+                  return const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(child: Text('暂无关联条目')),
+                  );
+                }
 
-  int _relationCrossAxisCount(double width) {
-    if (width > LayoutBreakpoint.medium['width']!) {
-      return 5;
-    }
-    if (width > LayoutBreakpoint.compact['width']!) {
-      return 4;
-    }
-    return 2;
+                final horizontalPadding =
+                    ((constraints.crossAxisExtent - maxWidth) / 2)
+                        .clamp(16.0, double.infinity)
+                        .toDouble();
+                final contentWidth =
+                    constraints.crossAxisExtent - horizontalPadding * 2;
+                final crossAxisCount = contentWidth >= 600 ? 2 : 1;
+                final itemCount = widget.relationsIsLoading
+                    ? crossAxisCount
+                    : widget.relationList.length;
+
+                return SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    16,
+                    horizontalPadding,
+                    16,
+                  ),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: StyleString.cardSpace,
+                      crossAxisSpacing: StyleString.cardSpace,
+                      mainAxisExtent: _RelatedBangumiCardH.cardHeight,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        if (widget.relationsIsLoading) {
+                          return LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Skeletonizer.zone(
+                                child: Bone(
+                                  width: constraints.maxWidth,
+                                  height: _RelatedBangumiCardH.cardHeight,
+                                  uniRadius: 16,
+                                ),
+                              );
+                            },
+                          );
+                        }
+                        return _RelatedBangumiCardH(
+                          relation: widget.relationList[index],
+                        );
+                      },
+                      childCount: itemCount,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   /// Bone for Skeleton Loader
@@ -659,68 +672,104 @@ class _InfoTabViewState extends State<InfoTabView>
         ),
         commentsListBody,
         charactersListBody,
-        Builder(
-          builder: (BuildContext context) {
-            return CustomScrollView(
-              scrollBehavior: const ScrollBehavior().copyWith(
-                scrollbars: false,
-              ),
-              key: PageStorageKey<String>('评论'),
-              slivers: <Widget>[
-                SliverOverlapInjector(
-                  handle:
-                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                ),
-                // TODO: 评论区
-                SliverFillRemaining(
-                  child: Center(child: Text('施工中')),
-                ),
-              ],
-            );
-          },
-        ),
+        relationsListBody,
         staffListBody,
       ],
     );
   }
 }
 
-class _RelatedBangumiCard extends StatelessWidget {
-  const _RelatedBangumiCard({required this.relation});
+class _RelatedBangumiCardH extends StatelessWidget {
+  const _RelatedBangumiCardH({required this.relation});
+
+  static const double cardHeight = 124;
+  static const double imageHeight = 104;
+  static const double posterAspectRatio = 0.65;
 
   final BangumiRelation relation;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final relationLabel = relation.relation.isEmpty ? '关联' : relation.relation;
+    final bangumiItem = relation.toBangumiItem();
+    final title = bangumiItem.nameCn.isEmpty
+        ? bangumiItem.name.trim()
+        : bangumiItem.nameCn.trim();
 
-    return Stack(
-      children: [
-        BangumiCardV(bangumiItem: relation.toBangumiItem()),
-        Positioned(
-          top: 8,
-          left: 8,
-          child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color:
-                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Text(
-                  relationLabel,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ),
-            ),
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: colorScheme.surfaceContainerLow,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: () {
+          context.pushNamed('/info/', arguments: bangumiItem);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final imageWidth =
+                  (constraints.maxWidth * 0.5).clamp(136.0, 168.0).toDouble();
+
+              return Row(
+                children: [
+                  Hero(
+                    transitionOnUserGestures: true,
+                    flightShuttleBuilder:
+                        NetworkImgLayer.heroFlightShuttleBuilder,
+                    tag: bangumiItem.id,
+                    child: NetworkImgLayer(
+                      src: bangumiItem.images['large'] ?? '',
+                      width: imageWidth,
+                      height: imageHeight,
+                      origAspectRatio: posterAspectRatio,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          relationLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              );
+            },
           ),
         ),
-      ],
+      ),
     );
   }
 }

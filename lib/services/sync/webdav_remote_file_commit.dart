@@ -10,8 +10,8 @@ typedef WebDavRenameRemoteFile = Future<void> Function(
   String destinationPath,
 );
 typedef WebDavRemoteEntryExists = Future<bool> Function(String path);
-typedef WebDavVerifyRemoteFile = Future<void> Function(
-  String sourceFilePath,
+typedef WebDavRemoteMoveApplied = Future<bool> Function(
+  String temporaryPath,
   String destinationPath,
 );
 
@@ -27,15 +27,16 @@ class WebDavRemoteFileCommitter {
     required WebDavUploadRemoteFile uploadFromFile,
     required WebDavRenameRemoteFile rename,
     required WebDavRemoteEntryExists exists,
-    required WebDavVerifyRemoteFile verify,
+    required WebDavRemoteMoveApplied moveApplied,
   }) async {
     final temporaryPath = '$destinationPath.${_createTemporaryToken()}.cache';
     try {
       await uploadFromFile(sourceFilePath, temporaryPath);
       try {
         await rename(temporaryPath, destinationPath);
-        await verify(sourceFilePath, destinationPath);
-        return;
+        if (await moveApplied(temporaryPath, destinationPath)) {
+          return;
+        }
       } catch (_) {
         // Some WebDAV implementations reject overwrite MOVE. Others return a
         // 207 response containing a per-resource failure which webdav_client
@@ -46,13 +47,22 @@ class WebDavRemoteFileCommitter {
         }
       }
 
+      if (!await exists(temporaryPath)) {
+        throw StateError(
+          'WebDav: MOVE did not produce the expected remote state',
+        );
+      }
       await _removeIfExists(
         destinationPath,
         remove: remove,
         exists: exists,
       );
       await rename(temporaryPath, destinationPath);
-      await verify(sourceFilePath, destinationPath);
+      if (!await moveApplied(temporaryPath, destinationPath)) {
+        throw StateError(
+          'WebDav: retried MOVE did not produce the expected remote state',
+        );
+      }
     } catch (_) {
       await _removeIfExists(
         temporaryPath,

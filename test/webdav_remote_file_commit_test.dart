@@ -23,9 +23,9 @@ void main() {
           remoteFiles[destination] = remoteFiles.remove(source)!;
         },
         exists: (path) async => remoteFiles.containsKey(path),
-        verify: (localPath, remotePath) async {
-          expect(remoteFiles[remotePath], 'new-content');
-        },
+        moveApplied: (source, destination) async =>
+            !remoteFiles.containsKey(source) &&
+            remoteFiles.containsKey(destination),
       );
     }
 
@@ -71,11 +71,9 @@ void main() {
         remoteFiles[destination] = remoteFiles.remove(source)!;
       },
       exists: (path) async => remoteFiles.containsKey(path),
-      verify: (localPath, remotePath) async {
-        if (remoteFiles[remotePath] != 'new-content') {
-          throw StateError('remote content mismatch');
-        }
-      },
+      moveApplied: (source, destination) async =>
+          !remoteFiles.containsKey(source) &&
+          remoteFiles.containsKey(destination),
     );
 
     expect(renameCalls, 2);
@@ -104,11 +102,9 @@ void main() {
           // Simulates repeated false-success MOVE responses.
         },
         exists: (path) async => remoteFiles.containsKey(path),
-        verify: (localPath, remotePath) async {
-          if (remoteFiles[remotePath] != 'new-content') {
-            throw StateError('remote content mismatch');
-          }
-        },
+        moveApplied: (source, destination) async =>
+            !remoteFiles.containsKey(source) &&
+            remoteFiles.containsKey(destination),
       ),
       throwsA(isA<StateError>()),
     );

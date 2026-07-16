@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:crypto/crypto.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
@@ -453,22 +452,16 @@ class WebDav {
       rename: (sourcePath, targetPath) =>
           client.rename(sourcePath, targetPath, true),
       exists: _remoteEntryExists,
-      verify: _verifyRemoteFile,
+      moveApplied: _remoteMoveApplied,
     );
   }
 
-  Future<void> _verifyRemoteFile(
-    String sourceFilePath,
+  Future<bool> _remoteMoveApplied(
+    String temporaryPath,
     String destinationPath,
   ) async {
-    final localDigest =
-        await sha256.bind(File(sourceFilePath).openRead()).first;
-    final remoteDigest = sha256.convert(await client.read(destinationPath));
-    if (localDigest != remoteDigest) {
-      throw StateError(
-        'WebDav: remote verification failed for $destinationPath',
-      );
-    }
+    return !await _remoteEntryExists(temporaryPath) &&
+        await _remoteEntryExists(destinationPath);
   }
 
   Future<void> _removeDeviceHistoryChanges(String deviceId) async {

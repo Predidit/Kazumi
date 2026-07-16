@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
@@ -49,14 +48,6 @@ class _TimelinePageState extends State<TimelinePage>
   void dispose() {
     tabController?.dispose();
     super.dispose();
-  }
-
-  void onBackPressed(BuildContext context) {
-    if (KazumiDialog.observer.hasKazumiDialog) {
-      KazumiDialog.dismiss();
-      return;
-    }
-    context.navigate('/tab/popular/');
   }
 
   DateTime generateDateTime(int year, String season) {
@@ -684,85 +675,76 @@ class _TimelinePageState extends State<TimelinePage>
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
-        onBackPressed(context);
-      },
-      child: Scaffold(
-        appBar: SysAppBar(
-          needTopOffset: false,
-          toolbarHeight: 104,
-          bottom: TabBar(
-            controller: tabController,
-            tabs: tabs,
-            indicatorColor: Theme.of(context).colorScheme.primary,
-          ),
-          title: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            child: Observer(builder: (context) {
-              return Text(timelineController.seasonString);
-            }),
-            onTap: () {
-              showSeasonBottomSheet(context);
-            },
-          ),
+    return Scaffold(
+      appBar: SysAppBar(
+        needTopOffset: false,
+        toolbarHeight: 104,
+        bottom: TabBar(
+          controller: tabController,
+          tabs: tabs,
+          indicatorColor: Theme.of(context).colorScheme.primary,
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            KazumiDialog.showBottomSheet(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              isScrollControlled: true,
-              constraints: buildTimelineBottomSheetConstraints(
-                context,
-                compactHeightFactor: 2 / 3,
-              ),
-              clipBehavior: Clip.antiAlias,
-              useSafeArea: true,
-              context: context,
-              builder: (context) {
-                return buildTimelineOptionsSheet(context);
-              },
-            );
+        title: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          child: Observer(builder: (context) {
+            return Text(timelineController.seasonString);
+          }),
+          onTap: () {
+            showSeasonBottomSheet(context);
           },
-          child: const Icon(Icons.tune),
         ),
-        body: Observer(builder: (context) {
-          if (timelineController.isLoading &&
-              timelineController.bangumiCalendar.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-          if (timelineController.isTimeOut) {
-            return Center(
-              child: SizedBox(
-                height: 400,
-                child: BangumiMirrorErrorWidget(
-                  onRetry: () {
-                    onSeasonSelected(timelineController.selectedDate);
-                  },
-                  onSettingsReturned: () {
-                    if (mounted) {
-                      setState(() {});
-                    }
-                  },
-                ),
-              ),
-            );
-          }
-          return TabBarView(
-            controller: tabController,
-            children: contentGrid(timelineController.bangumiCalendar),
-          );
-        }),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          KazumiDialog.showBottomSheet(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            isScrollControlled: true,
+            constraints: buildTimelineBottomSheetConstraints(
+              context,
+              compactHeightFactor: 2 / 3,
+            ),
+            clipBehavior: Clip.antiAlias,
+            useSafeArea: true,
+            context: context,
+            builder: (context) {
+              return buildTimelineOptionsSheet(context);
+            },
+          );
+        },
+        child: const Icon(Icons.tune),
+      ),
+      body: Observer(builder: (context) {
+        if (timelineController.isLoading &&
+            timelineController.bangumiCalendar.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+        if (timelineController.isTimeOut) {
+          return Center(
+            child: SizedBox(
+              height: 400,
+              child: BangumiMirrorErrorWidget(
+                onRetry: () {
+                  onSeasonSelected(timelineController.selectedDate);
+                },
+                onSettingsReturned: () {
+                  if (mounted) {
+                    setState(() {});
+                  }
+                },
+              ),
+            ),
+          );
+        }
+        return TabBarView(
+          controller: tabController,
+          children: contentGrid(timelineController.bangumiCalendar),
+        );
+      }),
     );
   }
 

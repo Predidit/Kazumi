@@ -4,7 +4,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
@@ -134,17 +133,6 @@ class _CollectPageState extends State<CollectPage>
     );
   }
 
-  void onBackPressed(BuildContext context) {
-    if (syncCollectiblesing) {
-      return;
-    }
-    if (KazumiDialog.observer.hasKazumiDialog) {
-      KazumiDialog.dismiss();
-      return;
-    }
-    context.navigate('/tab/popular/');
-  }
-
   @override
   void initState() {
     super.initState();
@@ -168,87 +156,75 @@ class _CollectPageState extends State<CollectPage>
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
-        if (syncCollectiblesing) {
-          return;
-        }
-        onBackPressed(context);
-      },
-      child: Scaffold(
-        appBar: SysAppBar(
-          needTopOffset: false,
-          toolbarHeight: 104,
-          bottom: TabBar(
-            controller: tabController,
-            tabs: tabs,
-            indicatorColor: Theme.of(context).colorScheme.primary,
-          ),
-          title: const Text('追番'),
-          actions: [
-            IconButton(
-                onPressed: () {
-                  setState(() {
-                    showDelete = !showDelete;
-                  });
-                },
-                icon: showDelete
-                    ? const Icon(Icons.edit_outlined)
-                    : const Icon(Icons.edit))
-          ],
+    return Scaffold(
+      appBar: SysAppBar(
+        needTopOffset: false,
+        toolbarHeight: 104,
+        bottom: TabBar(
+          controller: tabController,
+          tabs: tabs,
+          indicatorColor: Theme.of(context).colorScheme.primary,
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () async {
-            bool webDavenable =
-                await GStorage.getSetting(SettingsKeys.webDavEnable);
-            bool webDavCollectEnable =
-                GStorage.getSetting(SettingsKeys.webDavEnableCollect);
-            bool bgmSyncEnable =
-                GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-            final syncPlan = CollectSyncPlan(
-              webDavEnabled: webDavenable,
-              webDavCollectiblesEnabled: webDavCollectEnable,
-              bangumiEnabled: bgmSyncEnable,
-            );
-            if (!syncPlan.canSync) {
-              KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
-              return;
-            }
-            if (showDelete) {
-              KazumiDialog.showToast(message: '编辑模式无法执行同步');
-              return;
-            }
-            if (syncCollectiblesing) {
-              return;
-            }
-            setState(() {
-              syncCollectiblesing = true;
-            });
-            try {
-              await _runFullSync(
-                plan: syncPlan,
-              );
-            } finally {
-              if (mounted) {
+        title: const Text('追番'),
+        actions: [
+          IconButton(
+              onPressed: () {
                 setState(() {
-                  syncCollectiblesing = false;
+                  showDelete = !showDelete;
                 });
-              }
-            }
-          },
-          child: syncCollectiblesing
-              ? const SizedBox(
-                  width: 32, height: 32, child: CircularProgressIndicator())
-              : const Icon(Icons.sync_rounded),
-        ),
-        body: Observer(builder: (context) {
-          return renderBody;
-        }),
+              },
+              icon: showDelete
+                  ? const Icon(Icons.edit_outlined)
+                  : const Icon(Icons.edit))
+        ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          bool webDavenable =
+              await GStorage.getSetting(SettingsKeys.webDavEnable);
+          bool webDavCollectEnable =
+              GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+          bool bgmSyncEnable =
+              GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+          final syncPlan = CollectSyncPlan(
+            webDavEnabled: webDavenable,
+            webDavCollectiblesEnabled: webDavCollectEnable,
+            bangumiEnabled: bgmSyncEnable,
+          );
+          if (!syncPlan.canSync) {
+            KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
+            return;
+          }
+          if (showDelete) {
+            KazumiDialog.showToast(message: '编辑模式无法执行同步');
+            return;
+          }
+          if (syncCollectiblesing) {
+            return;
+          }
+          setState(() {
+            syncCollectiblesing = true;
+          });
+          try {
+            await _runFullSync(
+              plan: syncPlan,
+            );
+          } finally {
+            if (mounted) {
+              setState(() {
+                syncCollectiblesing = false;
+              });
+            }
+          }
+        },
+        child: syncCollectiblesing
+            ? const SizedBox(
+                width: 32, height: 32, child: CircularProgressIndicator())
+            : const Icon(Icons.sync_rounded),
+      ),
+      body: Observer(builder: (context) {
+        return renderBody;
+      }),
     );
   }
 

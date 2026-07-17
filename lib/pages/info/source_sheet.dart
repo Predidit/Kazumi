@@ -7,6 +7,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
@@ -288,10 +289,10 @@ class _SourceSheetState extends State<SourceSheet>
 
   Widget buildPluginView(Plugin plugin, List<Widget> cardList) {
     final status = widget.infoController.pluginSearchStatus[plugin.name];
-    if (status == 'pending') {
+    if (status == PluginSearchStatus.pending) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (status == 'captcha') {
+    if (status == PluginSearchStatus.captcha) {
       return GeneralErrorWidget(
         errMsg: '${plugin.name} 需要验证码验证',
         actions: [
@@ -307,7 +308,7 @@ class _SourceSheetState extends State<SourceSheet>
         ],
       );
     }
-    if (status == 'noResult') {
+    if (status == PluginSearchStatus.noResult) {
       return GeneralErrorWidget(
         errMsg: '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
         actions: [
@@ -322,7 +323,7 @@ class _SourceSheetState extends State<SourceSheet>
         ],
       );
     }
-    if (status == 'error') {
+    if (status == PluginSearchStatus.error) {
       return GeneralErrorWidget(
         errMsg: '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
         actions: [
@@ -509,10 +510,10 @@ class _SourceSheetState extends State<SourceSheet>
                               decoration: BoxDecoration(
                                 color: switch (widget.infoController
                                     .pluginSearchStatus[plugin.name]) {
-                                  'success' => Colors.green,
-                                  'noResult' => Colors.orange,
-                                  'captcha' => Colors.blue,
-                                  'error' => Colors.red,
+                                  PluginSearchStatus.success => Colors.green,
+                                  PluginSearchStatus.noResult => Colors.orange,
+                                  PluginSearchStatus.captcha => Colors.blue,
+                                  PluginSearchStatus.error => Colors.red,
                                   _ => Colors.grey,
                                 },
                                 shape: BoxShape.circle,

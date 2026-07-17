@@ -247,7 +247,11 @@ class _InfoTabViewState extends State<InfoTabView>
                         .toDouble();
                 final contentWidth =
                     constraints.crossAxisExtent - horizontalPadding * 2;
-                final crossAxisCount = contentWidth >= 600 ? 2 : 1;
+                final crossAxisCount = contentWidth >= 840
+                    ? 3
+                    : contentWidth >= 560
+                        ? 2
+                        : 1;
                 final itemCount = widget.relationsIsLoading
                     ? crossAxisCount
                     : widget.relationList.length;
@@ -275,7 +279,7 @@ class _InfoTabViewState extends State<InfoTabView>
                                 child: Bone(
                                   width: constraints.maxWidth,
                                   height: _RelatedBangumiCardH.cardHeight,
-                                  uniRadius: 16,
+                                  uniRadius: 14,
                                 ),
                               );
                             },
@@ -682,8 +686,8 @@ class _InfoTabViewState extends State<InfoTabView>
 class _RelatedBangumiCardH extends StatelessWidget {
   const _RelatedBangumiCardH({required this.relation});
 
-  static const double cardHeight = 124;
-  static const double imageHeight = 104;
+  static const double cardHeight = 108;
+  static const double imageHeight = 92;
   static const double posterAspectRatio = 0.65;
 
   final BangumiRelation relation;
@@ -704,18 +708,18 @@ class _RelatedBangumiCardH extends StatelessWidget {
       color: colorScheme.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: InkWell(
         onTap: () {
           context.pushNamed('/info/', arguments: bangumiItem);
         },
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(8),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final imageWidth =
-                  (constraints.maxWidth * 0.5).clamp(136.0, 168.0).toDouble();
+                  (constraints.maxWidth * 0.42).clamp(116.0, 152.0).toDouble();
 
               return Row(
                 children: [
@@ -731,7 +735,7 @@ class _RelatedBangumiCardH extends StatelessWidget {
                       origAspectRatio: posterAspectRatio,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -746,7 +750,7 @@ class _RelatedBangumiCardH extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           relationLabel,
                           maxLines: 1,

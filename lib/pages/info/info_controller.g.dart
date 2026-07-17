@@ -46,13 +46,13 @@ mixin _$InfoController on InfoControllerBase, Store {
       Atom(name: 'InfoControllerBase.pluginSearchStatus', context: context);
 
   @override
-  ObservableMap<String, String> get pluginSearchStatus {
+  ObservableMap<String, PluginSearchStatus> get pluginSearchStatus {
     _$pluginSearchStatusAtom.reportRead();
     return super.pluginSearchStatus;
   }
 
   @override
-  set pluginSearchStatus(ObservableMap<String, String> value) {
+  set pluginSearchStatus(ObservableMap<String, PluginSearchStatus> value) {
     _$pluginSearchStatusAtom.reportWrite(value, super.pluginSearchStatus, () {
       super.pluginSearchStatus = value;
     });

@@ -195,15 +195,12 @@ abstract class _PluginsController with Store {
     return json;
   }
 
-  Future<void> loadPluginEnabledState({
-    Iterable<String>? disabledNames,
-    bool persist = true,
-  }) async {
+  Future<void> loadPluginEnabledState() async {
     disabledPluginNames
       ..clear()
-      ..addAll(disabledNames ??
+      ..addAll(
           GStorage.getStringListSettingByName(disabledPluginNamesSettingKey));
-    if (_pruneDisabledPluginNames() && persist) {
+    if (_pruneDisabledPluginNames()) {
       await saveDisabledPluginNames();
     }
   }
@@ -216,25 +213,23 @@ abstract class _PluginsController with Store {
 
   Future<void> setPluginEnabled(
     String name,
-    bool enabled, {
-    bool persist = true,
-  }) async {
+    bool enabled,
+  ) async {
     if (!pluginList.any((plugin) => plugin.name == name)) {
       return;
     }
     final changed = enabled
         ? disabledPluginNames.remove(name)
         : disabledPluginNames.add(name);
-    if (changed && persist) {
+    if (changed) {
       await saveDisabledPluginNames();
     }
   }
 
   Future<void> setPluginsEnabled(
     Iterable<String> names,
-    bool enabled, {
-    bool persist = true,
-  }) async {
+    bool enabled,
+  ) async {
     final pluginNames = pluginList.map((plugin) => plugin.name).toSet();
     var changed = false;
     for (final name in names) {
@@ -247,7 +242,7 @@ abstract class _PluginsController with Store {
         changed = disabledPluginNames.add(name) || changed;
       }
     }
-    if (changed && persist) {
+    if (changed) {
       await saveDisabledPluginNames();
     }
   }
@@ -281,15 +276,8 @@ abstract class _PluginsController with Store {
     return plugins;
   }
 
-  Future<void> removePlugin(Plugin plugin, {bool persist = true}) async {
+  Future<void> removePlugin(Plugin plugin) async {
     final disabledChanged = disabledPluginNames.contains(plugin.name);
-    if (!persist) {
-      pluginList.removeWhere(
-        (candidate) => _catalogKey(candidate.name) == _catalogKey(plugin.name),
-      );
-      disabledPluginNames.remove(plugin.name);
-      return;
-    }
     await _mutateAndPersist(
       () {
         pluginList.removeWhere(
@@ -355,11 +343,7 @@ abstract class _PluginsController with Store {
     }
   }
 
-  Future<void> updatePlugin(Plugin plugin, {bool persist = true}) {
-    if (!persist) {
-      _replacePlugin(plugin);
-      return Future.value();
-    }
+  Future<void> updatePlugin(Plugin plugin) {
     return _mutateAndPersist(
       () => _replacePlugin(plugin),
       errorMessage: 'Plugin: failed to persist rule update',
@@ -646,21 +630,10 @@ abstract class _PluginsController with Store {
   }
 
   Future<void> removePlugins(
-    Set<String> pluginNames, {
-    bool persist = true,
-  }) async {
+    Set<String> pluginNames,
+  ) async {
     final names = Set<String>.of(pluginNames);
     final disabledChanged = names.any(disabledPluginNames.contains);
-    if (!persist) {
-      for (int i = pluginList.length - 1; i >= 0; --i) {
-        var name = pluginList[i].name;
-        if (names.contains(name)) {
-          pluginList.removeAt(i);
-        }
-      }
-      disabledPluginNames.removeAll(names);
-      return;
-    }
     await _mutateAndPersist(
       () {
         for (int i = pluginList.length - 1; i >= 0; --i) {

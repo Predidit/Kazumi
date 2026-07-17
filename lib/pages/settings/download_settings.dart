@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/services/platform/secure_bookmark_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/file_system.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
@@ -73,6 +74,10 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       if (selectedPath == null || selectedPath.isEmpty) return;
 
       await ensureDirectoryWritable(selectedPath);
+      if (!await SecureBookmarkService.persist(selectedPath)) {
+        KazumiDialog.showToast(message: '无法获得该目录的持久访问权限，请更换目录');
+        return;
+      }
       await GStorage.putSetting(
         SettingsKeys.downloadDirectory,
         selectedPath,
@@ -93,6 +98,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   }
 
   Future<void> _resetDownloadDirectory() async {
+    await SecureBookmarkService.clear();
     await GStorage.putSetting(SettingsKeys.downloadDirectory, '');
     if (mounted) {
       setState(() => downloadDirectory = '');

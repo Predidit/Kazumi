@@ -1,14 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/bean/widget/custom_dropdown_menu.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -28,8 +27,6 @@ class PopularPage extends StatefulWidget {
 }
 
 class _PopularPageState extends State<PopularPage> {
-  DateTime? _lastPressedAt;
-  final FocusNode _focusNode = FocusNode();
   late final ScrollController scrollController;
   PopularController get popularController => widget.controller;
 
@@ -50,7 +47,6 @@ class _PopularPageState extends State<PopularPage> {
 
   @override
   void dispose() {
-    _focusNode.dispose();
     scrollController.removeListener(scrollListener);
     scrollController.dispose();
     super.dispose();
@@ -75,91 +71,66 @@ class _PopularPageState extends State<PopularPage> {
     return GStorage.getSetting(SettingsKeys.showWindowButton);
   }
 
-  void onBackPressed(BuildContext context) {
-    if (KazumiDialog.observer.hasKazumiDialog) {
-      KazumiDialog.dismiss();
-      return;
-    }
-    if (_lastPressedAt == null ||
-        DateTime.now().difference(_lastPressedAt!) >
-            const Duration(seconds: 2)) {
-      _lastPressedAt = DateTime.now();
-      KazumiDialog.showToast(message: "再按一次退出应用", context: context);
-      return;
-    }
-    SystemNavigator.pop();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
-        onBackPressed(context);
-      },
-      child: Scaffold(
-        body: CustomScrollView(
-          controller: scrollController,
-          slivers: [
-            buildSliverAppBar(),
-            SliverToBoxAdapter(
-              child: Observer(
-                builder: (_) => AnimatedOpacity(
-                  opacity: popularController.isLoadingMore ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: popularController.isLoadingMore
-                      ? const LinearProgressIndicator(minHeight: 4)
-                      : const SizedBox(height: 4),
-                ),
+    return Scaffold(
+      body: CustomScrollView(
+        controller: scrollController,
+        slivers: [
+          buildSliverAppBar(),
+          SliverToBoxAdapter(
+            child: Observer(
+              builder: (_) => AnimatedOpacity(
+                opacity: popularController.isLoadingMore ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                child: popularController.isLoadingMore
+                    ? const LinearProgressIndicator(minHeight: 4)
+                    : const SizedBox(height: 4),
               ),
             ),
-            SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                    StyleString.cardSpace, 0, StyleString.cardSpace, 0),
-                sliver: Observer(builder: (_) {
-                  if (popularController.isTimeOut) {
-                    return SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 400,
-                        child: BangumiMirrorErrorWidget(
-                          onRetry: () {
-                            if (popularController.trendList.isEmpty) {
-                              popularController.queryBangumiByTrend();
-                            } else {
-                              popularController.queryBangumiByTag();
-                            }
-                          },
-                          onSettingsReturned: () {
-                            if (mounted) {
-                              setState(() {});
-                            }
-                          },
-                        ),
+          ),
+          SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                  StyleString.cardSpace, 0, StyleString.cardSpace, 0),
+              sliver: Observer(builder: (_) {
+                if (popularController.isTimeOut) {
+                  return SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 400,
+                      child: BangumiMirrorErrorWidget(
+                        onRetry: () {
+                          if (popularController.trendList.isEmpty) {
+                            popularController.queryBangumiByTrend();
+                          } else {
+                            popularController.queryBangumiByTag();
+                          }
+                        },
+                        onSettingsReturned: () {
+                          if (mounted) {
+                            setState(() {});
+                          }
+                        },
                       ),
-                    );
-                  }
-                  return contentGrid(
-                    (popularController.currentTag == '')
-                        ? popularController.trendList
-                        : popularController.bangumiList,
+                    ),
                   );
-                })),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => scrollController.animateTo(0,
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeOut),
-          child: const Icon(Icons.arrow_upward),
-        ),
+                }
+                return contentGrid(
+                  (popularController.currentTag == '')
+                      ? popularController.trendList
+                      : popularController.bangumiList,
+                );
+              })),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => scrollController.animateTo(0,
+            duration: const Duration(milliseconds: 350), curve: Curves.easeOut),
+        child: const Icon(Icons.arrow_upward),
       ),
     );
   }
 
-  Widget contentGrid(bangumiList) {
+  Widget contentGrid(List<BangumiItem> bangumiList) {
     int crossCount = 3;
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
       crossCount = 5;
@@ -183,11 +154,11 @@ class _PopularPageState extends State<PopularPage> {
         ),
         delegate: SliverChildBuilderDelegate(
           (BuildContext context, int index) {
-            return bangumiList!.isNotEmpty
+            return bangumiList.isNotEmpty
                 ? BangumiCardV(bangumiItem: bangumiList[index])
                 : null;
           },
-          childCount: bangumiList!.isNotEmpty ? bangumiList!.length : 10,
+          childCount: bangumiList.isNotEmpty ? bangumiList.length : 10,
         ),
       ),
     );

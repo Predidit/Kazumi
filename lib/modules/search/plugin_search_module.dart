@@ -1,3 +1,6 @@
+/// Per-plugin search progress, written solely by PluginSearchService.
+enum PluginSearchStatus { pending, success, error, noResult, captcha }
+
 class SearchItem {
   String name;
   String src;

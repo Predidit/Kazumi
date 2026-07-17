@@ -1,7 +1,10 @@
+import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/plugin/rule_engine_models.dart';
+import 'package:kazumi/utils/async_session.dart';
 
 class PluginSearchService {
   PluginSearchService({
@@ -13,18 +16,24 @@ class PluginSearchService {
   final InfoController infoController;
   final PluginsController pluginsController;
   final List<Plugin>? _plugins;
+  final RuleCancelToken _cancelToken = RuleCancelToken();
+
+  /// Per-plugin sessions so a replacement query (alias/manual search)
+  /// invalidates the write-back of the still-running previous one.
+  final Map<String, AsyncSessionOwner> _querySessions = {};
   bool _isCancelled = false;
 
   List<Plugin> get _queryPlugins =>
       _plugins ?? List<Plugin>.of(pluginsController.enabledPlugins);
 
   Future<void> querySource(String keyword, String pluginName) async {
-    infoController.pluginSearchResponseList.removeWhere(
-      (response) => response.pluginName == pluginName,
-    );
-    infoController.pluginSearchStatus[pluginName] = 'pending';
     for (final plugin in _queryPlugins) {
       if (plugin.name == pluginName) {
+        infoController.pluginSearchResponseList.removeWhere(
+          (response) => response.pluginName == pluginName,
+        );
+        infoController.pluginSearchStatus[pluginName] =
+            PluginSearchStatus.pending;
         await _queryPlugin(plugin, keyword);
         return;
       }
@@ -38,7 +47,8 @@ class PluginSearchService {
 
     final plugins = _queryPlugins;
     for (final plugin in plugins) {
-      infoController.pluginSearchStatus[plugin.name] = 'pending';
+      infoController.pluginSearchStatus[plugin.name] =
+          PluginSearchStatus.pending;
     }
     await Future.wait(
       plugins.map((plugin) => _queryPlugin(plugin, keyword)),
@@ -47,19 +57,24 @@ class PluginSearchService {
 
   Future<void> _queryPlugin(Plugin plugin, String keyword) async {
     if (_isCancelled) return;
+    final session = _querySessions
+        .putIfAbsent(plugin.name, AsyncSessionOwner.new)
+        .begin();
     try {
       final result = await plugin.queryBangumi(
         keyword,
         shouldRethrow: true,
+        cancelToken: _cancelToken,
       );
-      if (_isCancelled) return;
-      infoController.pluginSearchStatus[plugin.name] = 'success';
+      if (_isCancelled || session.isStale) return;
+      infoController.pluginSearchStatus[plugin.name] =
+          PluginSearchStatus.success;
       if (result.data.isNotEmpty) {
         pluginsController.validityTracker.markSearchValid(plugin.name);
       }
       infoController.pluginSearchResponseList.add(result);
     } catch (error) {
-      if (_isCancelled) return;
+      if (_isCancelled || session.isStale) return;
       _handleSearchError(plugin, error);
     }
   }
@@ -69,22 +84,25 @@ class PluginSearchService {
       KazumiLogger().i(
         'PluginSearchService: captcha required for ${error.pluginName}',
       );
-      infoController.pluginSearchStatus[error.pluginName] = 'captcha';
+      infoController.pluginSearchStatus[error.pluginName] =
+          PluginSearchStatus.captcha;
       return;
     }
     if (error is NoResultException) {
       KazumiLogger().i(
         'PluginSearchService: no results for ${error.pluginName}',
       );
-      infoController.pluginSearchStatus[error.pluginName] = 'noResult';
+      infoController.pluginSearchStatus[error.pluginName] =
+          PluginSearchStatus.noResult;
       return;
     }
     final name = error is SearchErrorException ? error.pluginName : plugin.name;
     KazumiLogger().w('PluginSearchService: search error for $name');
-    infoController.pluginSearchStatus[name] = 'error';
+    infoController.pluginSearchStatus[name] = PluginSearchStatus.error;
   }
 
   void cancel() {
     _isCancelled = true;
+    _cancelToken.cancel();
   }
 }

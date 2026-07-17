@@ -28,7 +28,7 @@ abstract class _InfoController with Store {
   var pluginSearchResponseList = ObservableList<PluginSearchResponse>();
 
   @observable
-  var pluginSearchStatus = ObservableMap<String, String>();
+  var pluginSearchStatus = ObservableMap<String, PluginSearchStatus>();
 
   @observable
   var commentsList = ObservableList<CommentItem>();

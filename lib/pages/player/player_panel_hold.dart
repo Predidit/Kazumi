@@ -80,12 +80,14 @@ class PlayerPanelHoldMenuAnchor extends StatefulWidget {
   const PlayerPanelHoldMenuAnchor({
     super.key,
     required this.acquirePlayerPanelHold,
+    required this.onVisibilityChanged,
     required this.builder,
     required this.menuChildren,
     this.consumeOutsideTap = false,
   });
 
   final PlayerPanelHold Function() acquirePlayerPanelHold;
+  final ValueChanged<bool> onVisibilityChanged;
   final Widget Function(
     BuildContext context,
     MenuController controller,
@@ -101,21 +103,31 @@ class PlayerPanelHoldMenuAnchor extends StatefulWidget {
 
 class _PlayerPanelHoldMenuAnchorState extends State<PlayerPanelHoldMenuAnchor> {
   PlayerPanelHold? _hold;
+  bool _isOpen = false;
 
   @override
   void dispose() {
-    _releaseHold();
+    _handleClose();
     super.dispose();
   }
 
-  void _acquireHold() {
+  void _handleOpen() {
+    if (_isOpen) {
+      return;
+    }
+    _isOpen = true;
+    widget.onVisibilityChanged(true);
     if (_hold?.isReleased == false) {
       return;
     }
     _hold = widget.acquirePlayerPanelHold();
   }
 
-  void _releaseHold() {
+  void _handleClose() {
+    if (_isOpen) {
+      _isOpen = false;
+      widget.onVisibilityChanged(false);
+    }
     _hold?.release();
     _hold = null;
   }
@@ -124,8 +136,8 @@ class _PlayerPanelHoldMenuAnchorState extends State<PlayerPanelHoldMenuAnchor> {
   Widget build(BuildContext context) {
     return MenuAnchor(
       consumeOutsideTap: widget.consumeOutsideTap,
-      onOpen: _acquireHold,
-      onClose: _releaseHold,
+      onOpen: _handleOpen,
+      onClose: _handleClose,
       builder: widget.builder,
       menuChildren: widget.menuChildren,
     );

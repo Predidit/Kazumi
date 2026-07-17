@@ -212,7 +212,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                strokeWidth: 2.2,
+                                strokeWidth: 2,
                                 color: colorScheme.onPrimary,
                               ),
                             )
@@ -509,7 +509,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
             icon: const SizedBox(
               width: 28,
               height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.4),
+              child: CircularProgressIndicator(strokeWidth: 2.5),
             ),
             title: '正在识别图片',
             description: '请稍候，正在从截图中匹配番剧信息',
@@ -596,7 +596,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [

@@ -10,6 +10,7 @@ import 'package:kazumi/utils/m3u8_ad_filter.dart';
 import 'package:kazumi/utils/format.dart' as fmt;
 import 'package:kazumi/utils/file_system.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/platform/secure_bookmark_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:path/path.dart' as path;
 
@@ -218,7 +219,14 @@ class DownloadManager implements IDownloadManager {
     if (supportsCustomDownloadDirectory) {
       final customDir =
           GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
-      if (customDir.isNotEmpty) return customDir;
+      if (customDir.isNotEmpty) {
+        // On macOS this re-establishes sandbox access after a restart;
+        // elsewhere it returns the path unchanged.
+        final usable = await SecureBookmarkService.restore(customDir);
+        if (usable != null) return usable;
+        KazumiLogger().w(
+            'DownloadManager: custom download directory unavailable, falling back to default');
+      }
     }
     return getDefaultDownloadDirectory();
   }

@@ -45,6 +45,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.keyboardFocus,
     required this.sendDanmaku,
     required this.acquirePlayerPanelHold,
+    required this.onMenuVisibilityChanged,
     required this.handleDanmaku,
     required this.skipOP,
     required this.showVideoInfo,
@@ -71,6 +72,7 @@ class PlayerItemPanel extends StatefulWidget {
   final AnimationController panelVisibilityController;
   final FocusNode keyboardFocus;
   final PlayerPanelHold Function() acquirePlayerPanelHold;
+  final ValueChanged<bool> onMenuVisibilityChanged;
   final void Function() handleDanmaku;
   final void Function(String direction) handlePreNextEpisode;
   final void Function() skipOP;
@@ -724,7 +726,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 _buildDanmakuToggleButton(context),
                                 IconButton(
                                   onPressed: () {
-                                    widget.keyboardFocus.requestFocus();
                                     showDanmakuSettingsSheet(
                                       context: context,
                                       danmakuController: playerController
@@ -782,6 +783,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   ],
                   PlayerPanelHoldMenuAnchor(
                     acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+                    onVisibilityChanged: widget.onMenuVisibilityChanged,
                     consumeOutsideTap: true,
                     builder: (BuildContext context, MenuController controller,
                         Widget? child) {
@@ -826,6 +828,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   ),
                   PlayerPanelHoldMenuAnchor(
                     acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+                    onVisibilityChanged: widget.onMenuVisibilityChanged,
                     consumeOutsideTap: true,
                     builder: (BuildContext context, MenuController controller,
                         Widget? child) {
@@ -874,6 +877,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   ),
                   PlayerPanelHoldMenuAnchor(
                     acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+                    onVisibilityChanged: widget.onMenuVisibilityChanged,
                     consumeOutsideTap: true,
                     builder: (BuildContext context, MenuController controller,
                         Widget? child) {
@@ -1040,6 +1044,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               ),
               PlayerPanelHoldMenuAnchor(
                 acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+                onVisibilityChanged: widget.onMenuVisibilityChanged,
                 consumeOutsideTap: true,
                 builder: (BuildContext context, MenuController controller,
                     Widget? child) {

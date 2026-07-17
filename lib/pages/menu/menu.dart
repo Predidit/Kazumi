@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter/services.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/router.dart';
 
@@ -12,8 +14,10 @@ class ScaffoldMenu extends StatefulWidget {
 
 class _ScaffoldMenu extends State<ScaffoldMenu> {
   final _outletKey = GlobalKey<RouterOutletState>();
+  DateTime? _lastExitPromptAt;
 
   void _selectDestination(int index) {
+    _lastExitPromptAt = null;
     final currentIndex =
         menu.indexForPath(context.routeState(listen: false).uri.path);
     if (index == currentIndex) {
@@ -22,20 +26,58 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
     _outletKey.currentState?.navigate('/tab${menu.getPath(index)}/');
   }
 
+  void _handleSystemBack(BuildContext context) {
+    if (_outletKey.currentState?.maybePop() ?? false) {
+      _lastExitPromptAt = null;
+      return;
+    }
+
+    final currentIndex =
+        menu.indexForPath(context.routeState(listen: false).uri.path);
+    if (currentIndex != 0) {
+      _selectDestination(0);
+      return;
+    }
+
+    final now = DateTime.now();
+    final lastPromptAt = _lastExitPromptAt;
+    if (lastPromptAt == null ||
+        now.difference(lastPromptAt) > const Duration(seconds: 2)) {
+      _lastExitPromptAt = now;
+      KazumiDialog.showToast(message: '再按一次退出应用', context: context);
+      return;
+    }
+
+    _lastExitPromptAt = null;
+    SystemNavigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedIndex = menu.indexForPath(context.routeState().uri.path);
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        return orientation == Orientation.portrait
-            ? _bottomMenu(context, selectedIndex)
-            : _sideMenu(context, selectedIndex);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _handleSystemBack(context);
+        }
       },
+      child: OrientationBuilder(
+        builder: (context, orientation) {
+          return orientation == Orientation.portrait
+              ? _bottomMenu(context, selectedIndex)
+              : _sideMenu(context, selectedIndex);
+        },
+      ),
     );
   }
 
   Widget _outlet(BuildContext context, {BorderRadius? borderRadius}) {
-    Widget child = RouterOutlet(key: _outletKey);
+    Widget child = NotificationListener<NavigationNotification>(
+      // A non-poppable outlet must not override the shell's PopScope state.
+      onNotification: (notification) => !notification.canHandlePop,
+      child: RouterOutlet(key: _outletKey),
+    );
     if (borderRadius != null) {
       child = ClipRRect(borderRadius: borderRadius, child: child);
     }

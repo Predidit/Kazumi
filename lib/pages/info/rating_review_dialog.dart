@@ -654,7 +654,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     filled: true,
                     fillColor: colorScheme.surfaceContainerLow,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide.none,
                     ),
                   ),

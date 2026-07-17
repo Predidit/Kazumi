@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:kazumi/pages/player/player_item_panel.dart';
+import 'package:kazumi/pages/player/player_keyboard_shortcuts.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/player_pointer_interaction.dart';
@@ -82,9 +83,9 @@ class _PlayerItemState extends State<PlayerItem>
   final HistoryController historyController = inject<HistoryController>();
   final MyController myController = inject<MyController>();
   AudioController get _audioController => playerController.audioController;
-  late Map<String, List<String>> keyboardShortcuts;
-  late List<String> keyboardActionsNeedLongPress;
-  late Map<String, void Function()> keyboardActions;
+  late final Map<String, PlayerShortcutAction> keyboardActions;
+  late final Map<String, PlayerLongPressShortcutActions>
+      keyboardLongPressActions;
 
   late bool webDavEnable;
   late bool webDavEnableHistory;
@@ -121,6 +122,7 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? mouseScrollerTimer;
   Timer? _adjustmentHudHideTimer;
   final Set<PlayerPanelHold> _playerPanelHolds = <PlayerPanelHold>{};
+  int _openPlayerMenuCount = 0;
   PlayerPanelHold? _progressBarDragHold;
   PointerDeviceKind? _lastTapPointerKind;
   PointerDeviceKind? _lastDoubleTapPointerKind;
@@ -227,79 +229,41 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  void _loadShortcuts() {
-    keyboardShortcuts = {};
-    defaultShortcuts.forEach((key, defaultValue) {
-      keyboardShortcuts[key] = GStorage.getStringListSettingByName(
-        'shortcut_$key',
-        defaultValue: defaultValue,
-      );
-    });
-  }
-
   void _initKeyboardActions() {
-    keyboardActionsNeedLongPress = ["forward"];
     keyboardActions = {
       'playorpause': () => playerController.playOrPause(),
-      'forward': () async => handleShortcutForwardDown(),
-      'rewind': () async => handleShortcutRewind(),
-      'next': () async => handlePreNextEpisode('next'),
-      'prev': () async => handlePreNextEpisode('prev'),
-      'volumeup': () async => handleShortcutVolumeChange('up'),
-      'volumedown': () async => handleShortcutVolumeChange('down'),
-      'togglemute': () async => handleShortcutVolumeChange('mute'),
+      'forward': handleShortcutForwardDown,
+      'rewind': handleShortcutRewind,
+      'next': () => handlePreNextEpisode('next'),
+      'prev': () => handlePreNextEpisode('prev'),
+      'volumeup': () => handleShortcutVolumeChange('up'),
+      'volumedown': () => handleShortcutVolumeChange('down'),
+      'togglemute': () => handleShortcutVolumeChange('mute'),
       'fullscreen': () => handleShortcutFullscreen(),
-      'screenshot': () async => handleScreenshot(),
-      'skip': () async => skipOP(),
+      'screenshot': handleScreenshot,
+      'skip': skipOP,
       'exitfullscreen': () => handleShortcutExitFullscreen(),
       'toggledanmaku': () => handleDanmaku(),
-      'speed1': () async => setPlaybackSpeed(1.0),
-      'speed2': () async => setPlaybackSpeed(2.0),
-      'speed3': () async => setPlaybackSpeed(3.0),
-      'speedup': () async => handleSpeedChange('up'),
-      'speeddown': () async => handleSpeedChange('down'),
-      // Long-press support for action 'func' requires paired entries named
-      // 'funcRepeat' and 'funcUp'.
-      'forwardRepeat': () async => handleShortcutForwardRepeat(),
-      'forwardUp': () async => handleShortcutForwardUp(),
+      'speed1': () => setPlaybackSpeed(1.0),
+      'speed2': () => setPlaybackSpeed(2.0),
+      'speed3': () => setPlaybackSpeed(3.0),
+      'speedup': () => handleSpeedChange('up'),
+      'speeddown': () => handleSpeedChange('down'),
+    };
+    keyboardLongPressActions = {
+      'forward': PlayerLongPressShortcutActions(
+        onRepeat: handleShortcutForwardRepeat,
+        onRelease: handleShortcutForwardUp,
+      ),
     };
   }
 
   void _initPlayerMenu() {
-    PlayerMenuService.initialize(keyboardActions);
+    unawaited(PlayerMenuService.initialize(keyboardActions));
   }
 
   void _disposePlayerMenu() {
-    PlayerMenuService.dispose();
-  }
-
-  bool handleShortcutDown(String keyLabel) {
-    for (final entry in keyboardShortcuts.entries) {
-      final func = entry.key;
-      final keys = entry.value;
-      if (keys.contains(keyLabel)) {
-        final action = keyboardActions[func];
-        if (action != null) {
-          action();
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  bool handleShortcutLongPress(String keyLabel, String mode) {
-    for (final func in keyboardActionsNeedLongPress) {
-      final keys = keyboardShortcuts[func];
-      if (keys?.contains(keyLabel) == true) {
-        final action = keyboardActions[func + mode];
-        if (action != null) {
-          action();
-          return true;
-        }
-      }
-    }
-    return false;
+    unawaited(PlayerMenuService.dispose());
   }
 
   Future<void> handlePreNextEpisode(String direction) async {
@@ -350,7 +314,7 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  Future<void> handleShortcutForwardDown() async {
+  void handleShortcutForwardDown() {
     lastPlayerSpeed = playerController.playback.playerSpeed;
   }
 
@@ -360,14 +324,14 @@ class _PlayerItemState extends State<PlayerItem>
     if (playerController.playback.playerSpeed <
         defaultShortcutForwardPlaySpeed) {
       playerController.panel.showPlaySpeed = true;
-      setPlaybackSpeed(defaultShortcutForwardPlaySpeed);
+      await setPlaybackSpeed(defaultShortcutForwardPlaySpeed);
     }
   }
 
   Future<void> handleShortcutForwardUp() async {
     if (playerController.panel.showPlaySpeed) {
       playerController.panel.showPlaySpeed = false;
-      setPlaybackSpeed(lastPlayerSpeed);
+      await setPlaybackSpeed(lastPlayerSpeed);
     } else {
       try {
         await _seekWithPlayerTimer(
@@ -851,8 +815,16 @@ class _PlayerItemState extends State<PlayerItem>
     return hold;
   }
 
-  // Fullscreen/system overlay changes can dispose menus without delivering
-  // MenuAnchor.onClose, so the parent owns the emergency release path.
+  void _handlePlayerMenuVisibilityChanged(bool isOpen) {
+    if (isOpen) {
+      _openPlayerMenuCount++;
+    } else if (_openPlayerMenuCount > 0) {
+      _openPlayerMenuCount--;
+    }
+  }
+
+  // Fullscreen and system overlay changes can tear down panel interactions, so
+  // the parent owns an emergency release path for every outstanding hold.
   void _releasePlayerPanelHolds() {
     for (final hold in _playerPanelHolds.toList()) {
       hold.releaseSilently();
@@ -1188,7 +1160,6 @@ class _PlayerItemState extends State<PlayerItem>
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
-                widget.keyboardFocus.requestFocus();
               },
               child: Text(
                 '取消',
@@ -1720,7 +1691,6 @@ class _PlayerItemState extends State<PlayerItem>
   void initState() {
     super.initState();
     playerController = widget.playerController;
-    _loadShortcuts();
     _initKeyboardActions();
     _initPlayerMenu();
     _fullscreenListener = mobx.reaction<bool>(
@@ -1886,33 +1856,17 @@ class _PlayerItemState extends State<PlayerItem>
                       : (MediaQuery.of(context).size.width * 9.0 / (16.0)),
                   width: MediaQuery.of(context).size.width,
                   child: Stack(alignment: Alignment.center, children: [
+                    PlayerKeyboardShortcuts(
+                      focusScopeNode: widget.keyboardFocus,
+                      actions: keyboardActions,
+                      longPressActions: keyboardLongPressActions,
+                      isBlocked: () => _openPlayerMenuCount > 0,
+                    ),
                     Center(
-                        child: Focus(
-                            // workaround for #461
-                            // I don't know why, but the focus node will break popscope.
-                            focusNode: widget.keyboardFocus,
-                            autofocus: true,
-                            onKeyEvent: (focusNode, KeyEvent event) {
-                              bool handled = false;
-                              final keyLabel =
-                                  event.logicalKey.keyLabel.isNotEmpty
-                                      ? event.logicalKey.keyLabel
-                                      : event.logicalKey.debugName ?? '';
-                              if (event is KeyDownEvent) {
-                                handled = handleShortcutDown(keyLabel);
-                              } else if (event is KeyRepeatEvent) {
-                                handled =
-                                    handleShortcutLongPress(keyLabel, "Repeat");
-                              } else if (event is KeyUpEvent) {
-                                handled =
-                                    handleShortcutLongPress(keyLabel, "Up");
-                              }
-                              return handled
-                                  ? KeyEventResult.handled
-                                  : KeyEventResult.ignored;
-                            },
-                            child: PlayerItemSurface(
-                                playerController: playerController))),
+                      child: PlayerItemSurface(
+                        playerController: playerController,
+                      ),
+                    ),
                     (playerController.playback.isBuffering ||
                             videoPageController.loading)
                         ? const Positioned.fill(
@@ -2033,6 +1987,8 @@ class _PlayerItemState extends State<PlayerItem>
                             keyboardFocus: widget.keyboardFocus,
                             sendDanmaku: widget.sendDanmaku,
                             acquirePlayerPanelHold: acquirePlayerPanelHold,
+                            onMenuVisibilityChanged:
+                                _handlePlayerMenuVisibilityChanged,
                             handleDanmaku: handleDanmaku,
                             showVideoInfo: showVideoInfo,
                             showSyncPlayRoomCreateDialog:
@@ -2060,8 +2016,9 @@ class _PlayerItemState extends State<PlayerItem>
                                 handleSuperResolutionChange,
                             panelVisibilityController:
                                 _panelVisibilityController,
-                            keyboardFocus: widget.keyboardFocus,
                             acquirePlayerPanelHold: acquirePlayerPanelHold,
+                            onMenuVisibilityChanged:
+                                _handlePlayerMenuVisibilityChanged,
                             handleDanmaku: handleDanmaku,
                             showVideoInfo: showVideoInfo,
                             showSyncPlayRoomCreateDialog:

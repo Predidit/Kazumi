@@ -6,6 +6,7 @@ import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_config.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 class ProxyEditorPage extends StatefulWidget {
   const ProxyEditorPage({super.key});
@@ -89,12 +90,16 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: const SysAppBar(title: Text('代理配置')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: SizedBox(
-            width: (MediaQuery.of(context).size.width > 800) ? 800 : null,
+        child: KazumiPageBody(
+          maxWidth: 800,
+          padding: EdgeInsets.zero,
+          child: KazumiGlassSurface(
+            enableBlur: false,
+            padding: const EdgeInsets.all(20),
             child: Form(
               key: _formKey,
               child: Column(
@@ -133,7 +138,7 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: saveAndTest,
-        icon: const Icon(Icons.save),
+        icon: const Icon(Icons.save_rounded),
         label: const Text('保存并测试'),
       ),
     );

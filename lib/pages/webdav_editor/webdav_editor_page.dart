@@ -4,6 +4,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:kazumi/services/sync/webdav_endpoint_policy.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 class WebDavEditorPage extends StatefulWidget {
   const WebDavEditorPage({
@@ -43,14 +44,18 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: const SysAppBar(
         title: Text('WEBDAV编辑'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: SizedBox(
-            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
+        child: KazumiPageBody(
+          maxWidth: 800,
+          padding: EdgeInsets.zero,
+          child: KazumiGlassSurface(
+            enableBlur: false,
+            padding: const EdgeInsets.all(20),
             child: Column(
               children: [
                 TextField(
@@ -94,7 +99,7 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.save),
+        child: const Icon(Icons.save_rounded),
         onPressed: () async {
           late final String webDavUrl;
           try {

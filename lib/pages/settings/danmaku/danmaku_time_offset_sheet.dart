@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 const double _minDanmakuTimeOffset = -180;
@@ -81,6 +82,7 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
     return SafeArea(
       top: false,
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         body: Column(
           children: [
             MaterialBottomSheetHeader(
@@ -99,9 +101,9 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 24, vertical: 20),
-                      decoration: BoxDecoration(
+                      decoration: ShapeDecoration(
                         color: colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(28),
+                        shape: kazumiSmoothShape(context.design.radiusDialog),
                       ),
                       child: Column(
                         children: [

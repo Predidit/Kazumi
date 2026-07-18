@@ -5,7 +5,7 @@ import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings_sheet.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_time_offset_sheet.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 import 'package:kazumi/utils/device.dart';
 
 enum _DanmakuSettingsDestination {
@@ -21,6 +21,7 @@ Future<void> showDanmakuSettingsSheet({
   final destination =
       await showAdaptiveBottomSheet<_DanmakuSettingsDestination>(
     context: context,
+    enableBlur: false,
     builder: (context) {
       return _DanmakuSettingsSheet(
         danmakuController: danmakuController,
@@ -36,6 +37,7 @@ Future<void> showDanmakuSettingsSheet({
 
   await showAdaptiveBottomSheet<void>(
     context: context,
+    enableBlur: false,
     builder: (context) {
       return DanmakuTimeOffsetSheet(
         onTimelineOffsetChanged: onTimelineOffsetChanged,
@@ -61,6 +63,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
   void _showDanmakuShieldSheet() {
     showAdaptiveBottomSheet<void>(
       context: context,
+      enableBlur: false,
       builder: (context) => const DanmakuShieldSettingsSheet(),
     );
   }
@@ -71,6 +74,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
     return SafeArea(
       bottom: false,
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         body: Column(
           children: [
             MaterialBottomSheetHeader(

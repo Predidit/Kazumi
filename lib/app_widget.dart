@@ -19,6 +19,7 @@ import 'package:kazumi/services/platform/application_lifecycle_service.dart';
 import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 import 'package:kazumi/design_system/kazumi_surfaces.dart';
 import 'package:kazumi/design_system/kazumi_theme.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -384,6 +385,32 @@ class _AppWidgetState extends State<AppWidget>
             WidgetsBinding.instance.platformDispatcher.accessibilityFeatures;
         final reduceMotion = accessibility.disableAnimations ||
             accessibility.accessibleNavigation;
+        final highContrastTheme = _buildAppTheme(
+          brightness: Brightness.light,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: lightTheme.colorScheme.primary,
+            brightness: Brightness.light,
+            contrastLevel: 1,
+          ),
+          fontFamily: themeProvider.currentFontFamily,
+        );
+        final highContrastDarkTheme = _buildAppTheme(
+          brightness: Brightness.dark,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: effectiveDarkTheme.colorScheme.primary,
+            brightness: Brightness.dark,
+            contrastLevel: 1,
+          ),
+          fontFamily: themeProvider.currentFontFamily,
+        );
+        final resolvedLightTheme = applyKazumiMotionPreference(
+          lightTheme,
+          reduceMotion: reduceMotion,
+        );
+        final resolvedDarkTheme = applyKazumiMotionPreference(
+          effectiveDarkTheme,
+          reduceMotion: reduceMotion,
+        );
 
         return MaterialApp.router(
           title: "Kazumi",
@@ -394,34 +421,40 @@ class _AppWidgetState extends State<AppWidget>
           ],
           locale: const Locale.fromSubtags(
               languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
-          theme: lightTheme,
-          darkTheme: effectiveDarkTheme,
-          highContrastTheme: _buildAppTheme(
-            brightness: Brightness.light,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: lightTheme.colorScheme.primary,
-              brightness: Brightness.light,
-              contrastLevel: 1,
-            ),
-            fontFamily: themeProvider.currentFontFamily,
+          theme: resolvedLightTheme,
+          darkTheme: resolvedDarkTheme,
+          highContrastTheme: applyKazumiMotionPreference(
+            highContrastTheme,
+            reduceMotion: reduceMotion,
           ),
-          highContrastDarkTheme: _buildAppTheme(
-            brightness: Brightness.dark,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: effectiveDarkTheme.colorScheme.primary,
-              brightness: Brightness.dark,
-              contrastLevel: 1,
-            ),
-            fontFamily: themeProvider.currentFontFamily,
+          highContrastDarkTheme: applyKazumiMotionPreference(
+            highContrastDarkTheme,
+            reduceMotion: reduceMotion,
           ),
           themeMode: themeProvider.themeMode,
           themeAnimationDuration: reduceMotion
               ? Duration.zero
               : KazumiDesignTokens.motionEmphasized,
           themeAnimationCurve: KazumiDesignTokens.standardCurve,
-          builder: (context, child) => KazumiAppBackdrop(
-            child: child ?? const SizedBox.shrink(),
-          ),
+          builder: (context, child) {
+            Widget content = HeroMode(
+              enabled: !reduceMotion,
+              child: child ?? const SizedBox.shrink(),
+            );
+            content = KazumiAppBackdrop(child: content);
+            if (reduceMotion) {
+              content = SkeletonizerConfig(
+                data: SkeletonizerConfigData(
+                  effect: SolidColorEffect(
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                  ),
+                ),
+                child: content,
+              );
+            }
+            return content;
+          },
           scaffoldMessengerKey: rootScaffoldMessengerKey,
           routerConfig: ModularApp.routerConfigOf(context),
         );

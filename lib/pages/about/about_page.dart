@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';

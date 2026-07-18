@@ -23,6 +23,8 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -1244,18 +1246,10 @@ class _PlayerItemState extends State<PlayerItem>
           for (final item in items)
             ListTile(
               contentPadding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  item.icon,
-                  color: colorScheme.onSecondaryContainer,
-                  size: 22,
-                ),
+              leading: KazumiIconBadge(
+                icon: item.icon,
+                size: 40,
+                iconSize: 22,
               ),
               title: Text(
                 item.label,
@@ -1434,9 +1428,11 @@ class _PlayerItemState extends State<PlayerItem>
                       return Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
+                        decoration: ShapeDecoration(
                           color: colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(16),
+                          shape: kazumiSmoothShape(
+                            context.design.radiusCompact,
+                          ),
                         ),
                         child: SelectableText(
                           logs[index],
@@ -1458,15 +1454,12 @@ class _PlayerItemState extends State<PlayerItem>
     showAdaptiveBottomSheet<void>(
       context: context,
       maxHeightFactor: 0.86,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      enableBlur: false,
       builder: (context) {
-        final theme = Theme.of(context);
-        final colorScheme = theme.colorScheme;
-
         return DefaultTabController(
           length: 2,
           child: Scaffold(
-            backgroundColor: colorScheme.surface,
+            backgroundColor: Colors.transparent,
             body: Column(
               children: [
                 MaterialBottomSheetHeader(

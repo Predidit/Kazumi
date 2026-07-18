@@ -177,8 +177,8 @@ class _CollectPageState extends State<CollectPage>
                 });
               },
               icon: showDelete
-                  ? const Icon(Icons.edit_outlined)
-                  : const Icon(Icons.edit))
+                  ? const Icon(Icons.edit_off_rounded)
+                  : const Icon(Icons.edit_rounded))
         ],
       ),
       floatingActionButton: FloatingActionButton(

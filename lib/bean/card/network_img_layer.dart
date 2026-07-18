@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/image_extension.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 class NetworkImgLayer extends StatelessWidget {
   const NetworkImgLayer({
@@ -104,10 +105,12 @@ class NetworkImgLayer extends StatelessWidget {
               memCacheWidth: memCacheWidth,
               memCacheHeight: memCacheHeight,
               fit: BoxFit.cover,
-              fadeOutDuration:
-                  fadeOutDuration ?? const Duration(milliseconds: 120),
-              fadeInDuration:
-                  fadeInDuration ?? const Duration(milliseconds: 120),
+              fadeOutDuration: context.reduceMotion
+                  ? Duration.zero
+                  : fadeOutDuration ?? const Duration(milliseconds: 120),
+              fadeInDuration: context.reduceMotion
+                  ? Duration.zero
+                  : fadeInDuration ?? const Duration(milliseconds: 120),
               filterQuality: filterQuality,
               color: color,
               colorBlendMode: colorBlendMode,

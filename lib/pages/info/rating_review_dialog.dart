@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
@@ -70,11 +72,13 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   late int score;
   final TextEditingController commentController = TextEditingController();
   final tagInputController = TextEditingController();
+  final FocusNode _scoreFocusNode = FocusNode(debugLabel: 'review-score');
   late List<String> selectedTags;
 
   bool _isTagPanelOpen = false;
   bool _isTagPanelClosing = false;
   bool _isSubmitting = false;
+  bool _isScoreFocused = false;
   String? _tagErrorText;
 
   @override
@@ -91,6 +95,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   void dispose() {
     commentController.dispose();
     tagInputController.dispose();
+    _scoreFocusNode.dispose();
     super.dispose();
   }
 
@@ -101,6 +106,14 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   }
 
   String get scoreLabel => scoreLabels[score.clamp(0, 10)];
+
+  void _setScore(int value) {
+    if (_isSubmitting) return;
+    final nextScore = value.clamp(0, 10);
+    if (nextScore != score) {
+      setState(() => score = nextScore);
+    }
+  }
 
   void _setTagError(String? message) {
     if (_tagErrorText == message) return;
@@ -209,9 +222,12 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     final maxHeight =
         mediaQuery.size.height - mediaQuery.viewInsets.bottom - 80;
     final width = mediaQuery.size.width;
-    final isWide = width >= 720;
-    final dialogWidth = isWide ? 860.0 : (width - 32).clamp(280.0, 560.0);
-    final dialogHeight = maxHeight > 360 ? maxHeight : 360.0;
+    final availableWidth = (width - 48).clamp(280.0, double.infinity);
+    final isWide = availableWidth >= 840;
+    final dialogWidth = isWide ? 840.0 : availableWidth.clamp(280.0, 560.0);
+    final dialogHeight = maxHeight > 240 ? maxHeight : 240.0;
+    final tokens = context.design;
+    final radius = BorderRadius.circular(tokens.radiusDialog);
 
     return PopScope(
       canPop: !_isSubmitting && !_isTagPanelOpen,
@@ -221,17 +237,21 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         }
       },
       child: Dialog(
-        clipBehavior: Clip.antiAlias,
-        backgroundColor: theme.colorScheme.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: dialogWidth,
-            maxHeight: dialogHeight,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        backgroundColor: Colors.transparent,
+        child: KazumiGlassSurface(
+          borderRadius: radius,
+          blurSigma: tokens.blurOverlay,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: dialogWidth,
+              maxHeight: dialogHeight,
+            ),
+            child: isWide
+                ? _buildWideDialog(theme)
+                : _buildCompactDialog(theme, maxHeight: dialogHeight),
           ),
-          child: isWide
-              ? _buildWideDialog(theme)
-              : _buildCompactDialog(theme, maxHeight: dialogHeight),
         ),
       ),
     );
@@ -455,29 +475,92 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           ),
           const SizedBox(height: 8),
           Center(
-            child: RatingBar(
-              initialRating: score / 2,
-              minRating: 0,
-              maxRating: 5,
-              allowHalfRating: true,
-              itemCount: 5,
-              itemSize: 36,
-              glow: false,
-              ignoreGestures: _isSubmitting,
-              ratingWidget: RatingWidget(
-                full: Icon(Icons.star_rounded, color: colorScheme.primary),
-                half: Icon(Icons.star_half_rounded, color: colorScheme.primary),
-                empty: Icon(
-                  Icons.star_outline_rounded,
-                  color: colorScheme.outline,
+            child: CallbackShortcuts(
+              bindings: {
+                const SingleActivator(LogicalKeyboardKey.arrowRight): () =>
+                    _setScore(score + 1),
+                const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                    _setScore(score + 1),
+                const SingleActivator(LogicalKeyboardKey.arrowLeft): () =>
+                    _setScore(score - 1),
+                const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                    _setScore(score - 1),
+                const SingleActivator(LogicalKeyboardKey.home): () =>
+                    _setScore(0),
+                const SingleActivator(LogicalKeyboardKey.end): () =>
+                    _setScore(10),
+              },
+              child: Focus(
+                focusNode: _scoreFocusNode,
+                onFocusChange: (focused) {
+                  if (_isScoreFocused != focused) {
+                    setState(() => _isScoreFocused = focused);
+                  }
+                },
+                child: Semantics(
+                  label: '我的评分',
+                  value: hasScore ? '$score / 10' : '未评分',
+                  increasedValue: score < 10 ? '${score + 1} / 10' : null,
+                  decreasedValue: score > 0 ? '${score - 1} / 10' : null,
+                  focusable: true,
+                  focused: _isScoreFocused,
+                  onIncrease: _isSubmitting || score >= 10
+                      ? null
+                      : () => _setScore(score + 1),
+                  onDecrease: _isSubmitting || score <= 0
+                      ? null
+                      : () => _setScore(score - 1),
+                  child: Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: (_) => _scoreFocusNode.requestFocus(),
+                    child: AnimatedContainer(
+                      duration: context.motion(KazumiDesignTokens.motionFast),
+                      padding: const EdgeInsets.all(5),
+                      decoration: ShapeDecoration(
+                        color: _isScoreFocused
+                            ? context.design.hoverOverlay
+                            : Colors.transparent,
+                        shape: kazumiSmoothShape(
+                          context.design.radiusControl,
+                          side: BorderSide(
+                            color: _isScoreFocused
+                                ? context.design.focusRing
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      child: RatingBar(
+                        initialRating: score / 2,
+                        minRating: 0,
+                        maxRating: 5,
+                        allowHalfRating: true,
+                        itemCount: 5,
+                        itemSize: 36,
+                        glow: false,
+                        ignoreGestures: _isSubmitting,
+                        ratingWidget: RatingWidget(
+                          full: Icon(
+                            Icons.star_rounded,
+                            color: colorScheme.primary,
+                          ),
+                          half: Icon(
+                            Icons.star_half_rounded,
+                            color: colorScheme.primary,
+                          ),
+                          empty: Icon(
+                            Icons.star_outline_rounded,
+                            color: colorScheme.outline,
+                          ),
+                        ),
+                        onRatingUpdate: (value) {
+                          _setScore((value * 2).round());
+                        },
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              onRatingUpdate: (value) {
-                final newScore = (value * 2).round().clamp(0, 10);
-                if (newScore != score) {
-                  setState(() => score = newScore);
-                }
-              },
             ),
           ),
         ],
@@ -507,7 +590,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               const SizedBox(width: 8),
               FilledButton.tonalIcon(
                 onPressed: _isSubmitting ? null : _openTagSelection,
-                icon: const Icon(Icons.edit_outlined),
+                icon: const Icon(Icons.edit_rounded),
                 label: const Text('编辑'),
               ),
             ],
@@ -543,9 +626,9 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     return Padding(
       padding: EdgeInsets.zero,
       child: DecoratedBox(
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: theme.colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(24),
+          shape: kazumiSmoothShape(context.design.radiusSurface),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -563,7 +646,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
 
     return Material(
       color: colorScheme.surfaceContainerHighest,
-      borderRadius: borderRadius,
+      shape: RoundedSuperellipseBorder(borderRadius: borderRadius),
+      clipBehavior: Clip.antiAlias,
       child: SafeArea(
         top: false,
         left: false,
@@ -583,10 +667,10 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     child: Container(
                       width: 36,
                       height: 4,
-                      decoration: BoxDecoration(
+                      decoration: ShapeDecoration(
                         color:
                             colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(99),
+                        shape: const StadiumBorder(),
                       ),
                     ),
                   ),
@@ -696,7 +780,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 return FilterChip(
                   label: Text('${tag.name} (${tag.count})'),
                   selected: selected,
-                  showCheckmark: false,
+                  showCheckmark: true,
                   onSelected:
                       _isSubmitting ? null : (_) => _toggleTag(tag.name),
                 );

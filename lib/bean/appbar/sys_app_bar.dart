@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/device.dart';
@@ -58,65 +60,100 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       }
       acs.add(const SizedBox(width: 8));
     }
-    return GestureDetector(
-      onPanStart: (_) => (isDesktop()) ? windowManager.startDragging() : null,
-      child: AppBar(
-        toolbarHeight: preferredSize.height,
-        scrolledUnderElevation: 0.0,
-        title: title != null
-            ? EmbeddedNativeControlArea(
-                requireOffset: needTopOffset,
-                child: title!,
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tokens = context.design;
+    final highContrast = MediaQuery.maybeOf(context)?.highContrast ?? false;
+    final useGlass = backgroundColor == null && !highContrast;
+    Widget appBar = AppBar(
+      toolbarHeight: preferredSize.height,
+      scrolledUnderElevation: 0.0,
+      title: title != null
+          ? EmbeddedNativeControlArea(
+              requireOffset: needTopOffset,
+              child: title!,
+            )
+          : null,
+      centerTitle: Platform.isIOS ? true : false,
+      actions: acs.map((e) {
+        return EmbeddedNativeControlArea(
+          requireOffset: needTopOffset,
+          child: e,
+        );
+      }).toList(),
+      leading: leading != null
+          ? EmbeddedNativeControlArea(
+              requireOffset: needTopOffset,
+              child: leading!,
+            )
+          : (ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
+              ? EmbeddedNativeControlArea(
+                  requireOffset: needTopOffset,
+                  child: IconButton(
+                    onPressed: () {
+                      context.maybePop();
+                    },
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+                )
+              : null,
+      leadingWidth: leadingWidth,
+      backgroundColor: Colors.transparent,
+      elevation: elevation,
+      shape: shape,
+      bottom: bottom,
+      automaticallyImplyLeading: false,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness:
+            Theme.of(context).brightness == Brightness.light
+                ? Brightness.dark
+                : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ),
+    );
+    appBar = DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor ??
+            (useGlass ? tokens.glassTint : colors.surfaceContainerHigh),
+        gradient: useGlass
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.alphaBlend(tokens.surfaceHighlight, tokens.glassTint),
+                  tokens.glassTint,
+                  Color.alphaBlend(tokens.secondaryGlow, tokens.glassTint),
+                ],
+                stops: const [0, 0.62, 1],
               )
             : null,
-        centerTitle: Platform.isIOS ? true : false,
-        actions: acs.map((e) {
-          return EmbeddedNativeControlArea(
-            requireOffset: needTopOffset,
-            child: e,
-          );
-        }).toList(),
-        leading: leading != null
-            ? EmbeddedNativeControlArea(
-                requireOffset: needTopOffset,
-                child: leading!,
+        border: shape == null
+            ? Border(
+                bottom: BorderSide(
+                  color: highContrast ? colors.outline : tokens.glassBorder,
+                  width: highContrast ? 1.5 : 1,
+                ),
               )
-            : (ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
-                ? EmbeddedNativeControlArea(
-                    requireOffset: needTopOffset,
-                    child: IconButton(
-                      onPressed: () {
-                        context.maybePop();
-                      },
-                      icon: Icon(Icons.arrow_back),
-                    ),
-                  )
-                : null,
-        leadingWidth: leadingWidth,
-        backgroundColor: backgroundColor ??
-            Theme.of(context).colorScheme.surface.withValues(alpha: 0.88),
-        elevation: elevation,
-        shape: shape ??
-            Border(
-              bottom: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outlineVariant
-                    .withValues(alpha: 0.32),
-              ),
-            ),
-        bottom: bottom,
-        automaticallyImplyLeading: false,
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness:
-              Theme.of(context).brightness == Brightness.light
-                  ? Brightness.dark
-                  : Brightness.light,
-          systemNavigationBarColor: Colors.transparent,
-          systemNavigationBarDividerColor: Colors.transparent,
-        ),
+            : null,
       ),
+      child: appBar,
+    );
+    if (useGlass) {
+      appBar = ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: tokens.blurNavigation,
+            sigmaY: tokens.blurNavigation,
+          ),
+          child: appBar,
+        ),
+      );
+    }
+    return GestureDetector(
+      onPanStart: (_) => (isDesktop()) ? windowManager.startDragging() : null,
+      child: RepaintBoundary(child: appBar),
     );
   }
 

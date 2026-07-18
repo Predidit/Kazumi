@@ -26,6 +26,7 @@ class _DanmakuShieldSettingsSheetState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Column(
         children: [
           MaterialBottomSheetHeader(
@@ -52,7 +53,7 @@ class _DanmakuShieldSettingsSheetState
                             textEditingController.text.trim(),
                           );
                         },
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(Icons.add_rounded),
                         label: const Text('添加'),
                       ),
                     ),
@@ -74,9 +75,6 @@ class _DanmakuShieldSettingsSheetState
                       children: myController.shieldList
                           .map(
                             (item) => Chip(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(32),
-                              ),
                               backgroundColor: Theme.of(context)
                                   .colorScheme
                                   .secondaryContainer,
@@ -91,7 +89,8 @@ class _DanmakuShieldSettingsSheetState
                                 horizontal: 8,
                                 vertical: 4,
                               ),
-                              deleteIcon: const Icon(Icons.close, size: 18),
+                              deleteIcon:
+                                  const Icon(Icons.close_rounded, size: 18),
                               deleteButtonTooltipMessage: '',
                               onDeleted: () {
                                 myController.removeShieldList(item);

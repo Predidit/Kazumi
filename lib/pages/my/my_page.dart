@@ -134,17 +134,8 @@ class MyPage extends StatelessWidget {
     required String subtitle,
     required String route,
   }) {
-    final colors = Theme.of(context).colorScheme;
     return KazumiSettingsTile(
-      leading: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: colors.primaryContainer,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, size: 21, color: colors.onPrimaryContainer),
-      ),
+      leading: KazumiIconBadge(icon: icon),
       title: title,
       subtitle: subtitle,
       onTap: () => context.pushNamed(route),

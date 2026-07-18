@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/widget/scrollable_wrapper.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 const double materialBottomSheetRadius = 24;
 const EdgeInsets materialBottomSheetContentPadding =
@@ -130,6 +131,7 @@ class _MaterialBottomSheetTabBarState extends State<MaterialBottomSheetTabBar> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final tokens = context.design;
     Widget tabBar = TabBar(
       controller: widget.controller,
       isScrollable: widget.isScrollable,
@@ -138,9 +140,9 @@ class _MaterialBottomSheetTabBarState extends State<MaterialBottomSheetTabBar> {
       dividerColor: Colors.transparent,
       indicatorSize: TabBarIndicatorSize.tab,
       splashBorderRadius: BorderRadius.circular(20),
-      indicator: BoxDecoration(
+      indicator: ShapeDecoration(
         color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(20),
+        shape: kazumiSmoothShape(tokens.radiusSurface),
       ),
       labelColor: colorScheme.onSecondaryContainer,
       unselectedLabelColor: colorScheme.onSurfaceVariant,
@@ -157,9 +159,9 @@ class _MaterialBottomSheetTabBarState extends State<MaterialBottomSheetTabBar> {
       height: 48,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(materialBottomSheetRadius),
+        shape: kazumiSmoothShape(tokens.radiusSheet),
       ),
       clipBehavior: Clip.antiAlias,
       child: widget.trailing == null
@@ -197,10 +199,11 @@ class MaterialBottomSheetSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final tokens = context.design;
 
     return Material(
       color: colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(materialBottomSheetRadius),
+      shape: kazumiSmoothShape(tokens.radiusSheet),
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: padding,
@@ -264,6 +267,7 @@ class MaterialBottomSheetGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final tokens = context.design;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,7 +284,7 @@ class MaterialBottomSheetGroup extends StatelessWidget {
         ),
         Material(
           color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(materialBottomSheetRadius),
+          shape: kazumiSmoothShape(tokens.radiusSheet),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [

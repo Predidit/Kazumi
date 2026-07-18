@@ -5,6 +5,7 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 /// Display group for the shortcut list. Functions missing from every group
 /// fall back to a trailing "其他" group so new shortcuts never disappear.
@@ -219,6 +220,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: SysAppBar(
         title: const Text('操作设置'),
         actions: [
@@ -287,7 +289,6 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
       color: colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -296,19 +297,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
           children: [
             Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    group.icon,
-                    size: 18,
-                    color: colorScheme.onSecondaryContainer,
-                  ),
-                ),
+                KazumiIconBadge(icon: group.icon, size: 36, iconSize: 18),
                 const SizedBox(width: 12),
                 Text(
                   group.title,
@@ -392,7 +381,7 @@ class _KeyCap extends StatelessWidget {
       color: listening
           ? colorScheme.primaryContainer
           : colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(context.design.radiusControl),
+      shape: kazumiSmoothShape(context.design.radiusControl),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -445,8 +434,8 @@ class _AddKeyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(context.design.radiusControl),
+    final shape = kazumiSmoothShape(
+      context.design.radiusControl,
       side: BorderSide(color: colorScheme.outlineVariant),
     );
 

@@ -540,6 +540,11 @@ class _InfoHeaderBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.maybeOf(context)?.highContrast ?? false) {
+      return ColoredBox(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+      );
+    }
     if (imageUrl.isEmpty) {
       return const SizedBox.shrink();
     }

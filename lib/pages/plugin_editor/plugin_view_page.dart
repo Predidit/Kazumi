@@ -191,13 +191,14 @@ class _PluginViewPageState extends State<PluginViewPage> {
         onBackPressed(context);
       },
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: SysAppBar(
           title: isMultiSelectMode
               ? Text('已选择 ${selectedNames.length} 项')
               : const Text('规则管理'),
           leading: isMultiSelectMode
               ? IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.close_rounded),
                   onPressed: () {
                     setState(() {
                       isMultiSelectMode = false;
@@ -250,22 +251,32 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           ),
                         );
                       },
-                icon: const Icon(Icons.delete),
+                icon: const Icon(Icons.delete_rounded),
               ),
             ] else ...[
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    isMultiSelectMode = true;
+                    selectedNames.clear();
+                  });
+                },
+                tooltip: '多选规则',
+                icon: const Icon(Icons.checklist_rounded),
+              ),
               IconButton(
                 onPressed: () {
                   _handleUpdate();
                 },
                 tooltip: '更新全部',
-                icon: const Icon(Icons.update),
+                icon: const Icon(Icons.update_rounded),
               ),
               IconButton(
                 onPressed: () {
                   _handleAdd();
                 },
                 tooltip: '添加规则',
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.add_rounded),
               )
             ],
           ],
@@ -392,10 +403,26 @@ class _PluginViewPageState extends State<PluginViewPage> {
               controller.open();
             }
           },
-          icon: const Icon(Icons.more_vert),
+          icon: const Icon(Icons.more_vert_rounded),
         );
       },
       menuChildren: [
+        MenuItemButton(
+          requestFocusOnHover: false,
+          onPressed: index == 0
+              ? null
+              : () => unawaited(_handleReorder(index, index - 1)),
+          leadingIcon: const Icon(Icons.arrow_upward_rounded),
+          child: const Text('上移'),
+        ),
+        MenuItemButton(
+          requestFocusOnHover: false,
+          onPressed: index == pluginsController.pluginList.length - 1
+              ? null
+              : () => unawaited(_handleReorder(index, index + 1)),
+          leadingIcon: const Icon(Icons.arrow_downward_rounded),
+          child: const Text('下移'),
+        ),
         MenuItemButton(
           requestFocusOnHover: false,
           onPressed: () async {
@@ -451,7 +478,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               alignment: Alignment.centerLeft,
               child: Row(
                 children: [
-                  Icon(Icons.edit),
+                  Icon(Icons.edit_rounded),
                   SizedBox(width: 8),
                   Text('编辑'),
                 ],
@@ -524,7 +551,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               alignment: Alignment.centerLeft,
               child: Row(
                 children: [
-                  Icon(Icons.share),
+                  Icon(Icons.share_rounded),
                   SizedBox(width: 8),
                   Text('分享'),
                 ],
@@ -548,7 +575,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               alignment: Alignment.centerLeft,
               child: Row(
                 children: [
-                  Icon(Icons.delete),
+                  Icon(Icons.delete_rounded),
                   SizedBox(width: 8),
                   Text('删除'),
                 ],

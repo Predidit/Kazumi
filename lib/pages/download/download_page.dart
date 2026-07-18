@@ -223,7 +223,7 @@ class _DownloadPageState extends State<DownloadPage> {
     }
 
     buttons.add(IconButton(
-      icon: Icon(Icons.delete_outline,
+      icon: Icon(Icons.delete_outline_rounded,
           size: 20, color: colorScheme.onSurfaceVariant),
       onPressed: () => _confirmDeleteEpisode(record, episode),
       tooltip: '删除',

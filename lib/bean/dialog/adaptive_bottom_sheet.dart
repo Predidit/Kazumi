@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 BoxConstraints adaptiveBottomSheetConstraints(
   BuildContext context, {
@@ -35,26 +36,63 @@ Future<T?> showAdaptiveBottomSheet<T>({
   double compactLandscapeMaxHeightFactor = 0.9,
   Color? backgroundColor,
   bool showDragHandle = true,
+  bool enableBlur = true,
 }) {
   final tokens = context.design;
   return showModalBottomSheet<T>(
     context: context,
-    builder: builder,
+    builder: (sheetContext) => KazumiGlassSurface(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(tokens.radiusSheet),
+      ),
+      color: backgroundColor,
+      shadow: false,
+      enableBlur: enableBlur,
+      child: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: showDragHandle ? 48 : 0),
+            child: builder(sheetContext),
+          ),
+          if (showDragHandle)
+            PositionedDirectional(
+              top: 0,
+              start: 0,
+              end: 0,
+              child: Center(
+                child: IconButton(
+                  tooltip: MaterialLocalizations.of(
+                    sheetContext,
+                  ).modalBarrierDismissLabel,
+                  onPressed: () => Navigator.of(sheetContext).maybePop(),
+                  icon: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: ShapeDecoration(
+                      color: Theme.of(sheetContext).colorScheme.outline,
+                      shape: const StadiumBorder(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
     isScrollControlled: true,
     useSafeArea: true,
-    showDragHandle: showDragHandle,
+    showDragHandle: false,
     constraints: adaptiveBottomSheetConstraints(
       context,
       maxHeightFactor: maxHeightFactor,
       compactLandscapeMaxHeightFactor: compactLandscapeMaxHeightFactor,
     ),
-    shape: RoundedRectangleBorder(
+    shape: RoundedSuperellipseBorder(
       borderRadius: BorderRadius.vertical(
         top: Radius.circular(tokens.radiusSheet),
       ),
     ),
     clipBehavior: Clip.antiAlias,
-    backgroundColor:
-        backgroundColor ?? Theme.of(context).colorScheme.surfaceContainerHigh,
+    backgroundColor: Colors.transparent,
   );
 }

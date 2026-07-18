@@ -8,7 +8,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
@@ -144,6 +144,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         onBackPressed(context);
       },
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: const SysAppBar(title: Text('外观设置')),
         body: SettingsList(
           maxWidth: 1000,

@@ -13,6 +13,8 @@ class KazumiDesignTokens extends ThemeExtension<KazumiDesignTokens> {
     required this.pressedOverlay,
     required this.selectedOverlay,
     required this.subtleShadow,
+    required this.accentGlow,
+    required this.secondaryGlow,
     required this.glassOpacity,
     this.radiusControl = 12,
     this.radiusCompact = 16,
@@ -35,6 +37,8 @@ class KazumiDesignTokens extends ThemeExtension<KazumiDesignTokens> {
       pressedOverlay: colors.primary.withValues(alpha: dark ? 0.18 : 0.13),
       selectedOverlay: colors.primary.withValues(alpha: dark ? 0.24 : 0.16),
       subtleShadow: Colors.black.withValues(alpha: dark ? 0.3 : 0.12),
+      accentGlow: colors.primary.withValues(alpha: dark ? 0.2 : 0.14),
+      secondaryGlow: colors.tertiary.withValues(alpha: dark ? 0.16 : 0.1),
       glassOpacity: dark ? 0.72 : 0.78,
     );
   }
@@ -47,6 +51,8 @@ class KazumiDesignTokens extends ThemeExtension<KazumiDesignTokens> {
   final Color pressedOverlay;
   final Color selectedOverlay;
   final Color subtleShadow;
+  final Color accentGlow;
+  final Color secondaryGlow;
 
   final double glassOpacity;
   final double radiusControl;
@@ -85,6 +91,8 @@ class KazumiDesignTokens extends ThemeExtension<KazumiDesignTokens> {
     Color? pressedOverlay,
     Color? selectedOverlay,
     Color? subtleShadow,
+    Color? accentGlow,
+    Color? secondaryGlow,
     double? glassOpacity,
     double? radiusControl,
     double? radiusCompact,
@@ -104,6 +112,8 @@ class KazumiDesignTokens extends ThemeExtension<KazumiDesignTokens> {
       pressedOverlay: pressedOverlay ?? this.pressedOverlay,
       selectedOverlay: selectedOverlay ?? this.selectedOverlay,
       subtleShadow: subtleShadow ?? this.subtleShadow,
+      accentGlow: accentGlow ?? this.accentGlow,
+      secondaryGlow: secondaryGlow ?? this.secondaryGlow,
       glassOpacity: glassOpacity ?? this.glassOpacity,
       radiusControl: radiusControl ?? this.radiusControl,
       radiusCompact: radiusCompact ?? this.radiusCompact,
@@ -132,6 +142,8 @@ class KazumiDesignTokens extends ThemeExtension<KazumiDesignTokens> {
       pressedOverlay: Color.lerp(pressedOverlay, other.pressedOverlay, t)!,
       selectedOverlay: Color.lerp(selectedOverlay, other.selectedOverlay, t)!,
       subtleShadow: Color.lerp(subtleShadow, other.subtleShadow, t)!,
+      accentGlow: Color.lerp(accentGlow, other.accentGlow, t)!,
+      secondaryGlow: Color.lerp(secondaryGlow, other.secondaryGlow, t)!,
       glassOpacity: lerpDouble(glassOpacity, other.glassOpacity, t)!,
       radiusControl: lerpDouble(radiusControl, other.radiusControl, t)!,
       radiusCompact: lerpDouble(radiusCompact, other.radiusCompact, t)!,
@@ -143,6 +155,21 @@ class KazumiDesignTokens extends ThemeExtension<KazumiDesignTokens> {
       disabledOpacity: lerpDouble(disabledOpacity, other.disabledOpacity, t)!,
     );
   }
+}
+
+/// The continuous-corner shape used across the Windows visual system.
+///
+/// Flutter's rounded superellipse follows the same smooth-corner principle as
+/// modern Apple surfaces while retaining a native Material shape contract for
+/// focus, ink and hit testing.
+RoundedSuperellipseBorder kazumiSmoothShape(
+  double radius, {
+  BorderSide side = BorderSide.none,
+}) {
+  return RoundedSuperellipseBorder(
+    borderRadius: BorderRadius.circular(radius),
+    side: side,
+  );
 }
 
 extension KazumiDesignContext on BuildContext {

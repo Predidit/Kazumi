@@ -6,6 +6,7 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 class DownloadEpisodeSheet extends StatefulWidget {
   final int road;
@@ -105,70 +106,78 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                   final isSelected = _selectedEpisodes.contains(episodeNumber);
                   final identifier = currentRoadData.identifier[index];
 
-                  return Material(
-                    color: isDownloaded
-                        ? Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.5)
-                        : isSelected
-                            ? Theme.of(context).colorScheme.secondaryContainer
-                            : Theme.of(context).colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                    clipBehavior: Clip.hardEdge,
-                    child: InkWell(
-                      onTap: isDownloaded
-                          ? null
-                          : () {
-                              setState(() {
-                                if (isSelected) {
-                                  _selectedEpisodes.remove(episodeNumber);
-                                } else {
-                                  _selectedEpisodes.add(episodeNumber);
-                                }
-                              });
-                            },
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(
-                                identifier,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDownloaded
-                                      ? Theme.of(context).colorScheme.outline
-                                      : null,
+                  return Semantics(
+                    button: true,
+                    enabled: !isDownloaded,
+                    selected: isSelected,
+                    label: identifier,
+                    child: Material(
+                      color: isDownloaded
+                          ? Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.5)
+                          : isSelected
+                              ? Theme.of(context).colorScheme.secondaryContainer
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerLow,
+                      shape: kazumiSmoothShape(context.design.radiusCompact),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: isDownloaded
+                            ? null
+                            : () {
+                                setState(() {
+                                  if (isSelected) {
+                                    _selectedEpisodes.remove(episodeNumber);
+                                  } else {
+                                    _selectedEpisodes.add(episodeNumber);
+                                  }
+                                });
+                              },
+                        child: Stack(
+                          children: [
+                            Center(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                child: Text(
+                                  identifier,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDownloaded
+                                        ? Theme.of(context).colorScheme.outline
+                                        : null,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          if (isDownloaded)
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: Icon(
-                                Icons.check_circle,
-                                size: 14,
-                                color: Theme.of(context).colorScheme.outline,
+                            if (isDownloaded)
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: Icon(
+                                  Icons.check_circle,
+                                  size: 14,
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
                               ),
-                            ),
-                          if (isSelected)
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: Icon(
-                                Icons.check_circle,
-                                size: 14,
-                                color: Theme.of(context).colorScheme.primary,
+                            if (isSelected)
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: Icon(
+                                  Icons.check_circle,
+                                  size: 14,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );

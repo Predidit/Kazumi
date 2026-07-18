@@ -3,7 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 import 'package:kazumi/utils/device.dart';
 
 class DanmakuSettingsPage extends StatefulWidget {
@@ -164,6 +164,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         onBackPressed(context);
       },
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: const SysAppBar(title: Text('弹幕设置')),
         body: SettingsList(
           maxWidth: 1000,

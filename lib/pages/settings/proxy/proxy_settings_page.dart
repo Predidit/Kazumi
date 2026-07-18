@@ -4,7 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 
 class ProxySettingsPage extends StatefulWidget {
   const ProxySettingsPage({super.key});
@@ -56,6 +56,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
         onBackPressed(context);
       },
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: const SysAppBar(title: Text('代理设置')),
         body: SettingsList(
           maxWidth: 800,

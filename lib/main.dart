@@ -71,6 +71,9 @@ void main() async {
       await GStorage.getSetting(SettingsKeys.showWindowButton);
   if (isDesktop()) {
     await windowManager.ensureInitialized();
+    if (Platform.isWindows) {
+      await windowManager.setMinimumSize(const Size(480, 360));
+    }
     final lowResolution = await isLowResolution();
     WindowOptions windowOptions = WindowOptions(
       size: lowResolution ? const Size(840, 600) : const Size(1280, 860),

@@ -6,7 +6,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/platform/secure_bookmark_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/file_system.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 import 'package:file_picker/file_picker.dart';
 
 class DownloadSettingsPage extends StatefulWidget {
@@ -110,6 +110,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: const SysAppBar(title: Text('下载设置')),
       body: SettingsList(
         maxWidth: 1000,

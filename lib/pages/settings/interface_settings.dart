@@ -1,6 +1,4 @@
-import 'package:card_settings_ui/list/settings_list.dart';
-import 'package:card_settings_ui/section/settings_section.dart';
-import 'package:card_settings_ui/tile/settings_tile.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -45,6 +43,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: SysAppBar(
         title: Text('界面设置'),
       ),
@@ -114,7 +113,8 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
             SettingsTile.switchTile(
               onToggle: (value) async {
                 showAnimeCounter = value ?? !showAnimeCounter;
-                await GStorage.putSetting(SettingsKeys.showAnimeCounter, showAnimeCounter);
+                await GStorage.putSetting(
+                    SettingsKeys.showAnimeCounter, showAnimeCounter);
                 setState(() {});
               },
               title: Text('显示追番统计', style: TextStyle(fontFamily: fontFamily)),

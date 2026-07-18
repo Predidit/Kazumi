@@ -15,6 +15,7 @@ import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({
@@ -211,62 +212,92 @@ class _PopularPageState extends State<PopularPage> {
       stretch: true,
       expandedHeight: 120,
       elevation: 0,
+      scrolledUnderElevation: 0,
       titleSpacing: 0,
       centerTitle: false,
-      backgroundColor:
-          Theme.of(context).colorScheme.surface.withValues(alpha: 0.94),
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.transparent,
       actions: buildActions(),
       title: null,
       flexibleSpace: SafeArea(
-        child: dtb.DragToMoveArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final double maxExtent = 120 - MediaQuery.of(context).padding.top;
-              final t = (1 -
-                  ((constraints.maxHeight - kToolbarHeight) /
-                          (maxExtent - kToolbarHeight))
-                      .clamp(0.0, 1.0));
-              // 字重收缩后为 w500，展开时为 w700
-              final fontWeight = t < 0.5 ? FontWeight.w700 : FontWeight.w500;
-              final fontSize = lerpDouble(28, 20, t)!;
-              return Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                      left: 16, top: 8, bottom: 8, right: 60),
-                  child: SizedBox(
-                    height: 44,
-                    child: Observer(
-                      builder: (_) {
-                        final bool isTrend = popularController.currentTag == '';
-                        return InkWell(
-                          key: selectorKey,
-                          borderRadius: BorderRadius.circular(
-                              context.design.radiusControl),
-                          onTap: showTagMenu,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                isTrend ? '热门番组' : popularController.currentTag,
-                                style: theme.textTheme.headlineMedium!.copyWith(
-                                  fontWeight: fontWeight,
-                                  fontSize: fontSize,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(Icons.keyboard_arrow_down,
-                                  size: fontSize, color: theme.iconTheme.color),
-                            ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double maxExtent = 120 - MediaQuery.of(context).padding.top;
+            final t = (1 -
+                ((constraints.maxHeight - kToolbarHeight) /
+                        (maxExtent - kToolbarHeight))
+                    .clamp(0.0, 1.0));
+            // 字重收缩后为 w500，展开时为 w700
+            final fontWeight = t < 0.5 ? FontWeight.w700 : FontWeight.w500;
+            final fontSize = lerpDouble(28, 20, t)!;
+            return Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                child: SizedBox(
+                  height: kToolbarHeight,
+                  child: KazumiGlassSurface(
+                    borderRadius: BorderRadius.circular(
+                      context.design.radiusSurface,
+                    ),
+                    blurSigma: context.design.blurNavigation,
+                    shadow: false,
+                    child: dtb.DragToMoveArea(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 60),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: SizedBox(
+                            height: 44,
+                            child: Observer(
+                              builder: (_) {
+                                final bool isTrend =
+                                    popularController.currentTag == '';
+                                return InkWell(
+                                  key: selectorKey,
+                                  customBorder: kazumiSmoothShape(
+                                    context.design.radiusControl,
+                                  ),
+                                  onTap: showTagMenu,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          isTrend
+                                              ? '热门番组'
+                                              : popularController.currentTag,
+                                          style: theme.textTheme.headlineMedium!
+                                              .copyWith(
+                                            fontWeight: fontWeight,
+                                            fontSize: fontSize,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          size: fontSize,
+                                          color: theme.iconTheme.color,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        );
-                      },
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -278,14 +309,14 @@ class _PopularPageState extends State<PopularPage> {
         IconButton(
           tooltip: '搜索',
           onPressed: () => context.pushNamed('/search/'),
-          icon: const Icon(Icons.search),
+          icon: const Icon(Icons.search_rounded),
         ),
     ];
     actions.add(
       IconButton(
         tooltip: '历史记录',
         onPressed: () => context.pushNamed('/settings/history/'),
-        icon: const Icon(Icons.history),
+        icon: const Icon(Icons.history_rounded),
       ),
     );
     if (isDesktop()) {
@@ -294,7 +325,7 @@ class _PopularPageState extends State<PopularPage> {
           IconButton(
             tooltip: '退出',
             onPressed: () => windowManager.close(),
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close_rounded),
           ),
         );
       }
@@ -324,6 +355,7 @@ class _PopularPageState extends State<PopularPage> {
             buttonSize: size,
             animation: animation,
             maxWidth: 80,
+            selectedItem: popularController.currentTag,
             items: [
               '',
               ...defaultAnimeTags,

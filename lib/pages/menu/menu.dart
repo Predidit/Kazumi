@@ -92,6 +92,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
   }
 
   Widget _bottomMenu(BuildContext context, int selectedIndex) {
+    final tokens = context.design;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: _outlet(context),
@@ -103,31 +104,38 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
               child: const Icon(Icons.search_rounded),
             )
           : null,
-      bottomNavigationBar: NavigationBar(
-        destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.home_rounded),
-            icon: Icon(Icons.home_outlined),
-            label: '推荐',
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+        child: KazumiGlassSurface(
+          borderRadius: BorderRadius.circular(tokens.radiusSurface),
+          child: NavigationBar(
+            backgroundColor: Colors.transparent,
+            destinations: const <Widget>[
+              NavigationDestination(
+                selectedIcon: Icon(Icons.home_rounded),
+                icon: Icon(Icons.home_outlined),
+                label: '推荐',
+              ),
+              NavigationDestination(
+                selectedIcon: Icon(Icons.timeline_rounded),
+                icon: Icon(Icons.timeline_outlined),
+                label: '时间表',
+              ),
+              NavigationDestination(
+                selectedIcon: Icon(Icons.favorite_rounded),
+                icon: Icon(Icons.favorite_border_rounded),
+                label: '追番',
+              ),
+              NavigationDestination(
+                selectedIcon: Icon(Icons.settings_rounded),
+                icon: Icon(Icons.settings_outlined),
+                label: '我的',
+              ),
+            ],
+            selectedIndex: selectedIndex,
+            onDestinationSelected: _selectDestination,
           ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.timeline_rounded),
-            icon: Icon(Icons.timeline_outlined),
-            label: '时间表',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.favorite_rounded),
-            icon: Icon(Icons.favorite_border_rounded),
-            label: '追番',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.settings_rounded),
-            icon: Icon(Icons.settings_outlined),
-            label: '我的',
-          ),
-        ],
-        selectedIndex: selectedIndex,
-        onDestinationSelected: _selectDestination,
+        ),
       ),
     );
   }
@@ -148,15 +156,28 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: NavigationRail(
                   groupAlignment: 0.35,
+                  scrollable: true,
                   leading: Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.movie_filter_rounded,
-                          size: 30,
-                          color: Theme.of(context).colorScheme.primary,
+                        Semantics(
+                          label: 'Kazumi',
+                          image: true,
+                          child: ClipRSuperellipse(
+                            borderRadius: BorderRadius.circular(
+                              tokens.radiusControl,
+                            ),
+                            child: Image.asset(
+                              'assets/images/logo/logo_rounded.png',
+                              width: 42,
+                              height: 42,
+                              cacheWidth: 96,
+                              cacheHeight: 96,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 14),
                         FloatingActionButton.small(

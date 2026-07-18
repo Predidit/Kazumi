@@ -16,6 +16,7 @@ import 'package:kazumi/services/plugin/rule_engine_models.dart'
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/date_time.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 String historySourceText(String entryKind) {
   return HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline
@@ -228,21 +229,19 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(16),
+          shape: kazumiSmoothShape(context.design.radiusCompact),
         ),
         child: Icon(
-          Icons.delete_outline,
+          Icons.delete_outline_rounded,
           color: colorScheme.onErrorContainer,
         ),
       ),
       child: Card(
         elevation: 0,
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: kazumiSmoothShape(context.design.radiusCompact),
         clipBehavior: Clip.antiAlias,
         color: colorScheme.surfaceContainerLow,
         child: InkWell(
@@ -252,7 +251,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
+                ClipRSuperellipse(
                   borderRadius: BorderRadius.circular(12),
                   child: NetworkImgLayer(
                     src: widget.historyItem.bangumiItem.images['large'] ?? '',

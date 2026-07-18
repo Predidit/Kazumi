@@ -39,7 +39,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
           IconButton(
               onPressed: () => catalogKey.currentState?.refresh(),
               tooltip: '刷新规则列表',
-              icon: const Icon(Icons.refresh))
+              icon: const Icon(Icons.refresh_rounded))
         ],
       ),
       body: PluginCatalogView(

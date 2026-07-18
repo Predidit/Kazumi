@@ -13,6 +13,7 @@ class CustomDropdownMenu extends StatelessWidget {
   final Animation<double> animation;
   final List<String> items;
   final String Function(String) itemBuilder;
+  final String? selectedItem;
   final double? maxHeight;
 
   /// Minimum width constraint for the menu. Defaults to 140.
@@ -31,6 +32,7 @@ class CustomDropdownMenu extends StatelessWidget {
     required this.animation,
     required this.items,
     required this.itemBuilder,
+    this.selectedItem,
     this.maxHeight,
     this.minWidth,
     this.maxWidth,
@@ -109,16 +111,38 @@ class CustomDropdownMenu extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final itemValue = items[index];
                       final displayText = itemBuilder(itemValue);
-                      return MenuItemButton(
-                        onPressed: () => Navigator.pop(context, itemValue),
-                        style: const ButtonStyle(
-                          alignment: Alignment.centerLeft,
-                          minimumSize: WidgetStatePropertyAll(Size(0, 48)),
-                          padding: WidgetStatePropertyAll(
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      final isSelected = itemValue == selectedItem;
+                      return MergeSemantics(
+                        child: Semantics(
+                          selected: isSelected,
+                          child: MenuItemButton(
+                            onPressed: () => Navigator.pop(context, itemValue),
+                            trailingIcon: isSelected
+                                ? Icon(
+                                    Icons.check_rounded,
+                                    size: 20,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  )
+                                : null,
+                            style: ButtonStyle(
+                              alignment: Alignment.centerLeft,
+                              minimumSize: const WidgetStatePropertyAll(
+                                Size(0, 48),
+                              ),
+                              padding: const WidgetStatePropertyAll(
+                                EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10),
+                              ),
+                              backgroundColor: isSelected
+                                  ? WidgetStatePropertyAll(
+                                      context.design.selectedOverlay,
+                                    )
+                                  : null,
+                            ),
+                            child: Text(displayText),
                           ),
                         ),
-                        child: Text(displayText),
                       );
                     },
                   ),

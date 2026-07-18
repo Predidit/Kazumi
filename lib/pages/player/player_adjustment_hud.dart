@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 import 'package:kazumi/utils/format.dart';
 
 enum PlayerAdjustmentHudType {
@@ -78,13 +79,6 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
     return Icons.volume_up_rounded;
   }
 
-  Color _accent(ColorScheme colorScheme) {
-    return switch (_displayType) {
-      PlayerAdjustmentHudType.brightness => colorScheme.tertiaryContainer,
-      PlayerAdjustmentHudType.volume => colorScheme.primaryContainer,
-    };
-  }
-
   Color _container(ColorScheme colorScheme) {
     return switch (_displayType) {
       PlayerAdjustmentHudType.brightness => colorScheme.tertiary,
@@ -116,11 +110,8 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final accent = _accent(colorScheme);
     final container = _container(colorScheme);
     final onContainer = _onContainer(colorScheme);
-    final surface = colorScheme.surfaceContainerHighest;
-    final border = colorScheme.outlineVariant.withValues(alpha: 0.34);
     final duration = widget.disableAnimations
         ? Duration.zero
         : const Duration(milliseconds: 200);
@@ -149,7 +140,7 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
             scale: widget.visible ? 1 : 0.92,
             duration: duration,
             curve: Curves.easeOutBack,
-            child: ClipRRect(
+            child: KazumiPlayerChrome(
               borderRadius: BorderRadius.circular(30),
               // Avoid BackdropFilter/ImageFilter.blur: it can trigger Impeller
               // native aborts when HUD saveLayers are drawn over video output.
@@ -159,25 +150,6 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                 curve: Curves.easeOutCubic,
                 width: 200,
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withValues(
-                        alpha: widget.visible ? 0.24 : 0,
-                      ),
-                      blurRadius: 32,
-                      spreadRadius: 1,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.28),
-                      blurRadius: 24,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -186,9 +158,9 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                       curve: Curves.easeOutCubic,
                       width: 32,
                       height: 32,
-                      decoration: BoxDecoration(
+                      decoration: ShapeDecoration(
                         color: container,
-                        borderRadius: BorderRadius.circular(20),
+                        shape: const StadiumBorder(),
                       ),
                       child: AnimatedSwitcher(
                         duration: duration,
@@ -605,12 +577,9 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final accent = colorScheme.secondaryContainer;
     final container = colorScheme.secondary;
     final onContainer = colorScheme.onSecondary;
     final progressFill = colorScheme.secondaryContainer;
-    final surface = colorScheme.surfaceContainerHighest;
-    final border = colorScheme.outlineVariant.withValues(alpha: 0.34);
     final duration = widget.disableAnimations
         ? Duration.zero
         : const Duration(milliseconds: 200);
@@ -642,7 +611,7 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
             scale: widget.visible ? 1 : 0.92,
             duration: duration,
             curve: Curves.easeOutBack,
-            child: ClipRRect(
+            child: KazumiPlayerChrome(
               borderRadius: BorderRadius.circular(30),
               // Avoid BackdropFilter/ImageFilter.blur: it can trigger Impeller
               // native aborts when HUD saveLayers are drawn over video output.
@@ -651,25 +620,6 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
                 duration: duration,
                 curve: Curves.easeOutCubic,
                 width: 248,
-                decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withValues(
-                        alpha: widget.visible ? 0.24 : 0,
-                      ),
-                      blurRadius: 32,
-                      spreadRadius: 1,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.28),
-                      blurRadius: 24,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -699,9 +649,9 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
                             curve: Curves.easeOutCubic,
                             width: 36,
                             height: 36,
-                            decoration: BoxDecoration(
+                            decoration: ShapeDecoration(
                               color: container,
-                              borderRadius: BorderRadius.circular(20),
+                              shape: const StadiumBorder(),
                             ),
                             child: AnimatedSwitcher(
                               duration: duration,
@@ -837,8 +787,6 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
     final colorScheme = Theme.of(context).colorScheme;
     final container = colorScheme.inverseSurface;
     final onContainer = colorScheme.onInverseSurface;
-    final surface = colorScheme.surfaceContainerHighest;
-    final border = colorScheme.outlineVariant.withValues(alpha: 0.22);
     final duration = widget.disableAnimations
         ? Duration.zero
         : const Duration(milliseconds: 160);
@@ -856,7 +804,7 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
             scale: widget.visible ? 1 : 0.96,
             duration: duration,
             curve: Curves.easeOutCubic,
-            child: ClipRRect(
+            child: KazumiPlayerChrome(
               borderRadius: BorderRadius.circular(18),
               // Avoid BackdropFilter/ImageFilter.blur: it can trigger Impeller
               // native aborts when HUD saveLayers are drawn over video output.
@@ -866,18 +814,6 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
                 curve: Curves.easeOutCubic,
                 width: 94,
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: surface,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.18),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -886,9 +822,9 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
                       curve: Curves.easeOutCubic,
                       width: 22,
                       height: 22,
-                      decoration: BoxDecoration(
+                      decoration: ShapeDecoration(
                         color: container,
-                        borderRadius: BorderRadius.circular(12),
+                        shape: const StadiumBorder(),
                       ),
                       child: Icon(
                         Icons.speed_rounded,

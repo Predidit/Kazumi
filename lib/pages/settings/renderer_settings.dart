@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 
 class RendererSettings extends StatefulWidget {
   const RendererSettings({super.key});
@@ -26,6 +26,7 @@ class _RendererSettingsState extends State<RendererSettings> {
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: const SysAppBar(
         title: Text('视频渲染器'),
       ),

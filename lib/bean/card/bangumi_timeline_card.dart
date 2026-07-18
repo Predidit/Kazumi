@@ -91,13 +91,13 @@ class BangumiTimelineCard extends StatelessWidget {
       img = Hero(
         tag: bangumiItem.id,
         transitionOnUserGestures: true,
-        child: ClipRRect(
+        child: ClipRSuperellipse(
           borderRadius: borderRadius,
           child: img,
         ),
       );
     } else {
-      img = ClipRRect(
+      img = ClipRSuperellipse(
         borderRadius: borderRadius,
         child: img,
       );

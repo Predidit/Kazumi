@@ -11,28 +11,187 @@ class KazumiAppBackdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.alphaBlend(
-              colors.primary.withValues(alpha: 0.045),
-              colors.surface,
+    final tokens = context.design;
+    final highContrast = MediaQuery.maybeOf(context)?.highContrast ?? false;
+    if (highContrast) {
+      return ColoredBox(color: colors.surface, child: child);
+    }
+
+    return ColoredBox(
+      color: colors.surface,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          IgnorePointer(
+            child: RepaintBoundary(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(-0.94, -0.9),
+                    radius: 1.18,
+                    colors: [tokens.accentGlow, Colors.transparent],
+                    stops: const [0, 1],
+                  ),
+                ),
+              ),
             ),
-            colors.surface,
-            Color.alphaBlend(
-              colors.tertiary.withValues(alpha: 0.035),
-              colors.surface,
+          ),
+          IgnorePointer(
+            child: RepaintBoundary(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0.92, 0.96),
+                    radius: 1.12,
+                    colors: [tokens.secondaryGlow, Colors.transparent],
+                    stops: const [0, 1],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class KazumiIconBadge extends StatelessWidget {
+  const KazumiIconBadge({
+    super.key,
+    required this.icon,
+    this.semanticLabel,
+    this.size = 38,
+    this.iconSize = 21,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String? semanticLabel;
+  final double size;
+  final double iconSize;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final tokens = context.design;
+    final fill = selected
+        ? colors.primary
+        : Color.alphaBlend(tokens.hoverOverlay, colors.primaryContainer);
+    final foreground = selected ? colors.onPrimary : colors.onPrimaryContainer;
+    final badge = SizedBox.square(
+      dimension: size,
+      child: DecoratedBox(
+        decoration: ShapeDecoration(
+          color: fill,
+          shape: kazumiSmoothShape(tokens.radiusControl),
+          shadows: [
+            BoxShadow(
+              color: tokens.accentGlow,
+              blurRadius: 18,
+              spreadRadius: -9,
+              offset: const Offset(0, 5),
             ),
           ],
-          stops: const [0, 0.52, 1],
         ),
+        child: Icon(icon, size: iconSize, color: foreground),
       ),
-      child: child,
     );
+    if (semanticLabel == null) return ExcludeSemantics(child: badge);
+    return Semantics(label: semanticLabel, image: true, child: badge);
+  }
+}
+
+/// A simulated liquid-glass island for controls painted over video.
+///
+/// This deliberately avoids [BackdropFilter]: sampling a MediaKit or WebView
+/// texture can be expensive or unstable on Windows GPUs. The layered tint,
+/// sheen, border and restrained glow provide depth without touching the video
+/// render surface.
+class KazumiPlayerChrome extends StatelessWidget {
+  const KazumiPlayerChrome({
+    super.key,
+    required this.child,
+    this.padding,
+    this.margin,
+    this.borderRadius,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+  final BorderRadius? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final tokens = context.design;
+    final highContrast = MediaQuery.maybeOf(context)?.highContrast ?? false;
+    final radius = borderRadius ?? BorderRadius.circular(tokens.radiusSurface);
+    final fill = Colors.black.withValues(alpha: highContrast ? 0.9 : 0.54);
+    final shape = RoundedSuperellipseBorder(
+      borderRadius: radius,
+      side: BorderSide(
+        color:
+            highContrast ? Colors.white : Colors.white.withValues(alpha: 0.2),
+        width: highContrast ? 1.5 : 1,
+      ),
+    );
+    Widget surface = ClipRSuperellipse(
+      borderRadius: radius,
+      child: DecoratedBox(
+        decoration: ShapeDecoration(
+          color: highContrast ? fill : null,
+          gradient: highContrast
+              ? null
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.alphaBlend(
+                      Colors.white.withValues(alpha: 0.1),
+                      fill,
+                    ),
+                    fill,
+                    Color.alphaBlend(
+                      colors.primary.withValues(alpha: 0.14),
+                      fill,
+                    ),
+                  ],
+                  stops: const [0, 0.6, 1],
+                ),
+          shape: shape,
+        ),
+        child:
+            padding == null ? child : Padding(padding: padding!, child: child),
+      ),
+    );
+    surface = DecoratedBox(
+      decoration: ShapeDecoration(
+        color: Colors.transparent,
+        shape: RoundedSuperellipseBorder(borderRadius: radius),
+        shadows: [
+          BoxShadow(
+            color: colors.primary.withValues(alpha: highContrast ? 0 : 0.18),
+            blurRadius: 26,
+            spreadRadius: -14,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.34),
+            blurRadius: 22,
+            spreadRadius: -10,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: surface,
+    );
+    surface = RepaintBoundary(child: surface);
+    if (margin != null) surface = Padding(padding: margin!, child: surface);
+    return surface;
   }
 }
 
@@ -73,17 +232,20 @@ class KazumiGlassSurface extends StatelessWidget {
     final tokens = context.design;
     final highContrast = MediaQuery.maybeOf(context)?.highContrast ?? false;
     final radius = borderRadius ?? BorderRadius.circular(tokens.radiusSurface);
-    final shouldBlur = enableBlur && !highContrast;
+    final colorAllowsBlur = color == null || color!.a < 1;
+    final shouldBlur = enableBlur && !highContrast && colorAllowsBlur;
     final fill =
         color ?? (shouldBlur ? tokens.glassTint : colors.surfaceContainerHigh);
-    final decoration = BoxDecoration(
-      color: fill,
+    final shape = RoundedSuperellipseBorder(
       borderRadius: radius,
-      border: Border.all(
+      side: BorderSide(
         color:
             borderColor ?? (highContrast ? colors.outline : tokens.glassBorder),
         width: highContrast ? 1.5 : 1,
       ),
+    );
+    final decoration = ShapeDecoration(
+      color: highContrast ? fill : null,
       gradient: highContrast
           ? null
           : LinearGradient(
@@ -92,19 +254,11 @@ class KazumiGlassSurface extends StatelessWidget {
               colors: [
                 Color.alphaBlend(tokens.surfaceHighlight, fill),
                 fill,
+                Color.alphaBlend(tokens.secondaryGlow, fill),
               ],
-              stops: const [0, 0.62],
+              stops: const [0, 0.58, 1],
             ),
-      boxShadow: shadow
-          ? [
-              BoxShadow(
-                color: tokens.subtleShadow,
-                blurRadius: 24,
-                spreadRadius: -8,
-                offset: const Offset(0, 10),
-              ),
-            ]
-          : null,
+      shape: shape,
     );
 
     Widget surface = DecoratedBox(
@@ -120,11 +274,34 @@ class KazumiGlassSurface extends StatelessWidget {
         child: surface,
       );
     }
-    surface = ClipRRect(
+    surface = ClipRSuperellipse(
       borderRadius: radius,
       clipBehavior: clipBehavior,
       child: surface,
     );
+    if (shadow) {
+      surface = DecoratedBox(
+        decoration: ShapeDecoration(
+          color: Colors.transparent,
+          shape: RoundedSuperellipseBorder(borderRadius: radius),
+          shadows: [
+            BoxShadow(
+              color: tokens.accentGlow,
+              blurRadius: 30,
+              spreadRadius: -14,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: tokens.subtleShadow,
+              blurRadius: 24,
+              spreadRadius: -8,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: surface,
+      );
+    }
     surface = RepaintBoundary(child: surface);
     if (margin != null) {
       surface = Padding(padding: margin!, child: surface);
@@ -167,6 +344,7 @@ class KazumiInteractiveSurface extends StatefulWidget {
 class _KazumiInteractiveSurfaceState extends State<KazumiInteractiveSurface> {
   bool _hovered = false;
   bool _focused = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -174,37 +352,52 @@ class _KazumiInteractiveSurfaceState extends State<KazumiInteractiveSurface> {
     final tokens = context.design;
     final radius =
         widget.borderRadius ?? BorderRadius.circular(tokens.radiusCompact);
-    final interactive = widget.enabled && widget.onTap != null;
+    final hasAction = widget.onTap != null || widget.onLongPress != null;
+    final interactive = widget.enabled && hasAction;
+    final keyboardInteractive = widget.enabled && widget.onTap != null;
     final base = widget.color ?? colors.surfaceContainerLow;
     final fill = Color.alphaBlend(
-      widget.selected
-          ? tokens.selectedOverlay
-          : _hovered
-              ? tokens.hoverOverlay
-              : Colors.transparent,
+      _pressed
+          ? tokens.pressedOverlay
+          : widget.selected
+              ? tokens.selectedOverlay
+              : _hovered
+                  ? tokens.hoverOverlay
+                  : Colors.transparent,
       base,
     );
+    final shape = RoundedSuperellipseBorder(
+      borderRadius: radius,
+      side: BorderSide(
+        color: _focused
+            ? tokens.focusRing
+            : colors.outlineVariant.withValues(alpha: 0.34),
+        width: _focused ? 2 : 1,
+      ),
+    );
+    final glowActive = interactive && (_hovered || _focused || widget.selected);
 
     return Semantics(
-      button: interactive,
+      button: hasAction,
       enabled: widget.enabled,
       selected: widget.selected,
       label: widget.semanticLabel,
+      onLongPress: widget.enabled ? widget.onLongPress : null,
       child: AnimatedContainer(
         duration: context.motion(KazumiDesignTokens.motionFast),
         curve: KazumiDesignTokens.standardCurve,
         clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: fill,
-          borderRadius: radius,
-          border: Border.all(
-            color: _focused
-                ? tokens.focusRing
-                : colors.outlineVariant.withValues(alpha: 0.34),
-            width: _focused ? 2 : 1,
-          ),
-          boxShadow: _hovered && interactive
+          shape: shape,
+          shadows: glowActive
               ? [
+                  BoxShadow(
+                    color: tokens.accentGlow,
+                    blurRadius: 22,
+                    spreadRadius: -11,
+                    offset: const Offset(0, 4),
+                  ),
                   BoxShadow(
                     color: tokens.subtleShadow,
                     blurRadius: 18,
@@ -218,15 +411,18 @@ class _KazumiInteractiveSurfaceState extends State<KazumiInteractiveSurface> {
           type: MaterialType.transparency,
           child: InkWell(
             autofocus: widget.autofocus,
-            canRequestFocus: interactive,
-            borderRadius: radius,
+            canRequestFocus: keyboardInteractive,
+            customBorder: shape,
             onHover: interactive
                 ? (value) => setState(() => _hovered = value)
                 : null,
             onFocusChange: interactive
                 ? (value) => setState(() => _focused = value)
                 : null,
-            onTap: interactive ? widget.onTap : null,
+            onHighlightChanged: interactive
+                ? (value) => setState(() => _pressed = value)
+                : null,
+            onTap: widget.enabled ? widget.onTap : null,
             onLongPress: widget.enabled ? widget.onLongPress : null,
             child: Opacity(
               opacity: widget.enabled ? 1 : tokens.disabledOpacity,
@@ -408,8 +604,8 @@ class KazumiSettingsSection extends StatelessWidget {
           ),
           Material(
             color: colors.surfaceContainerLow,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(tokens.radiusSurface),
+            shape: kazumiSmoothShape(
+              tokens.radiusSurface,
               side: BorderSide(
                 color: colors.outlineVariant.withValues(alpha: 0.34),
               ),

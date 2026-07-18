@@ -80,7 +80,7 @@ class SearchEntryBar extends StatelessWidget {
                 children: [
                   const Padding(
                     padding: EdgeInsets.only(left: 16, right: 12),
-                    child: Icon(Icons.search),
+                    child: Icon(Icons.search_rounded),
                   ),
                   Expanded(
                     child: TextField(
@@ -340,7 +340,7 @@ class _SearchPageState extends State<SearchPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: showWorkbench,
-        icon: const Icon(Icons.tune),
+        icon: const Icon(Icons.tune_rounded),
         label: const Text("筛选"),
       ),
       body: Column(
@@ -383,7 +383,7 @@ class _SearchPageState extends State<SearchPage> {
                                 _submitSearch(controller.text);
                               },
                               trailing: IconButton(
-                                icon: const Icon(Icons.close),
+                                icon: const Icon(Icons.close_rounded),
                                 onPressed: () {
                                   searchPageController
                                       .deleteSearchHistory(history);
@@ -750,7 +750,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                             FilterChip(
                               label: Text(tag),
                               selected: draft.tags.contains(tag),
-                              showCheckmark: false,
+                              showCheckmark: true,
                               onSelected: (selected) {
                                 setState(() {
                                   draft = draft.copyWith(
@@ -773,7 +773,8 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                               controller: tagController,
                               decoration: const InputDecoration(
                                 labelText: '自定义标签',
-                                prefixIcon: Icon(Icons.add_circle_outline),
+                                prefixIcon:
+                                    Icon(Icons.add_circle_outline_rounded),
                               ),
                               onSubmitted: addTag,
                             ),
@@ -782,7 +783,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                           IconButton.filledTonal(
                             tooltip: '添加标签',
                             onPressed: () => addTag(tagController.text),
-                            icon: const Icon(Icons.add),
+                            icon: const Icon(Icons.add_rounded),
                           ),
                         ],
                       ),
@@ -938,7 +939,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                         FilterChip(
                           label: Text('周$weekday'),
                           selected: draft.weekdays.contains(weekday),
-                          showCheckmark: false,
+                          showCheckmark: true,
                           onSelected: (selected) {
                             final weekdays = draft.weekdays.toSet();
                             if (selected) {

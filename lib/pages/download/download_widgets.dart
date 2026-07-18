@@ -70,7 +70,7 @@ class DownloadRecordCard extends StatelessWidget {
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
       color: colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: kazumiSmoothShape(context.design.radiusCompact),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -123,7 +123,7 @@ class DownloadRecordCard extends StatelessWidget {
                   ),
                   PopupMenuButton<String>(
                     icon: Icon(
-                      Icons.more_vert,
+                      Icons.more_vert_rounded,
                       color: colorScheme.onSurfaceVariant,
                     ),
                     tooltip: '更多操作',
@@ -214,7 +214,7 @@ class DownloadEpisodeTile extends StatelessWidget {
             episode.progressPercent > 0);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      customBorder: kazumiSmoothShape(context.design.radiusControl),
       onTap: onPlay,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),

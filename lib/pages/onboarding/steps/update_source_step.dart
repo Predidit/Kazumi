@@ -18,27 +18,24 @@ class UpdateSourceStep extends StatelessWidget {
       leading: const OnboardingStepIcon(icon: Icons.system_update_rounded),
       title: '更新来源',
       subtitle: '选择获取应用更新的方式',
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _OptionCard(
-              icon: Icons.rocket_launch_rounded,
-              title: 'Github',
-              description: '应用内检查更新，适合大多数用户',
-              selected: useGithubUpdate,
-              onTap: () => onChanged(true),
-            ),
-            _OptionCard(
-              icon: Icons.storefront_rounded,
-              title: 'F-Droid',
-              description: '由 F-Droid 商店管理更新',
-              selected: !useGithubUpdate,
-              onTap: () => onChanged(false),
-            ),
-          ],
-        ),
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          _OptionCard(
+            icon: Icons.rocket_launch_rounded,
+            title: 'Github',
+            description: '应用内检查更新，适合大多数用户',
+            selected: useGithubUpdate,
+            onTap: () => onChanged(true),
+          ),
+          _OptionCard(
+            icon: Icons.storefront_rounded,
+            title: 'F-Droid',
+            description: '由 F-Droid 商店管理更新',
+            selected: !useGithubUpdate,
+            onTap: () => onChanged(false),
+          ),
+        ],
       ),
     );
   }
@@ -63,49 +60,50 @@ class _OptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      color: selected
-          ? colorScheme.secondaryContainer
-          : colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: selected
-                    ? colorScheme.onSecondaryContainer
-                    : colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: textTheme.titleMedium),
-                    const SizedBox(height: 2),
-                    Text(
-                      description,
-                      style: textTheme.bodyMedium
-                          ?.copyWith(color: colorScheme.onSurfaceVariant),
-                    ),
-                  ],
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Card(
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12),
+        color: selected
+            ? colorScheme.secondaryContainer
+            : colorScheme.surfaceContainerLow,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: selected
+                      ? colorScheme.onSecondaryContainer
+                      : colorScheme.onSurfaceVariant,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Icon(
-                selected
-                    ? Icons.check_circle_rounded
-                    : Icons.circle_outlined,
-                color: selected ? colorScheme.primary : colorScheme.outline,
-              ),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: textTheme.titleMedium),
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: textTheme.bodyMedium
+                            ?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Icon(
+                  selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                  color: selected ? colorScheme.primary : colorScheme.outline,
+                ),
+              ],
+            ),
           ),
         ),
       ),

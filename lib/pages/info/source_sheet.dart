@@ -22,6 +22,68 @@ import 'package:kazumi/services/plugin/captcha_verification_service.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/utils/device.dart';
 
+class _PluginSearchStatusIndicator extends StatelessWidget {
+  const _PluginSearchStatusIndicator({
+    required this.pluginName,
+    required this.status,
+  });
+
+  final String pluginName;
+  final PluginSearchStatus? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final (icon, color, label) = switch (status) {
+      PluginSearchStatus.success => (
+          Icons.check_circle_rounded,
+          colors.primary,
+          '检索成功',
+        ),
+      PluginSearchStatus.noResult => (
+          Icons.search_off_rounded,
+          colors.tertiary,
+          '未找到结果',
+        ),
+      PluginSearchStatus.captcha => (
+          Icons.gpp_maybe_rounded,
+          colors.secondary,
+          '需要验证',
+        ),
+      PluginSearchStatus.error => (
+          Icons.error_rounded,
+          colors.error,
+          '检索失败',
+        ),
+      _ => (
+          Icons.pending_rounded,
+          colors.outline,
+          '正在检索',
+        ),
+    };
+    final semanticLabel = '$pluginName：$label';
+    return Semantics(
+      label: semanticLabel,
+      image: true,
+      child: Tooltip(
+        message: semanticLabel,
+        excludeFromSemantics: true,
+        child: AnimatedSwitcher(
+          duration: context.motion(KazumiDesignTokens.motionFast),
+          switchInCurve: KazumiDesignTokens.standardCurve,
+          switchOutCurve: KazumiDesignTokens.standardCurve,
+          child: Icon(
+            icon,
+            key: ValueKey(status),
+            size: 18,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
     super.key,
@@ -497,7 +559,6 @@ class _SourceSheetState extends State<SourceSheet>
                 .map(
                   (plugin) => Observer(
                     builder: (context) {
-                      final colors = Theme.of(context).colorScheme;
                       return Tab(
                         child: Row(
                           children: [
@@ -506,22 +567,10 @@ class _SourceSheetState extends State<SourceSheet>
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(width: 5.0),
-                            Container(
-                              width: 8.0,
-                              height: 8.0,
-                              decoration: BoxDecoration(
-                                color: switch (widget.infoController
-                                    .pluginSearchStatus[plugin.name]) {
-                                  PluginSearchStatus.success => colors.primary,
-                                  PluginSearchStatus.noResult =>
-                                    colors.tertiary,
-                                  PluginSearchStatus.captcha =>
-                                    colors.secondary,
-                                  PluginSearchStatus.error => colors.error,
-                                  _ => colors.outline,
-                                },
-                                shape: BoxShape.circle,
-                              ),
+                            _PluginSearchStatusIndicator(
+                              pluginName: plugin.name,
+                              status: widget.infoController
+                                  .pluginSearchStatus[plugin.name],
                             ),
                           ],
                         ),
@@ -570,10 +619,8 @@ class _SourceSheetState extends State<SourceSheet>
                                 .colorScheme
                                 .surfaceContainerLow,
                             clipBehavior: Clip.antiAlias,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                materialBottomSheetRadius,
-                              ),
+                            shape: kazumiSmoothShape(
+                              materialBottomSheetRadius,
                             ),
                             margin: const EdgeInsets.only(
                                 left: 10, right: 10, top: 10),
@@ -879,7 +926,7 @@ class _AliasDialogState extends State<_AliasDialog> {
                         },
                       );
                     },
-                    icon: Icon(Icons.delete),
+                    icon: Icon(Icons.delete_rounded),
                   ),
                   onTap: () => widget.onAliasSelected(alias),
                 );

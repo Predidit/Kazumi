@@ -4,15 +4,13 @@ import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 ThemeData applyKazumiDesignSystem(ThemeData base) {
   final colors = base.colorScheme;
   final tokens = KazumiDesignTokens.from(colors);
-  final controlShape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(tokens.radiusControl),
-  );
-  final cardShape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(tokens.radiusCompact),
+  final controlShape = kazumiSmoothShape(tokens.radiusControl);
+  final cardShape = kazumiSmoothShape(
+    tokens.radiusCompact,
     side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.28)),
   );
-  final dialogShape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(tokens.radiusDialog),
+  final dialogShape = kazumiSmoothShape(
+    tokens.radiusDialog,
     side: BorderSide(color: tokens.glassBorder),
   );
 
@@ -31,9 +29,7 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
     minimumSize: const WidgetStatePropertyAll(Size(40, 40)),
     tapTargetSize: MaterialTapTargetSize.padded,
     shape: WidgetStatePropertyAll(
-      RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(tokens.radiusControl),
-      ),
+      kazumiSmoothShape(tokens.radiusControl),
     ),
     animationDuration: KazumiDesignTokens.motionFast,
     overlayColor: _interactiveOverlay(tokens),
@@ -117,7 +113,7 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
       modalBackgroundColor: colors.surfaceContainerHigh,
       surfaceTintColor: Colors.transparent,
       shadowColor: tokens.subtleShadow,
-      shape: RoundedRectangleBorder(
+      shape: RoundedSuperellipseBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(tokens.radiusSheet),
         ),
@@ -135,9 +131,7 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
       contentTextStyle:
           textTheme.bodyMedium?.copyWith(color: colors.onInverseSurface),
       actionTextColor: colors.inversePrimary,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(tokens.radiusCompact),
-      ),
+      shape: kazumiSmoothShape(tokens.radiusCompact),
       insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -200,8 +194,8 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
       highlightElevation: 0,
       backgroundColor: colors.primaryContainer,
       foregroundColor: colors.onPrimaryContainer,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(tokens.radiusCompact),
+      shape: kazumiSmoothShape(
+        tokens.radiusCompact,
         side: BorderSide(
           color: colors.outlineVariant.withValues(alpha: 0.35),
         ),
@@ -210,9 +204,7 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
     listTileTheme: ListTileThemeData(
       minTileHeight: 56,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(tokens.radiusControl),
-      ),
+      shape: kazumiSmoothShape(tokens.radiusControl),
       selectedColor: colors.onSecondaryContainer,
       selectedTileColor: colors.secondaryContainer,
       iconColor: colors.onSurfaceVariant,
@@ -222,7 +214,7 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
       backgroundColor: Colors.transparent,
       minWidth: 88,
       indicatorColor: colors.secondaryContainer,
-      indicatorShape: const StadiumBorder(),
+      indicatorShape: kazumiSmoothShape(999),
       useIndicator: true,
       selectedIconTheme: IconThemeData(color: colors.onSecondaryContainer),
       unselectedIconTheme: IconThemeData(color: colors.onSurfaceVariant),
@@ -236,10 +228,10 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
     navigationBarTheme: NavigationBarThemeData(
       elevation: 0,
       height: 72,
-      backgroundColor: colors.surfaceContainer.withValues(alpha: 0.94),
+      backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       indicatorColor: colors.secondaryContainer,
-      indicatorShape: const StadiumBorder(),
+      indicatorShape: kazumiSmoothShape(999),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         return textTheme.labelMedium?.copyWith(
           color: states.contains(WidgetState.selected)
@@ -274,9 +266,7 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
         );
       }),
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(tokens.radiusCompact),
-        ),
+        kazumiSmoothShape(tokens.radiusCompact),
       ),
       padding: const WidgetStatePropertyAll(
         EdgeInsets.symmetric(horizontal: 16),
@@ -288,8 +278,8 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
         backgroundColor: WidgetStatePropertyAll(colors.surfaceContainerHigh),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(tokens.radiusCompact),
+          kazumiSmoothShape(
+            tokens.radiusCompact,
             side: BorderSide(color: tokens.glassBorder),
           ),
         ),
@@ -300,8 +290,8 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
       elevation: 0,
       color: colors.surfaceContainerHigh,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(tokens.radiusCompact),
+      shape: kazumiSmoothShape(
+        tokens.radiusCompact,
         side: BorderSide(color: tokens.glassBorder),
       ),
     ),
@@ -311,8 +301,8 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
         backgroundColor: WidgetStatePropertyAll(colors.surfaceContainerHigh),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(tokens.radiusCompact),
+          kazumiSmoothShape(
+            tokens.radiusCompact,
             side: BorderSide(color: tokens.glassBorder),
           ),
         ),
@@ -321,9 +311,9 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
     tooltipTheme: TooltipThemeData(
       waitDuration: const Duration(milliseconds: 450),
       showDuration: const Duration(seconds: 4),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: colors.inverseSurface,
-        borderRadius: BorderRadius.circular(tokens.radiusControl),
+        shape: kazumiSmoothShape(tokens.radiusControl),
       ),
       textStyle: textTheme.bodySmall?.copyWith(color: colors.onInverseSurface),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -333,9 +323,7 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
       selectedColor: colors.secondaryContainer,
       disabledColor: colors.onSurface.withValues(alpha: 0.08),
       side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.55)),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(tokens.radiusControl),
-      ),
+      shape: kazumiSmoothShape(tokens.radiusControl),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     ),
     dividerTheme: DividerThemeData(
@@ -365,7 +353,7 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
       interactive: true,
     ),
     checkboxTheme: CheckboxThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+      shape: kazumiSmoothShape(5),
       side: BorderSide(color: colors.outline),
       overlayColor: _interactiveOverlay(tokens),
     ),
@@ -388,6 +376,35 @@ ThemeData applyKazumiDesignSystem(ThemeData base) {
         if (states.contains(WidgetState.selected)) return colors.primary;
         return colors.surfaceContainerHighest;
       }),
+    ),
+  );
+}
+
+ThemeData applyKazumiMotionPreference(
+  ThemeData theme, {
+  required bool reduceMotion,
+}) {
+  if (!reduceMotion) return theme;
+
+  ButtonStyle? withoutAnimation(ButtonStyle? style) {
+    return style?.copyWith(animationDuration: Duration.zero);
+  }
+
+  return theme.copyWith(
+    filledButtonTheme: FilledButtonThemeData(
+      style: withoutAnimation(theme.filledButtonTheme.style),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: withoutAnimation(theme.elevatedButtonTheme.style),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: withoutAnimation(theme.outlinedButtonTheme.style),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: withoutAnimation(theme.textButtonTheme.style),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: withoutAnimation(theme.iconButtonTheme.style),
     ),
   );
 }

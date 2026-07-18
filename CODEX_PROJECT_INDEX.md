@@ -3,12 +3,15 @@
 ## Snapshot and repository topology
 
 - Local checkout: D:\devSpace\kazumi
-- Current revision: 1793d22 (tag 2.2.1, message: version 2.2.1)
-- Working branch: main, tracking origin/main
+- Historical upstream baseline: 1793d22 (tag 2.2.1, message: version 2.2.1)
+- Win11 correctness branch: `codex/win11-issue-fixes` at `2f6a99a`
+- Win11 frontend delivery branch: `codex/win11-ios27-frontend`, based on
+  `981fc71` and containing the correctness branch
 - Fork origin: STERILITZIA02/KazumiIOS27
 - Parent upstream: Predidit/Kazumi
 - Local upstream remote is configured and fetched. Its public branches are upstream/main, upstream/linux-external, and upstream/onboard.
-- At this snapshot, main and upstream/main have no divergence (ahead 0, behind 0).
+- The original `main` snapshot and `upstream/main` had no divergence before the
+  dedicated delivery branches were created.
 - GitHub issues are repository-level, not branch-level. The fork disables issues; upstream is the authoritative issue tracker.
 
 Read CODEX_UPSTREAM_ISSUES.md for the captured upstream backlog and the current Windows-specific candidates.
@@ -26,12 +29,11 @@ The requested build and development target is Windows 11 desktop only. The UI ma
 - Editor: VS Code is available, and .vscode/launch.json includes Skia/Impeller debug launch entries.
 - The project pins Flutter 3.44.6 in pubspec.yaml. Do not casually upgrade Flutter or broad dependency ranges during unrelated repair work.
 
-Windows prerequisite currently pending:
+Windows prerequisite status:
 
-- Flutter plugins require Windows Developer Mode (or an explicitly elevated build environment) to create plugin symlinks.
-- A direct flutter pub get downloaded the dependency graph but exited after reporting missing symlink support.
-- windows/flutter/ephemeral/.plugin_symlinks exists but has zero entries; therefore flutter build windows has not been claimed as verified.
-- Enable Developer Mode manually in Settings > Privacy & security > For developers, then reopen the terminal and run the validation sequence below.
+- Windows Developer Mode is enabled and Flutter plugin symlink creation works.
+- Dependency resolution, analysis, tests, and Windows x64 Release builds now
+  complete with the pinned toolchain.
 
 Validation sequence:
 
@@ -39,26 +41,28 @@ Validation sequence:
     flutter pub get
     flutter analyze --no-fatal-infos --fatal-warnings
     flutter test
-    flutter build windows
+    flutter build windows --release
     flutter run -d windows
 
 If Hive/MobX annotated models or controllers change, regenerate rather than editing generated files:
 
     dart run build_runner build --delete-conflicting-outputs
 
-## Current repair verification on 2026-07-18
+## Current Win11 delivery verification on 2026-07-18
 
-Windows Developer Mode is enabled and plugin symlink creation now works. On the
-`codex/win11-issue-fixes` branch, the locked Flutter 3.44.6 / Dart 3.12.2 toolchain
-has completed dependency resolution, static analysis with zero findings, the
-complete Flutter test suite, and a Windows x64 Release build. The generated
-binary is `build/windows/x64/runner/Release/kazumi.exe`.
+On `codex/win11-ios27-frontend`, the locked Flutter 3.44.6 / Dart 3.12.2
+toolchain completed dependency resolution, formatting, static analysis with
+zero findings, all 192 Flutter tests, and a Windows x64 Release build. The
+generated binary is `build/windows/x64/runner/Release/kazumi.exe` (210,432
+bytes, SHA-256
+`441C78F7DF752370ACFE00998B8A03E669C089C61AA510221FFF5B24C7860B60`).
 
 The build emits a non-fatal NuGet availability message and a CMake developer
 warning from the third-party `webview_windows` plugin. Neither prevents the
-runner from compiling or linking. Actual launch, route-by-route visual QA, tray,
-keyboard, fullscreen, and screenshots remain release gates until the frontend
-migration is complete.
+runner from compiling or linking. Automated delivery gates are complete;
+route-by-route visual QA, live remote-account flows, tray/window lifecycle,
+fullscreen behavior, performance observation, and screenshots remain the
+explicit user-run manual acceptance gate.
 
 ## Baseline verification on 2026-07-17
 
@@ -70,7 +74,7 @@ migration is complete.
 | flutter test | Passed: 120 tests across 14 test files |
 | flutter build windows | Pending Developer Mode/plugin symlink prerequisite |
 
-Known quality baseline, not yet fixed:
+Historical analyzer baseline (superseded by the zero-finding 2026-07-18 run):
 
 - Public controller APIs expose private generated MobX store types in eleven controller files.
 - displaymode_settings.dart has one strict-top-level-inference finding.

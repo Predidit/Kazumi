@@ -162,7 +162,7 @@ class _TimelinePageState extends State<TimelinePage>
     KazumiDialog.showBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: RoundedRectangleBorder(
+      shape: RoundedSuperellipseBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(context.design.radiusSheet),
         ),
@@ -214,9 +214,9 @@ class _TimelinePageState extends State<TimelinePage>
       onClose: KazumiDialog.dismiss,
       footer: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: colorScheme.secondaryContainer,
-          borderRadius: BorderRadius.circular(16),
+          shape: kazumiSmoothShape(context.design.radiusCompact),
         ),
         child: Text(
           '当前查看 ${getStringByDateTime(timelineController.selectedDate)}',
@@ -247,15 +247,17 @@ class _TimelinePageState extends State<TimelinePage>
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: hasSelectedSeason
             ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
             : colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: hasSelectedSeason
-              ? colorScheme.secondary.withValues(alpha: 0.24)
-              : colorScheme.outlineVariant.withValues(alpha: 0.5),
+        shape: kazumiSmoothShape(
+          context.design.radiusSurface,
+          side: BorderSide(
+            color: hasSelectedSeason
+                ? colorScheme.secondary.withValues(alpha: 0.24)
+                : colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
         ),
       ),
       child: Column(
@@ -308,7 +310,7 @@ class _TimelinePageState extends State<TimelinePage>
             KazumiDialog.dismiss();
             onSeasonSelected(date);
           },
-          showCheckmark: false,
+          showCheckmark: true,
           labelStyle: textTheme.labelLarge?.copyWith(
             color: isSelected
                 ? colorScheme.onSecondaryContainer
@@ -323,9 +325,7 @@ class _TimelinePageState extends State<TimelinePage>
                 : colorScheme.outlineVariant.withValues(alpha: 0.4),
             width: 1,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(context.design.radiusCompact),
-          ),
+          shape: kazumiSmoothShape(context.design.radiusCompact),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         );
@@ -467,20 +467,22 @@ class _TimelinePageState extends State<TimelinePage>
     final isSelected = timelineController.sortType == sortType;
 
     return Ink(
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: isSelected
             ? colorScheme.secondaryContainer
             : colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isSelected
-              ? colorScheme.secondary.withValues(alpha: 0.3)
-              : colorScheme.outlineVariant.withValues(alpha: 0.4),
+        shape: kazumiSmoothShape(
+          context.design.radiusSurface,
+          side: BorderSide(
+            color: isSelected
+                ? colorScheme.secondary.withValues(alpha: 0.3)
+                : colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
         ),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: kazumiSmoothShape(context.design.radiusSurface),
         leading: Icon(
           icon,
           color: isSelected
@@ -532,20 +534,22 @@ class _TimelinePageState extends State<TimelinePage>
     final textTheme = Theme.of(context).textTheme;
 
     return Ink(
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: value
             ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
             : colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: value
-              ? colorScheme.secondary.withValues(alpha: 0.24)
-              : colorScheme.outlineVariant.withValues(alpha: 0.4),
+        shape: kazumiSmoothShape(
+          context.design.radiusSurface,
+          side: BorderSide(
+            color: value
+                ? colorScheme.secondary.withValues(alpha: 0.24)
+                : colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
         ),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: kazumiSmoothShape(context.design.radiusSurface),
         leading: Icon(
           icon,
           color: value
@@ -706,7 +710,7 @@ class _TimelinePageState extends State<TimelinePage>
         onPressed: () {
           KazumiDialog.showBottomSheet(
             backgroundColor: Theme.of(context).colorScheme.surface,
-            shape: RoundedRectangleBorder(
+            shape: RoundedSuperellipseBorder(
               borderRadius: BorderRadius.vertical(
                 top: Radius.circular(context.design.radiusSheet),
               ),
@@ -724,7 +728,7 @@ class _TimelinePageState extends State<TimelinePage>
             },
           );
         },
-        child: const Icon(Icons.tune),
+        child: const Icon(Icons.tune_rounded),
       ),
       body: Observer(builder: (context) {
         if (timelineController.isLoading &&

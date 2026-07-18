@@ -24,6 +24,7 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: SysAppBar(
         title: const Text("弹幕屏蔽"),
       ),
@@ -41,7 +42,7 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
                     textEditingController.text.trim(),
                   );
                 },
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.add_rounded),
                 label: const Text("添加"),
               ),
             ),
@@ -68,8 +69,6 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
               children: myController.shieldList
                   .map(
                     (item) => Chip(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(32)),
                       backgroundColor:
                           Theme.of(context).colorScheme.secondaryContainer,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -81,7 +80,7 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
                         ),
                       ),
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      deleteIcon: Icon(Icons.close, size: 18),
+                      deleteIcon: Icon(Icons.close_rounded, size: 18),
                       deleteButtonTooltipMessage: '',
                       onDeleted: () {
                         myController.removeShieldList(item);

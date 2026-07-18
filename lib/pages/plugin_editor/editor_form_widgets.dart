@@ -3,8 +3,9 @@ import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 const Duration _kSectionAnimationDuration = KazumiDesignTokens.motionStandard;
 
-final ShapeBorder _kSectionShape =
-    RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
+final ShapeBorder _kSectionShape = const RoundedSuperellipseBorder(
+  borderRadius: BorderRadius.all(Radius.circular(16)),
+);
 
 TextStyle? _sectionTitleStyle(ThemeData theme) =>
     theme.textTheme.titleMedium?.copyWith(
@@ -218,7 +219,7 @@ class EditorSegmentedField<T> extends StatelessWidget {
         SegmentedButton<T>(
           segments: segments,
           selected: {value},
-          showSelectedIcon: false,
+          showSelectedIcon: true,
           expandedInsets: EdgeInsets.zero,
           onSelectionChanged: (selection) => onChanged(selection.first),
         ),

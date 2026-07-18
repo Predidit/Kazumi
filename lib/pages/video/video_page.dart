@@ -26,6 +26,8 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({
@@ -535,6 +537,7 @@ class _VideoPageState extends State<VideoPage>
     String danmakuText = '';
     final message = await showAdaptiveBottomSheet<String>(
       context: context,
+      enableBlur: false,
       builder: (context) {
         return Padding(
           padding: EdgeInsets.fromLTRB(
@@ -594,6 +597,7 @@ class _VideoPageState extends State<VideoPage>
     final DanmakuDestination? result =
         await showAdaptiveBottomSheet<DanmakuDestination>(
       context: context,
+      enableBlur: false,
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
@@ -733,6 +737,9 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget get sideTabBody {
+    final colors = Theme.of(context).colorScheme;
+    final tokens = context.design;
+    final highContrast = MediaQuery.highContrastOf(context);
     return SizedBox(
       height: MediaQuery.sizeOf(context).height,
       width: (!isDesktop() && !isTablet())
@@ -740,12 +747,17 @@ class _VideoPageState extends State<VideoPage>
           : (MediaQuery.sizeOf(context).width / 3 > 420
               ? 420
               : MediaQuery.sizeOf(context).width / 3),
-      child: Container(
-        color: Theme.of(context).canvasColor,
+      child: KazumiGlassSurface(
+        enableBlur: false,
+        margin: const EdgeInsets.all(KazumiDesignTokens.spaceXs),
+        borderRadius: BorderRadius.circular(tokens.radiusSheet),
+        color: highContrast
+            ? colors.surface
+            : colors.surface.withValues(alpha: 0.92),
         child: GridViewObserver(
           controller: observerController,
           child: (isDesktop() || isTablet())
-              ? tabBody
+              ? _buildTabBody(backgroundColor: Colors.transparent)
               : Column(
                   children: [
                     menuBar,
@@ -822,7 +834,7 @@ class _VideoPageState extends State<VideoPage>
                                         currentRoad: videoPageController
                                             .selectedEpisode.road,
                                       ),
-                                      icon: const Icon(Icons.refresh),
+                                      icon: const Icon(Icons.refresh_rounded),
                                       label: const Text('重试播放'),
                                     ),
                                     if (videoPageController.roadList.length > 1)
@@ -898,7 +910,7 @@ class _VideoPageState extends State<VideoPage>
                                   child: SizedBox(height: 40))),
                           IconButton(
                             tooltip: '重试播放',
-                            icon: const Icon(Icons.refresh_outlined,
+                            icon: const Icon(Icons.refresh_rounded,
                                 color: Colors.white),
                             onPressed: () {
                               changeEpisode(
@@ -1012,30 +1024,44 @@ class _VideoPageState extends State<VideoPage>
                 ),
               );
             },
-            menuChildren: List<MenuItemButton>.generate(
+            menuChildren: List<Widget>.generate(
               videoPageController.roadList.length,
-              (int i) => MenuItemButton(
-                onPressed: () {
-                  setState(() {
-                    visibleRoad = i;
-                  });
-                },
-                child: Container(
-                  height: 48,
-                  constraints: BoxConstraints(minWidth: 112),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      videoPageController.roadList[i].name,
-                      style: TextStyle(
-                        color: i == visibleRoad
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
+              (int i) {
+                final selected = i == visibleRoad;
+                return Semantics(
+                  selected: selected,
+                  child: MenuItemButton(
+                    leadingIcon: ExcludeSemantics(
+                      child: selected
+                          ? Icon(
+                              Icons.check_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                            )
+                          : const SizedBox.square(dimension: 24),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        visibleRoad = i;
+                      });
+                    },
+                    child: SizedBox(
+                      height: 48,
+                      width: 112,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          videoPageController.roadList[i].name,
+                          style: TextStyle(
+                            color: selected
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         ],
@@ -1111,70 +1137,82 @@ class _VideoPageState extends State<VideoPage>
             final episodeName = count0 - 1 < road.identifier.length
                 ? road.identifier[count0 - 1]
                 : '第$count0集';
-            cardList.add(Container(
-              margin: const EdgeInsets.only(bottom: 4),
-              child: Material(
-                color: Theme.of(context).colorScheme.onInverseSurface,
-                borderRadius: BorderRadius.circular(6),
-                clipBehavior: Clip.hardEdge,
-                child: InkWell(
-                  onTap: () async {
-                    if (count0 == videoPageController.selectedEpisode.episode &&
-                        videoPageController.selectedEpisode.road ==
-                            visibleRoad) {
-                      return;
-                    }
-                    KazumiLogger()
-                        .i('VideoPageController: video URL is $urlItem');
-                    _closeTabBodyAnimated();
-                    changeEpisode(count0, currentRoad: visibleRoad);
-                  },
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: [
-                            if (count0 ==
-                                    (videoPageController
-                                        .selectedEpisode.episode) &&
-                                visibleRoad ==
-                                    videoPageController
-                                        .selectedEpisode.road) ...<Widget>[
+            final selected =
+                count0 == videoPageController.selectedEpisode.episode &&
+                    videoPageController.selectedEpisode.road == visibleRoad;
+            cardList.add(Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: KazumiInteractiveSurface(
+                selected: selected,
+                semanticLabel: selected ? '$episodeName，正在播放' : episodeName,
+                borderRadius:
+                    BorderRadius.circular(context.design.radiusCompact),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHigh
+                    .withValues(alpha: 0.82),
+                onTap: () async {
+                  if (selected) {
+                    return;
+                  }
+                  KazumiLogger()
+                      .i('VideoPageController: video URL is $urlItem');
+                  _closeTabBodyAnimated();
+                  changeEpisode(count0, currentRoad: visibleRoad);
+                },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        children: [
+                          if (selected) ...<Widget>[
+                            if (context.reduceMotion)
+                              Icon(
+                                Icons.graphic_eq_rounded,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 14,
+                              )
+                            else
                               Image.asset(
                                 'assets/images/playing.gif',
                                 color: Theme.of(context).colorScheme.primary,
                                 height: 12,
+                                cacheHeight: 24,
                               ),
-                              const SizedBox(width: 6)
-                            ],
-                            Expanded(
-                                child: Text(
+                            const SizedBox(width: 6),
+                          ],
+                          Expanded(
+                            child: Text(
                               episodeName,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  fontSize: 13,
-                                  color: (count0 ==
-                                              videoPageController
-                                                  .selectedEpisode.episode &&
-                                          visibleRoad ==
-                                              videoPageController
-                                                  .selectedEpisode.road)
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .onSurface),
-                            )),
-                            _buildDownloadStatusIcon(count0, urlItem),
-                            const SizedBox(width: 2),
+                                fontSize: 13,
+                                color: selected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          if (selected) ...[
+                            ExcludeSemantics(
+                              child: Icon(
+                                Icons.check_circle_rounded,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
                           ],
-                        ),
-                        const SizedBox(height: 3),
-                      ],
-                    ),
+                          _buildDownloadStatusIcon(count0, urlItem),
+                          const SizedBox(width: 2),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                    ],
                   ),
                 ),
               ),
@@ -1208,12 +1246,15 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
-  Widget get tabBody {
+  Widget get tabBody =>
+      _buildTabBody(backgroundColor: Theme.of(context).canvasColor);
+
+  Widget _buildTabBody({required Color backgroundColor}) {
     final bool danmakuOn = playerController.danmaku.danmakuOn;
     final int episodeNum = videoPageController.commentsEpisode;
 
-    return Container(
-      color: Theme.of(context).canvasColor,
+    return ColoredBox(
+      color: backgroundColor,
       child: DefaultTabController(
         length: 2,
         child: Column(
@@ -1288,6 +1329,7 @@ class _VideoPageState extends State<VideoPage>
                             onPressed: () {
                               showAdaptiveBottomSheet<void>(
                                 context: context,
+                                enableBlur: false,
                                 builder: (context) => DownloadEpisodeSheet(
                                   road: visibleRoad,
                                   videoPageController: videoPageController,

@@ -14,6 +14,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({
@@ -148,44 +149,68 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Widget _buildBottomBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final tokens = context.design;
+    final leadingButton = currentIndex == 0
+        ? TextButton(
+            onPressed: () => exit(0),
+            child: Text(
+              '退出',
+              style: TextStyle(color: colorScheme.outline),
+            ),
+          )
+        : TextButton(
+            onPressed: _previousPage,
+            child: const Text('上一步'),
+          );
+    final primaryButton = FilledButton(
+      onPressed: installingBundled ? null : _handlePrimary,
+      child: installingBundled
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(primaryLabel),
+    );
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-        child: Row(
-          children: [
-            if (currentIndex == 0)
-              TextButton(
-                onPressed: () => exit(0),
-                child: Text(
-                  '退出',
-                  style: TextStyle(color: colorScheme.outline),
-                ),
-              )
-            else
-              TextButton(
-                onPressed: _previousPage,
-                child: const Text('上一步'),
-              ),
-            Expanded(
-              child: Center(
-                child: _PageIndicator(
-                  count: stepCount,
-                  currentIndex: currentIndex,
-                ),
-              ),
-            ),
-            FilledButton(
-              onPressed: installingBundled ? null : _handlePrimary,
-              child: installingBundled
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(primaryLabel),
-            ),
-          ],
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        child: KazumiGlassSurface(
+          borderRadius: BorderRadius.circular(tokens.radiusSurface),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final scaledLabelHeight =
+                  MediaQuery.textScalerOf(context).scale(14);
+              final compact =
+                  constraints.maxWidth < 560 || scaledLabelHeight > 19;
+              final indicator = _PageIndicator(
+                count: stepCount,
+                currentIndex: currentIndex,
+              );
+              if (compact) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [leadingButton, primaryButton],
+                    ),
+                    const SizedBox(height: 8),
+                    indicator,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  leadingButton,
+                  Expanded(child: Center(child: indicator)),
+                  primaryButton,
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

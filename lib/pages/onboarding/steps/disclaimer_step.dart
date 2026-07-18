@@ -51,7 +51,7 @@ class _DisclaimerStepState extends State<DisclaimerStep> {
         elevation: 0,
         margin: EdgeInsets.zero,
         color: colorScheme.surfaceContainerLow,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
         child: statementsText == null
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(

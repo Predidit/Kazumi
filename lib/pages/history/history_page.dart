@@ -90,15 +90,15 @@ class _HistoryPageState extends State<HistoryPage> {
                     });
                   },
                   icon: showDelete
-                      ? const Icon(Icons.edit_off_outlined)
-                      : const Icon(Icons.edit_outlined),
+                      ? const Icon(Icons.edit_off_rounded)
+                      : const Icon(Icons.edit_rounded),
                   tooltip: showDelete ? '退出编辑' : '编辑',
                 ),
                 IconButton(
                   onPressed: () {
                     showHistoryClearDialog();
                   },
-                  icon: const Icon(Icons.delete_sweep_outlined),
+                  icon: const Icon(Icons.delete_sweep_rounded),
                   tooltip: '清除全部',
                 ),
               ],

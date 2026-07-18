@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 /// Rounded tonal card for a rule entry, shared by the rule manage page,
 /// the rule shop page and the onboarding rule step.
@@ -28,39 +30,43 @@ class RuleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      color: selected
-          ? colorScheme.primaryContainer
-          : colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: KazumiInteractiveSurface(
+        color: selected
+            ? colorScheme.primaryContainer
+            : colorScheme.surfaceContainerLow,
+        selected: selected,
         onTap: onTap,
         onLongPress: onLongPress,
-        selected: selected,
-        title: Text(title, style: textTheme.titleMedium),
-        subtitle: tags.isEmpty && caption == null
-            ? null
-            : Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    ...tags,
-                    if (caption != null)
-                      Text(
-                        caption!,
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: colorScheme.onSurfaceVariant),
-                      ),
-                  ],
+        semanticLabel: title,
+        child: ListTile(
+          mouseCursor: onTap != null || onLongPress != null
+              ? SystemMouseCursors.click
+              : SystemMouseCursors.basic,
+          selected: selected,
+          title: Text(title, style: textTheme.titleMedium),
+          subtitle: tags.isEmpty && caption == null
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      ...tags,
+                      if (caption != null)
+                        Text(
+                          caption!,
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-        trailing: trailing,
+          trailing: trailing,
+        ),
       ),
     );
   }
@@ -108,9 +114,9 @@ class RuleTag extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(999),
+        shape: kazumiSmoothShape(999),
       ),
       child: Text(
         label,

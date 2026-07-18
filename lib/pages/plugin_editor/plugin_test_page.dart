@@ -174,7 +174,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
             ),
             IconButton(
               onPressed: _resetState,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh_rounded),
               tooltip: '重置',
             ),
           ],

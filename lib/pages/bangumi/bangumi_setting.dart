@@ -1,4 +1,4 @@
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -97,6 +97,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
     return PopScope(
       canPop: !syncCollectiblesing,
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: const SysAppBar(title: Text('Bangumi 配置')),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),

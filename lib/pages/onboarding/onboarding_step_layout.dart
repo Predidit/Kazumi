@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 /// Shared visual skeleton for onboarding steps: a leading badge, a headline,
 /// a one-line supporting text and the step content below.
@@ -20,26 +21,34 @@ class OnboardingStepLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return Column(
-      children: [
-        const SizedBox(height: 24),
-        leading,
-        const SizedBox(height: 20),
-        Text(
-          title,
-          style: textTheme.headlineSmall,
-          textAlign: TextAlign.center,
+    return NestedScrollView(
+      headerSliverBuilder: (context, innerBoxIsScrolled) => [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(0, 20, 0, 22),
+            child: Column(
+              children: [
+                leading,
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: textTheme.headlineSmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          subtitle,
-          style:
-              textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 24),
-        Expanded(child: child),
       ],
+      body: child,
     );
   }
 }
@@ -52,15 +61,6 @@ class OnboardingStepIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        color: colorScheme.secondaryContainer,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, size: 32, color: colorScheme.onSecondaryContainer),
-    );
+    return KazumiIconBadge(icon: icon, size: 64, iconSize: 32);
   }
 }

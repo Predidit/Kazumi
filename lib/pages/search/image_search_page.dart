@@ -340,7 +340,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                         ),
                         IconButton.filledTonal(
                           onPressed: _pickImageFile,
-                          icon: const Icon(Icons.edit_outlined),
+                          icon: const Icon(Icons.edit_rounded),
                           tooltip: '重新选择',
                         ),
                       ],
@@ -366,9 +366,9 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               fontSize: 13,
             ),
-            prefixIcon: const Icon(Icons.link),
+            prefixIcon: const Icon(Icons.link_rounded),
             suffixIcon: IconButton(
-              icon: const Icon(Icons.clear),
+              icon: const Icon(Icons.clear_rounded),
               onPressed: _urlController.clear,
               tooltip: '清除',
             ),
@@ -403,13 +403,15 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
         minHeight: 170,
         maxHeight: _previewUrl.isNotEmpty ? 300 : 170,
       ),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.4),
-          width: 1.5,
-          strokeAlign: BorderSide.strokeAlignOutside,
+        shape: kazumiSmoothShape(
+          context.design.radiusCompact,
+          side: BorderSide(
+            color: colorScheme.outline.withValues(alpha: 0.4),
+            width: 1.5,
+            strokeAlign: BorderSide.strokeAlignOutside,
+          ),
         ),
       ),
       clipBehavior: Clip.antiAlias,

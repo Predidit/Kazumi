@@ -8,7 +8,7 @@ import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/design_system/kazumi_settings.dart';
 import 'package:kazumi/utils/device.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
@@ -259,6 +259,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         onBackPressed(context);
       },
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: const SysAppBar(title: Text('播放设置')),
         body: SettingsList(
           maxWidth: 1000,

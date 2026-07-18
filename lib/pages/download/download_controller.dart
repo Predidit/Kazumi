@@ -17,10 +17,10 @@ import 'package:mobx/mobx.dart';
 
 part 'download_controller.g.dart';
 
-class DownloadController = _DownloadController with _$DownloadController;
+class DownloadController = DownloadControllerBase with _$DownloadController;
 
-abstract class _DownloadController with Store {
-  _DownloadController(
+abstract class DownloadControllerBase with Store {
+  DownloadControllerBase(
     this._repository,
     this._downloadManager,
     this._pluginsController,

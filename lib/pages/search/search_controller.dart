@@ -9,26 +9,43 @@ import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/repositories/search_history_repository.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/request/apis/trace_api.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/search_parser.dart';
 
 part 'search_controller.g.dart';
 
-class SearchPageController = _SearchPageController with _$SearchPageController;
+typedef BangumiInfoLoader = Future<BangumiItem?> Function(int id);
+typedef BangumiSearchLoader = Future<List<BangumiItem>> Function(
+  SearchFilterState filter,
+  int offset,
+);
 
-abstract class _SearchPageController with Store {
-  _SearchPageController(
+class SearchPageController = SearchPageControllerBase
+    with _$SearchPageController;
+
+abstract class SearchPageControllerBase with Store {
+  SearchPageControllerBase(
     this._collectRepository,
-    this._searchHistoryRepository,
-  );
+    this._searchHistoryRepository, {
+    BangumiInfoLoader? infoLoader,
+    BangumiSearchLoader? searchLoader,
+  })  : _infoLoader = infoLoader ?? BangumiApi.getBangumiInfoByID,
+        _searchLoader = searchLoader ?? _defaultSearch;
 
   final ICollectRepository _collectRepository;
   final ISearchHistoryRepository _searchHistoryRepository;
+  final BangumiInfoLoader _infoLoader;
+  final BangumiSearchLoader _searchLoader;
 
   @observable
   bool isLoading = false;
 
   @observable
   bool isTimeOut = false;
+
+  /// The most recent recoverable text-search failure. Updates are paired with
+  /// [isLoading], avoiding changes to generated MobX code.
+  String? loadError;
 
   @observable
   bool notShowWatchedBangumis = false;
@@ -51,6 +68,22 @@ abstract class _SearchPageController with Store {
   @observable
   ObservableList<ResultItem> imageSearchResults = ObservableList.of([]);
 
+  static Future<List<BangumiItem>> _defaultSearch(
+    SearchFilterState filter,
+    int offset,
+  ) {
+    return BangumiApi.bangumiSearch(
+      filter.keyword,
+      tags: filter.tags,
+      offset: offset,
+      sort: filter.sort,
+      dateRange: filter.effectiveDateRange,
+      rankRange: filter.rankRange,
+      scoreRange: filter.scoreRange,
+      weekdays: filter.weekdays,
+    );
+  }
+
   @action
   void loadSearchHistories() {
     final histories = _searchHistoryRepository.getAllHistories();
@@ -60,50 +93,53 @@ abstract class _SearchPageController with Store {
 
   @action
   Future<void> searchBangumi(String input, {String type = 'add'}) async {
-    if (type != 'add') {
-      bangumiList.clear();
-      bool privateMode = _collectRepository.getPrivateMode();
-      if (!privateMode) {
-        // 检查是否已满，删除最旧的记录
-        if (_searchHistoryRepository.isHistoryFull(10)) {
-          await _searchHistoryRepository.deleteOldest();
-        }
-        // 删除重复的历史记录
-        await _searchHistoryRepository.deleteDuplicates(input);
-        // 保存新的搜索历史
-        await _searchHistoryRepository.saveHistory(input);
-        // 重新加载历史记录
-        loadSearchHistories();
-      }
-    }
     isLoading = true;
     isTimeOut = false;
-    SearchParser parser = SearchParser(input);
-    final filterState = parser.toFilterState();
-    String? idString = filterState.id.isEmpty ? null : filterState.id;
-    if (idString != null) {
-      final id = int.tryParse(idString);
-      if (id != null) {
-        final BangumiItem? item = await BangumiApi.getBangumiInfoByID(id);
-        if (item != null) {
-          bangumiList.add(item);
+    loadError = null;
+    try {
+      if (type != 'add') {
+        bangumiList.clear();
+        final privateMode = _collectRepository.getPrivateMode();
+        if (!privateMode) {
+          // 检查是否已满，删除最旧的记录
+          if (_searchHistoryRepository.isHistoryFull(10)) {
+            await _searchHistoryRepository.deleteOldest();
+          }
+          // 删除重复的历史记录
+          await _searchHistoryRepository.deleteDuplicates(input);
+          // 保存新的搜索历史
+          await _searchHistoryRepository.saveHistory(input);
+          // 重新加载历史记录
+          loadSearchHistories();
         }
-        isLoading = false;
-        isTimeOut = bangumiList.isEmpty;
-        return;
       }
+      final filterState = SearchParser(input).toFilterState();
+      final idString = filterState.id.isEmpty ? null : filterState.id;
+      if (idString != null) {
+        final id = int.tryParse(idString);
+        if (id != null) {
+          final item = await _infoLoader(id);
+          if (item != null) {
+            bangumiList.add(item);
+          }
+          isTimeOut = bangumiList.isEmpty;
+          return;
+        }
+      }
+      final result = await _searchLoader(filterState, bangumiList.length);
+      bangumiList.addAll(result);
+      isTimeOut = bangumiList.isEmpty;
+    } catch (error, stackTrace) {
+      loadError = '搜索失败，请检查网络后重试';
+      isTimeOut = bangumiList.isEmpty;
+      KazumiLogger().w(
+        'SearchPageController: text search failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      isLoading = false;
     }
-    final result = await BangumiApi.bangumiSearch(filterState.keyword,
-        tags: filterState.tags,
-        offset: bangumiList.length,
-        sort: filterState.sort,
-        dateRange: filterState.effectiveDateRange,
-        rankRange: filterState.rankRange,
-        scoreRange: filterState.scoreRange,
-        weekdays: filterState.weekdays);
-    bangumiList.addAll(result);
-    isLoading = false;
-    isTimeOut = bangumiList.isEmpty;
   }
 
   @action

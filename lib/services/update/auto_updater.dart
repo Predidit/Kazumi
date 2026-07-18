@@ -1,12 +1,16 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/request/core/network_exception.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/update/update_asset_policy.dart';
+import 'package:kazumi/services/update/update_release_metadata_loader.dart';
+import 'package:kazumi/services/update/windows_update_artifact_verifier.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -14,24 +18,19 @@ import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/crypto.dart';
 import 'package:kazumi/utils/version.dart';
+import 'package:kazumi/services/platform/application_lifecycle_service.dart';
+
+export 'package:kazumi/services/update/update_asset_policy.dart'
+    show InstallationType;
 
 /// 安装类型枚举
-enum InstallationType {
-  windowsMsix, // Kazumi_windows_1.7.5.msix
-  windowsPortable, // Kazumi_windows_1.7.5.zip
-  linuxDeb, // Kazumi_linux_1.7.5_amd64.deb
-  linuxTar, // Kazumi_linux_1.7.5_amd64.tar.gz
-  macosDmg, // Kazumi_macos_1.7.5.dmg
-  androidApk, // Kazumi_android_1.7.5.apk
-  ios, // iOS App
-  unknown,
-}
-
 /// 更新信息类
 class UpdateInfo {
   final String version;
   final String description;
   final String downloadUrl;
+  final List<String> downloadUrls;
+  final int? expectedSizeBytes;
   final String releaseNotes;
   final String publishedAt;
   final InstallationType? installationType;
@@ -42,6 +41,8 @@ class UpdateInfo {
     required this.version,
     required this.description,
     required this.downloadUrl,
+    this.downloadUrls = const [],
+    this.expectedSizeBytes,
     required this.releaseNotes,
     required this.publishedAt,
     this.installationType,
@@ -60,36 +61,67 @@ class UpdateInfo {
 
 Map<String, dynamic>? getUpdateAssetForType(
     List<dynamic> assets, InstallationType type) {
-  final patterns = getUpdateFilePatterns(type).map((p) => p.toLowerCase());
-
-  try {
-    final asset = assets.cast<Map<String, dynamic>>().firstWhere((asset) {
-      final name = (asset['name'] as String?)?.toLowerCase() ?? '';
-      return patterns.every((pattern) => name.contains(pattern));
-    });
-    return asset;
-  } catch (_) {
-    return null;
+  for (final candidate in assets) {
+    if (candidate is! Map) {
+      continue;
+    }
+    final asset = Map<String, dynamic>.from(candidate);
+    try {
+      validateUpdateAsset(asset, type);
+      return asset;
+    } on UpdateAssetPolicyException {
+      continue;
+    }
   }
+  return null;
+}
+
+ValidatedUpdateAsset? getValidatedUpdateAssetForType(
+    List<dynamic> assets, InstallationType type) {
+  for (final candidate in assets) {
+    if (candidate is! Map) {
+      continue;
+    }
+    try {
+      return validateUpdateAsset(Map<String, dynamic>.from(candidate), type);
+    } on UpdateAssetPolicyException {
+      continue;
+    }
+  }
+  return null;
 }
 
 String getUpdateDownloadUrlFromAsset(Map<String, dynamic>? asset) {
   if (asset == null) {
     return '';
   }
-  final mirrorUrl = asset['mirror_download_url'] as String? ?? '';
-  if (mirrorUrl.isNotEmpty) {
-    return mirrorUrl;
+  final name = (asset['name'] as String?)?.toLowerCase() ?? '';
+  final type = switch (name) {
+    final value when value.endsWith('.msix') => InstallationType.windowsMsix,
+    final value when value.endsWith('.zip') => InstallationType.windowsPortable,
+    final value when value.endsWith('.dmg') => InstallationType.macosDmg,
+    final value when value.endsWith('.apk') => InstallationType.androidApk,
+    final value when value.endsWith('.tar.gz') => InstallationType.linuxTar,
+    final value when value.endsWith('.deb') => InstallationType.linuxDeb,
+    _ => null,
+  };
+  if (type == null) {
+    return '';
   }
-  return asset['browser_download_url'] as String? ?? '';
+  try {
+    return validateUpdateAsset(asset, type).downloadUri.toString();
+  } on UpdateAssetPolicyException {
+    return '';
+  }
 }
 
 String getUpdateFileHashFromAsset(Map<String, dynamic> asset) {
   final digest = asset['digest'] as String? ?? '';
-  if (digest.isNotEmpty && digest.startsWith('sha256:')) {
-    return digest.substring(7);
+  try {
+    return normalizeSha256Digest(digest);
+  } on UpdateAssetPolicyException {
+    return '';
   }
-  return '';
 }
 
 List<String> getUpdateFilePatterns(InstallationType installationType) {
@@ -118,6 +150,8 @@ class AutoUpdater {
   AutoUpdater._internal();
 
   final DownloadHttpClient _downloadClient = DownloadHttpClient.instance;
+  final UpdateArtifactVerifier _artifactVerifier =
+      const WindowsUpdateArtifactVerifier();
 
   /// 检测所有可能的安装类型
   Future<List<InstallationType>> _detectAvailableInstallationTypes() async {
@@ -126,8 +160,12 @@ class AutoUpdater {
     try {
       if (Platform.isWindows) {
         // Windows 平台支持 MSIX 和 ZIP 便携版
-        availableTypes.add(InstallationType.windowsMsix);
-        availableTypes.add(InstallationType.windowsPortable);
+        if (_artifactVerifier.supports(InstallationType.windowsMsix)) {
+          availableTypes.add(InstallationType.windowsMsix);
+        }
+        if (_artifactVerifier.supports(InstallationType.windowsPortable)) {
+          availableTypes.add(InstallationType.windowsPortable);
+        }
       } else if (Platform.isLinux) {
         // Linux 平台支持 DEB 和 TAR.GZ
         availableTypes.add(InstallationType.linuxDeb);
@@ -173,7 +211,7 @@ class AutoUpdater {
           description: data['body'] ?? '发现新版本',
           downloadUrl: '',
           // 将在用户选择安装类型后填充
-          releaseNotes: data['html_url'] ?? '',
+          releaseNotes: validateUpdateReleaseNotesUrl(data['html_url']),
           publishedAt: data['published_at'] ?? '',
           installationType: availableTypes.first,
           // 保持兼容性
@@ -190,12 +228,19 @@ class AutoUpdater {
   }
 
   Future<Map<String, dynamic>> _latestRelease() async {
-    final raw = await _downloadClient.getPlain(ApiEndpoints.latestAppMirror);
-    final data = json.decode(raw);
-    if (data is! Map) {
-      throw Exception('Invalid update response');
-    }
-    return Map<String, dynamic>.from(data);
+    return UpdateReleaseMetadataLoader(
+      endpoints: const [
+        ApiEndpoints.latestAppMirror,
+        ApiEndpoints.latestApp,
+      ],
+      fetch: _downloadClient.getPlain,
+      onFailure: (endpoint, error) {
+        KazumiLogger().w(
+          'Update: release metadata endpoint failed. '
+          'host=${endpoint.host}, errorType=${error.runtimeType}',
+        );
+      },
+    ).load();
   }
 
   /// 自动检查更新（仅在启用自动更新时）
@@ -410,22 +455,22 @@ class AutoUpdater {
         return;
       }
 
-      final asset = getUpdateAssetForType(updateInfo.assets, selectedType);
-      final downloadUrl = getUpdateDownloadUrlFromAsset(asset);
-      if (asset == null || downloadUrl.isEmpty) {
+      final asset =
+          getValidatedUpdateAssetForType(updateInfo.assets, selectedType);
+      if (asset == null) {
         KazumiDialog.showToast(
             message:
                 '没有找到 ${_getInstallationTypeDescription(selectedType)} 的下载链接');
         return;
       }
 
-      final expectedHash = getUpdateFileHashFromAsset(asset);
-
       // 创建一个临时的 UpdateInfo 对象用于下载
       final downloadInfo = UpdateInfo(
         version: updateInfo.version,
         description: updateInfo.description,
-        downloadUrl: downloadUrl,
+        downloadUrl: asset.downloadUri.toString(),
+        downloadUrls: asset.downloadUris.map((uri) => uri.toString()).toList(),
+        expectedSizeBytes: asset.sizeBytes,
         releaseNotes: updateInfo.releaseNotes,
         publishedAt: updateInfo.publishedAt,
         installationType: selectedType,
@@ -433,7 +478,7 @@ class AutoUpdater {
         assets: updateInfo.assets,
       );
 
-      _downloadUpdate(downloadInfo, expectedHash);
+      _downloadUpdate(downloadInfo, asset.sha256);
     } catch (e) {
       KazumiDialog.showToast(message: '下载失败: ${e.toString()}');
       KazumiLogger().e('Update: download update failed', error: e);
@@ -443,7 +488,10 @@ class AutoUpdater {
   /// 下载更新
   Future<void> _downloadUpdate(
       UpdateInfo updateInfo, String expectedHash) async {
-    if (updateInfo.downloadUrl.isEmpty) {
+    final downloadUrls = updateInfo.downloadUrls.isNotEmpty
+        ? updateInfo.downloadUrls
+        : [if (updateInfo.downloadUrl.isNotEmpty) updateInfo.downloadUrl];
+    if (downloadUrls.isEmpty || updateInfo.expectedSizeBytes == null) {
       KazumiDialog.showToast(message: '没有找到合适的下载链接');
       return;
     }
@@ -486,7 +534,12 @@ class AutoUpdater {
 
     try {
       final downloadPath = await _downloadFile(
-          updateInfo.downloadUrl, updateInfo.version, expectedHash);
+        downloadUrls,
+        updateInfo.version,
+        expectedHash,
+        updateInfo.expectedSizeBytes!,
+        updateInfo.recommendedInstallationType,
+      );
 
       // 不自动关闭对话框，而是显示下载完成状态
       _showDownloadCompleteDialog(downloadPath, updateInfo);
@@ -643,65 +696,194 @@ class AutoUpdater {
 
   /// 下载文件
   Future<String> _downloadFile(
-      String url, String version, String expectedHash) async {
-    final fileName = _getFileNameFromUrl(url, version);
+    List<String> urls,
+    String version,
+    String expectedHash,
+    int expectedSizeBytes,
+    InstallationType installationType,
+  ) async {
+    final normalizedExpectedHash = validateExpectedSha256(expectedHash);
+    if (expectedSizeBytes <= 0 ||
+        expectedSizeBytes > maxWindowsUpdateArtifactBytes) {
+      throw const UpdateAssetPolicyException(
+        'The expected update size is outside the allowed range',
+      );
+    }
+    if (Platform.isWindows && !_artifactVerifier.supports(installationType)) {
+      throw const UpdateArtifactVerificationException(
+        'This Windows update type has no trusted artifact verifier',
+      );
+    }
 
-    // 统一使用临时目录
-    final tempDir = await getTemporaryDirectory();
-    final filePath = '${tempDir.path}/$fileName';
-    final file = File(filePath);
-
-    // 检查文件是否已存在
-    if (await file.exists()) {
-      try {
-        //使用哈希验证文件完整性
-        final localHash = await calculateFileHash(file);
-        if (localHash == expectedHash) {
-          // 文件已存在且哈希匹配，直接返回
-          KazumiLogger().i(
-              'Update: file already exists and hash verified, skipping download: $filePath');
-          _downloadProgress.value = 1.0;
-          return filePath;
-        } else {
-          // 文件存在但哈希不匹配，删除后重新下载
-          KazumiLogger().i(
-              'Update: file hash mismatch detected (local: $localHash, expected: $expectedHash), deleting and re-downloading');
-          await file.delete();
-        }
-      } catch (e) {
-        // 验证过程中出错，删除文件重新下载
-        KazumiLogger().w(
-            'Update: file verification failed, deleting and re-downloading',
-            error: e);
-        if (await file.exists()) {
-          await file.delete();
-        }
+    final downloadUris = <Uri>[];
+    for (final url in urls) {
+      final uri = validateUpdateDownloadUri(url, installationType);
+      if (!downloadUris.contains(uri)) {
+        downloadUris.add(uri);
       }
     }
+    if (downloadUris.isEmpty) {
+      throw const UpdateAssetPolicyException(
+        'The update asset has no valid download URL',
+      );
+    }
 
+    Object? lastError;
+    StackTrace? lastStackTrace;
+    for (final downloadUri in downloadUris) {
+      try {
+        return await _downloadFileFromUri(
+          downloadUri,
+          version,
+          normalizedExpectedHash,
+          expectedSizeBytes,
+          installationType,
+        );
+      } catch (error, stackTrace) {
+        if (error is NetworkException &&
+            error.type == NetworkExceptionType.cancel) {
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+        lastError = error;
+        lastStackTrace = stackTrace;
+        KazumiLogger().w(
+          'Update: download candidate failed. host=${downloadUri.host}, '
+          'errorType=${error.runtimeType}',
+        );
+      }
+    }
+    Error.throwWithStackTrace(
+      lastError ?? const UpdateAssetPolicyException('Update download failed'),
+      lastStackTrace ?? StackTrace.current,
+    );
+  }
+
+  Future<String> _downloadFileFromUri(
+    Uri downloadUri,
+    String version,
+    String normalizedExpectedHash,
+    int expectedSizeBytes,
+    InstallationType installationType,
+  ) async {
+    final tempDir = await getTemporaryDirectory();
+    final canonicalTempRoot =
+        await Directory(tempDir.path).resolveSymbolicLinks();
+    final fileName = buildControlledUpdateFilename(
+      installationType: installationType,
+      version: version,
+      uniqueToken: _generateSecureUpdateToken(),
+    );
+    final filePath = resolveContainedUpdatePath(canonicalTempRoot, fileName);
+    final partPath =
+        resolveContainedUpdatePath(canonicalTempRoot, '$fileName.part');
+    final partFile = File(partPath);
+    var promoted = false;
+    var verified = false;
+    var sizeLimitExceeded = false;
+
+    await _assertUnusedUpdatePath(filePath);
+    await _assertUnusedUpdatePath(partPath);
     _cancelToken = CancelToken();
 
-    await _downloadClient.download(
-      url,
-      filePath,
-      cancelToken: _cancelToken,
-      onReceiveProgress: (received, total) {
-        if (total > 0) {
-          _downloadProgress.value = received / total;
+    try {
+      try {
+        await _downloadClient.download(
+          downloadUri.toString(),
+          partPath,
+          cancelToken: _cancelToken,
+          onReceiveProgress: (received, total) {
+            if (received > maxWindowsUpdateArtifactBytes ||
+                total > maxWindowsUpdateArtifactBytes) {
+              sizeLimitExceeded = true;
+              _cancelToken?.cancel('Update artifact exceeds size limit');
+              return;
+            }
+            _downloadProgress.value =
+                (received / expectedSizeBytes).clamp(0.0, 0.99);
+          },
+        );
+      } catch (error, stackTrace) {
+        if (sizeLimitExceeded) {
+          Error.throwWithStackTrace(
+            const UpdateAssetPolicyException(
+              'The downloaded update exceeded the allowed size',
+            ),
+            stackTrace,
+          );
         }
-      },
-    );
+        Error.throwWithStackTrace(error, stackTrace);
+      }
 
-    // 下载完成后验证文件哈希
-    final downloadedHash = await calculateFileHash(file);
-    if (downloadedHash != expectedHash) {
-      // 哈希不匹配，删除文件并抛出异常
-      await file.delete();
-      throw Exception('文件完整性验证失败: 期望 $expectedHash，实际 $downloadedHash');
+      final partType =
+          await FileSystemEntity.type(partPath, followLinks: false);
+      if (partType != FileSystemEntityType.file) {
+        throw const UpdateAssetPolicyException(
+          'The downloaded update is not a regular file',
+        );
+      }
+
+      if (await partFile.length() != expectedSizeBytes) {
+        throw const UpdateAssetPolicyException(
+          'The downloaded update size does not match release metadata',
+        );
+      }
+
+      final downloadedHash = (await calculateFileHash(partFile)).toLowerCase();
+      if (downloadedHash != normalizedExpectedHash) {
+        throw Exception(
+          '文件完整性验证失败: 期望 $normalizedExpectedHash，实际 $downloadedHash',
+        );
+      }
+
+      await _assertUnusedUpdatePath(filePath);
+      final finalFile = await partFile.rename(filePath);
+      promoted = true;
+
+      if (Platform.isWindows) {
+        await _artifactVerifier.verify(
+          filePath: finalFile.path,
+          installationType: installationType,
+        );
+      }
+
+      verified = true;
+      _downloadProgress.value = 1.0;
+      KazumiLogger().i(
+        'Update: artifact hash and publisher verified: $filePath',
+      );
+      return filePath;
+    } finally {
+      _cancelToken = null;
+      await _deleteRegularUpdateFile(partPath);
+      if (promoted && !verified) {
+        await _deleteRegularUpdateFile(filePath);
+      }
     }
-    KazumiLogger().i('Update: file downloaded and hash verified: $filePath');
+  }
 
-    return filePath;
+  String _generateSecureUpdateToken() {
+    final random = Random.secure();
+    return List<int>.generate(16, (_) => random.nextInt(256))
+        .map((value) => value.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+
+  Future<void> _assertUnusedUpdatePath(String filePath) async {
+    final entityType =
+        await FileSystemEntity.type(filePath, followLinks: false);
+    if (entityType != FileSystemEntityType.notFound) {
+      throw const UpdateAssetPolicyException(
+        'A generated update path already exists',
+      );
+    }
+  }
+
+  Future<void> _deleteRegularUpdateFile(String filePath) async {
+    final entityType =
+        await FileSystemEntity.type(filePath, followLinks: false);
+    if (entityType == FileSystemEntityType.file) {
+      await File(filePath).delete();
+    }
   }
 
   /// 安装更新
@@ -725,6 +907,7 @@ class AutoUpdater {
           await Process.start('explorer.exe', [filePath], runInShell: true);
         }
         await Future.delayed(const Duration(seconds: 1));
+        await ApplicationLifecycleService.flushBeforeExit();
         exit(0);
       } else if (Platform.isMacOS) {
         if (filePath.endsWith('.dmg')) {
@@ -791,28 +974,5 @@ class AutoUpdater {
         KazumiDialog.dismiss();
       } catch (_) {}
     }
-  }
-
-  /// 从URL获取文件名
-  String _getFileNameFromUrl(String url, String version) {
-    final uri = Uri.parse(url);
-    final fileName = uri.pathSegments.last;
-
-    if (fileName.isNotEmpty) {
-      return fileName;
-    }
-
-    // 回退方案
-    String extension = '';
-    if (Platform.isWindows) {
-      extension = '.msix';
-    } else if (Platform.isMacOS) {
-      extension = '.dmg';
-    } else if (Platform.isLinux) {
-      extension = '.deb';
-    } else if (Platform.isAndroid) {
-      extension = '.apk';
-    }
-    return 'Kazumi-$version$extension';
   }
 }

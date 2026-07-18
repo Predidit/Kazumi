@@ -174,8 +174,7 @@ abstract class _PlayerSyncPlayController with Store {
           if (!_isCurrentConnection(session, client)) {
             return;
           }
-          KazumiLogger().i(
-              'SyncPlay: file changed by ${message['setBy']}: ${message['name']}');
+          KazumiLogger().d('SyncPlay: remote file selection changed');
           RegExp regExp = RegExp(r'(\d+)\[(\d+)\]');
           Match? match = regExp.firstMatch(message['name']);
           if (match != null) {
@@ -221,8 +220,6 @@ abstract class _PlayerSyncPlayController with Store {
             return;
           }
           syncplayClientRtt = (message['clientRtt'].toDouble() * 1000).toInt();
-          KazumiLogger().i(
-              'SyncPlay: position changed by ${message['setBy']}: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] calculatedPosition ${message['calculatedPositon']} position: ${message['position']} doSeek: ${message['doSeek']} paused: ${message['paused']} clientRtt: ${message['clientRtt']} serverRtt: ${message['serverRtt']} fd: ${message['fd']}');
           if (message['paused'] != !playing()) {
             if (message['paused']) {
               if (message['position'] != 0) {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
@@ -15,9 +17,12 @@ class ExternalPlayer {
 
   static Future<bool> launchUrlWithMime(String url, String mimeType) async {
     try {
-      await _platform.invokeMethod(
+      final launched = await _platform.invokeMethod<bool>(
           'openWithMime', <String, String>{'url': url, 'mimeType': mimeType});
-      return true;
+      // Android's existing channel contract returns null after launching;
+      // Windows returns an explicit result so native file/launch failures are
+      // no longer reported as success.
+      return launched ?? !Platform.isWindows;
     } on PlatformException catch (e) {
       KazumiLogger().e("ExternalPlayer: failed to open with mime", error: e);
       return false;

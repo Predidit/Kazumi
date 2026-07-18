@@ -2,22 +2,33 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/character_comments_card.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
+import 'package:kazumi/services/logging/logger.dart';
+
+typedef CharacterLoader = Future<CharacterFullItem> Function(int id);
+typedef CharacterCommentsLoader = Future<CharacterCommentResponse> Function(
+  int id,
+);
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({
     super.key,
     required this.characterID,
     required this.characterName,
+    this.characterLoader,
+    this.commentsLoader,
   });
 
   final int characterID;
   final String characterName;
+  final CharacterLoader? characterLoader;
+  final CharacterCommentsLoader? commentsLoader;
 
   @override
   State<CharacterPage> createState() => _CharacterPageState();
@@ -26,6 +37,7 @@ class CharacterPage extends StatefulWidget {
 class _CharacterPageState extends State<CharacterPage> {
   late CharacterFullItem characterFullItem;
   bool loadingCharacter = true;
+  bool characterError = false;
   List<CharacterCommentItem> commentsList = [];
   bool loadingComments = true;
   bool commentsError = false;
@@ -33,15 +45,26 @@ class _CharacterPageState extends State<CharacterPage> {
   Future<void> loadCharacter() async {
     setState(() {
       loadingCharacter = true;
+      characterError = false;
     });
-    await BangumiApi.getCharacterByCharacterID(widget.characterID)
-        .then((character) {
-      characterFullItem = character;
-    });
-    if (mounted) {
-      setState(() {
-        loadingCharacter = false;
-      });
+    try {
+      characterFullItem = await (widget.characterLoader?.call(
+            widget.characterID,
+          ) ??
+          BangumiApi.getCharacterByCharacterID(widget.characterID));
+    } catch (error, stackTrace) {
+      characterError = true;
+      KazumiLogger().w(
+        'CharacterPage: failed to load character details',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          loadingCharacter = false;
+        });
+      }
     }
   }
 
@@ -51,20 +74,22 @@ class _CharacterPageState extends State<CharacterPage> {
       commentsError = false;
     });
     try {
-      final value = await BangumiApi.getCharacterCommentsByCharacterID(
-          widget.characterID);
+      final value = await (widget.commentsLoader?.call(widget.characterID) ??
+          BangumiApi.getCharacterCommentsByCharacterID(widget.characterID));
       commentsList = value.commentList;
-    } catch (e) {
+    } catch (error, stackTrace) {
+      commentsError = true;
+      KazumiLogger().w(
+        'CharacterPage: failed to load character comments',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
       if (mounted) {
         setState(() {
-          commentsError = true;
+          loadingComments = false;
         });
       }
-    }
-    if (mounted) {
-      setState(() {
-        loadingComments = false;
-      });
     }
   }
 
@@ -113,6 +138,10 @@ class _CharacterPageState extends State<CharacterPage> {
       final initialName = widget.characterName.trim();
       return initialName.isEmpty ? '正在加载…' : initialName;
     }
+    if (characterError) {
+      final initialName = widget.characterName.trim();
+      return initialName.isEmpty ? '人物' : initialName;
+    }
 
     final localizedName = characterFullItem.nameCN.trim();
     if (localizedName.isNotEmpty) return localizedName;
@@ -123,6 +152,7 @@ class _CharacterPageState extends State<CharacterPage> {
 
   String? get _headerDescription {
     if (loadingCharacter) return null;
+    if (characterError) return '人物资料加载失败';
     if (characterFullItem.id == 0) return '未能加载人物资料';
 
     final localizedName = characterFullItem.nameCN.trim();
@@ -137,9 +167,9 @@ class _CharacterPageState extends State<CharacterPage> {
     if (loadingCharacter) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (characterFullItem.id == 0) {
+    if (characterError || characterFullItem.id == 0) {
       return GeneralErrorWidget(
-        errMsg: '什么都没有找到 (´;ω;`)',
+        errMsg: characterError ? '人物资料加载失败，请重试' : '什么都没有找到 (´;ω;`)',
         actions: [
           GeneralErrorButton(
             onPressed: loadCharacter,

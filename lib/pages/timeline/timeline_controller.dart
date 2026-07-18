@@ -4,16 +4,41 @@ import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
 
 part 'timeline_controller.g.dart';
 
-class TimelineController = _TimelineController with _$TimelineController;
+typedef TimelineCalendarLoader = Future<List<List<BangumiItem>>> Function();
+typedef TimelineMirrorSeasonLoader = Future<List<List<BangumiItem>>> Function(
+  List<String> dateRange,
+);
+typedef TimelineSeasonPageLoader = Future<List<List<BangumiItem>>> Function(
+  List<String> dateRange,
+  int limit,
+  int offset,
+);
 
-abstract class _TimelineController with Store {
-  _TimelineController(this._collectRepository);
+class TimelineController = TimelineControllerBase with _$TimelineController;
+
+abstract class TimelineControllerBase with Store {
+  TimelineControllerBase(
+    this._collectRepository, {
+    TimelineCalendarLoader? calendarLoader,
+    TimelineMirrorSeasonLoader? mirrorSeasonLoader,
+    TimelineSeasonPageLoader? seasonPageLoader,
+    bool Function()? mirrorEnabled,
+  })  : _calendarLoader = calendarLoader ?? BangumiApi.getCalendar,
+        _mirrorSeasonLoader =
+            mirrorSeasonLoader ?? BangumiApi.getBangumiMirrorSeasonCalendar,
+        _seasonPageLoader = seasonPageLoader ?? BangumiApi.getCalendarBySearch,
+        _mirrorEnabled = mirrorEnabled ?? _defaultMirrorEnabled;
 
   final ICollectRepository _collectRepository;
+  final TimelineCalendarLoader _calendarLoader;
+  final TimelineMirrorSeasonLoader _mirrorSeasonLoader;
+  final TimelineSeasonPageLoader _seasonPageLoader;
+  final bool Function() _mirrorEnabled;
 
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =
@@ -27,6 +52,10 @@ abstract class _TimelineController with Store {
 
   @observable
   bool isTimeOut = false;
+
+  /// The most recent recoverable load failure. Updates are paired with the
+  /// observable loading flag to avoid changing generated MobX code.
+  String? loadError;
 
   @observable
   late bool notShowAbandonedBangumis =
@@ -46,7 +75,7 @@ abstract class _TimelineController with Store {
   late DateTime _selectedDate;
   DateTime get selectedDate => _selectedDate;
 
-  bool get _bangumiMirrorEnabled =>
+  static bool _defaultMirrorEnabled() =>
       GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 
   void init() {
@@ -61,59 +90,68 @@ abstract class _TimelineController with Store {
   Future<void> getSchedules() async {
     isLoading = true;
     isTimeOut = false;
-    bangumiCalendar.clear();
-    final resBangumiCalendar = await BangumiApi.getCalendar();
-    bangumiCalendar.clear();
-    bangumiCalendar.addAll(resBangumiCalendar);
-    changeSortType(sortType);
-    isLoading = false;
-    isTimeOut = bangumiCalendar.isEmpty;
+    loadError = null;
+    try {
+      final resBangumiCalendar = await _calendarLoader();
+      bangumiCalendar.clear();
+      bangumiCalendar.addAll(resBangumiCalendar);
+      changeSortType(sortType);
+      isTimeOut = bangumiCalendar.isEmpty;
+    } catch (error, stackTrace) {
+      loadError = '加载时间表失败，请重试';
+      isTimeOut = bangumiCalendar.isEmpty;
+      KazumiLogger().w(
+        'TimelineController: failed to load current schedule',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      isLoading = false;
+    }
   }
 
   @action
   Future<void> getSchedulesBySeason() async {
-    if (_bangumiMirrorEnabled) {
-      isLoading = true;
-      isTimeOut = false;
-      bangumiCalendar.clear();
-      final resBangumiCalendar =
-          await BangumiApi.getBangumiMirrorSeasonCalendar(
-              AnimeSeason(selectedDate).toSeasonStartAndEnd());
-      bangumiCalendar.clear();
-      bangumiCalendar.addAll(resBangumiCalendar);
-      isLoading = false;
-      isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
+    isLoading = true;
+    isTimeOut = false;
+    loadError = null;
+    bangumiCalendar.clear();
+    final dateRange = AnimeSeason(selectedDate).toSeasonStartAndEnd();
+    try {
+      if (_mirrorEnabled()) {
+        final resBangumiCalendar = await _mirrorSeasonLoader(dateRange);
+        bangumiCalendar.addAll(resBangumiCalendar);
+      } else {
+        const maxTime = 4;
+        const limit = 20;
+        final resBangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
+        for (var time = 0; time < maxTime; time++) {
+          final offset = time * limit;
+          final newList = await _seasonPageLoader(dateRange, limit, offset);
+          for (var i = 0; i < resBangumiCalendar.length; ++i) {
+            resBangumiCalendar[i].addAll(newList[i]);
+          }
+          bangumiCalendar
+            ..clear()
+            ..addAll(resBangumiCalendar);
+        }
+      }
+      isTimeOut = bangumiCalendar.isEmpty ||
+          bangumiCalendar.every((innerList) => innerList.isEmpty);
       if (!isTimeOut) {
         changeSortType(sortType);
       }
-      return;
-    }
-
-    isLoading = true;
-    isTimeOut = false;
-    bangumiCalendar.clear();
-    var time = 0;
-    const maxTime = 4;
-    const limit = 20;
-    var resBangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
-    for (time = 0; time < maxTime; time++) {
-      final offset = time * limit;
-      var newList = await BangumiApi.getCalendarBySearch(
-          AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
-      for (int i = 0; i < resBangumiCalendar.length; ++i) {
-        resBangumiCalendar[i].addAll(newList[i]);
-      }
-      bangumiCalendar.clear();
-      bangumiCalendar.addAll(resBangumiCalendar);
-    }
-    isLoading = false;
-    if (bangumiCalendar.isEmpty) {
-      isTimeOut = true;
-    } else {
-      isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
-    }
-    if (!isTimeOut) {
-      changeSortType(sortType);
+    } catch (error, stackTrace) {
+      loadError = '加载季度时间表失败，请重试';
+      isTimeOut = bangumiCalendar.isEmpty ||
+          bangumiCalendar.every((innerList) => innerList.isEmpty);
+      KazumiLogger().w(
+        'TimelineController: failed to load season schedule',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      isLoading = false;
     }
   }
 

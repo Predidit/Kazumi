@@ -4,6 +4,7 @@ import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart';
+import 'package:kazumi/services/plugin/rule_request_policy.dart';
 import 'package:kazumi/utils/episode_url.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 
@@ -55,10 +56,12 @@ class XPathRuleStrategy {
       '@keyword',
       Uri.encodeQueryComponent(keyword),
     );
-    final uri = Uri.tryParse(queryUrl);
-    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+    final Uri uri;
+    try {
+      uri = RuleRequestPolicy.validateHttpUrl(queryUrl);
+    } on RuleRequestPolicyException catch (error) {
       throw XPathRuleFormatException(
-        '搜索 URL 无效: $queryUrl',
+        error.message,
         kind: XPathRuleFormatKind.invalidUrl,
       );
     }
@@ -83,10 +86,11 @@ class XPathRuleStrategy {
     String source,
   ) {
     final url = normalizeEpisodeUrl(config.baseUrl, source);
-    final uri = Uri.tryParse(url);
-    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+    try {
+      RuleRequestPolicy.validateHttpUrl(url);
+    } on RuleRequestPolicyException catch (error) {
       throw XPathRuleFormatException(
-        '章节 URL 无效: $url',
+        error.message,
         kind: XPathRuleFormatKind.invalidUrl,
       );
     }
@@ -185,7 +189,10 @@ class XPathRuleStrategy {
               continue;
             }
             final name = (episode.text ?? '').replaceAll(RegExp(r'\s+'), '');
-            urls.add(normalizeEpisodeUrl(config.baseUrl, source));
+            final normalizedUrl = normalizeEpisodeUrl(config.baseUrl, source);
+            urls.add(
+              RuleRequestPolicy.validateHttpUrl(normalizedUrl).toString(),
+            );
             names.add(name.isEmpty ? '第${episodeIndex + 1}集' : name);
           } catch (error) {
             diagnostics.add(

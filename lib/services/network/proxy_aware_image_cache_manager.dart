@@ -74,7 +74,6 @@ class ProxyAwareImageFileService extends FileService {
     }
 
     client.findProxy = (_) => 'PROXY ${proxy.$1}:${proxy.$2}';
-    client.badCertificateCallback = (cert, host, port) => true;
     return client;
   }
 

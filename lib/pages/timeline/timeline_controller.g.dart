@@ -8,9 +8,9 @@ part of 'timeline_controller.dart';
 
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
-mixin _$TimelineController on _TimelineController, Store {
+mixin _$TimelineController on TimelineControllerBase, Store {
   late final _$bangumiCalendarAtom =
-      Atom(name: '_TimelineController.bangumiCalendar', context: context);
+      Atom(name: 'TimelineControllerBase.bangumiCalendar', context: context);
 
   @override
   ObservableList<List<BangumiItem>> get bangumiCalendar {
@@ -26,7 +26,7 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$seasonStringAtom =
-      Atom(name: '_TimelineController.seasonString', context: context);
+      Atom(name: 'TimelineControllerBase.seasonString', context: context);
 
   @override
   String get seasonString {
@@ -42,7 +42,7 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$isLoadingAtom =
-      Atom(name: '_TimelineController.isLoading', context: context);
+      Atom(name: 'TimelineControllerBase.isLoading', context: context);
 
   @override
   bool get isLoading {
@@ -58,7 +58,7 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$isTimeOutAtom =
-      Atom(name: '_TimelineController.isTimeOut', context: context);
+      Atom(name: 'TimelineControllerBase.isTimeOut', context: context);
 
   @override
   bool get isTimeOut {
@@ -74,7 +74,8 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$notShowAbandonedBangumisAtom = Atom(
-      name: '_TimelineController.notShowAbandonedBangumis', context: context);
+      name: 'TimelineControllerBase.notShowAbandonedBangumis',
+      context: context);
 
   @override
   bool get notShowAbandonedBangumis {
@@ -97,7 +98,7 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$notShowWatchedBangumisAtom = Atom(
-      name: '_TimelineController.notShowWatchedBangumis', context: context);
+      name: 'TimelineControllerBase.notShowWatchedBangumis', context: context);
 
   @override
   bool get notShowWatchedBangumis {
@@ -120,7 +121,8 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$onlyShowWatchingBangumisAtom = Atom(
-      name: '_TimelineController.onlyShowWatchingBangumis', context: context);
+      name: 'TimelineControllerBase.onlyShowWatchingBangumis',
+      context: context);
 
   @override
   bool get onlyShowWatchingBangumis {
@@ -143,15 +145,16 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$getSchedulesAsyncAction =
-      AsyncAction('_TimelineController.getSchedules', context: context);
+      AsyncAction('TimelineControllerBase.getSchedules', context: context);
 
   @override
   Future<void> getSchedules() {
     return _$getSchedulesAsyncAction.run(() => super.getSchedules());
   }
 
-  late final _$getSchedulesBySeasonAsyncAction =
-      AsyncAction('_TimelineController.getSchedulesBySeason', context: context);
+  late final _$getSchedulesBySeasonAsyncAction = AsyncAction(
+      'TimelineControllerBase.getSchedulesBySeason',
+      context: context);
 
   @override
   Future<void> getSchedulesBySeason() {
@@ -160,7 +163,7 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$setNotShowAbandonedBangumisAsyncAction = AsyncAction(
-      '_TimelineController.setNotShowAbandonedBangumis',
+      'TimelineControllerBase.setNotShowAbandonedBangumis',
       context: context);
 
   @override
@@ -170,7 +173,7 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$setNotShowWatchedBangumisAsyncAction = AsyncAction(
-      '_TimelineController.setNotShowWatchedBangumis',
+      'TimelineControllerBase.setNotShowWatchedBangumis',
       context: context);
 
   @override
@@ -180,7 +183,7 @@ mixin _$TimelineController on _TimelineController, Store {
   }
 
   late final _$setOnlyShowWatchingBangumisAsyncAction = AsyncAction(
-      '_TimelineController.setOnlyShowWatchingBangumis',
+      'TimelineControllerBase.setOnlyShowWatchingBangumis',
       context: context);
 
   @override
@@ -189,17 +192,17 @@ mixin _$TimelineController on _TimelineController, Store {
         .run(() => super.setOnlyShowWatchingBangumis(value));
   }
 
-  late final _$_TimelineControllerActionController =
-      ActionController(name: '_TimelineController', context: context);
+  late final _$TimelineControllerBaseActionController =
+      ActionController(name: 'TimelineControllerBase', context: context);
 
   @override
   void changeSortType(int type) {
-    final _$actionInfo = _$_TimelineControllerActionController.startAction(
-        name: '_TimelineController.changeSortType');
+    final _$actionInfo = _$TimelineControllerBaseActionController.startAction(
+        name: 'TimelineControllerBase.changeSortType');
     try {
       return super.changeSortType(type);
     } finally {
-      _$_TimelineControllerActionController.endAction(_$actionInfo);
+      _$TimelineControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 

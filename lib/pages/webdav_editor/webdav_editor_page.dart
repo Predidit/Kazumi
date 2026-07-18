@@ -3,6 +3,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/services/sync/webdav_endpoint_policy.dart';
 
 class WebDavEditorPage extends StatefulWidget {
   const WebDavEditorPage({
@@ -95,10 +96,17 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.save),
         onPressed: () async {
-          GStorage.putSetting(SettingsKeys.webDavURL, webDavURLController.text);
-          GStorage.putSetting(
+          late final String webDavUrl;
+          try {
+            webDavUrl = validateWebDavEndpoint(webDavURLController.text);
+          } on WebDavEndpointPolicyException {
+            KazumiDialog.showToast(message: 'WebDAV URL 格式无效');
+            return;
+          }
+          await GStorage.putSetting(SettingsKeys.webDavURL, webDavUrl);
+          await GStorage.putSetting(
               SettingsKeys.webDavUsername, webDavUsernameController.text);
-          GStorage.putSetting(
+          await GStorage.putSetting(
               SettingsKeys.webDavPassword, webDavPasswordController.text);
           var webDav = WebDav();
           try {

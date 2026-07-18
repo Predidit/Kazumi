@@ -37,7 +37,6 @@ import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
 import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/services/platform/display_mode_service.dart';
 import 'package:kazumi/services/platform/player_menu_service.dart';
 
 class PlayerItem extends StatefulWidget {
@@ -87,9 +86,6 @@ class _PlayerItemState extends State<PlayerItem>
   late final Map<String, PlayerLongPressShortcutActions>
       keyboardLongPressActions;
 
-  late bool webDavEnable;
-  late bool webDavEnableHistory;
-
   final _danmuKey = GlobalKey();
   late bool _border;
   late double _opacity;
@@ -135,6 +131,7 @@ class _PlayerItemState extends State<PlayerItem>
   late double longPressPlaySpeed;
   bool? _lastPipPlaying;
   bool? _lastPipDanmakuEnabled;
+  Future<void>? _historySyncFlush;
   late mobx.ReactionDisposer _playerSizeListener;
 
   late mobx.ReactionDisposer _fullscreenListener;
@@ -144,6 +141,10 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_requestHistorySyncFlush());
+    }
     if (state == AppLifecycleState.paused &&
         !backgroundPlayback &&
         playerController.playback.mediaPlayer != null &&
@@ -345,21 +346,20 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  void handleShortcutFullscreen() {
-    if (!videoPageController.isPip) handleFullscreen();
+  Future<void> handleShortcutFullscreen() async {
+    if (!videoPageController.isPip) {
+      await handleFullscreen();
+    }
   }
 
-  void handleShortcutExitFullscreen() {
-    if (videoPageController.isFullscreen && !isTablet()) {
-      try {
-        playerController.danmaku.canvasController.clear();
-      } catch (_) {}
-      DisplayModeService.exitFullScreen();
-      videoPageController.isFullscreen = !videoPageController.isFullscreen;
-    } else if (!Platform.isMacOS) {
-      playerController.pause();
-      windowManager.hide();
+  Future<void> handleShortcutExitFullscreen() async {
+    if (!videoPageController.isFullscreen || isTablet()) {
+      return;
     }
+    try {
+      playerController.danmaku.canvasController.clear();
+    } catch (_) {}
+    await _setFullScreen(false);
   }
 
   void _toggleVideoController() {
@@ -472,17 +472,6 @@ class _PlayerItemState extends State<PlayerItem>
     unawaited(_updateAndroidPIPActions(force: true));
   }
 
-  Future<void> _syncHistoryWithWebDav() async {
-    if (webDavEnable && webDavEnableHistory) {
-      try {
-        var webDav = WebDav();
-        await webDav.syncHistory();
-      } catch (e) {
-        KazumiLogger().w('WebDav: auto history sync failed', error: e);
-      }
-    }
-  }
-
   Future<void> _bindAudioService() async {
     try {
       await _audioController.bindCallbacks(
@@ -555,12 +544,52 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  void _handleFullscreenChange(BuildContext context) async {
+  Future<void> _requestHistorySyncFlush() {
+    final activeFlush = _historySyncFlush;
+    if (activeFlush != null) {
+      return activeFlush;
+    }
+
+    late final Future<void> operation;
+    operation = _performHistorySyncFlush().whenComplete(() {
+      if (identical(_historySyncFlush, operation)) {
+        _historySyncFlush = null;
+      }
+    });
+    _historySyncFlush = operation;
+    return operation;
+  }
+
+  Future<void> _performHistorySyncFlush() async {
+    final historyIdentity = videoPageController.currentHistoryIdentity;
+    final progress = playerController.playback.playerPosition;
+    final duration = playerController.playback.playerDuration;
+
+    if (!videoPageController.loading &&
+        historyIdentity != null &&
+        historyIdentity.canRecord) {
+      await historyController.updateHistory(
+        historyIdentity,
+        progress,
+        duration: duration,
+      );
+    }
+
+    try {
+      await WebDav().flushScheduledHistorySync();
+    } catch (error, stackTrace) {
+      KazumiLogger().w(
+        'WebDav: failed to flush scheduled history sync',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  void _handleFullscreenChange(BuildContext context) {
     playerController.panel.lockPanel = false;
     _releasePlayerPanelHolds();
     playerController.danmaku.canvasController.clear();
-
-    await _syncHistoryWithWebDav();
   }
 
   void handleProgressBarDragStart() {
@@ -757,18 +786,32 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  void handleFullscreen() {
-    _handleFullscreenChange(context);
-    if (videoPageController.isFullscreen) {
-      DisplayModeService.exitFullScreen();
-      if (!isDesktop()) {
+  Future<void> handleFullscreen() async {
+    final targetState = videoPageController.fullscreenTransitions
+        .targetForToggle(videoPageController.isFullscreen);
+    await _setFullScreen(targetState);
+  }
+
+  Future<void> _setFullScreen(bool targetState) async {
+    try {
+      final changed = await videoPageController.setFullScreen(targetState);
+      if (!changed || !mounted) {
+        return;
+      }
+      if (targetState) {
+        widget.hideMenuImmediately();
+      } else if (!isDesktop()) {
         widget.showMenuImmediately();
       }
-    } else {
-      DisplayModeService.enterFullScreen();
-      widget.hideMenuImmediately();
+    } catch (error, stackTrace) {
+      KazumiLogger().e(
+        targetState
+            ? 'Display: failed to enter full screen'
+            : 'Display: failed to exit full screen',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
-    videoPageController.isFullscreen = !videoPageController.isFullscreen;
   }
 
   bool get _canHidePlayerPanel =>
@@ -1745,8 +1788,6 @@ class _PlayerItemState extends State<PlayerItem>
       parent: _screenshotFeedbackController,
       curve: Curves.linear,
     );
-    webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
-    webDavEnableHistory = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
     playerController.danmaku.setDanmakuEnabled(
       GStorage.getSetting(SettingsKeys.danmakuEnabledByDefault),
     );
@@ -1797,6 +1838,7 @@ class _PlayerItemState extends State<PlayerItem>
     windowManager.removeListener(this);
     playerController.seeking.invalidateInteractiveSeek();
     playerTimer?.cancel();
+    unawaited(_requestHistorySyncFlush());
     hideTimer?.cancel();
     mouseScrollerTimer?.cancel();
     _adjustmentHudHideTimer?.cancel();

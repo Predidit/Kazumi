@@ -1,46 +1,45 @@
-/// 代理相关的工具函数
+/// Utilities for validating and normalizing the user-configured HTTP proxy.
 class ProxyUtils {
-  // 防止实例化
   ProxyUtils._();
 
-  /// 解析代理 URL，返回 (主机, 端口)
-  ///
-  /// 支持的格式:
-  /// - http://127.0.0.1:7890
-  /// - 127.0.0.1:7890
+  /// Parses the supported `host:port` and `http(s)://host:port` forms.
   static (String, int)? parseProxyUrl(String url) {
-    url = url.trim();
-    if (url.isEmpty) return null;
+    final trimmed = url.trim();
+    if (trimmed.isEmpty || _containsControlCharacter(trimmed)) return null;
 
-    String hostPort = url;
-
-    // 移除 http:// 前缀
-    if (url.toLowerCase().startsWith('http://')) {
-      hostPort = url.substring(7);
-    } else if (url.toLowerCase().startsWith('https://')) {
-      hostPort = url.substring(8);
+    final candidate = trimmed.contains('://') ? trimmed : 'http://$trimmed';
+    final uri = Uri.tryParse(candidate);
+    if (uri == null ||
+        (uri.scheme.toLowerCase() != 'http' &&
+            uri.scheme.toLowerCase() != 'https') ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        !uri.hasPort ||
+        uri.port < 1 ||
+        uri.port > 65535 ||
+        (uri.path.isNotEmpty && uri.path != '/') ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      return null;
     }
 
-    // 解析主机和端口
-    final parts = hostPort.split(':');
-    if (parts.length != 2) return null;
-
-    final host = parts[0];
-    final port = int.tryParse(parts[1]);
-    if (host.isEmpty || port == null) return null;
-
-    return (host, port);
+    return (uri.host, uri.port);
   }
 
-  /// 获取格式化的代理 URL（用于 mpv）
+  /// Returns the HTTP proxy form expected by MediaKit and WebView.
   static String? getFormattedProxyUrl(String url) {
     final parsed = parseProxyUrl(url);
     if (parsed == null) return null;
-    return 'http://${parsed.$1}:${parsed.$2}';
+    final host = parsed.$1.contains(':') ? '[${parsed.$1}]' : parsed.$1;
+    return 'http://$host:${parsed.$2}';
   }
 
-  /// 验证代理 URL 是否有效
   static bool isValidProxyUrl(String url) {
     return parseProxyUrl(url) != null;
+  }
+
+  static bool _containsControlCharacter(String value) {
+    return value.codeUnits.any((unit) => unit < 0x20 || unit == 0x7f);
   }
 }

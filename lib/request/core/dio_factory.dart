@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/request/core/bangumi_request_security.dart';
 import 'package:kazumi/request/core/dio_logger_interceptor.dart';
 import 'package:kazumi/request/core/network_config.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/logging/log_sanitizer.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/http_headers.dart';
 
@@ -109,10 +111,20 @@ class _BangumiMirrorInterceptor extends Interceptor {
       return;
     }
 
+    // Authenticated calls must stay on the official Bangumi origin. This also
+    // prevents a future mirror rule from forwarding a bearer token.
+    if (BangumiRequestSecurity.hasAuthorizationHeader(options.headers)) {
+      handler.next(options);
+      return;
+    }
+
     final mirrored = ApiEndpoints.bangumiMirrorDomain +
         uri.path +
         (uri.hasQuery ? '?${uri.query}' : '');
-    KazumiLogger().d('Bangumi mirror: $mirrored');
+    BangumiRequestSecurity.removeAuthorizationHeaders(options.headers);
+    KazumiLogger().d(
+      'Bangumi mirror: ${LogSanitizer.sanitizeUri(mirrored)}',
+    );
     options.path = mirrored;
     handler.next(options);
   }
@@ -135,7 +147,9 @@ class _RulesMirrorInterceptor extends Interceptor {
 
     final mirrored = ApiEndpoints.pluginShopMirror +
         url.substring(ApiEndpoints.pluginShop.length);
-    KazumiLogger().d('Rules mirror: $mirrored');
+    KazumiLogger().d(
+      'Rules mirror: ${LogSanitizer.sanitizeUri(mirrored)}',
+    );
     options.path = mirrored;
     handler.next(options);
   }

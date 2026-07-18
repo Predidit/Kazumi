@@ -30,7 +30,7 @@ class VideoWebviewImpl
           mixedContentMode: MixedContentMode.MIXED_CONTENT_COMPATIBILITY_MODE,
         ),
         onWebViewCreated: (controller) {
-          print('[WebView] Created (legacy fallback)');
+          KazumiLogger().d('Legacy video WebView created');
           webviewController = controller;
           initEventController.add(true);
         },

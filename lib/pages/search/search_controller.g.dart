@@ -8,9 +8,9 @@ part of 'search_controller.dart';
 
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
-mixin _$SearchPageController on _SearchPageController, Store {
+mixin _$SearchPageController on SearchPageControllerBase, Store {
   late final _$isLoadingAtom =
-      Atom(name: '_SearchPageController.isLoading', context: context);
+      Atom(name: 'SearchPageControllerBase.isLoading', context: context);
 
   @override
   bool get isLoading {
@@ -26,7 +26,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$isTimeOutAtom =
-      Atom(name: '_SearchPageController.isTimeOut', context: context);
+      Atom(name: 'SearchPageControllerBase.isTimeOut', context: context);
 
   @override
   bool get isTimeOut {
@@ -42,7 +42,8 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$notShowWatchedBangumisAtom = Atom(
-      name: '_SearchPageController.notShowWatchedBangumis', context: context);
+      name: 'SearchPageControllerBase.notShowWatchedBangumis',
+      context: context);
 
   @override
   bool get notShowWatchedBangumis {
@@ -59,7 +60,8 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$notShowAbandonedBangumisAtom = Atom(
-      name: '_SearchPageController.notShowAbandonedBangumis', context: context);
+      name: 'SearchPageControllerBase.notShowAbandonedBangumis',
+      context: context);
 
   @override
   bool get notShowAbandonedBangumis {
@@ -76,7 +78,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$bangumiListAtom =
-      Atom(name: '_SearchPageController.bangumiList', context: context);
+      Atom(name: 'SearchPageControllerBase.bangumiList', context: context);
 
   @override
   ObservableList<BangumiItem> get bangumiList {
@@ -92,7 +94,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$searchHistoriesAtom =
-      Atom(name: '_SearchPageController.searchHistories', context: context);
+      Atom(name: 'SearchPageControllerBase.searchHistories', context: context);
 
   @override
   ObservableList<SearchHistory> get searchHistories {
@@ -108,7 +110,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$isImageSearchingAtom =
-      Atom(name: '_SearchPageController.isImageSearching', context: context);
+      Atom(name: 'SearchPageControllerBase.isImageSearching', context: context);
 
   @override
   bool get isImageSearching {
@@ -124,7 +126,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$imageSearchErrorAtom =
-      Atom(name: '_SearchPageController.imageSearchError', context: context);
+      Atom(name: 'SearchPageControllerBase.imageSearchError', context: context);
 
   @override
   String get imageSearchError {
@@ -139,8 +141,8 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
-  late final _$imageSearchResultsAtom =
-      Atom(name: '_SearchPageController.imageSearchResults', context: context);
+  late final _$imageSearchResultsAtom = Atom(
+      name: 'SearchPageControllerBase.imageSearchResults', context: context);
 
   @override
   ObservableList<ResultItem> get imageSearchResults {
@@ -156,7 +158,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$searchBangumiAsyncAction =
-      AsyncAction('_SearchPageController.searchBangumi', context: context);
+      AsyncAction('SearchPageControllerBase.searchBangumi', context: context);
 
   @override
   Future<void> searchBangumi(String input, {String type = 'add'}) {
@@ -165,7 +167,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$deleteSearchHistoryAsyncAction = AsyncAction(
-      '_SearchPageController.deleteSearchHistory',
+      'SearchPageControllerBase.deleteSearchHistory',
       context: context);
 
   @override
@@ -174,8 +176,9 @@ mixin _$SearchPageController on _SearchPageController, Store {
         .run(() => super.deleteSearchHistory(history));
   }
 
-  late final _$clearSearchHistoryAsyncAction =
-      AsyncAction('_SearchPageController.clearSearchHistory', context: context);
+  late final _$clearSearchHistoryAsyncAction = AsyncAction(
+      'SearchPageControllerBase.clearSearchHistory',
+      context: context);
 
   @override
   Future<void> clearSearchHistory() {
@@ -183,8 +186,9 @@ mixin _$SearchPageController on _SearchPageController, Store {
         .run(() => super.clearSearchHistory());
   }
 
-  late final _$searchImageByFileAsyncAction =
-      AsyncAction('_SearchPageController.searchImageByFile', context: context);
+  late final _$searchImageByFileAsyncAction = AsyncAction(
+      'SearchPageControllerBase.searchImageByFile',
+      context: context);
 
   @override
   Future<void> searchImageByFile(File imageFile) {
@@ -192,8 +196,9 @@ mixin _$SearchPageController on _SearchPageController, Store {
         .run(() => super.searchImageByFile(imageFile));
   }
 
-  late final _$searchImageByUrlAsyncAction =
-      AsyncAction('_SearchPageController.searchImageByUrl', context: context);
+  late final _$searchImageByUrlAsyncAction = AsyncAction(
+      'SearchPageControllerBase.searchImageByUrl',
+      context: context);
 
   @override
   Future<void> searchImageByUrl(String imageUrl) {
@@ -202,7 +207,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$setNotShowWatchedBangumisAsyncAction = AsyncAction(
-      '_SearchPageController.setNotShowWatchedBangumis',
+      'SearchPageControllerBase.setNotShowWatchedBangumis',
       context: context);
 
   @override
@@ -212,7 +217,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   late final _$setNotShowAbandonedBangumisAsyncAction = AsyncAction(
-      '_SearchPageController.setNotShowAbandonedBangumis',
+      'SearchPageControllerBase.setNotShowAbandonedBangumis',
       context: context);
 
   @override
@@ -221,28 +226,28 @@ mixin _$SearchPageController on _SearchPageController, Store {
         .run(() => super.setNotShowAbandonedBangumis(value));
   }
 
-  late final _$_SearchPageControllerActionController =
-      ActionController(name: '_SearchPageController', context: context);
+  late final _$SearchPageControllerBaseActionController =
+      ActionController(name: 'SearchPageControllerBase', context: context);
 
   @override
   void loadSearchHistories() {
-    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
-        name: '_SearchPageController.loadSearchHistories');
+    final _$actionInfo = _$SearchPageControllerBaseActionController.startAction(
+        name: 'SearchPageControllerBase.loadSearchHistories');
     try {
       return super.loadSearchHistories();
     } finally {
-      _$_SearchPageControllerActionController.endAction(_$actionInfo);
+      _$SearchPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 
   @override
   void clearImageSearchState() {
-    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
-        name: '_SearchPageController.clearImageSearchState');
+    final _$actionInfo = _$SearchPageControllerBaseActionController.startAction(
+        name: 'SearchPageControllerBase.clearImageSearchState');
     try {
       return super.clearImageSearchState();
     } finally {
-      _$_SearchPageControllerActionController.endAction(_$actionInfo);
+      _$SearchPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 

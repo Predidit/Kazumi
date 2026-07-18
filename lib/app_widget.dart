@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -14,6 +15,7 @@ import 'package:kazumi/navigation.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
+import 'package:kazumi/services/platform/application_lifecycle_service.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -26,6 +28,7 @@ class _AppWidgetState extends State<AppWidget>
     with TrayListener, WidgetsBindingObserver, WindowListener {
   final TrayManager trayManager = TrayManager.instance;
   bool showingExitDialog = false;
+  Future<void>? _exitFuture;
   bool _didApplyStoredThemeSettings = false;
   Brightness? _lastTitleBarBrightness;
 
@@ -206,8 +209,17 @@ class _AppWidgetState extends State<AppWidget>
       case 'show_window':
         windowManager.show();
       case 'exit':
-        exit(0);
+        unawaited(_exitApplication());
     }
+  }
+
+  Future<void> _exitApplication() {
+    return _exitFuture ??= _performExit();
+  }
+
+  Future<void> _performExit() async {
+    await ApplicationLifecycleService.flushBeforeExit();
+    exit(0);
   }
 
   /// 处理窗口关闭事件，
@@ -218,7 +230,7 @@ class _AppWidgetState extends State<AppWidget>
 
     switch (exitBehavior) {
       case 0:
-        exit(0);
+        unawaited(_exitApplication());
       case 1:
         KazumiDialog.dismiss();
         windowManager.hide();
@@ -262,7 +274,7 @@ class _AppWidgetState extends State<AppWidget>
                     if (saveExitBehavior) {
                       await GStorage.putSetting(SettingsKeys.exitBehavior, 0);
                     }
-                    exit(0);
+                    await _exitApplication();
                   },
                   child: const Text('退出 Kazumi')),
               TextButton(

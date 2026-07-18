@@ -69,7 +69,6 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
           sendTimeout: const Duration(seconds: 10),
           proxyHost: parsed.$1,
           proxyPort: parsed.$2,
-          allowBadCertificates: true,
           enableLog: false,
         ),
       );

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:webview_windows/webview_windows.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/logging/log_sanitizer.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
@@ -32,8 +33,10 @@ class CaptchaWebviewWindowsImpl
     _subscriptions.add(
       _headlessWebview!.loadingState.listen((state) async {
         if (state == LoadingState.navigationCompleted) {
-          logEventController
-              .add('[Captcha WebView] Navigation completed: $_currentPageUrl');
+          logEventController.add(
+            '[Captcha WebView] Navigation completed: '
+            '${LogSanitizer.sanitizeUri(_currentPageUrl)}',
+          );
           if (_currentCaptchaImageXpath.isNotEmpty) {
             await _injectCaptchaScript();
           } else if (_buttonXpath.isNotEmpty) {
@@ -74,10 +77,10 @@ class CaptchaWebviewWindowsImpl
 
   void _onWebMessage(dynamic message) {
     final msg = message.toString();
-    logEventController.add('[Captcha WebView] WM: $msg');
     if (msg.startsWith('captchaImage:')) {
       final src = msg.replaceFirst('captchaImage:', '');
       if (src.isNotEmpty && !captchaImageFoundController.isClosed) {
+        logEventController.add('[Captcha WebView] Captcha image received');
         captchaWasFound = true;
         captchaImageFoundController.add(src);
       }
@@ -90,8 +93,12 @@ class CaptchaWebviewWindowsImpl
         captchaDisappearedController.add(null);
       }
     } else if (msg.startsWith('captchaLog:')) {
-      logEventController
-          .add('[Captcha WebView JS] ${msg.replaceFirst('captchaLog:', '')}');
+      final scriptMessage = msg.replaceFirst('captchaLog:', '');
+      logEventController.add(
+        '[Captcha WebView JS] ${LogSanitizer.sanitizeText(scriptMessage)}',
+      );
+    } else {
+      logEventController.add('[Captcha WebView] Message received');
     }
   }
 
@@ -485,7 +492,10 @@ $script
       await WebviewController.initializeEnvironment(
         additionalArguments: '--proxy-server=$formattedProxy',
       );
-      KazumiLogger().i('[Captcha WebView] 代理设置成功 $formattedProxy');
+      KazumiLogger().i(
+        '[Captcha WebView] 代理设置成功 '
+        '${LogSanitizer.sanitizeUri(formattedProxy)}',
+      );
     } catch (e) {
       KazumiLogger().e('[Captcha WebView] 设置代理失败 $e');
     }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/logging/log_sanitizer.dart';
 
 class DioLoggerInterceptor extends Interceptor {
   static const _startedAtExtraKey = '_kazumiStartedAt';
@@ -7,7 +8,10 @@ class DioLoggerInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     options.extra[_startedAtExtraKey] = DateTime.now();
-    KazumiLogger().d('HTTP: --> ${options.method} ${options.uri}');
+    KazumiLogger().d(
+      'HTTP: --> ${options.method} '
+      '${LogSanitizer.sanitizeUri(options.uri)}',
+    );
     handler.next(options);
   }
 
@@ -16,7 +20,8 @@ class DioLoggerInterceptor extends Interceptor {
     final elapsed = _elapsed(response.requestOptions);
     KazumiLogger().d(
       'HTTP: <-- ${response.statusCode} '
-      '${response.requestOptions.method} ${response.requestOptions.uri}'
+      '${response.requestOptions.method} '
+      '${LogSanitizer.sanitizeUri(response.requestOptions.uri)}'
       '${elapsed == null ? '' : ' ${elapsed}ms'}',
     );
     handler.next(response);
@@ -28,7 +33,8 @@ class DioLoggerInterceptor extends Interceptor {
     final statusCode = err.response?.statusCode;
     final status = statusCode == null ? err.type.name : statusCode.toString();
     KazumiLogger().w(
-      'HTTP: <-- $status ${err.requestOptions.method} ${err.requestOptions.uri}'
+      'HTTP: <-- $status ${err.requestOptions.method} '
+      '${LogSanitizer.sanitizeUri(err.requestOptions.uri)}'
       '${elapsed == null ? '' : ' ${elapsed}ms'}',
       error: err.message,
     );

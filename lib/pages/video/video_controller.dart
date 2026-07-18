@@ -26,10 +26,11 @@ import 'package:kazumi/utils/http_headers.dart';
 import 'package:kazumi/utils/media.dart';
 import 'package:kazumi/utils/async_session.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
+import 'package:kazumi/services/platform/fullscreen_transition_coordinator.dart';
 
 part 'video_controller.g.dart';
 
-class VideoPageController = _VideoPageController with _$VideoPageController;
+class VideoPageController = VideoPageControllerBase with _$VideoPageController;
 
 class VideoEpisodeSelection {
   const VideoEpisodeSelection({
@@ -56,8 +57,8 @@ class VideoEpisodeSelection {
   }
 }
 
-abstract class _VideoPageController with Store implements Disposable {
-  _VideoPageController(
+abstract class VideoPageControllerBase with Store implements Disposable {
+  VideoPageControllerBase(
     this.historyController,
     this.downloadRepository,
     this.downloadManager,
@@ -101,6 +102,9 @@ abstract class _VideoPageController with Store implements Disposable {
 
   @observable
   bool isFullscreen = false;
+
+  final FullscreenTransitionCoordinator fullscreenTransitions =
+      FullscreenTransitionCoordinator();
 
   @observable
   bool isCommentsAscending = false;
@@ -503,7 +507,6 @@ abstract class _VideoPageController with Store implements Disposable {
     if (session.isStale) {
       return;
     }
-    _finishLoading();
     final resolvedOffset =
         offset > 0 ? offset : getHistoryOffsetFor(_playbackHistoryIdentity!);
 
@@ -530,12 +533,32 @@ abstract class _VideoPageController with Store implements Disposable {
           bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
     );
 
-    final initialized = await playerController.init(params);
+    final initialized = await _initializePlayer(playerController, params);
     if (session.isActive && initialized) {
+      _finishLoading();
       playingEpisode = selection;
       unawaited(_loadPlaybackDanmaku(playerController, params, session));
     } else if (session.isActive) {
+      _failLoading('播放器初始化失败，请重试或切换线路');
       _playbackSessions.cancel();
+    }
+  }
+
+  Future<bool> _initializePlayer(
+    PlayerController playerController,
+    PlaybackInitParams params,
+  ) async {
+    try {
+      return await playerController.init(params);
+    } catch (error) {
+      // Do not include the exception or media URL: both can contain signed,
+      // short-lived playback credentials that are visible in the logs page.
+      KazumiLogger().e(
+        'VideoPageController: player initialization threw. '
+        'errorType=${error.runtimeType}, offline=${params.isLocalPlayback}, '
+        'road=${params.currentRoad}, episode=${params.episode}',
+      );
+      return false;
     }
   }
 
@@ -613,9 +636,11 @@ abstract class _VideoPageController with Store implements Disposable {
       if (session.isStale) {
         return;
       }
-      _finishLoading();
-      KazumiLogger()
-          .i('VideoPageController: resolved video URL: ${source.url}');
+      KazumiLogger().i(
+        'VideoPageController: video source resolved. '
+        'plugin=${currentPlugin.name}, road=${resolvedEpisode.roadIndex}, '
+        'episode=${resolvedEpisode.listIndex}',
+      );
 
       final bool forceAdBlocker =
           GStorage.getSetting(SettingsKeys.forceAdBlocker);
@@ -647,14 +672,16 @@ abstract class _VideoPageController with Store implements Disposable {
             : bangumiItem.name,
       );
 
-      final initialized = await playerController.init(params);
+      final initialized = await _initializePlayer(playerController, params);
       if (session.isActive && initialized) {
+        _finishLoading();
         playingEpisode = VideoEpisodeSelection(
           episode: resolvedEpisode.listIndex,
           road: resolvedEpisode.roadIndex,
         );
         unawaited(_loadPlaybackDanmaku(playerController, params, session));
       } else if (session.isActive) {
+        _failLoading('播放器初始化失败，请重试或切换线路');
         _playbackSessions.cancel();
       }
     } on VideoSourceTimeoutException {
@@ -668,7 +695,13 @@ abstract class _VideoPageController with Store implements Disposable {
       if (session.isStale) {
         return;
       }
-      _failLoading('视频解析失败：${e.toString()}');
+      KazumiLogger().w(
+        'VideoPageController: video source resolution failed. '
+        'errorType=${e.runtimeType}, plugin=${currentPlugin.name}, '
+        'road=${resolvedEpisode.roadIndex}, '
+        'episode=${resolvedEpisode.listIndex}',
+      );
+      _failLoading('视频解析失败，请重试或切换线路');
     }
   }
 
@@ -758,28 +791,43 @@ abstract class _VideoPageController with Store implements Disposable {
     }
   }
 
-  void enterFullScreen() {
-    isFullscreen = true;
-    DisplayModeService.enterFullScreen(lockOrientation: false);
+  Future<bool> setFullScreen(
+    bool targetState, {
+    bool lockOrientation = true,
+  }) {
+    return fullscreenTransitions.run(
+      readCurrentState: () => isFullscreen,
+      targetState: targetState,
+      transition: (nextState) => nextState
+          ? DisplayModeService.enterFullScreen(lockOrientation: lockOrientation)
+          : DisplayModeService.exitFullScreen(lockOrientation: lockOrientation),
+      commitState: (value) => isFullscreen = value,
+    );
   }
 
-  void exitFullScreen() {
-    isFullscreen = false;
-    DisplayModeService.exitFullScreen();
+  Future<bool> enterFullScreen({bool lockOrientation = false}) {
+    return setFullScreen(true, lockOrientation: lockOrientation);
   }
 
-  void isDesktopFullscreen() async {
+  Future<bool> exitFullScreen({bool lockOrientation = true}) {
+    return setFullScreen(false, lockOrientation: lockOrientation);
+  }
+
+  Future<void> isDesktopFullscreen() async {
     if (isDesktop()) {
       isFullscreen = await windowManager.isFullScreen();
+      fullscreenTransitions.synchronize(isFullscreen);
     }
   }
 
-  void handleOnEnterFullScreen() async {
+  void handleOnEnterFullScreen() {
     isFullscreen = true;
+    fullscreenTransitions.synchronize(true);
   }
 
-  void handleOnExitFullScreen() async {
+  void handleOnExitFullScreen() {
     isFullscreen = false;
+    fullscreenTransitions.synchronize(false);
   }
 }
 

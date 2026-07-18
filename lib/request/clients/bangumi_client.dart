@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:kazumi/request/core/bangumi_request_security.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_error_mapper.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -73,10 +74,12 @@ class BangumiClient {
     Object? data,
   }) {
     final headers = <String, dynamic>{...bangumiHTTPHeader};
-    final bangumiSyncEnable =
-        GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     final token = GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
-    if ((requiresAuth || bangumiSyncEnable) && token.isNotEmpty) {
+    if (token.isNotEmpty &&
+        BangumiRequestSecurity.canAttachAccessToken(
+          url: url,
+          requiresAuth: requiresAuth,
+        )) {
       headers['Authorization'] = 'Bearer $token';
     }
     if (_shouldSignProtectedMirrorRequest(url, method)) {

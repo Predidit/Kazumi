@@ -76,15 +76,14 @@ class CaptchaVerificationService {
 
     _imageFoundSub?.cancel();
     _imageFoundSub = _controller!.onCaptchaImageFound.listen((src) {
-      KazumiLogger()
-          .i('[CaptchaVerificationService] Captcha image found: $src');
+      KazumiLogger().i('[CaptchaVerificationService] Captcha image found');
       if (!_captchaImageStreamController.isClosed) {
         _captchaImageStreamController.add(src);
       }
     });
 
     await _controller!.loadPage(url, captchaXpath, inputXpath: inputXpath);
-    KazumiLogger().i('[CaptchaVerificationService] Page loading: $url');
+    KazumiLogger().i('[CaptchaVerificationService] Page loading');
   }
 
   /// 提交验证码
@@ -223,7 +222,9 @@ class CaptchaVerificationService {
   }) async {
     final cookieString = await controller.getCookieString(_pageUrl);
     KazumiLogger().i(
-        '[CaptchaVerificationService] ${logPrefix}Captured cookies: $cookieString');
+      '[CaptchaVerificationService] ${logPrefix}Captured cookies '
+      '(${cookieString.length} characters)',
+    );
     if (cookieString.isNotEmpty) {
       await PluginCookieManager.instance
           .saveFromWebView(pluginName, _pageUrl, cookieString);

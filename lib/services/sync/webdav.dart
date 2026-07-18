@@ -7,6 +7,9 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/services/sync/history_sync_service.dart';
+import 'package:kazumi/services/sync/history_auto_sync_scheduler.dart';
+import 'package:kazumi/services/sync/history_sync_path_policy.dart';
+import 'package:kazumi/services/sync/webdav_endpoint_policy.dart';
 import 'package:kazumi/services/sync/webdav_remote_file_commit.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:kazumi/utils/async_single_flight.dart';
@@ -25,23 +28,49 @@ class WebDav {
 
   bool initialized = false;
   static const Duration _staleRunDirectoryAge = Duration(hours: 24);
+  static const int _maxRemoteSnapshotBytes = 32 * 1024 * 1024;
+  static const int _maxRemoteEventBytes = 8 * 1024 * 1024;
+  static const int _maxRemoteEventFiles = 256;
 
   final AsyncSingleFlight<void> _historySyncSingleFlight =
       AsyncSingleFlight<void>();
   final AsyncSerialQueue _webDavOperationQueue = AsyncSerialQueue();
   final WebDavRemoteFileCommitter _remoteFileCommitter =
       const WebDavRemoteFileCommitter();
+  late final HistoryAutoSyncScheduler _historyAutoSyncScheduler;
 
   bool get isHistorySyncing => _historySyncSingleFlight.isRunning;
 
-  WebDav._internal();
+  WebDav._internal() {
+    _historyAutoSyncScheduler = HistoryAutoSyncScheduler(
+      isEnabled: () =>
+          GStorage.getSetting(SettingsKeys.webDavEnable) == true &&
+          GStorage.getSetting(SettingsKeys.webDavEnableHistory) == true,
+      sync: () async {
+        if (!initialized) {
+          await init();
+        }
+        await syncHistory();
+      },
+      onError: (error, stackTrace) {
+        KazumiLogger().w(
+          'WebDav: scheduled history sync failed',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      },
+    );
+  }
   static final WebDav _instance = WebDav._internal();
   factory WebDav() => _instance;
 
   Future<void> init() async {
+    initialized = false;
     var directory = await getApplicationSupportDirectory();
     webDavLocalTempDirectory = Directory('${directory.path}/webdavTemp');
-    webDavURL = GStorage.getSetting(SettingsKeys.webDavURL);
+    webDavURL = validateWebDavEndpoint(
+      GStorage.getSetting(SettingsKeys.webDavURL),
+    );
     webDavUsername = GStorage.getSetting(SettingsKeys.webDavUsername);
     webDavPassword = GStorage.getSetting(SettingsKeys.webDavPassword);
     if (webDavURL.isEmpty) {
@@ -96,6 +125,14 @@ class WebDav {
         rethrow;
       }
     });
+  }
+
+  void scheduleHistorySync() {
+    _historyAutoSyncScheduler.markDirty();
+  }
+
+  Future<void> flushScheduledHistorySync() {
+    return _historyAutoSyncScheduler.flush();
   }
 
   Future<void> updateCollectibles() async {
@@ -374,23 +411,55 @@ class WebDav {
   }) async {
     File? snapshotFile;
     final historyEntries = await client.readDir(_historyRootPath);
-    final hasSnapshot = historyEntries.any(
+    final snapshotEntries = historyEntries.where(
       (file) => file.name == 'snapshot.json',
     );
-    if (hasSnapshot) {
-      snapshotFile = File(
-        '${runDirectory.path}${Platform.pathSeparator}remote-snapshot.json',
-      );
-      await client.read2File(_historySnapshotPath, snapshotFile.path);
+    if (snapshotEntries.isNotEmpty) {
+      final snapshotEntry = snapshotEntries.first;
+      if ((snapshotEntry.size ?? 0) > _maxRemoteSnapshotBytes) {
+        await _quarantineRemoteFile(
+          sourcePath: _historySnapshotPath,
+          quarantinePath: '$_historySnapshotPath.invalid.'
+              '${DateTime.now().millisecondsSinceEpoch}',
+          description: 'oversized history snapshot',
+        );
+      } else {
+        snapshotFile = File(
+          '${runDirectory.path}${Platform.pathSeparator}remote-snapshot.json',
+        );
+        await client.read2File(_historySnapshotPath, snapshotFile.path);
+        if (await snapshotFile.length() > _maxRemoteSnapshotBytes) {
+          await snapshotFile.delete();
+          snapshotFile = null;
+          await _quarantineRemoteFile(
+            sourcePath: _historySnapshotPath,
+            quarantinePath: '$_historySnapshotPath.invalid.'
+                '${DateTime.now().millisecondsSinceEpoch}',
+            description: 'oversized history snapshot',
+          );
+        }
+      }
     }
 
     final eventFiles = <_DownloadedHistoryEventFile>[];
     var currentDeviceLogOversized = false;
     final changeEntries = await client.readDir(_historyChangesPath);
+    if (changeEntries.length > _maxRemoteEventFiles) {
+      throw const FormatException(
+        'WebDAV history contains too many remote event files',
+      );
+    }
+    final downloadedNames = <String>{};
     var index = 0;
     for (final entry in changeEntries) {
       final name = entry.name ?? '';
-      if (!name.endsWith('.jsonl') || entry.size == 0) {
+      if (!isValidHistorySyncEventFileName(name) ||
+          !downloadedNames.add(name) ||
+          entry.size == 0) {
+        continue;
+      }
+      if ((entry.size ?? 0) > _maxRemoteEventBytes) {
+        await _quarantineRemoteHistoryEventFile(name);
         continue;
       }
       final localFile = File(
@@ -401,6 +470,11 @@ class WebDav {
         '$_historyChangesPath/$name',
         localFile.path,
       );
+      if (await localFile.length() > _maxRemoteEventBytes) {
+        await localFile.delete();
+        await _quarantineRemoteHistoryEventFile(name);
+        continue;
+      }
       if (name == '$deviceId.jsonl' &&
           await localFile.length() >
               HistorySyncService.checkpointLogThresholdBytes) {
@@ -436,7 +510,8 @@ class WebDav {
     required File sourceFile,
     required String deviceId,
   }) {
-    final destinationPath = '$_historyChangesPath/$deviceId.jsonl';
+    final fileName = historySyncEventFileName(deviceId);
+    final destinationPath = '$_historyChangesPath/$fileName';
     return _publishRemoteFile(
       sourceFilePath: sourceFile.path,
       destinationPath: destinationPath,
@@ -463,7 +538,8 @@ class WebDav {
   }
 
   Future<void> _removeDeviceHistoryChanges(String deviceId) async {
-    final remotePath = '$_historyChangesPath/$deviceId.jsonl';
+    final remotePath =
+        '$_historyChangesPath/${historySyncEventFileName(deviceId)}';
     try {
       await client.remove(remotePath);
     } catch (e) {

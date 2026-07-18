@@ -41,6 +41,7 @@ void main() {
         progressSyncAppender: _noopHistorySync,
         deleteSyncAppender: _noopDeleteSync,
         clearSyncAppender: _noopClearSync,
+        remoteSyncScheduler: _noopRemoteSync,
       );
       final item = _item(1);
 
@@ -107,6 +108,7 @@ void main() {
         progressSyncAppender: _noopHistorySync,
         deleteSyncAppender: _noopDeleteSync,
         clearSyncAppender: _noopClearSync,
+        remoteSyncScheduler: _noopRemoteSync,
       );
       final item = _item(2);
 
@@ -158,6 +160,7 @@ void main() {
         progressSyncAppender: _noopHistorySync,
         deleteSyncAppender: _noopDeleteSync,
         clearSyncAppender: _noopClearSync,
+        remoteSyncScheduler: _noopRemoteSync,
       );
       final item = _item(3);
 
@@ -186,6 +189,7 @@ void main() {
         progressSyncAppender: _noopHistorySync,
         deleteSyncAppender: _noopDeleteSync,
         clearSyncAppender: _noopClearSync,
+        remoteSyncScheduler: _noopRemoteSync,
       );
       final item = _item(5);
       final identity = PlaybackHistoryIdentity.online(
@@ -243,6 +247,7 @@ void main() {
         },
         deleteSyncAppender: _noopDeleteSync,
         clearSyncAppender: _noopClearSync,
+        remoteSyncScheduler: _noopRemoteSync,
       );
       final item = _item(4);
 
@@ -272,6 +277,41 @@ void main() {
       await reconciliation;
       expect(reconciliationStarted, isTrue);
     });
+
+    test('schedules remote sync only after a recordable history write',
+        () async {
+      var scheduledSyncs = 0;
+      final repository = HistoryRepository(
+        historiesBox: historiesBox,
+        privateModeReader: () => privateMode,
+        progressSyncAppender: _noopHistorySync,
+        deleteSyncAppender: _noopDeleteSync,
+        clearSyncAppender: _noopClearSync,
+        remoteSyncScheduler: () => scheduledSyncs += 1,
+      );
+      final identity = PlaybackHistoryIdentity.online(
+        bangumiItem: _item(6),
+        pluginName: 'plugin',
+        episodeNumber: 1,
+        episodeTitle: 'EP1',
+        road: 0,
+        onlineBangumiSrc: 'https://example.com/source',
+        episodePageUrl: '/online/1',
+      );
+
+      await repository.updateHistory(
+        identity: identity,
+        progress: const Duration(seconds: 10),
+      );
+      expect(scheduledSyncs, 1);
+
+      privateMode = true;
+      await repository.updateHistory(
+        identity: identity,
+        progress: const Duration(seconds: 20),
+      );
+      expect(scheduledSyncs, 1);
+    });
   });
 }
 
@@ -286,6 +326,8 @@ Future<void> _noopHistorySync({
 Future<void> _noopDeleteSync(History history) async {}
 
 Future<void> _noopClearSync() async {}
+
+void _noopRemoteSync() {}
 
 void _registerAdapters() {
   if (!Hive.isAdapterRegistered(1)) {

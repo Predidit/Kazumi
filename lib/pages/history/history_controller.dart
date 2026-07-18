@@ -5,10 +5,10 @@ import 'package:mobx/mobx.dart';
 
 part 'history_controller.g.dart';
 
-class HistoryController = _HistoryController with _$HistoryController;
+class HistoryController = HistoryControllerBase with _$HistoryController;
 
-abstract class _HistoryController with Store {
-  _HistoryController(this._historyRepository);
+abstract class HistoryControllerBase with Store {
+  HistoryControllerBase(this._historyRepository);
 
   final IHistoryRepository _historyRepository;
 

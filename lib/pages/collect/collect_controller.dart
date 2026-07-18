@@ -22,10 +22,10 @@ enum _BangumiDeleteSyncAction {
   cancel,
 }
 
-class CollectController = _CollectController with _$CollectController;
+class CollectController = CollectControllerBase with _$CollectController;
 
-abstract class _CollectController with Store {
-  _CollectController(
+abstract class CollectControllerBase with Store {
+  CollectControllerBase(
     this._collectCrudRepository,
     this._collectRepository,
   );

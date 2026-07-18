@@ -2,13 +2,29 @@ import 'dart:math';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
 
 part 'popular_controller.g.dart';
 
-class PopularController = _PopularController with _$PopularController;
+typedef PopularTrendLoader = Future<List<BangumiItem>> Function(int offset);
+typedef PopularTagLoader = Future<List<BangumiItem>> Function(
+  String tag,
+  int offset,
+);
 
-abstract class _PopularController with Store {
+class PopularController = PopularControllerBase with _$PopularController;
+
+abstract class PopularControllerBase with Store {
+  PopularControllerBase({
+    PopularTrendLoader? trendLoader,
+    PopularTagLoader? tagLoader,
+  })  : _trendLoader = trendLoader ?? _loadTrend,
+        _tagLoader = tagLoader ?? _loadTag;
+
+  final PopularTrendLoader _trendLoader;
+  final PopularTagLoader _tagLoader;
+
   @observable
   String currentTag = '';
 
@@ -26,8 +42,29 @@ abstract class _PopularController with Store {
   @observable
   bool isTimeOut = false;
 
-  bool get _bangumiMirrorEnabled =>
-      GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+  /// The most recent recoverable load failure. Its changes are paired with
+  /// [isLoadingMore], so MobX observers rebuild without another generated atom.
+  String? loadError;
+
+  static Future<List<BangumiItem>> _loadTrend(int offset) {
+    final mirrorEnabled = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+    return mirrorEnabled
+        ? BangumiApi.getBangumiMirrorPopularSubjects(offset: offset)
+        : BangumiApi.getBangumiTrendsList(offset: offset);
+  }
+
+  static Future<List<BangumiItem>> _loadTag(String tag, int offset) {
+    final mirrorEnabled = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+    return mirrorEnabled
+        ? BangumiApi.getBangumiMirrorPopularSubjects(
+            tag: tag,
+            offset: offset,
+          )
+        : BangumiApi.getBangumiList(
+            rank: Random().nextInt(8000) + 1,
+            tag: tag,
+          );
+  }
 
   void setCurrentTag(String s) {
     currentTag = s;
@@ -45,13 +82,23 @@ abstract class _PopularController with Store {
       trendList.clear();
     }
     isLoadingMore = true;
-    var result = _bangumiMirrorEnabled
-        ? await BangumiApi.getBangumiMirrorPopularSubjects(
-            offset: trendList.length)
-        : await BangumiApi.getBangumiTrendsList(offset: trendList.length);
-    trendList.addAll(result);
-    isLoadingMore = false;
-    isTimeOut = trendList.isEmpty;
+    isTimeOut = false;
+    loadError = null;
+    try {
+      final result = await _trendLoader(trendList.length);
+      trendList.addAll(result);
+      isTimeOut = trendList.isEmpty;
+    } catch (error, stackTrace) {
+      loadError = '加载热门番组失败，请重试';
+      isTimeOut = trendList.isEmpty;
+      KazumiLogger().w(
+        'PopularController: failed to load trending subjects',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      isLoadingMore = false;
+    }
   }
 
   @action
@@ -60,18 +107,22 @@ abstract class _PopularController with Store {
       bangumiList.clear();
     }
     isLoadingMore = true;
-    var tag = currentTag;
-    var result = _bangumiMirrorEnabled
-        ? await BangumiApi.getBangumiMirrorPopularSubjects(
-            tag: tag,
-            offset: bangumiList.length,
-          )
-        : await BangumiApi.getBangumiList(
-            rank: Random().nextInt(8000) + 1,
-            tag: tag,
-          );
-    bangumiList.addAll(result);
-    isLoadingMore = false;
-    isTimeOut = bangumiList.isEmpty;
+    isTimeOut = false;
+    loadError = null;
+    try {
+      final result = await _tagLoader(currentTag, bangumiList.length);
+      bangumiList.addAll(result);
+      isTimeOut = bangumiList.isEmpty;
+    } catch (error, stackTrace) {
+      loadError = '加载标签番组失败，请重试';
+      isTimeOut = bangumiList.isEmpty;
+      KazumiLogger().w(
+        'PopularController: failed to load subjects by tag',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      isLoadingMore = false;
+    }
   }
 }

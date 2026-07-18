@@ -70,6 +70,58 @@ void main() {
     expect(request.body, isNull);
   });
 
+  test('rejects non-HTTP URLs, embedded credentials, and header injection', () {
+    for (final url in [
+      'file://server/share/data.json',
+      'https://user:password@example.com/data.json',
+      'javascript:alert(1)',
+    ]) {
+      expect(
+        () => engine.prepareRequest(
+          ApiRequestConfig(url: url),
+          const <String, Object?>{},
+        ),
+        throwsA(isA<ApiRuleFormatException>()),
+        reason: url,
+      );
+    }
+
+    expect(
+      () => engine.prepareRequest(
+        ApiRequestConfig(
+          url: 'https://example.com/data.json',
+          headers: {'X-Test': 'safe\r\nX-Injected: true'},
+        ),
+        const <String, Object?>{},
+      ),
+      throwsA(isA<ApiRuleFormatException>()),
+    );
+  });
+
+  test('rejects non-network episode URLs from remote rule data', () {
+    final raw = jsonEncode({
+      'data': {
+        'roads': [
+          {
+            'episodes': [
+              {'name': 'unsafe', 'url': 'javascript:alert(1)'},
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(
+      () => engine.parseChapters(
+        raw,
+        ApiChapterConfig(),
+        source: 'id',
+        baseUrl: 'https://example.com/',
+      ),
+      throwsA(isA<ApiRuleFormatException>()),
+    );
+  });
+
   test('parses Liangzi search and delimited chapters', () {
     const searchRaw = '''
 {

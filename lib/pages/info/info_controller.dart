@@ -13,10 +13,10 @@ import 'package:kazumi/modules/staff/staff_item.dart';
 
 part 'info_controller.g.dart';
 
-class InfoController = _InfoController with _$InfoController;
+class InfoController = InfoControllerBase with _$InfoController;
 
-abstract class _InfoController with Store {
-  _InfoController(this.collectController);
+abstract class InfoControllerBase with Store {
+  InfoControllerBase(this.collectController);
 
   final CollectController collectController;
   late BangumiItem bangumiItem;

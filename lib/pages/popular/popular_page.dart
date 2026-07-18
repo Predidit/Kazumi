@@ -80,13 +80,35 @@ class _PopularPageState extends State<PopularPage> {
           buildSliverAppBar(),
           SliverToBoxAdapter(
             child: Observer(
-              builder: (_) => AnimatedOpacity(
-                opacity: popularController.isLoadingMore ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 300),
-                child: popularController.isLoadingMore
-                    ? const LinearProgressIndicator(minHeight: 4)
-                    : const SizedBox(height: 4),
-              ),
+              builder: (_) {
+                final currentList = popularController.currentTag.isEmpty
+                    ? popularController.trendList
+                    : popularController.bangumiList;
+                return Column(
+                  children: [
+                    AnimatedOpacity(
+                      opacity: popularController.isLoadingMore ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: popularController.isLoadingMore
+                          ? const LinearProgressIndicator(minHeight: 4)
+                          : const SizedBox(height: 4),
+                    ),
+                    if (popularController.loadError != null &&
+                        currentList.isNotEmpty)
+                      Material(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        child: ListTile(
+                          leading: const Icon(Icons.error_outline),
+                          title: Text(popularController.loadError!),
+                          trailing: TextButton(
+                            onPressed: _retryCurrentFeed,
+                            child: const Text('重试'),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
           SliverPadding(
@@ -98,13 +120,7 @@ class _PopularPageState extends State<PopularPage> {
                     child: SizedBox(
                       height: 400,
                       child: BangumiMirrorErrorWidget(
-                        onRetry: () {
-                          if (popularController.trendList.isEmpty) {
-                            popularController.queryBangumiByTrend();
-                          } else {
-                            popularController.queryBangumiByTag();
-                          }
-                        },
+                        onRetry: _retryCurrentFeed,
                         onSettingsReturned: () {
                           if (mounted) {
                             setState(() {});
@@ -128,6 +144,14 @@ class _PopularPageState extends State<PopularPage> {
         child: const Icon(Icons.arrow_upward),
       ),
     );
+  }
+
+  void _retryCurrentFeed() {
+    if (popularController.currentTag.isEmpty) {
+      popularController.queryBangumiByTrend();
+    } else {
+      popularController.queryBangumiByTag();
+    }
   }
 
   Widget contentGrid(List<BangumiItem> bangumiList) {

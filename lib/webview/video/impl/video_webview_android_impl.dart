@@ -32,7 +32,7 @@ class VideoWebviewAndroidImpl
           geolocationEnabled: false,
         ),
         onWebViewCreated: (controller) {
-          print('[WebView] Created');
+          KazumiLogger().d('Video WebView created');
           webviewController = controller;
           initEventController.add(true);
         },

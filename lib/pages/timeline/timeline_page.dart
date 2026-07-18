@@ -740,9 +740,29 @@ class _TimelinePageState extends State<TimelinePage>
             ),
           );
         }
-        return TabBarView(
+        final timeline = TabBarView(
           controller: tabController,
           children: contentGrid(timelineController.bangumiCalendar),
+        );
+        if (timelineController.loadError == null) {
+          return timeline;
+        }
+        return Column(
+          children: [
+            Material(
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: ListTile(
+                leading: const Icon(Icons.error_outline),
+                title: Text(timelineController.loadError!),
+                trailing: TextButton(
+                  onPressed: () =>
+                      onSeasonSelected(timelineController.selectedDate),
+                  child: const Text('重试'),
+                ),
+              ),
+            ),
+            Expanded(child: timeline),
+          ],
         );
       }),
     );

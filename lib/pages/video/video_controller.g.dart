@@ -8,9 +8,9 @@ part of 'video_controller.dart';
 
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
-mixin _$VideoPageController on _VideoPageController, Store {
-  late final _$episodeCommentsListAtom =
-      Atom(name: '_VideoPageController.episodeCommentsList', context: context);
+mixin _$VideoPageController on VideoPageControllerBase, Store {
+  late final _$episodeCommentsListAtom = Atom(
+      name: 'VideoPageControllerBase.episodeCommentsList', context: context);
 
   @override
   ObservableList<EpisodeCommentItem> get episodeCommentsList {
@@ -26,7 +26,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$_loadingAtom =
-      Atom(name: '_VideoPageController._loading', context: context);
+      Atom(name: 'VideoPageControllerBase._loading', context: context);
 
   bool get loading {
     _$_loadingAtom.reportRead();
@@ -44,7 +44,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$_errorMessageAtom =
-      Atom(name: '_VideoPageController._errorMessage', context: context);
+      Atom(name: 'VideoPageControllerBase._errorMessage', context: context);
 
   String? get errorMessage {
     _$_errorMessageAtom.reportRead();
@@ -62,7 +62,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$selectedEpisodeAtom =
-      Atom(name: '_VideoPageController.selectedEpisode', context: context);
+      Atom(name: 'VideoPageControllerBase.selectedEpisode', context: context);
 
   @override
   VideoEpisodeSelection get selectedEpisode {
@@ -78,7 +78,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$playingEpisodeAtom =
-      Atom(name: '_VideoPageController.playingEpisode', context: context);
+      Atom(name: 'VideoPageControllerBase.playingEpisode', context: context);
 
   @override
   VideoEpisodeSelection? get playingEpisode {
@@ -94,7 +94,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$commentsEpisodeAtom =
-      Atom(name: '_VideoPageController.commentsEpisode', context: context);
+      Atom(name: 'VideoPageControllerBase.commentsEpisode', context: context);
 
   @override
   int get commentsEpisode {
@@ -110,7 +110,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$isFullscreenAtom =
-      Atom(name: '_VideoPageController.isFullscreen', context: context);
+      Atom(name: 'VideoPageControllerBase.isFullscreen', context: context);
 
   @override
   bool get isFullscreen {
@@ -125,8 +125,8 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$isCommentsAscendingAtom =
-      Atom(name: '_VideoPageController.isCommentsAscending', context: context);
+  late final _$isCommentsAscendingAtom = Atom(
+      name: 'VideoPageControllerBase.isCommentsAscending', context: context);
 
   @override
   bool get isCommentsAscending {
@@ -142,7 +142,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$isPipAtom =
-      Atom(name: '_VideoPageController.isPip', context: context);
+      Atom(name: 'VideoPageControllerBase.isPip', context: context);
 
   @override
   bool get isPip {
@@ -158,7 +158,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$showTabBodyAtom =
-      Atom(name: '_VideoPageController.showTabBody', context: context);
+      Atom(name: 'VideoPageControllerBase.showTabBody', context: context);
 
   @override
   bool get showTabBody {
@@ -174,7 +174,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$historyOffsetAtom =
-      Atom(name: '_VideoPageController.historyOffset', context: context);
+      Atom(name: 'VideoPageControllerBase.historyOffset', context: context);
 
   @override
   int get historyOffset {
@@ -190,7 +190,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$isOfflineModeAtom =
-      Atom(name: '_VideoPageController.isOfflineMode', context: context);
+      Atom(name: 'VideoPageControllerBase.isOfflineMode', context: context);
 
   @override
   bool get isOfflineMode {
@@ -206,7 +206,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   }
 
   late final _$roadListAtom =
-      Atom(name: '_VideoPageController.roadList', context: context);
+      Atom(name: 'VideoPageControllerBase.roadList', context: context);
 
   @override
   ObservableList<Road> get roadList {
@@ -221,28 +221,28 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$_VideoPageControllerActionController =
-      ActionController(name: '_VideoPageController', context: context);
+  late final _$VideoPageControllerBaseActionController =
+      ActionController(name: 'VideoPageControllerBase', context: context);
 
   @override
   void resetEpisodeState({int episode = 1, int road = 0}) {
-    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
-        name: '_VideoPageController.resetEpisodeState');
+    final _$actionInfo = _$VideoPageControllerBaseActionController.startAction(
+        name: 'VideoPageControllerBase.resetEpisodeState');
     try {
       return super.resetEpisodeState(episode: episode, road: road);
     } finally {
-      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+      _$VideoPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 
   @override
   void applyPlaybackArgs(VideoPlaybackArgs args) {
-    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
-        name: '_VideoPageController.applyPlaybackArgs');
+    final _$actionInfo = _$VideoPageControllerBaseActionController.startAction(
+        name: 'VideoPageControllerBase.applyPlaybackArgs');
     try {
       return super.applyPlaybackArgs(args);
     } finally {
-      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+      _$VideoPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 
@@ -253,8 +253,8 @@ mixin _$VideoPageController on _VideoPageController, Store {
       required int episodeNumber,
       required int road,
       required List<DownloadEpisode> downloadedEpisodes}) {
-    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
-        name: '_VideoPageController._initForOfflinePlayback');
+    final _$actionInfo = _$VideoPageControllerBaseActionController.startAction(
+        name: 'VideoPageControllerBase._initForOfflinePlayback');
     try {
       return super._initForOfflinePlayback(
           bangumiItem: bangumiItem,
@@ -263,74 +263,74 @@ mixin _$VideoPageController on _VideoPageController, Store {
           road: road,
           downloadedEpisodes: downloadedEpisodes);
     } finally {
-      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+      _$VideoPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 
   @override
   void _beginEpisodeSwitch(VideoEpisodeSelection selection) {
-    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
-        name: '_VideoPageController._beginEpisodeSwitch');
+    final _$actionInfo = _$VideoPageControllerBaseActionController.startAction(
+        name: 'VideoPageControllerBase._beginEpisodeSwitch');
     try {
       return super._beginEpisodeSwitch(selection);
     } finally {
-      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+      _$VideoPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 
   @override
   void _applyResolvedSelection(EpisodeRef resolvedEpisode) {
-    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
-        name: '_VideoPageController._applyResolvedSelection');
+    final _$actionInfo = _$VideoPageControllerBaseActionController.startAction(
+        name: 'VideoPageControllerBase._applyResolvedSelection');
     try {
       return super._applyResolvedSelection(resolvedEpisode);
     } finally {
-      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+      _$VideoPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 
   @override
   void _finishLoading() {
-    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
-        name: '_VideoPageController._finishLoading');
+    final _$actionInfo = _$VideoPageControllerBaseActionController.startAction(
+        name: 'VideoPageControllerBase._finishLoading');
     try {
       return super._finishLoading();
     } finally {
-      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+      _$VideoPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 
   @override
   void _failLoading(String message) {
-    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
-        name: '_VideoPageController._failLoading');
+    final _$actionInfo = _$VideoPageControllerBaseActionController.startAction(
+        name: 'VideoPageControllerBase._failLoading');
     try {
       return super._failLoading(message);
     } finally {
-      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+      _$VideoPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 
   @override
   void _applyEpisodeComments(
       int episode, EpisodeInfo info, List<EpisodeCommentItem> comments) {
-    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
-        name: '_VideoPageController._applyEpisodeComments');
+    final _$actionInfo = _$VideoPageControllerBaseActionController.startAction(
+        name: 'VideoPageControllerBase._applyEpisodeComments');
     try {
       return super._applyEpisodeComments(episode, info, comments);
     } finally {
-      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+      _$VideoPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 
   @override
   void toggleSortOrder() {
-    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
-        name: '_VideoPageController.toggleSortOrder');
+    final _$actionInfo = _$VideoPageControllerBaseActionController.startAction(
+        name: 'VideoPageControllerBase.toggleSortOrder');
     try {
       return super.toggleSortOrder();
     } finally {
-      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+      _$VideoPageControllerBaseActionController.endAction(_$actionInfo);
     }
   }
 

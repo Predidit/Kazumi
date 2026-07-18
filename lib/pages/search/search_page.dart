@@ -13,6 +13,110 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/search_parser.dart';
 
+/// Keyboard-accessible search entry used by the desktop search page.
+///
+/// Keeping this as a small widget also makes the Tab order independently
+/// testable without bootstrapping application storage or routing.
+class SearchEntryBar extends StatelessWidget {
+  const SearchEntryBar({
+    super.key,
+    required this.searchController,
+    required this.isFullScreen,
+    required this.suggestionsBuilder,
+    required this.onSubmitted,
+    required this.onImageSearch,
+    this.searchInputFocusNode,
+    this.imageSearchFocusNode,
+  });
+
+  final SearchController searchController;
+  final bool isFullScreen;
+  final SuggestionsBuilder suggestionsBuilder;
+  final ValueChanged<String> onSubmitted;
+  final VoidCallback onImageSearch;
+  final FocusNode? searchInputFocusNode;
+  final FocusNode? imageSearchFocusNode;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final searchBarTheme = SearchBarTheme.of(context);
+    final states = <WidgetState>{};
+    final shape =
+        searchBarTheme.shape?.resolve(states) ?? const StadiumBorder();
+
+    return SearchAnchor(
+      searchController: searchController,
+      viewHintText: '搜索番组',
+      viewElevation: 0,
+      viewLeading: IconButton(
+        tooltip: '返回搜索',
+        onPressed: () => Navigator.of(context).pop(),
+        icon: const Icon(Icons.arrow_back),
+      ),
+      isFullScreen: isFullScreen,
+      suggestionsBuilder: suggestionsBuilder,
+      viewOnSubmitted: onSubmitted,
+      builder: (context, controller) {
+        void openView() {
+          if (!controller.isOpen) {
+            controller.openView();
+          }
+        }
+
+        return Material(
+          elevation: searchBarTheme.elevation?.resolve(states) ?? 0,
+          color: searchBarTheme.backgroundColor?.resolve(states) ??
+              colorScheme.surfaceContainerHigh,
+          shape: shape,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            canRequestFocus: false,
+            customBorder: shape,
+            onTap: openView,
+            child: SizedBox(
+              height: 56,
+              child: Row(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 16, right: 12),
+                    child: Icon(Icons.search),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      focusNode: searchInputFocusNode,
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        hintText: '搜索番组',
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        isDense: true,
+                      ),
+                      textInputAction: TextInputAction.search,
+                      onTap: openView,
+                      onChanged: (_) => openView(),
+                      onSubmitted: onSubmitted,
+                    ),
+                  ),
+                  IconButton(
+                    key: const ValueKey('image-search-button'),
+                    focusNode: imageSearchFocusNode,
+                    tooltip: '图片搜索',
+                    onPressed: onImageSearch,
+                    icon: const Icon(Icons.image_search_rounded),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class SearchPage extends StatefulWidget {
   const SearchPage({
     super.key,
@@ -242,76 +346,56 @@ class _SearchPageState extends State<SearchPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-            child: FocusScope(
-              descendantsAreFocusable: false,
-              child: SearchAnchor.bar(
-                searchController: searchController,
-                barElevation: WidgetStateProperty<double>.fromMap(
-                  <WidgetStatesConstraint, double>{WidgetState.any: 0},
-                ),
-                viewElevation: 0,
-                viewLeading: IconButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                barTrailing: [
-                  IconButton(
-                    tooltip: '图片搜索',
-                    onPressed: () async {
-                      final result = await context.pushNamed('/search/image');
-                      if (result is String && result.isNotEmpty) {
-                        await _applyFilterState(
-                          SearchParser(result).toFilterState(),
-                          search: true,
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.image_search_rounded),
-                  ),
-                ],
-                isFullScreen: MediaQuery.sizeOf(context).width <
-                    LayoutBreakpoint.compact['width']!,
-                suggestionsBuilder: (context, controller) => [
-                  Observer(
-                    builder: (context) {
-                      if (controller.text.isNotEmpty) {
-                        return const SizedBox(
-                          height: 400,
-                          child: Center(
-                            child: Text("暂无搜索建议，按回车直接检索"),
-                          ),
-                        );
-                      } else {
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (var history in searchPageController
-                                .searchHistories
-                                .take(10))
-                              ListTile(
-                                title: Text(history.keyword),
-                                onTap: () {
-                                  controller.text = history.keyword;
-                                  _submitSearch(controller.text);
+            child: SearchEntryBar(
+              searchController: searchController,
+              isFullScreen: MediaQuery.sizeOf(context).width <
+                  LayoutBreakpoint.compact['width']!,
+              onImageSearch: () async {
+                final result = await context.pushNamed('/search/image');
+                if (result is String && result.isNotEmpty) {
+                  await _applyFilterState(
+                    SearchParser(result).toFilterState(),
+                    search: true,
+                  );
+                }
+              },
+              suggestionsBuilder: (context, controller) => [
+                Observer(
+                  builder: (context) {
+                    if (controller.text.isNotEmpty) {
+                      return const SizedBox(
+                        height: 400,
+                        child: Center(
+                          child: Text("暂无搜索建议，按回车直接检索"),
+                        ),
+                      );
+                    } else {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var history
+                              in searchPageController.searchHistories.take(10))
+                            ListTile(
+                              title: Text(history.keyword),
+                              onTap: () {
+                                controller.text = history.keyword;
+                                _submitSearch(controller.text);
+                              },
+                              trailing: IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () {
+                                  searchPageController
+                                      .deleteSearchHistory(history);
                                 },
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.close),
-                                  onPressed: () {
-                                    searchPageController
-                                        .deleteSearchHistory(history);
-                                  },
-                                ),
                               ),
-                          ],
-                        );
-                      }
-                    },
-                  ),
-                ],
-                onSubmitted: _submitSearch,
-              ),
+                            ),
+                        ],
+                      );
+                    }
+                  },
+                ),
+              ],
+              onSubmitted: _submitSearch,
             ),
           ),
           Observer(
@@ -338,7 +422,8 @@ class _SearchPageState extends State<SearchPage> {
                   child: SizedBox(
                     height: 400,
                     child: GeneralErrorWidget(
-                      errMsg: '什么都没有找到 (;´༎ຶД༎ຶ`)',
+                      errMsg: searchPageController.loadError ??
+                          '什么都没有找到 (;´༎ຶД༎ຶ`)',
                       actions: [
                         GeneralErrorButton(
                           onPressed: () {
@@ -386,7 +471,7 @@ class _SearchPageState extends State<SearchPage> {
                     .toList();
               }
 
-              return GridView.builder(
+              final results = GridView.builder(
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -406,6 +491,29 @@ class _SearchPageState extends State<SearchPage> {
                         )
                       : Container();
                 },
+              );
+              if (searchPageController.loadError == null ||
+                  searchPageController.bangumiList.isEmpty) {
+                return results;
+              }
+              return Column(
+                children: [
+                  Material(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    child: ListTile(
+                      leading: const Icon(Icons.error_outline),
+                      title: Text(searchPageController.loadError!),
+                      trailing: TextButton(
+                        onPressed: () => searchPageController.searchBangumi(
+                          searchController.text,
+                          type: 'add',
+                        ),
+                        child: const Text('重试'),
+                      ),
+                    ),
+                  ),
+                  Expanded(child: results),
+                ],
               );
             }),
           ),

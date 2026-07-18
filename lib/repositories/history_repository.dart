@@ -4,6 +4,7 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/services/sync/history_sync_service.dart';
+import 'package:kazumi/services/sync/webdav.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/history_storage_coordinator.dart';
 
@@ -18,6 +19,8 @@ typedef HistoryProgressSyncAppender = Future<void> Function({
 typedef HistoryDeleteSyncAppender = Future<void> Function(History history);
 
 typedef HistoryClearSyncAppender = Future<void> Function();
+
+typedef HistoryRemoteSyncScheduler = void Function();
 
 /// 历史记录数据访问接口
 ///
@@ -95,18 +98,22 @@ class HistoryRepository implements IHistoryRepository {
     HistoryProgressSyncAppender? progressSyncAppender,
     HistoryDeleteSyncAppender? deleteSyncAppender,
     HistoryClearSyncAppender? clearSyncAppender,
+    HistoryRemoteSyncScheduler? remoteSyncScheduler,
   })  : _historiesBox = historiesBox ?? GStorage.histories,
         _privateModeReader = privateModeReader ??
             (() => GStorage.getSetting(SettingsKeys.privateMode)),
         _progressSyncAppender = progressSyncAppender ?? _appendProgressSync,
         _deleteSyncAppender = deleteSyncAppender ?? _appendDeleteSync,
-        _clearSyncAppender = clearSyncAppender ?? _appendClearSync;
+        _clearSyncAppender = clearSyncAppender ?? _appendClearSync,
+        _remoteSyncScheduler =
+            remoteSyncScheduler ?? WebDav().scheduleHistorySync;
 
   final Box<History> _historiesBox;
   final bool Function() _privateModeReader;
   final HistoryProgressSyncAppender _progressSyncAppender;
   final HistoryDeleteSyncAppender _deleteSyncAppender;
   final HistoryClearSyncAppender _clearSyncAppender;
+  final HistoryRemoteSyncScheduler _remoteSyncScheduler;
   final HistoryStorageCoordinator _storageCoordinator =
       HistoryStorageCoordinator();
 
@@ -280,6 +287,7 @@ class HistoryRepository implements IHistoryRepository {
           progressMs: progress.inMilliseconds,
           updatedAt: nowMs,
         );
+        _remoteSyncScheduler();
       } catch (e, stackTrace) {
         KazumiLogger().e(
           'GStorage: update history failed. bangumi=${identity.bangumiItem.name}, episode=${identity.episodeNumber}',
@@ -341,6 +349,7 @@ class HistoryRepository implements IHistoryRepository {
           );
         }
         await _deleteSyncAppender(history);
+        _remoteSyncScheduler();
       } catch (e, stackTrace) {
         KazumiLogger().e(
           'GStorage: delete history failed. bangumi=${history.bangumiItem.name}',
@@ -357,6 +366,7 @@ class HistoryRepository implements IHistoryRepository {
       try {
         await _historiesBox.clear();
         await _clearSyncAppender();
+        _remoteSyncScheduler();
       } catch (e, stackTrace) {
         KazumiLogger().e(
           'GStorage: clear all histories failed',

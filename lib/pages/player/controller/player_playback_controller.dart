@@ -384,13 +384,16 @@ abstract class _PlayerPlaybackController with Store {
                 message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
           } else {
             KazumiDialog.showToast(
-                message: '播放器内部错误 ${event.toString()} ${videoUrl()}',
-                duration: const Duration(seconds: 5),
-                showActionButton: true);
+              message: '播放器内部错误，请尝试重试或更换视频来源',
+              duration: const Duration(seconds: 5),
+              showActionButton: true,
+            );
           }
         }
-        KazumiLogger().e('PlayerController: Player intent error ${videoUrl()}',
-            error: event);
+        KazumiLogger().e(
+          'PlayerController: player intent error',
+          error: event,
+        );
       });
 
       if (superResolutionMode != SuperResolutionMode.off) {

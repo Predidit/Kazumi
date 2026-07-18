@@ -106,12 +106,24 @@ void FlutterWindow::RegisterIntentChannel() {
       const auto* arguments = std::get_if<flutter::EncodableMap>(call.arguments());
       if (arguments) {
         auto url_it = arguments->find(flutter::EncodableValue("url"));
-        if (url_it != arguments->end()) {
-          const std::string& url = std::get<std::string>(url_it->second);
-          ExternalPlayerUtils::OpenWithPlayer(url.c_str());
-          result->Success();
+        auto mime_it = arguments->find(flutter::EncodableValue("mimeType"));
+        if (url_it != arguments->end() && mime_it != arguments->end()) {
+          const auto* url = std::get_if<std::string>(&url_it->second);
+          const auto* mime_type = std::get_if<std::string>(&mime_it->second);
+          if (url == nullptr || mime_type == nullptr || mime_type->empty()) {
+            result->Error("InvalidArguments",
+                          "'url' and 'mimeType' must be strings");
+            return;
+          }
+          if (!ExternalPlayerUtils::OpenWithPlayer(*url)) {
+            result->Error("LaunchFailed",
+                          "Unable to create or open the external playlist");
+            return;
+          }
+          result->Success(flutter::EncodableValue(true));
         } else {
-          result->Error("InvalidArguments", "Missing 'url' argument");
+          result->Error("InvalidArguments",
+                        "Missing 'url' or 'mimeType' argument");
         }
       } else {
         result->Error("InvalidArguments", "Arguments are not a map");
@@ -136,10 +148,17 @@ void FlutterWindow::RegisterStorageChannel() {
       if (arguments) {
         auto path_it = arguments->find(flutter::EncodableValue("path"));
         if (path_it != arguments->end()) {
-          const std::string& path_str = std::get<std::string>(path_it->second);
+          const auto* path_str = std::get_if<std::string>(&path_it->second);
+          if (path_str == nullptr) {
+            result->Error("InvalidArguments", "'path' must be a string");
+            return;
+          }
           // Extract drive root from path (e.g. "C:\Users\..." -> "C:\")
-          if (path_str.length() >= 2 && path_str[1] == ':') {
-            path = std::wstring(1, static_cast<wchar_t>(path_str[0])) + L":\\";
+          if (path_str->length() >= 2 && (*path_str)[1] == ':' &&
+              (((*path_str)[0] >= 'A' && (*path_str)[0] <= 'Z') ||
+               ((*path_str)[0] >= 'a' && (*path_str)[0] <= 'z'))) {
+            path = std::wstring(1, static_cast<wchar_t>((*path_str)[0])) +
+                   L":\\";
           }
         }
       }

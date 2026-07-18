@@ -42,7 +42,8 @@ class ApiEndpoints {
   /// bangumi API
   static const String bangumiAPIDomain = 'https://api.bgm.tv';
 
-  /// Bangumi 鉴权 API
+  /// Bangumi 鉴权 API。上游在 9f05b7d 中将同步端点显式路由到此域名。
+  /// 调用方必须显式标记 requiresAuth，避免将 token 扩散到公共请求。
   static const String bangumiAuthAPIMirrorDomain = 'https://api.bgmapi.com';
 
   /// Telegram 群组

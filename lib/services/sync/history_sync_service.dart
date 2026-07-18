@@ -10,6 +10,7 @@ import 'package:kazumi/services/storage/history_storage_coordinator.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:kazumi/services/sync/history_sync_path_policy.dart';
 
 class HistorySyncService {
   static const int checkpointLogThresholdBytes = 1024 * 1024;
@@ -35,7 +36,7 @@ class HistorySyncService {
   Future<String> getDeviceId() async {
     return _sequenceQueue.run(() async {
       final existing = GStorage.getSetting(SettingsKeys.historySyncDeviceId);
-      if (existing.isNotEmpty) {
+      if (isValidHistorySyncDeviceId(existing)) {
         return existing;
       }
       final deviceId = HistorySyncDevice.generateDeviceId();

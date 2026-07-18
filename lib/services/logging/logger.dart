@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:logger/logger.dart';
+import 'package:kazumi/services/logging/log_sanitizer.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:synchronized/synchronized.dart';
@@ -106,6 +107,11 @@ class KazumiLogPrinter extends PrettyPrinter {
 class KazumiLogOutput extends LogOutput {
   static final Lock _logLock = Lock();
   static String? _logFilePath;
+  static bool _persistentLoggingEnabled = false;
+
+  static void enablePersistentLogging() {
+    _persistentLoggingEnabled = true;
+  }
 
   static Future<String> _getLogFilePath() async {
     if (_logFilePath != null) return _logFilePath!;
@@ -123,12 +129,13 @@ class KazumiLogOutput extends LogOutput {
   @override
   void output(OutputEvent event) {
     for (var line in event.lines) {
-      print(line);
+      stdout.writeln(LogSanitizer.sanitizeText(line));
     }
 
     // Write to file if: warning/error/fatal OR forceLog is enabled
     final forceLog = Zone.current[_forceLogKey] as bool? ?? false;
-    if (event.level.index >= Level.warning.index || forceLog) {
+    if (_persistentLoggingEnabled &&
+        (event.level.index >= Level.warning.index || forceLog)) {
       _writeToFile(event);
     }
   }
@@ -144,7 +151,9 @@ class KazumiLogOutput extends LogOutput {
         final buffer = StringBuffer();
         buffer.writeln('[$timestamp]');
         for (var line in event.lines) {
-          final cleanLine = _removeAnsiCodes(line);
+          final cleanLine = LogSanitizer.sanitizeText(
+            _removeAnsiCodes(line),
+          );
           buffer.writeln(cleanLine);
         }
         buffer.writeln();
@@ -154,7 +163,9 @@ class KazumiLogOutput extends LogOutput {
           mode: FileMode.writeOnlyAppend,
         );
       } catch (e) {
-        print('Failed to write log to file: $e');
+        stderr.writeln(
+          LogSanitizer.sanitizeText('Failed to write log to file: $e'),
+        );
       }
     });
   }
@@ -180,6 +191,14 @@ class KazumiLogger {
   }
 
   late final Logger _logger;
+
+  /// Enables path-provider-backed log files after Flutter bindings exist.
+  /// Pure Dart tests still receive console output without attempting platform
+  /// channel access.
+  static void enablePersistentLogging() {
+    KazumiLogOutput.enablePersistentLogging();
+  }
+
   void _log(void Function() logFn, bool forceLog) {
     if (forceLog) {
       runZoned(logFn, zoneValues: {_forceLogKey: true});
@@ -260,7 +279,9 @@ Future<bool> clearLogs() async {
     });
     return true;
   } catch (e) {
-    print('Error clearing file: $e');
+    stderr.writeln(
+      LogSanitizer.sanitizeText('Error clearing file: $e'),
+    );
     return false;
   }
 }

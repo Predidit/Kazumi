@@ -3,8 +3,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:kazumi/services/logging/logger.dart';
 
-const double PING_MOVING_AVERAGE_WEIGHT = 0.85;
+const double pingMovingAverageWeight = 0.85;
 const Duration _tlsHandshakeTimeout = Duration(seconds: 10);
 const Duration _socketWriteTimeout = Duration(seconds: 10);
 
@@ -239,9 +240,7 @@ class SyncplayClient {
   int _serverIgnoringOnTheFly = 0;
 
   bool get isConnected =>
-      !_closed &&
-      _socket != null &&
-      (_tlsHandshakeCompleter == null || _isTLS);
+      !_closed && _socket != null && (_tlsHandshakeCompleter == null || _isTLS);
   bool get isTLS => _isTLS;
   String? get username => _username;
   String? get currentRoom => _currentRoom;
@@ -289,7 +288,7 @@ class SyncplayClient {
     }
     _connectCalled = true;
     try {
-      print('SyncPlay: connecting to Syncplay server: $_host:$_port');
+      KazumiLogger().d('SyncPlay: opening server connection');
       final socket = await RawSocket.connect(_host, _port);
       if (_closed) {
         await _forceCloseSocket(socket);
@@ -297,7 +296,7 @@ class SyncplayClient {
       }
       _socket = socket;
       _transportSocket = socket;
-      print('SyncPlay: connected to Syncplay server: $_host:$_port');
+      KazumiLogger().d('SyncPlay: server connection established');
       _setupSocketHandlers(socket);
       if (enableTLS) {
         final handshakeCompleter = Completer<void>();
@@ -354,12 +353,12 @@ class SyncplayClient {
         'SyncPlay: cannot request TLS before connecting',
       );
     }
-    print('SyncPlay: requesting TLS connection upgrade');
+    KazumiLogger().d('SyncPlay: requesting TLS connection upgrade');
     await _sendMessage(TLSMessage(message: 'send'));
   }
 
   Future<void> joinRoom(String room, String username) async {
-    print('SyncPlay: joining room: $room as $username');
+    KazumiLogger().d('SyncPlay: sending room join request');
     await _sendMessage(HelloMessage(
       username: username,
       version: '1.7.0',
@@ -411,7 +410,7 @@ class SyncplayClient {
       return;
     }
     _closed = true;
-    print('SyncPlay: disconnecting from Syncplay server: $_host:$_port');
+    KazumiLogger().d('SyncPlay: disconnecting from server');
     final exception =
         SyncplayConnectionException('SyncPlay: connection closed');
     _completeTLSHandshakeError(exception);
@@ -586,8 +585,7 @@ class SyncplayClient {
     if (!identical(socket, _socket)) {
       return;
     }
-    final handshakePending =
-        !(_tlsHandshakeCompleter?.isCompleted ?? true);
+    final handshakePending = !(_tlsHandshakeCompleter?.isCompleted ?? true);
     final closeFuture = _closeSockets(
       pendingWriteError: exception,
       stackTrace: stackTrace,
@@ -623,8 +621,7 @@ class SyncplayClient {
           json['Hello']['room'].containsKey('name')) {
         _username = json['Hello']['username'];
         _currentRoom = json['Hello']['room']['name'];
-        print(
-            'SyncPlay: joined room: $_currentRoom as $_username, version: ${json['Hello']['version']}');
+        KazumiLogger().d('SyncPlay: room join acknowledged');
         _runInBackground(_setReady());
       }
       _generalMessageController?.add({
@@ -761,7 +758,7 @@ class SyncplayClient {
       _socket = secureSocket;
       _isTLS = true;
       _setupSocketHandlers(secureSocket);
-      print('SyncPlay: TLS connection established');
+      KazumiLogger().d('SyncPlay: TLS connection established');
       final handshakeCompleter = _tlsHandshakeCompleter;
       if (handshakeCompleter != null && !handshakeCompleter.isCompleted) {
         handshakeCompleter.complete();
@@ -775,7 +772,10 @@ class SyncplayClient {
       final exception = SyncplayConnectionException(
         'SyncPlay: TLS connection upgrade failed: $error',
       );
-      print(exception.message);
+      KazumiLogger().w(
+        'SyncPlay: TLS connection upgrade failed',
+        error: exception,
+      );
       _completeTLSHandshakeError(exception, stackTrace);
     }
   }
@@ -955,8 +955,8 @@ class SyncplayClient {
     }
 
     // Use moving average to update RTT, smooth the delay data
-    _avrRtt = _avrRtt * PING_MOVING_AVERAGE_WEIGHT +
-        _clientRtt * (1 - PING_MOVING_AVERAGE_WEIGHT);
+    _avrRtt = _avrRtt * pingMovingAverageWeight +
+        _clientRtt * (1 - pingMovingAverageWeight);
 
     // Calculate the forward delay based on the sender's RTT
     if (senderRtt < _clientRtt) {

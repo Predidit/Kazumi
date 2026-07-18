@@ -5,6 +5,7 @@ import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/plugins/api_rule_config.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart';
+import 'package:kazumi/services/plugin/rule_request_policy.dart';
 import 'package:kazumi/utils/episode_url.dart';
 
 class ApiRuleFormatException implements Exception {
@@ -121,15 +122,22 @@ class ApiRuleStrategy {
       throw const ApiRuleFormatException('API 请求 URL 不能为空');
     }
     final url = _renderTemplate(config.url.trim(), variables, encode: true);
-    final uri = Uri.tryParse(url);
-    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
-      throw ApiRuleFormatException('API 请求 URL 无效: $url');
+    try {
+      RuleRequestPolicy.validateHttpUrl(url);
+    } on RuleRequestPolicyException catch (error) {
+      throw ApiRuleFormatException(error.message);
     }
     final hasBody = method == 'POST' && config.bodyType != ApiBodyType.none;
+    final headers = _renderMap(config.headers, variables);
+    try {
+      RuleRequestPolicy.validateHeaders(headers);
+    } on RuleRequestPolicyException catch (error) {
+      throw ApiRuleFormatException(error.message);
+    }
     return PreparedRuleRequest(
       method: method,
       url: url,
-      headers: _renderMap(config.headers, variables),
+      headers: headers,
       query: _renderMap(config.query, variables),
       bodyType: config.bodyType,
       body: hasBody ? _renderValue(config.body, variables) : null,
@@ -297,9 +305,7 @@ class ApiRuleStrategy {
         }
         roads.add(
           Road(
-            name: roadName.isEmpty
-                ? '播放线路${roads.length + 1}'
-                : roadName,
+            name: roadName.isEmpty ? '播放线路${roads.length + 1}' : roadName,
             data: urls,
             identifier: names,
           ),
@@ -403,7 +409,9 @@ class ApiRuleStrategy {
     required String baseUrl,
   }) {
     final page = config.episodePage;
-    if (page == null) return normalizeEpisodeUrl(baseUrl, rawUrl);
+    if (page == null) {
+      return _validateEpisodeUrl(normalizeEpisodeUrl(baseUrl, rawUrl));
+    }
     if (page.url.trim().isEmpty) {
       throw const ApiRuleFormatException('播放页地址模板不能为空');
     }
@@ -430,10 +438,20 @@ class ApiRuleStrategy {
       ...uri.queryParameters,
       ...renderedQuery,
     };
-    return normalizeEpisodeUrl(
-      baseUrl,
-      uri.replace(queryParameters: mergedQuery).toString(),
+    return _validateEpisodeUrl(
+      normalizeEpisodeUrl(
+        baseUrl,
+        uri.replace(queryParameters: mergedQuery).toString(),
+      ),
     );
+  }
+
+  String _validateEpisodeUrl(String value) {
+    try {
+      return RuleRequestPolicy.validateHttpUrl(value).toString();
+    } on RuleRequestPolicyException catch (error) {
+      throw ApiRuleFormatException(error.message);
+    }
   }
 
   /// Validates the JSONPath expressions and format-specific invariants of a

@@ -413,14 +413,36 @@ class _VideoPageState extends State<VideoPage>
     }
     if (videoPageController.isFullscreen && !isTablet()) {
       menuJumpToCurrentEpisode();
-      await DisplayModeService.exitFullScreen();
+      try {
+        final exited = await videoPageController.exitFullScreen();
+        if (!exited && videoPageController.isFullscreen) {
+          return;
+        }
+      } catch (error, stackTrace) {
+        KazumiLogger().e(
+          'Display: failed to exit full screen from video page',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return;
+      }
       _hideTabBodyImmediately();
-      videoPageController.isFullscreen = false;
       return;
     }
     if (videoPageController.isFullscreen) {
-      await DisplayModeService.exitFullScreen();
-      videoPageController.isFullscreen = false;
+      try {
+        final exited = await videoPageController.exitFullScreen();
+        if (!exited && videoPageController.isFullscreen) {
+          return;
+        }
+      } catch (error, stackTrace) {
+        KazumiLogger().e(
+          'Display: failed to exit full screen from video page',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return;
+      }
     }
     if (_isClosing) {
       return;
@@ -627,10 +649,10 @@ class _VideoPageState extends State<VideoPage>
           if (orientation == Orientation.landscape &&
               !videoPageController.isFullscreen) {
             _hideTabBodyImmediately();
-            videoPageController.enterFullScreen();
+            unawaited(videoPageController.enterFullScreen());
           } else if (orientation == Orientation.portrait &&
               videoPageController.isFullscreen) {
-            videoPageController.exitFullScreen();
+            unawaited(videoPageController.exitFullScreen());
             _showTabBodyImmediately();
           }
         }
@@ -766,6 +788,30 @@ class _VideoPageState extends State<VideoPage>
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
+                                const SizedBox(height: 20),
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 12,
+                                  runSpacing: 8,
+                                  children: [
+                                    FilledButton.icon(
+                                      onPressed: () => changeEpisode(
+                                        videoPageController
+                                            .selectedEpisode.episode,
+                                        currentRoad: videoPageController
+                                            .selectedEpisode.road,
+                                      ),
+                                      icon: const Icon(Icons.refresh),
+                                      label: const Text('重试播放'),
+                                    ),
+                                    if (videoPageController.roadList.length > 1)
+                                      OutlinedButton.icon(
+                                        onPressed: _showTabBodyImmediately,
+                                        icon: const Icon(Icons.alt_route),
+                                        label: const Text('选择其他线路'),
+                                      ),
+                                  ],
+                                ),
                               ],
                             )
                           : Column(
@@ -821,6 +867,7 @@ class _VideoPageState extends State<VideoPage>
                       child: Row(
                         children: [
                           IconButton(
+                            tooltip: '返回',
                             icon: const Icon(Icons.arrow_back,
                                 color: Colors.white),
                             onPressed: () => onBackPressed(context),
@@ -829,6 +876,7 @@ class _VideoPageState extends State<VideoPage>
                               child: dtb.DragToMoveArea(
                                   child: SizedBox(height: 40))),
                           IconButton(
+                            tooltip: '重试播放',
                             icon: const Icon(Icons.refresh_outlined,
                                 color: Colors.white),
                             onPressed: () {
@@ -842,6 +890,8 @@ class _VideoPageState extends State<VideoPage>
                             visible: MediaQuery.sizeOf(context).width >
                                 MediaQuery.sizeOf(context).height,
                             child: IconButton(
+                              tooltip:
+                                  _tabBodyTargetVisible ? '收起播放列表' : '展开播放列表',
                               onPressed: () {
                                 _toggleTabBodyAnimated();
                               },
@@ -854,6 +904,7 @@ class _VideoPageState extends State<VideoPage>
                             ),
                           ),
                           IconButton(
+                            tooltip: showDebugLog ? '隐藏调试日志' : '显示调试日志',
                             icon: Icon(
                                 showDebugLog
                                     ? Icons.bug_report
@@ -873,7 +924,8 @@ class _VideoPageState extends State<VideoPage>
           ),
         ),
         Positioned.fill(
-          child: playerController.playback.loading
+          child: playerController.playback.loading ||
+                  videoPageController.errorMessage != null
               ? Container()
               : PlayerItem(
                   playerController: playerController,

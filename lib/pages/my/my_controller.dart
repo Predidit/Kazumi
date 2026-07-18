@@ -6,9 +6,9 @@ import 'package:kazumi/services/update/auto_updater.dart';
 
 part 'my_controller.g.dart';
 
-class MyController = _MyController with _$MyController;
+class MyController = MyControllerBase with _$MyController;
 
-abstract class _MyController with Store {
+abstract class MyControllerBase with Store {
   @observable
   ObservableList<String> shieldList = ObservableList.of([]);
 

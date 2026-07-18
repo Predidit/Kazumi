@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/logging/log_sanitizer.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:mobx/mobx.dart';
 
@@ -12,6 +13,8 @@ class PlayerDebugController = _PlayerDebugController
     with _$PlayerDebugController;
 
 abstract class _PlayerDebugController with Store {
+  static const int _maxPlayerLogEntries = 500;
+
   /// LogLevel 0: 错误 1: 警告 2: 简略 3: 详细
   int playerLogLevel = 2;
 
@@ -54,9 +57,16 @@ abstract class _PlayerDebugController with Store {
     await playerLogSubscription?.cancel();
     if (!isCurrentPlayer(player)) return;
     playerLogSubscription = player.stream.log.listen((event) {
-      playerLog.add(event.toString());
+      final safeEvent = LogSanitizer.sanitizeText(event.toString());
+      if (playerLog.length >= _maxPlayerLogEntries) {
+        playerLog.removeRange(
+          0,
+          playerLog.length - _maxPlayerLogEntries + 1,
+        );
+      }
+      playerLog.add(safeEvent);
       if (playerDebugMode) {
-        KazumiLogger().i("MPV: ${event.toString()}", forceLog: true);
+        KazumiLogger().i('MPV: $safeEvent', forceLog: true);
       }
     });
     await playerWidthSubscription?.cancel();
@@ -82,7 +92,7 @@ abstract class _PlayerDebugController with Store {
     await playerPlaylistSubscription?.cancel();
     if (!isCurrentPlayer(player)) return;
     playerPlaylistSubscription = player.stream.playlist.listen((event) {
-      playerPlaylist = event.toString();
+      playerPlaylist = LogSanitizer.sanitizeText(event.toString());
     });
     await playerTracksSubscription?.cancel();
     if (!isCurrentPlayer(player)) return;

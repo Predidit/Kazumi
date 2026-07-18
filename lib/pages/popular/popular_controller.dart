@@ -6,18 +6,10 @@ import 'package:mobx/mobx.dart';
 
 part 'popular_controller.g.dart';
 
-typedef PopularTrendPageLoader = Future<List<BangumiItem>> Function(int offset);
-
-// ignore: library_private_types_in_public_api
 class PopularController = _PopularController with _$PopularController;
 
 abstract class _PopularController with Store {
-  _PopularController({PopularTrendPageLoader? trendPageLoader})
-      : _trendPageLoader = trendPageLoader;
-
   static const int _trendPageSize = 24;
-
-  final PopularTrendPageLoader? _trendPageLoader;
 
   int _trendOffset = 0;
 
@@ -58,16 +50,15 @@ abstract class _PopularController with Store {
       _trendOffset = 0;
     }
     isLoadingMore = true;
-    final result = await (_trendPageLoader?.call(_trendOffset) ??
-        (_bangumiMirrorEnabled
-            ? BangumiApi.getBangumiMirrorPopularSubjects(
-                limit: _trendPageSize,
-                offset: _trendOffset,
-              )
-            : BangumiApi.getBangumiTrendsList(
-                limit: _trendPageSize,
-                offset: _trendOffset,
-              )));
+    final result = _bangumiMirrorEnabled
+        ? await BangumiApi.getBangumiMirrorPopularSubjects(
+            limit: _trendPageSize,
+            offset: _trendOffset,
+          )
+        : await BangumiApi.getBangumiTrendsList(
+            limit: _trendPageSize,
+            offset: _trendOffset,
+          );
     if (result.isNotEmpty) {
       _trendOffset += _trendPageSize;
     }

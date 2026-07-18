@@ -56,14 +56,25 @@ void main() {
   });
 
   group('LogSanitizer', () {
-    test('removes URL credentials, query parameters, and fragments', () {
+    test('keeps only URL origins in log text', () {
       final sanitized = LogSanitizer.sanitizeText(
         'GET https://user:password@example.com/video.m3u8?token=secret#part',
       );
 
-      expect(sanitized, 'GET https://example.com/video.m3u8');
+      expect(sanitized, 'GET https://example.com');
+      expect(sanitized, isNot(contains('video.m3u8')));
       expect(sanitized, isNot(contains('password')));
       expect(sanitized, isNot(contains('secret')));
+    });
+
+    test('preserves a non-default port without exposing a private path', () {
+      final sanitized = LogSanitizer.sanitizeUri(
+        Uri.parse('https://media.example.com:8443/users/alice/library.m3u8'),
+      );
+
+      expect(sanitized, 'https://media.example.com:8443');
+      expect(sanitized, isNot(contains('alice')));
+      expect(sanitized, isNot(contains('library.m3u8')));
     });
 
     test('redacts headers, bearer values, cookies, and data URLs', () {

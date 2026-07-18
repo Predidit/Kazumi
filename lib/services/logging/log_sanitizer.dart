@@ -34,8 +34,9 @@ class LogSanitizer {
     return sanitized;
   }
 
-  /// Keeps enough origin/path information for diagnostics while removing
-  /// user info, query parameters, and fragments that commonly contain tokens.
+  /// Keeps only the origin needed for diagnostics. Paths can contain account,
+  /// media, WebDAV, or rule-specific identifiers, so they are private by
+  /// default just like user info, query parameters, and fragments.
   static String sanitizeUri(Object value) {
     final raw = value.toString();
     final uri = Uri.tryParse(raw);
@@ -47,7 +48,6 @@ class LogSanitizer {
       scheme: uri.scheme,
       host: uri.host,
       port: uri.hasPort ? uri.port : null,
-      path: uri.path,
     );
     return safeUri.toString();
   }

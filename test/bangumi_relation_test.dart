@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
@@ -334,6 +336,50 @@ void main() {
       expect(result.map((relation) => relation.bangumiItem.id), [1, 2, 3, 4]);
     });
 
+    test('fetches subjects at the same depth concurrently', () async {
+      final graph = <int, List<BangumiRelation>>{
+        5: [
+          _relation(3, relation: '前传'),
+          _relation(4, relation: '前传'),
+        ],
+        3: [_relation(1, relation: '前传')],
+        4: [_relation(2, relation: '前传')],
+        1: const [],
+        2: const [],
+      };
+      final firstRequestStarted = Completer<void>();
+      final releaseFirstRequest = Completer<void>();
+      final secondRequestStarted = Completer<void>();
+      final releaseSecondRequest = Completer<void>();
+
+      final resultFuture = resolveRelatedAnimeChain(
+        currentSubjectId: 5,
+        fetchRelations: (id) async {
+          if (id == 5) return graph[id]!;
+
+          if (id == 3) {
+            firstRequestStarted.complete();
+            await releaseFirstRequest.future;
+          }
+          if (id == 4) {
+            secondRequestStarted.complete();
+            await releaseSecondRequest.future;
+          }
+          return graph[id] ?? const [];
+        },
+      );
+
+      await firstRequestStarted.future;
+      await Future<void>.delayed(Duration.zero);
+      final fetchedConcurrently = secondRequestStarted.isCompleted;
+      releaseSecondRequest.complete();
+      releaseFirstRequest.complete();
+
+      final result = await resultFuture;
+      expect(fetchedConcurrently, isTrue);
+      expect(result.map((relation) => relation.bangumiItem.id), [1, 2, 3, 4]);
+    });
+
     test('honors depth and fetch count limits', () async {
       final graph = <int, List<BangumiRelation>>{
         4: [_relation(3, relation: '前传')],
@@ -380,6 +426,38 @@ void main() {
 
       expect(directOnly.map((relation) => relation.bangumiItem.id), [3]);
       expect(directOnlyRequests, [4]);
+    });
+
+    test('honors the fetch budget across a branching frontier', () async {
+      final graph = <int, List<BangumiRelation>>{
+        5: [
+          _relation(3, relation: '前传'),
+          _relation(4, relation: '前传'),
+          _relation(6, relation: '前传'),
+        ],
+        3: [_relation(1, relation: '前传')],
+        4: [_relation(2, relation: '前传')],
+        6: [_relation(0, relation: '前传')],
+        1: const [],
+        2: const [],
+        0: const [],
+      };
+      final requestedIds = <int>[];
+
+      final result = await resolveRelatedAnimeChain(
+        currentSubjectId: 5,
+        maxFetchCount: 3,
+        fetchRelations: (id) async {
+          requestedIds.add(id);
+          return graph[id] ?? const [];
+        },
+      );
+
+      expect(requestedIds, [5, 3, 4]);
+      expect(
+        result.map((relation) => relation.bangumiItem.id),
+        [1, 2, 3, 4, 6],
+      );
     });
 
     test('propagates a nested request failure without returning a partial list',

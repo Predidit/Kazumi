@@ -170,10 +170,18 @@ Future<List<BangumiRelation>> resolveRelatedAnimeChain({
       bangumiPrequelRelation: <BangumiRelation>[],
       bangumiSequelRelation: <BangumiRelation>[],
     };
-    for (final node in frontier) {
-      if (fetchCount >= maxFetchCount) break;
-      final relations = await fetchRelations(node.subjectId);
-      fetchCount++;
+    final nodesToFetch =
+        frontier.take(maxFetchCount - fetchCount).toList(growable: false);
+    final relationLists = await Future.wait([
+      for (final node in nodesToFetch)
+        Future<List<BangumiRelation>>.sync(
+          () => fetchRelations(node.subjectId),
+        ),
+    ]);
+    fetchCount += nodesToFetch.length;
+    for (var index = 0; index < nodesToFetch.length; index++) {
+      final node = nodesToFetch[index];
+      final relations = relationLists[index];
       for (final relation in relations) {
         final item = relation.bangumiItem;
         if (relation.relation != node.direction ||

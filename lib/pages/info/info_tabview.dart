@@ -718,8 +718,12 @@ class _RelatedBangumiCardH extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final imageWidth =
-                  (constraints.maxWidth * 0.42).clamp(116.0, 152.0).toDouble();
+              final gap = constraints.maxWidth.clamp(0.0, 10.0).toDouble();
+              final maxImageWidth =
+                  (constraints.maxWidth - gap).clamp(0.0, 152.0);
+              final imageWidth = (constraints.maxWidth * 0.42)
+                  .clamp(0.0, maxImageWidth)
+                  .toDouble();
 
               return Row(
                 children: [
@@ -735,7 +739,7 @@ class _RelatedBangumiCardH extends StatelessWidget {
                       origAspectRatio: posterAspectRatio,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: gap),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,

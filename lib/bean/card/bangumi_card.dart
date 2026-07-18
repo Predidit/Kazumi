@@ -85,12 +85,6 @@ class BangumiContent extends StatelessWidget {
             : 2;
   }
 
-  static double requiredHeightFor(BuildContext context) {
-    final textScaler =
-        MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.1);
-    return textScaler.scale(maxTextLinesFor(context) * 20) + 4;
-  }
-
   @override
   Widget build(BuildContext context) {
     final ts = MediaQuery.textScalerOf(context);

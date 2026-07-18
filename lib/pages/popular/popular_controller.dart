@@ -6,9 +6,21 @@ import 'package:mobx/mobx.dart';
 
 part 'popular_controller.g.dart';
 
+typedef PopularTrendPageLoader = Future<List<BangumiItem>> Function(int offset);
+
+// ignore: library_private_types_in_public_api
 class PopularController = _PopularController with _$PopularController;
 
 abstract class _PopularController with Store {
+  _PopularController({PopularTrendPageLoader? trendPageLoader})
+      : _trendPageLoader = trendPageLoader;
+
+  static const int _trendPageSize = 24;
+
+  final PopularTrendPageLoader? _trendPageLoader;
+
+  int _trendOffset = 0;
+
   @observable
   String currentTag = '';
 
@@ -43,13 +55,24 @@ abstract class _PopularController with Store {
   Future<void> queryBangumiByTrend({String type = 'add'}) async {
     if (type == 'init') {
       trendList.clear();
+      _trendOffset = 0;
     }
     isLoadingMore = true;
-    var result = _bangumiMirrorEnabled
-        ? await BangumiApi.getBangumiMirrorPopularSubjects(
-            offset: trendList.length)
-        : await BangumiApi.getBangumiTrendsList(offset: trendList.length);
-    trendList.addAll(result);
+    final result = await (_trendPageLoader?.call(_trendOffset) ??
+        (_bangumiMirrorEnabled
+            ? BangumiApi.getBangumiMirrorPopularSubjects(
+                limit: _trendPageSize,
+                offset: _trendOffset,
+              )
+            : BangumiApi.getBangumiTrendsList(
+                limit: _trendPageSize,
+                offset: _trendOffset,
+              )));
+    if (result.isNotEmpty) {
+      _trendOffset += _trendPageSize;
+    }
+    final existingIds = trendList.map((item) => item.id).toSet();
+    trendList.addAll(result.where((item) => existingIds.add(item.id)));
     isLoadingMore = false;
     isTimeOut = trendList.isEmpty;
   }

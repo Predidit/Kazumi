@@ -12,6 +12,8 @@ import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 class TimelinePage extends StatefulWidget {
   const TimelinePage({
@@ -89,8 +91,8 @@ class _TimelinePageState extends State<TimelinePage>
 
     await Scrollable.ensureVisible(
       filterContext,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
+      duration: context.motion(KazumiDesignTokens.motionStandard),
+      curve: KazumiDesignTokens.standardCurve,
       alignment: 0.04,
     );
   }
@@ -119,11 +121,14 @@ class _TimelinePageState extends State<TimelinePage>
     required Widget body,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
+    final tokens = context.design;
 
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(tokens.radiusSheet),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -157,8 +162,10 @@ class _TimelinePageState extends State<TimelinePage>
     KazumiDialog.showBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(context.design.radiusSheet),
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       useSafeArea: true,
@@ -317,7 +324,7 @@ class _TimelinePageState extends State<TimelinePage>
             width: 1,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(context.design.radiusCompact),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -383,14 +390,14 @@ class _TimelinePageState extends State<TimelinePage>
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(context.design.radiusCompact),
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: highlighted
                 ? colorScheme.secondaryContainer
                 : colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(context.design.radiusCompact),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -676,6 +683,7 @@ class _TimelinePageState extends State<TimelinePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: SysAppBar(
         needTopOffset: false,
         toolbarHeight: 104,
@@ -685,7 +693,7 @@ class _TimelinePageState extends State<TimelinePage>
           indicatorColor: Theme.of(context).colorScheme.primary,
         ),
         title: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(context.design.radiusControl),
           child: Observer(builder: (context) {
             return Text(timelineController.seasonString);
           }),
@@ -698,8 +706,10 @@ class _TimelinePageState extends State<TimelinePage>
         onPressed: () {
           KazumiDialog.showBottomSheet(
             backgroundColor: Theme.of(context).colorScheme.surface,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(context.design.radiusSheet),
+              ),
             ),
             isScrollControlled: true,
             constraints: buildTimelineBottomSheetConstraints(
@@ -719,9 +729,7 @@ class _TimelinePageState extends State<TimelinePage>
       body: Observer(builder: (context) {
         if (timelineController.isLoading &&
             timelineController.bangumiCalendar.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const GeneralLoadingWidget(message: '正在加载放送时间表');
         }
         if (timelineController.isTimeOut) {
           return Center(
@@ -777,7 +785,9 @@ class _TimelinePageState extends State<TimelinePage>
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
       crossCount = 3;
     }
-    double cardHeight = isDesktop() ? 160 : (isTablet() ? 140 : 120);
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final baseCardHeight = isDesktop() ? 160.0 : (isTablet() ? 140.0 : 120.0);
+    final cardHeight = baseCardHeight + ((textScale - 1).clamp(0.0, 1.0) * 64);
     for (var bangumiList in bangumiCalendar) {
       // 根据过滤器设置过滤番剧
       var filteredList = bangumiList;
@@ -804,6 +814,16 @@ class _TimelinePageState extends State<TimelinePage>
             .toList();
       }
 
+      if (filteredList.isEmpty) {
+        gridViewList.add(
+          const GeneralEmptyWidget(
+            title: '当天暂无可显示的番组',
+            message: '可以调整过滤条件，或切换到其他日期。',
+          ),
+        );
+        continue;
+      }
+
       gridViewList.add(
         CustomScrollView(
           slivers: [
@@ -818,15 +838,13 @@ class _TimelinePageState extends State<TimelinePage>
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
-                    if (filteredList.isEmpty) return null;
                     final item = filteredList[index];
                     return BangumiTimelineCard(
                         bangumiItem: item,
                         cardHeight: cardHeight,
                         showRating: showRating);
                   },
-                  childCount:
-                      filteredList.isNotEmpty ? filteredList.length : 10,
+                  childCount: filteredList.length,
                 ),
               ),
             ),

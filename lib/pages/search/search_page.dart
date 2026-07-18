@@ -333,6 +333,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: SysAppBar(
         backgroundColor: Colors.transparent,
         title: const Text("搜索"),
@@ -441,7 +442,7 @@ class _SearchPageState extends State<SearchPage> {
 
               if (searchPageController.isLoading &&
                   searchPageController.bangumiList.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return const GeneralLoadingWidget(message: '正在搜索番组');
               }
               int crossCount = 3;
               if (MediaQuery.sizeOf(context).width >
@@ -471,6 +472,17 @@ class _SearchPageState extends State<SearchPage> {
                     .toList();
               }
 
+              if (filteredList.isEmpty) {
+                final hasUnfilteredResults =
+                    searchPageController.bangumiList.isNotEmpty;
+                return GeneralEmptyWidget(
+                  title: hasUnfilteredResults ? '筛选后没有结果' : '开始搜索番组',
+                  message: hasUnfilteredResults
+                      ? '调整筛选条件以显示被隐藏的条目。'
+                      : '输入名称、标签或使用图片搜索来查找番组。',
+                );
+              }
+
               final results = GridView.builder(
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
@@ -482,14 +494,12 @@ class _SearchPageState extends State<SearchPage> {
                       MediaQuery.of(context).size.width / crossCount / 0.65 +
                           MediaQuery.textScalerOf(context).scale(32.0),
                 ),
-                itemCount: filteredList.isNotEmpty ? filteredList.length : 10,
+                itemCount: filteredList.length,
                 itemBuilder: (context, index) {
-                  return filteredList.isNotEmpty
-                      ? BangumiCardV(
-                          enableHero: false,
-                          bangumiItem: filteredList[index],
-                        )
-                      : Container();
+                  return BangumiCardV(
+                    enableHero: false,
+                    bangumiItem: filteredList[index],
+                  );
                 },
               );
               if (searchPageController.loadError == null ||

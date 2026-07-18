@@ -180,13 +180,16 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const GeneralLoadingWidget(message: '正在加载规则仓库');
     }
     if (_loadFailed) {
       return _buildLoadError();
     }
     if (_controller.pluginHTTPList.isEmpty) {
-      return const Center(child: Text('规则仓库中暂无规则'));
+      return const GeneralEmptyWidget(
+        title: '规则仓库暂无内容',
+        message: '可以稍后刷新，或从本地导入规则。',
+      );
     }
     return _buildPluginList();
   }

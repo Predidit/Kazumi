@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
-const Duration _kSectionAnimationDuration = Duration(milliseconds: 250);
+const Duration _kSectionAnimationDuration = KazumiDesignTokens.motionStandard;
 
 final ShapeBorder _kSectionShape =
     RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
@@ -11,9 +12,9 @@ TextStyle? _sectionTitleStyle(ThemeData theme) =>
       fontWeight: FontWeight.w700,
     );
 
-TextStyle? _sectionDescriptionStyle(ThemeData theme) => theme
-    .textTheme.bodySmall
-    ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+TextStyle? _sectionDescriptionStyle(ThemeData theme) =>
+    theme.textTheme.bodySmall
+        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
 
 /// Shared tonal shell of the editor section cards.
 class _SectionShell extends StatelessWidget {
@@ -224,7 +225,7 @@ class EditorSegmentedField<T> extends StatelessWidget {
         if (description != null) ...[
           const SizedBox(height: 6),
           AnimatedSwitcher(
-            duration: _kSectionAnimationDuration,
+            duration: context.motion(_kSectionAnimationDuration),
             child: Text(
               description!(value),
               key: ValueKey<T>(value),
@@ -253,11 +254,11 @@ class EditorAnimatedSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSize(
-      duration: _kSectionAnimationDuration,
-      curve: Curves.easeInOutCubic,
+      duration: context.motion(_kSectionAnimationDuration),
+      curve: KazumiDesignTokens.standardCurve,
       alignment: Alignment.topCenter,
       child: AnimatedSwitcher(
-        duration: _kSectionAnimationDuration,
+        duration: context.motion(_kSectionAnimationDuration),
         // Default layout centers entries, which makes tall groups jump
         // vertically mid-transition; pin both to the top instead.
         layoutBuilder: (currentChild, previousChildren) => Stack(

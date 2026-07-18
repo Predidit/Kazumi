@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 /// 时间线番剧卡片
 class BangumiTimelineCard extends StatelessWidget {
@@ -28,7 +29,6 @@ class BangumiTimelineCard extends StatelessWidget {
     final desktopLayout = isDesktop();
     final tabletLayout = isTablet();
     final theme = Theme.of(context);
-    final textScaler = MediaQuery.textScalerOf(context);
     final colorScheme = theme.colorScheme;
     const double borderRadius = 16;
     const double horizontalPadding = 12;
@@ -38,16 +38,14 @@ class BangumiTimelineCard extends StatelessWidget {
         : cardHeight;
     final double imageWidth = contentHeight * 0.7;
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      shape: RoundedRectangleBorder(
+    final title =
+        bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: KazumiInteractiveSurface(
+        semanticLabel: title,
         borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      clipBehavior: Clip.antiAlias,
-      color: colorScheme.surfaceContainerLow,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(borderRadius),
+        color: colorScheme.surfaceContainerLow,
         onTap: onTap ??
             () {
               context.pushNamed('/info/', arguments: bangumiItem);
@@ -71,8 +69,7 @@ class BangumiTimelineCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: buildInfo(
-                      context, textScaler, desktopLayout, tabletLayout),
+                  child: buildInfo(context, desktopLayout, tabletLayout),
                 ),
               ],
             ),
@@ -108,8 +105,7 @@ class BangumiTimelineCard extends StatelessWidget {
     return img;
   }
 
-  Widget buildInfo(BuildContext context, TextScaler textScaler, bool isDesktop,
-      bool isTablet) {
+  Widget buildInfo(BuildContext context, bool isDesktop, bool isTablet) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final title =
@@ -136,8 +132,6 @@ class BangumiTimelineCard extends StatelessWidget {
           style: nameStyle,
           maxLines: useWideLayout ? 2 : 1,
           overflow: TextOverflow.ellipsis,
-          textScaler:
-              textScaler.clamp(maxScaleFactor: useWideLayout ? 1.2 : 1.1),
         ),
         Expanded(
           child: Padding(
@@ -148,7 +142,6 @@ class BangumiTimelineCard extends StatelessWidget {
                     style: subStyle,
                     maxLines: supportingLines,
                     overflow: TextOverflow.ellipsis,
-                    textScaler: textScaler.clamp(maxScaleFactor: 1.0),
                   )
                 : const SizedBox.shrink(),
           ),

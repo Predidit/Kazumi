@@ -16,6 +16,9 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
 import 'package:kazumi/services/platform/application_lifecycle_service.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
+import 'package:kazumi/design_system/kazumi_theme.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -78,6 +81,13 @@ class _AppWidgetState extends State<AppWidget>
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAccessibilityFeatures() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -166,7 +176,7 @@ class _AppWidgetState extends State<AppWidget>
     Color? color,
     ColorScheme? colorScheme,
   }) {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       fontFamily: fontFamily,
       brightness: brightness,
@@ -178,6 +188,7 @@ class _AppWidgetState extends State<AppWidget>
       sliderTheme: sliderTheme2024,
       pageTransitionsTheme: pageTransitionsTheme2024,
     );
+    return applyKazumiDesignSystem(base);
   }
 
   void _syncWindowsTitleBarBrightness(ThemeProvider themeProvider) {
@@ -369,6 +380,10 @@ class _AppWidgetState extends State<AppWidget>
         final effectiveDarkTheme = useDynamicColor && oledEnhance
             ? oledDarkTheme(dynamicDarkTheme)
             : dynamicDarkTheme;
+        final accessibility =
+            WidgetsBinding.instance.platformDispatcher.accessibilityFeatures;
+        final reduceMotion = accessibility.disableAnimations ||
+            accessibility.accessibleNavigation;
 
         return MaterialApp.router(
           title: "Kazumi",
@@ -381,7 +396,32 @@ class _AppWidgetState extends State<AppWidget>
               languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
           theme: lightTheme,
           darkTheme: effectiveDarkTheme,
+          highContrastTheme: _buildAppTheme(
+            brightness: Brightness.light,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: lightTheme.colorScheme.primary,
+              brightness: Brightness.light,
+              contrastLevel: 1,
+            ),
+            fontFamily: themeProvider.currentFontFamily,
+          ),
+          highContrastDarkTheme: _buildAppTheme(
+            brightness: Brightness.dark,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: effectiveDarkTheme.colorScheme.primary,
+              brightness: Brightness.dark,
+              contrastLevel: 1,
+            ),
+            fontFamily: themeProvider.currentFontFamily,
+          ),
           themeMode: themeProvider.themeMode,
+          themeAnimationDuration: reduceMotion
+              ? Duration.zero
+              : KazumiDesignTokens.motionEmphasized,
+          themeAnimationCurve: KazumiDesignTokens.standardCurve,
+          builder: (context, child) => KazumiAppBackdrop(
+            child: child ?? const SizedBox.shrink(),
+          ),
           scaffoldMessengerKey: rootScaffoldMessengerKey,
           routerConfig: ModularApp.routerConfigOf(context),
         );

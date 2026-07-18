@@ -93,9 +93,18 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
                   )
                 : null,
         leadingWidth: leadingWidth,
-        backgroundColor: backgroundColor,
+        backgroundColor: backgroundColor ??
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.88),
         elevation: elevation,
-        shape: shape,
+        shape: shape ??
+            Border(
+              bottom: BorderSide(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.32),
+              ),
+            ),
         bottom: bottom,
         automaticallyImplyLeading: false,
         systemOverlayStyle: SystemUiOverlayStyle(
@@ -122,7 +131,9 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
         return const Size.fromHeight(kToolbarHeight + 22);
       }
     } else {
-      return Size.fromHeight(toolbarHeight ?? kToolbarHeight);
+      return Size.fromHeight(
+        toolbarHeight ?? (Platform.isWindows ? 64 : kToolbarHeight),
+      );
     }
   }
 }

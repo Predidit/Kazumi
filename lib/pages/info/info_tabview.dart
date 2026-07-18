@@ -11,6 +11,7 @@ import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
@@ -94,23 +95,31 @@ class _InfoTabViewState extends State<InfoTabView>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('简介', style: TextStyle(fontSize: 18)),
+              Text('简介', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               // https://stackoverflow.com/questions/54091055/flutter-how-to-get-the-number-of-text-lines
               // only show expand button when line > 7
               LayoutBuilder(builder: (context, constraints) {
-                final span = TextSpan(text: widget.bangumiItem.summary);
-                final tp =
-                    TextPainter(text: span, textDirection: TextDirection.ltr);
+                final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+                final span = TextSpan(
+                  text: widget.bangumiItem.summary,
+                  style: bodyStyle,
+                );
+                final tp = TextPainter(
+                  text: span,
+                  textDirection: TextDirection.ltr,
+                  textScaler: MediaQuery.textScalerOf(context),
+                );
                 tp.layout(maxWidth: constraints.maxWidth);
                 final numLines = tp.computeLineMetrics().length;
+                final collapsedHeight = tp.preferredLineHeight * 7;
                 if (numLines > 7) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       SizedBox(
                         // make intro expandable
-                        height: fullIntro ? null : 120,
+                        height: fullIntro ? null : collapsedHeight,
                         width: MediaQuery.sizeOf(context).width > maxWidth
                             ? maxWidth
                             : MediaQuery.sizeOf(context).width - 32,
@@ -144,7 +153,7 @@ class _InfoTabViewState extends State<InfoTabView>
                 }
               }),
               const SizedBox(height: 16),
-              Text('标签', style: TextStyle(fontSize: 18)),
+              Text('标签', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8.0,
@@ -219,7 +228,11 @@ class _InfoTabViewState extends State<InfoTabView>
                     spacing: 8.0,
                     runSpacing: 8.0,
                     children: List.generate(
-                        4, (_) => Bone.button(uniRadius: 8, height: 32)),
+                        4,
+                        (_) => Bone.button(
+                              uniRadius: context.design.radiusControl,
+                              height: 32,
+                            )),
                   ),
                 ),
             ],
@@ -336,8 +349,9 @@ class _InfoTabViewState extends State<InfoTabView>
                 }
                 if (widget.commentsIsEmpty) {
                   return const SliverFillRemaining(
-                    child: Center(
-                      child: Text('什么都没有找到 (´;ω;`)'),
+                    child: GeneralEmptyWidget(
+                      title: '暂无吐槽',
+                      message: '这里还没有公开评论。',
                     ),
                   );
                 }
@@ -419,8 +433,8 @@ class _InfoTabViewState extends State<InfoTabView>
               }
               if (widget.staffIsEmpty) {
                 return const SliverFillRemaining(
-                  child: Center(
-                    child: Text('什么都没有找到 (´;ω;`)'),
+                  child: GeneralEmptyWidget(
+                    title: '暂无制作人员信息',
                   ),
                 );
               }
@@ -501,8 +515,8 @@ class _InfoTabViewState extends State<InfoTabView>
               }
               if (widget.charactersIsEmpty) {
                 return const SliverFillRemaining(
-                  child: Center(
-                    child: Text('什么都没有找到 (´;ω;`)'),
+                  child: GeneralEmptyWidget(
+                    title: '暂无角色信息',
                   ),
                 );
               }

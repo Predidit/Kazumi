@@ -80,11 +80,11 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   Future<int> _getTotalSizeOfFilesInDir(final Directory directory) async {
-    final List<FileSystemEntity> children = directory.listSync();
     int total = 0;
 
     try {
-      for (final FileSystemEntity child in children) {
+      await for (final FileSystemEntity child
+          in directory.list(followLinks: false)) {
         if (child is File) {
           final int length = await child.length();
           total += length;
@@ -142,6 +142,7 @@ class _AboutPageState extends State<AboutPage> {
         onBackPressed(context);
       },
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: const SysAppBar(title: Text('关于')),
         // backgroundColor: Colors.transparent,
         body: SettingsList(

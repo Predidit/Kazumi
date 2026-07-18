@@ -165,7 +165,7 @@ class _CharacterPageState extends State<CharacterPage> {
 
   Widget get characterInfoBody {
     if (loadingCharacter) {
-      return const Center(child: CircularProgressIndicator());
+      return const GeneralLoadingWidget(message: '正在加载人物资料');
     }
     if (characterError || characterFullItem.id == 0) {
       return GeneralErrorWidget(
@@ -298,9 +298,7 @@ class _CharacterPageState extends State<CharacterPage> {
           sliver: Builder(builder: (context) {
             if (loadingComments) {
               return const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
+                child: GeneralLoadingWidget(message: '正在加载人物吐槽'),
               );
             }
             if (commentsError) {
@@ -320,8 +318,9 @@ class _CharacterPageState extends State<CharacterPage> {
             }
             if (commentsList.isEmpty) {
               return const SliverFillRemaining(
-                child: Center(
-                  child: Text('什么都没有找到 (´;ω;`)'),
+                child: GeneralEmptyWidget(
+                  title: '暂无人物吐槽',
+                  message: '这里还没有公开评论。',
                 ),
               );
             }

@@ -11,6 +11,8 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 
 class CollectPage extends StatefulWidget {
   const CollectPage({
@@ -157,6 +159,7 @@ class _CollectPageState extends State<CollectPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: SysAppBar(
         needTopOffset: false,
         toolbarHeight: 104,
@@ -179,44 +182,46 @@ class _CollectPageState extends State<CollectPage>
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          bool webDavenable =
-              await GStorage.getSetting(SettingsKeys.webDavEnable);
-          bool webDavCollectEnable =
-              GStorage.getSetting(SettingsKeys.webDavEnableCollect);
-          bool bgmSyncEnable =
-              GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-          final syncPlan = CollectSyncPlan(
-            webDavEnabled: webDavenable,
-            webDavCollectiblesEnabled: webDavCollectEnable,
-            bangumiEnabled: bgmSyncEnable,
-          );
-          if (!syncPlan.canSync) {
-            KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
-            return;
-          }
-          if (showDelete) {
-            KazumiDialog.showToast(message: '编辑模式无法执行同步');
-            return;
-          }
-          if (syncCollectiblesing) {
-            return;
-          }
-          setState(() {
-            syncCollectiblesing = true;
-          });
-          try {
-            await _runFullSync(
-              plan: syncPlan,
-            );
-          } finally {
-            if (mounted) {
-              setState(() {
-                syncCollectiblesing = false;
-              });
-            }
-          }
-        },
+        onPressed: syncCollectiblesing
+            ? null
+            : () async {
+                bool webDavenable =
+                    await GStorage.getSetting(SettingsKeys.webDavEnable);
+                bool webDavCollectEnable =
+                    GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+                bool bgmSyncEnable =
+                    GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+                final syncPlan = CollectSyncPlan(
+                  webDavEnabled: webDavenable,
+                  webDavCollectiblesEnabled: webDavCollectEnable,
+                  bangumiEnabled: bgmSyncEnable,
+                );
+                if (!syncPlan.canSync) {
+                  KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
+                  return;
+                }
+                if (showDelete) {
+                  KazumiDialog.showToast(message: '编辑模式无法执行同步');
+                  return;
+                }
+                if (syncCollectiblesing) {
+                  return;
+                }
+                setState(() {
+                  syncCollectiblesing = true;
+                });
+                try {
+                  await _runFullSync(
+                    plan: syncPlan,
+                  );
+                } finally {
+                  if (mounted) {
+                    setState(() {
+                      syncCollectiblesing = false;
+                    });
+                  }
+                }
+              },
         child: syncCollectiblesing
             ? const SizedBox(
                 width: 32, height: 32, child: CircularProgressIndicator())
@@ -235,8 +240,16 @@ class _CollectPageState extends State<CollectPage>
         children: contentGrid(collectController.collectibles),
       );
     } else {
-      return const Center(
-        child: Text('啊嘞, 没有追番的说 (´;ω;`)'),
+      return GeneralEmptyWidget(
+        title: '还没有追番',
+        message: '从搜索或番组详情页添加收藏后，会在这里按状态分类显示。',
+        actions: [
+          FilledButton.tonalIcon(
+            onPressed: () => context.pushNamed('/search/'),
+            icon: const Icon(Icons.search_rounded),
+            label: const Text('去搜索'),
+          ),
+        ],
       );
     }
   }
@@ -263,6 +276,15 @@ class _CollectPageState extends State<CollectPage>
     }
     for (List<CollectedBangumi> collectedBangumiRenderItem
         in collectedBangumiRenderItemList) {
+      if (collectedBangumiRenderItem.isEmpty) {
+        gridViewList.add(
+          const GeneralEmptyWidget(
+            title: '此分类暂无番组',
+            message: '切换其他分类，或在番组详情中更新收藏状态。',
+          ),
+        );
+        continue;
+      }
       gridViewList.add(
         CustomScrollView(
           slivers: [
@@ -316,9 +338,7 @@ class _CollectPageState extends State<CollectPage>
                           )
                         : null;
                   },
-                  childCount: collectedBangumiRenderItem.isNotEmpty
-                      ? collectedBangumiRenderItem.length
-                      : 10,
+                  childCount: collectedBangumiRenderItem.length,
                 ),
               ),
             ),

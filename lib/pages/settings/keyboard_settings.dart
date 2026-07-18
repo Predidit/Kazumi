@@ -4,6 +4,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 /// Display group for the shortcut list. Functions missing from every group
 /// fall back to a trailing "其他" group so new shortcuts never disappear.
@@ -311,8 +312,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                 const SizedBox(width: 12),
                 Text(
                   group.title,
-                  style:
-                      textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -361,9 +362,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       label: listening ? '按任意键' : keyAliases[keys[i]] ?? keys[i],
       listening: listening,
       onTap: () => onKeyCapTap(func, i),
-      onDelete: realCount >= 2 && !listening
-          ? () => onRemoveKey(func, i)
-          : null,
+      onDelete:
+          realCount >= 2 && !listening ? () => onRemoveKey(func, i) : null,
     );
   }
 }
@@ -392,7 +392,7 @@ class _KeyCap extends StatelessWidget {
       color: listening
           ? colorScheme.primaryContainer
           : colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(context.design.radiusControl),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -412,10 +412,16 @@ class _KeyCap extends StatelessWidget {
               ),
               if (onDelete != null) ...[
                 const SizedBox(width: 4),
-                GestureDetector(
-                  onTap: onDelete,
-                  behavior: HitTestBehavior.opaque,
-                  child: Icon(
+                IconButton(
+                  onPressed: onDelete,
+                  tooltip: '删除 $label 按键',
+                  style: const ButtonStyle(
+                    minimumSize: WidgetStatePropertyAll(Size(28, 28)),
+                    maximumSize: WidgetStatePropertyAll(Size(28, 28)),
+                    padding: WidgetStatePropertyAll(EdgeInsets.zero),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: Icon(
                     Icons.close_rounded,
                     size: 14,
                     color: colorScheme.onSurfaceVariant,
@@ -440,7 +446,7 @@ class _AddKeyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(context.design.radiusControl),
       side: BorderSide(color: colorScheme.outlineVariant),
     );
 

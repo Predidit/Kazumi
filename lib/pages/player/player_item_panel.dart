@@ -423,8 +423,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        AnimatedPositioned(
-          duration: const Duration(seconds: 1),
+        Positioned(
           top: 0,
           left: 0,
           right: 0,
@@ -467,8 +466,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             );
           }),
         ),
-        AnimatedPositioned(
-          duration: const Duration(seconds: 1),
+        Positioned(
           bottom: 0,
           left: 0,
           right: 0,
@@ -687,6 +685,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     icon: PlayPauseIcon(
                       iconColor: Colors.white,
                       playing: playerController.playback.playing,
+                      disableAnimations: widget.disableAnimations,
                     ),
                   ),
                   if (videoPageController.isFullscreen ||

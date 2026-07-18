@@ -48,7 +48,7 @@ class VideoPage extends StatefulWidget {
 }
 
 class _VideoPageState extends State<VideoPage>
-    with TickerProviderStateMixin, WindowListener {
+    with TickerProviderStateMixin, WindowListener, WidgetsBindingObserver {
   PlayerController get playerController => widget.playerController;
   VideoPageController get videoPageController => widget.videoPageController;
   bool _didInitializePlayback = false;
@@ -73,7 +73,7 @@ class _VideoPageState extends State<VideoPage>
   bool _tabBodyTargetVisible = true;
   int _tabBodyAnimationRun = 0;
 
-  late final bool disableAnimations;
+  late bool disableAnimations;
 
   StreamSubscription<SyncPlayChatMessage>? _syncChatSubscription;
 
@@ -83,6 +83,7 @@ class _VideoPageState extends State<VideoPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     videoPageController.applyPlaybackArgs(widget.args);
     windowManager.addListener(this);
     // Window fullscreen can be changed outside this page through system chrome.
@@ -109,8 +110,27 @@ class _VideoPageState extends State<VideoPage>
     ));
 
     playResume = GStorage.getSetting(SettingsKeys.playResume);
-    disableAnimations =
-        GStorage.getSetting(SettingsKeys.playerDisableAnimations);
+    disableAnimations = _resolveDisableAnimations();
+  }
+
+  bool _resolveDisableAnimations() {
+    final accessibility =
+        WidgetsBinding.instance.platformDispatcher.accessibilityFeatures;
+    return GStorage.getSetting(SettingsKeys.playerDisableAnimations) ||
+        accessibility.disableAnimations ||
+        accessibility.accessibleNavigation;
+  }
+
+  @override
+  void didChangeAccessibilityFeatures() {
+    final nextValue = _resolveDisableAnimations();
+    if (nextValue == disableAnimations || !mounted) return;
+    setState(() {
+      disableAnimations = nextValue;
+      if (nextValue) {
+        animation.value = _tabBodyTargetVisible ? 1 : 0;
+      }
+    });
   }
 
   @override
@@ -220,6 +240,7 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     try {
       windowManager.removeListener(this);
     } catch (_) {}
@@ -1171,7 +1192,10 @@ class _VideoPageState extends State<VideoPage>
                 crossAxisCount: 3,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 5,
-                mainAxisExtent: 70,
+                mainAxisExtent: 70 +
+                    ((MediaQuery.textScalerOf(context).scale(1) - 1)
+                            .clamp(0.0, 1.0) *
+                        24),
               ),
               itemCount: cardList.length,
               itemBuilder: (context, index) {
@@ -1217,48 +1241,23 @@ class _VideoPageState extends State<VideoPage>
                 if (MediaQuery.sizeOf(context).width <=
                     MediaQuery.sizeOf(context).height) ...[
                   const Spacer(),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(
-                        color: danmakuOn
-                            ? Theme.of(context).hintColor
-                            : Theme.of(context).disabledColor,
-                        width: 0.5,
-                      ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      if (danmakuOn && !videoPageController.loading) {
+                        showMobileDanmakuInput();
+                      } else if (videoPageController.loading) {
+                        KazumiDialog.showToast(message: '请等待视频加载完成');
+                      } else {
+                        KazumiDialog.showToast(message: '请先打开弹幕');
+                      }
+                    },
+                    icon: Icon(
+                      danmakuOn
+                          ? Icons.send_rounded
+                          : Icons.comments_disabled_rounded,
+                      size: 16,
                     ),
-                    child: GestureDetector(
-                      onTap: () {
-                        if (danmakuOn && !videoPageController.loading) {
-                          showMobileDanmakuInput();
-                        } else if (videoPageController.loading) {
-                          KazumiDialog.showToast(message: '请等待视频加载完成');
-                        } else {
-                          KazumiDialog.showToast(message: '请先打开弹幕');
-                        }
-                      },
-                      child: Row(
-                        children: [
-                          Text(
-                            danmakuOn ? '  点我发弹幕  ' : '  已关闭弹幕  ',
-                            softWrap: false,
-                            overflow: TextOverflow.clip,
-                            style: TextStyle(
-                              color: danmakuOn
-                                  ? Theme.of(context).hintColor
-                                  : Theme.of(context).disabledColor,
-                            ),
-                          ),
-                          if (danmakuOn)
-                            Icon(
-                              Icons.send_rounded,
-                              size: 20,
-                              color: Theme.of(context).hintColor,
-                            ),
-                        ],
-                      ),
-                    ),
+                    label: Text(danmakuOn ? '发弹幕' : '弹幕已关闭'),
                   ),
                 ],
                 const SizedBox(width: 8),

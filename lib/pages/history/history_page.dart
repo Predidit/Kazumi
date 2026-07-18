@@ -5,6 +5,8 @@ import 'package:kazumi/bean/card/bangumi_history_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({
@@ -76,6 +78,7 @@ class _HistoryPageState extends State<HistoryPage> {
           onBackPressed(context);
         },
         child: Scaffold(
+          backgroundColor: Colors.transparent,
           appBar: SysAppBar(
             title: const Text('历史记录'),
             actions: [
@@ -111,25 +114,9 @@ class _HistoryPageState extends State<HistoryPage> {
     if (historyController.histories.isNotEmpty) {
       return contentGrid;
     } else {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.history_rounded,
-              size: 72,
-              color:
-                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '没有找到历史记录',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-            ),
-          ],
-        ),
+      return const GeneralEmptyWidget(
+        title: '没有播放历史',
+        message: '开始播放后，最近观看进度会显示在这里。',
       );
     }
   }
@@ -145,8 +132,12 @@ class _HistoryPageState extends State<HistoryPage> {
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final double maxContentWidth = 1000;
-    final double horizontalPadding =
-        screenWidth > maxContentWidth ? (screenWidth - maxContentWidth) / 2 : 0;
+    final double horizontalPadding = screenWidth > maxContentWidth
+        ? (screenWidth - maxContentWidth) / 2
+        : 16;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final cardHeight =
+        136 + ((textScale - 1).clamp(0.0, 1.0) * KazumiDesignTokens.space2xl);
 
     return CustomScrollView(
       slivers: [
@@ -155,10 +146,10 @@ class _HistoryPageState extends State<HistoryPage> {
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              mainAxisSpacing: 2,
+              mainAxisSpacing: KazumiDesignTokens.spaceSm,
               crossAxisSpacing: StyleString.cardSpace,
               crossAxisCount: crossCount,
-              mainAxisExtent: 136,
+              mainAxisExtent: cardHeight,
             ),
             delegate: SliverChildBuilderDelegate(
               (BuildContext context, int index) {

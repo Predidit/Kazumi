@@ -12,6 +12,8 @@ import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
+import 'package:kazumi/design_system/kazumi_theme.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -51,24 +53,24 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void setTheme(Color? color) {
-    var defaultDarkTheme = ThemeData(
+    final defaultDarkTheme = applyKazumiDesignSystem(ThemeData(
         useMaterial3: true,
         fontFamily: themeProvider.currentFontFamily,
         brightness: Brightness.dark,
         colorSchemeSeed: color,
         progressIndicatorTheme: progressIndicatorTheme2024,
         sliderTheme: sliderTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024);
-    var oledTheme = oledDarkTheme(defaultDarkTheme);
+        pageTransitionsTheme: pageTransitionsTheme2024));
+    final oledTheme = oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
-      ThemeData(
+      applyKazumiDesignSystem(ThemeData(
           useMaterial3: true,
           fontFamily: themeProvider.currentFontFamily,
           brightness: Brightness.light,
           colorSchemeSeed: color,
           progressIndicatorTheme: progressIndicatorTheme2024,
           sliderTheme: sliderTheme2024,
-          pageTransitionsTheme: pageTransitionsTheme2024),
+          pageTransitionsTheme: pageTransitionsTheme2024)),
       oledEnhance ? oledTheme : defaultDarkTheme,
     );
     defaultThemeColor = color?.toARGB32().toRadixString(16) ?? 'default';
@@ -76,24 +78,24 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void resetTheme() {
-    var defaultDarkTheme = ThemeData(
+    final defaultDarkTheme = applyKazumiDesignSystem(ThemeData(
         useMaterial3: true,
         fontFamily: themeProvider.currentFontFamily,
         brightness: Brightness.dark,
         colorSchemeSeed: Colors.green,
         progressIndicatorTheme: progressIndicatorTheme2024,
         sliderTheme: sliderTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024);
-    var oledTheme = oledDarkTheme(defaultDarkTheme);
+        pageTransitionsTheme: pageTransitionsTheme2024));
+    final oledTheme = oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
-      ThemeData(
+      applyKazumiDesignSystem(ThemeData(
           useMaterial3: true,
           fontFamily: themeProvider.currentFontFamily,
           brightness: Brightness.light,
           colorSchemeSeed: Colors.green,
           progressIndicatorTheme: progressIndicatorTheme2024,
           sliderTheme: sliderTheme2024,
-          pageTransitionsTheme: pageTransitionsTheme2024),
+          pageTransitionsTheme: pageTransitionsTheme2024)),
       oledEnhance ? oledTheme : defaultDarkTheme,
     );
     defaultThemeColor = 'default';
@@ -286,7 +288,15 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                               ...colorThemes.map(
                                 (e) {
                                   final index = colorThemes.indexOf(e);
-                                  return GestureDetector(
+                                  final selected =
+                                      e['color'].value.toRadixString(16) ==
+                                              defaultThemeColor ||
+                                          (defaultThemeColor == 'default' &&
+                                              index == 0);
+                                  return KazumiInteractiveSurface(
+                                    semanticLabel: '${e['label']}配色',
+                                    selected: selected,
+                                    padding: const EdgeInsets.all(6),
                                     onTap: () {
                                       index == 0
                                           ? resetTheme()
@@ -297,12 +307,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                       children: [
                                         PaletteCard(
                                           color: e['color'],
-                                          selected: (e['color']
-                                                      .value
-                                                      .toRadixString(16) ==
-                                                  defaultThemeColor ||
-                                              (defaultThemeColor == 'default' &&
-                                                  index == 0)),
+                                          selected: selected,
                                         ),
                                         Text(e['label']),
                                       ],

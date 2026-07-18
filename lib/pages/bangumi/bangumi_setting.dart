@@ -191,6 +191,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                             ]),
                       ),
                       SettingsTile(
+                        enabled: !syncCollectiblesing,
                         trailing: syncCollectiblesing
                             ? const SizedBox(
                                 width: 20,
@@ -210,24 +211,25 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: () async {
-                      final url =
-                          Uri.parse('https://next.bgm.tv/demo/access-token');
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url,
-                            mode: LaunchMode.externalApplication);
-                      } else {
-                        KazumiDialog.showToast(message: '无法打开链接');
-                      }
-                    },
-                    child: Text(
-                      '你可以点击此处前往 Bangumi 生成 Access Token',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.primary,
-                        fontFamily: fontFamily,
-                        decoration: TextDecoration.underline,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final url =
+                            Uri.parse('https://next.bgm.tv/demo/access-token');
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(
+                            url,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } else {
+                          KazumiDialog.showToast(message: '无法打开链接');
+                        }
+                      },
+                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                      label: Text(
+                        '前往 Bangumi 生成 Access Token',
+                        style: TextStyle(fontFamily: fontFamily),
                       ),
                     ),
                   ),

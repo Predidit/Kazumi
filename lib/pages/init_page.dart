@@ -17,6 +17,8 @@ import 'package:kazumi/services/download/background_download_service.dart';
 import 'package:kazumi/services/platform/windows_shortcut.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({
@@ -339,6 +341,10 @@ class LoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: Container());
+    return const Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: SysAppBar(),
+      body: GeneralLoadingWidget(message: '正在准备 Kazumi'),
+    );
   }
 }

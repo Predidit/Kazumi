@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
@@ -61,8 +62,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   /// Maximum length for the review text.
   static const int _maxCommentLength = 380;
 
-  static const Duration _panelFadeDuration = Duration(milliseconds: 180);
-  static const Duration _panelSlideDuration = Duration(milliseconds: 240);
+  static const Duration _panelFadeDuration = KazumiDesignTokens.motionFast;
+  static const Duration _panelSlideDuration = KazumiDesignTokens.motionStandard;
   static const double _compactTagPanelMaxHeight = 440;
 
   List<BangumiTag> popularTags = [];
@@ -192,7 +193,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     if (_isSubmitting) return;
     if (!_isTagPanelOpen || _isTagPanelClosing) return;
     setState(() => _isTagPanelClosing = true);
-    Future<void>.delayed(_panelSlideDuration, () {
+    Future<void>.delayed(context.motion(_panelSlideDuration), () {
       if (!mounted || !_isTagPanelClosing) return;
       setState(() {
         _isTagPanelOpen = false;
@@ -240,8 +241,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     final showSidePanel = _isTagPanelOpen && !_isTagPanelClosing;
 
     return AnimatedSize(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
+      duration: context.motion(KazumiDesignTokens.motionStandard),
+      curve: KazumiDesignTokens.standardCurve,
       alignment: Alignment.centerLeft,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -252,7 +253,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             child: _buildMainPane(theme, scrollContent: true),
           ),
           AnimatedSwitcher(
-            duration: _panelFadeDuration,
+            duration: context.motion(_panelFadeDuration),
             child: showSidePanel
                 ? SizedBox(
                     key: const ValueKey('side-tag-panel'),
@@ -282,8 +283,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 mainPane,
                 Positioned.fill(
                   child: TweenAnimationBuilder<double>(
-                    duration: _panelFadeDuration,
-                    curve: Curves.easeOutCubic,
+                    duration: context.motion(_panelFadeDuration),
+                    curve: KazumiDesignTokens.standardCurve,
                     tween: Tween<double>(
                       begin: _isTagPanelClosing ? 0.24 : 0,
                       end: _isTagPanelClosing ? 0 : 0.24,
@@ -305,8 +306,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                   right: 0,
                   bottom: 0,
                   child: TweenAnimationBuilder<double>(
-                    duration: _panelSlideDuration,
-                    curve: Curves.easeOutCubic,
+                    duration: context.motion(_panelSlideDuration),
+                    curve: KazumiDesignTokens.standardCurve,
                     tween: Tween<double>(
                       begin: _isTagPanelClosing ? 0 : 1,
                       end: _isTagPanelClosing ? 1 : 0,
@@ -325,8 +326,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           );
 
     return AnimatedSize(
-      duration: _panelSlideDuration,
-      curve: Curves.easeOutCubic,
+      duration: context.motion(_panelSlideDuration),
+      curve: KazumiDesignTokens.standardCurve,
       alignment: Alignment.topCenter,
       child: child,
     );
@@ -337,14 +338,12 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
       child: Column(
         children: [
           _buildMainHeader(theme),
-
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
               child: _buildMainContent(theme),
             ),
           ),
-
           _buildActions(theme),
         ],
       ),
@@ -435,7 +434,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 child: Text('我的评分', style: theme.textTheme.titleMedium),
               ),
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 160),
+                duration: context.motion(KazumiDesignTokens.motionFast),
                 child: SizedBox(
                   key: ValueKey(score),
                   width: 116,

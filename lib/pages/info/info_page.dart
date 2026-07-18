@@ -332,6 +332,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     final bool showWindowButton =
         GStorage.getSetting(SettingsKeys.showWindowButton);
     final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final headerScaleExtra = (textScale - 1).clamp(0.0, 1.0) * 80;
     return PopScope(
       canPop: true,
       child: DefaultTabController(
@@ -362,6 +364,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                     scrolledUnderElevation: 0.0,
                     leading: EmbeddedNativeControlArea(
                       child: IconButton(
+                        tooltip: '返回',
                         onPressed: () {
                           context.maybePop();
                         },
@@ -379,6 +382,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                         ),
                       EmbeddedNativeControlArea(
                         child: IconButton(
+                          tooltip: '在浏览器中打开 Bangumi 页面',
                           onPressed: () {
                             launchUrl(
                               Uri.parse(
@@ -399,8 +403,15 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                     stretch: true,
                     centerTitle: false,
                     expandedHeight: (Platform.isMacOS && showWindowButton)
-                        ? 308 + kTextTabBarHeight + kToolbarHeight + 22
-                        : 308 + kTextTabBarHeight + kToolbarHeight,
+                        ? 308 +
+                            headerScaleExtra +
+                            kTextTabBarHeight +
+                            kToolbarHeight +
+                            22
+                        : 308 +
+                            headerScaleExtra +
+                            kTextTabBarHeight +
+                            kToolbarHeight,
                     collapsedHeight: (Platform.isMacOS && showWindowButton)
                         ? kTextTabBarHeight +
                             kToolbarHeight +

@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/services/plugin/plugin_search_service.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:kazumi/services/plugin/captcha_verification_service.dart';
@@ -496,6 +497,7 @@ class _SourceSheetState extends State<SourceSheet>
                 .map(
                   (plugin) => Observer(
                     builder: (context) {
+                      final colors = Theme.of(context).colorScheme;
                       return Tab(
                         child: Row(
                           children: [
@@ -510,11 +512,13 @@ class _SourceSheetState extends State<SourceSheet>
                               decoration: BoxDecoration(
                                 color: switch (widget.infoController
                                     .pluginSearchStatus[plugin.name]) {
-                                  PluginSearchStatus.success => Colors.green,
-                                  PluginSearchStatus.noResult => Colors.orange,
-                                  PluginSearchStatus.captcha => Colors.blue,
-                                  PluginSearchStatus.error => Colors.red,
-                                  _ => Colors.grey,
+                                  PluginSearchStatus.success => colors.primary,
+                                  PluginSearchStatus.noResult =>
+                                    colors.tertiary,
+                                  PluginSearchStatus.captcha =>
+                                    colors.secondary,
+                                  PluginSearchStatus.error => colors.error,
+                                  _ => colors.outline,
                                 },
                                 shape: BoxShape.circle,
                               ),
@@ -722,7 +726,9 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                       return Column(
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(
+                              context.design.radiusControl,
+                            ),
                             child: Image.memory(
                               base64Decode(imageUrl.split(',').last),
                               height: 80,
@@ -738,7 +744,6 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                             onChanged: (value) => _captchaCode = value,
                             decoration: const InputDecoration(
                               labelText: '请输入验证码',
-                              border: OutlineInputBorder(),
                             ),
                             onSubmitted: isSubmitting ? null : (_) => _submit(),
                           ),

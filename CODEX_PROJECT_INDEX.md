@@ -12,6 +12,8 @@
 - GitHub issues are repository-level, not branch-level. The fork disables issues; upstream is the authoritative issue tracker.
 
 Read CODEX_UPSTREAM_ISSUES.md for the captured upstream backlog and the current Windows-specific candidates.
+Read CODEX_WINDOWS_UI_AUDIT.md for the complete Win11 route, state, visual, and
+functional-parity release matrix.
 
 ## Scope and supported local workflow
 

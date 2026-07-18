@@ -1777,11 +1777,15 @@ class _PlayerItemState extends State<PlayerItem>
     }
     WidgetsBinding.instance.addObserver(this);
     _panelVisibilityController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: widget.disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 300),
       vsync: this,
     );
     _screenshotFeedbackController = AnimationController(
-      duration: const Duration(milliseconds: 420),
+      duration: widget.disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 420),
       vsync: this,
     );
     _screenshotFeedbackAnimation = CurvedAnimation(
@@ -1826,6 +1830,22 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();
+  }
+
+  @override
+  void didUpdateWidget(covariant PlayerItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.disableAnimations == widget.disableAnimations) return;
+    _panelVisibilityController.duration = widget.disableAnimations
+        ? Duration.zero
+        : const Duration(milliseconds: 300);
+    _screenshotFeedbackController.duration = widget.disableAnimations
+        ? Duration.zero
+        : const Duration(milliseconds: 420);
+    if (widget.disableAnimations) {
+      _panelVisibilityController.value =
+          playerController.panel.showVideoController ? 1 : 0;
+    }
   }
 
   @override

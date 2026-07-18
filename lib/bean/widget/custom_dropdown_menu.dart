@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 /// A custom dropdown menu widget that provides smooth animations without flickering.
 ///
@@ -37,52 +39,69 @@ class CustomDropdownMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     // Ensure width constraints are valid (minWidth <= maxWidth)
     final computedMinWidth = minWidth ?? 140;
     final computedMaxWidth = maxWidth ?? 200;
-    final normalizedMinWidth = computedMinWidth;
-    final normalizedMaxWidth = computedMaxWidth < computedMinWidth
-        ? computedMinWidth
-        : computedMaxWidth;
+    final media = MediaQuery.of(context);
+    final availableWidth = (media.size.width - media.padding.horizontal - 16)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+    final availableHeight = (media.size.height - media.padding.vertical - 16)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+    final normalizedMinWidth =
+        computedMinWidth.clamp(0.0, availableWidth).toDouble();
+    final normalizedMaxWidth = (computedMaxWidth < computedMinWidth
+            ? computedMinWidth
+            : computedMaxWidth)
+        .clamp(normalizedMinWidth, availableWidth)
+        .toDouble();
+    final resolvedMaxHeight =
+        (maxHeight ?? 350).clamp(0.0, availableHeight).toDouble();
+    final radius = BorderRadius.circular(context.design.radiusCompact);
 
     return GestureDetector(
       onTap: () => Navigator.pop(context),
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
-          Positioned(
-            left: offset.dx,
-            top: offset.dy + buttonSize.height + gap,
-            child: Material(
-              elevation: 6,
-              borderRadius: BorderRadius.circular(8),
-              color: theme.colorScheme.surface,
-              surfaceTintColor: Colors.transparent,
-              shadowColor: Colors.black26,
-              child: AnimatedBuilder(
-                animation: animation,
-                builder: (context, child) {
-                  final curvedValue =
-                      Curves.easeOutCubic.transform(animation.value);
-                  return ClipRect(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      heightFactor: curvedValue,
+          CustomSingleChildLayout(
+            delegate: _DropdownMenuLayoutDelegate(
+              anchorOffset: offset,
+              buttonSize: buttonSize,
+              gap: gap,
+              safePadding: media.padding,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: resolvedMaxHeight,
+                minWidth: normalizedMinWidth,
+                maxWidth: normalizedMaxWidth,
+              ),
+              child: KazumiGlassSurface(
+                borderRadius: radius,
+                child: AnimatedBuilder(
+                  animation: animation,
+                  builder: (context, child) {
+                    final curvedValue = context.reduceMotion
+                        ? 1.0
+                        : KazumiDesignTokens.standardCurve
+                            .transform(animation.value);
+                    return IgnorePointer(
+                      ignoring: curvedValue < 0.95,
                       child: Opacity(
                         opacity: curvedValue,
-                        child: child,
+                        child: Transform.translate(
+                          offset: Offset(0, 8 * (1 - curvedValue)),
+                          child: Transform.scale(
+                            scale: 0.985 + (0.015 * curvedValue),
+                            alignment: Alignment.topCenter,
+                            child: child,
+                          ),
+                        ),
                       ),
-                    ),
-                  );
-                },
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxHeight: maxHeight ?? 350,
-                    minWidth: normalizedMinWidth,
-                    maxWidth: normalizedMaxWidth,
-                  ),
+                    );
+                  },
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     shrinkWrap: true,
@@ -90,18 +109,16 @@ class CustomDropdownMenu extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final itemValue = items[index];
                       final displayText = itemBuilder(itemValue);
-                      return InkWell(
-                        onTap: () => Navigator.pop(context, itemValue),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          child: Text(
-                            displayText,
-                            style: const TextStyle(fontSize: 14),
+                      return MenuItemButton(
+                        onPressed: () => Navigator.pop(context, itemValue),
+                        style: const ButtonStyle(
+                          alignment: Alignment.centerLeft,
+                          minimumSize: WidgetStatePropertyAll(Size(0, 48)),
+                          padding: WidgetStatePropertyAll(
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           ),
                         ),
+                        child: Text(displayText),
                       );
                     },
                   ),
@@ -112,5 +129,47 @@ class CustomDropdownMenu extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _DropdownMenuLayoutDelegate extends SingleChildLayoutDelegate {
+  const _DropdownMenuLayoutDelegate({
+    required this.anchorOffset,
+    required this.buttonSize,
+    required this.gap,
+    required this.safePadding,
+  });
+
+  final Offset anchorOffset;
+  final Size buttonSize;
+  final double gap;
+  final EdgeInsets safePadding;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
+    return constraints.loosen();
+  }
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final minX = safePadding.left + 8;
+    final maxX = size.width - safePadding.right - childSize.width - 8;
+    final x = anchorOffset.dx.clamp(minX, maxX < minX ? minX : maxX).toDouble();
+
+    final minY = safePadding.top + 8;
+    final maxY = size.height - safePadding.bottom - childSize.height - 8;
+    final below = anchorOffset.dy + buttonSize.height + gap;
+    final above = anchorOffset.dy - gap - childSize.height;
+    final preferredY = below <= maxY ? below : above;
+    final y = preferredY.clamp(minY, maxY < minY ? minY : maxY).toDouble();
+    return Offset(x, y);
+  }
+
+  @override
+  bool shouldRelayout(covariant _DropdownMenuLayoutDelegate oldDelegate) {
+    return anchorOffset != oldDelegate.anchorOffset ||
+        buttonSize != oldDelegate.buttonSize ||
+        gap != oldDelegate.gap ||
+        safePadding != oldDelegate.safePadding;
   }
 }

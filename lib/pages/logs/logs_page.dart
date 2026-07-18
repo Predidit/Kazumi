@@ -5,6 +5,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 
 class LogsPage extends StatefulWidget {
   const LogsPage({super.key});
@@ -94,6 +95,14 @@ class _LogsPageState extends State<LogsPage> {
     }
   }
 
+  void _retryLoadLogs() {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+    unawaited(_loadLogs());
+  }
+
   void _loadMoreLines() {
     if (_displayedLines >= _allLines.length) {
       return;
@@ -155,6 +164,7 @@ class _LogsPageState extends State<LogsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: const SysAppBar(
         title: Text('日志'),
       ),
@@ -165,20 +175,22 @@ class _LogsPageState extends State<LogsPage> {
 
   Widget get buildBody {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const GeneralLoadingWidget(message: '正在读取日志');
     }
 
     if (_hasError) {
-      return const Center(
-        child: Text('加载日志失败'),
+      return GeneralErrorWidget(
+        errMsg: '无法读取本地日志文件',
+        actions: [
+          GeneralErrorButton(onPressed: _retryLoadLogs, text: '重试'),
+        ],
       );
     }
 
     if (_logLines.isEmpty) {
-      return const Center(
-        child: Text('没有数据'),
+      return const GeneralEmptyWidget(
+        title: '暂无日志',
+        message: '应用产生警告或错误后会在这里显示。',
       );
     }
 
@@ -218,14 +230,14 @@ class _LogsPageState extends State<LogsPage> {
       children: [
         FloatingActionButton(
           heroTag: null,
-          onPressed: _clearLogs,
+          onPressed: _logLines.isEmpty || _isLoading ? null : _clearLogs,
           tooltip: '清空日志',
           child: const Icon(Icons.clear_all),
         ),
         const SizedBox(width: 15),
         FloatingActionButton(
           heroTag: null,
-          onPressed: _copyLogs,
+          onPressed: _logLines.isEmpty || _isLoading ? null : _copyLogs,
           tooltip: '复制日志',
           child: const Icon(Icons.copy),
         ),

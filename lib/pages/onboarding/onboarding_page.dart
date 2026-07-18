@@ -13,6 +13,7 @@ import 'package:kazumi/pages/onboarding/steps/update_source_step.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({
@@ -73,8 +74,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
   void _goToPage(int index) {
     pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
+      duration: context.motion(KazumiDesignTokens.motionStandard),
+      curve: KazumiDesignTokens.standardCurve,
     );
   }
 
@@ -201,6 +202,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         _previousPage();
       },
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: const SysAppBar(),
         body: Column(
           children: [
@@ -252,8 +254,8 @@ class _PageIndicator extends StatelessWidget {
       children: [
         for (int i = 0; i < count; i++)
           AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutCubic,
+            duration: context.motion(KazumiDesignTokens.motionStandard),
+            curve: KazumiDesignTokens.standardCurve,
             margin: const EdgeInsets.symmetric(horizontal: 4),
             width: i == currentIndex ? 24 : 8,
             height: 8,

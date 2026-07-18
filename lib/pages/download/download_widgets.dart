@@ -3,9 +3,7 @@ import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/utils/format.dart';
-
-const Duration _kExpandDuration = Duration(milliseconds: 250);
-const Curve _kExpandCurve = Curves.easeInOutCubic;
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 /// Rounded tonal card for one bangumi download record: cover, title,
 /// source tag, aggregate progress and a collapsible episode list.
@@ -58,6 +56,7 @@ class DownloadRecordCard extends StatelessWidget {
             ) /
             totalCount;
     final allCompleted = completedCount >= totalCount;
+    final expandDuration = context.motion(KazumiDesignTokens.motionStandard);
 
     var meta = '$completedCount/$totalCount 已完成';
     if (activeCount > 0) {
@@ -153,8 +152,8 @@ class DownloadRecordCard extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     child: AnimatedRotation(
                       turns: expanded ? 0.5 : 0,
-                      duration: _kExpandDuration,
-                      curve: _kExpandCurve,
+                      duration: expandDuration,
+                      curve: KazumiDesignTokens.standardCurve,
                       child: Icon(
                         Icons.expand_more,
                         color: colorScheme.onSurfaceVariant,
@@ -171,8 +170,8 @@ class DownloadRecordCard extends StatelessWidget {
               child: LinearProgressIndicator(value: aggregateProgress),
             ),
           AnimatedSize(
-            duration: _kExpandDuration,
-            curve: _kExpandCurve,
+            duration: expandDuration,
+            curve: KazumiDesignTokens.standardCurve,
             alignment: Alignment.topCenter,
             child: expanded
                 ? Padding(

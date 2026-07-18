@@ -21,18 +21,37 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 final _tabTransition = CustomTransition(
-  duration: const Duration(milliseconds: 70),
+  duration: KazumiDesignTokens.motionFast,
   transitionsBuilder: (context, animation, secondaryAnimation, child) {
-    return FadeTransition(opacity: animation, child: child);
+    if (context.reduceMotion) return child;
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: animation,
+        curve: KazumiDesignTokens.standardCurve,
+      ),
+      child: child,
+    );
   },
 );
 
 final _imagePreviewTransition = CustomTransition(
-  duration: const Duration(milliseconds: 220),
+  duration: KazumiDesignTokens.motionStandard,
   transitionsBuilder: (context, animation, secondaryAnimation, child) {
-    return FadeTransition(opacity: animation, child: child);
+    if (context.reduceMotion) return child;
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: KazumiDesignTokens.standardCurve,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.985, end: 1).animate(curved),
+        child: child,
+      ),
+    );
   },
 );
 
@@ -89,10 +108,8 @@ final indexModule = createModule(
       )
       ..route(
         '/error',
-        child: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Kazumi')),
-          body: const Center(child: Text('初始化失败')),
-        ),
+        child: (context, state) =>
+            const RouteErrorPage(message: '初始化失败，请重新启动应用后重试。'),
       )
       ..module(tabModule)
       ..module(videoModule)

@@ -13,6 +13,8 @@ import 'package:kazumi/pages/search/search_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/utils/format.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 class ImageSearchPage extends StatefulWidget {
   const ImageSearchPage({
@@ -170,6 +172,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: SysAppBar(
         backgroundColor: Colors.transparent,
         title: const Text('图片搜索'),
@@ -184,7 +187,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
               spacing: 25,
               children: [
                 AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
+                  duration: context.motion(KazumiDesignTokens.motionFast),
                   child: _isUrlMode
                       ? _buildUrlInput(colorScheme, textTheme)
                       : _buildUploadArea(colorScheme, textTheme),
@@ -237,21 +240,14 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
   }
 
   Widget _buildUploadArea(ColorScheme colorScheme, TextTheme textTheme) {
-    return GestureDetector(
+    return KazumiInteractiveSurface(
       onTap: _pickImageFile,
-      child: Container(
+      semanticLabel: _selectedImageFile == null ? '选择图片文件' : '重新选择图片文件',
+      borderRadius: BorderRadius.circular(context.design.radiusCompact),
+      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      child: SizedBox(
         width: double.infinity,
         height: 240,
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: colorScheme.outline.withValues(alpha: 0.4),
-            width: 1.5,
-            strokeAlign: BorderSide.strokeAlignOutside,
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
         child: _selectedImageFile == null
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -401,7 +397,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
 
   Widget _buildUrlPreview(ColorScheme colorScheme, TextTheme textTheme) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
+      duration: context.motion(KazumiDesignTokens.motionStandard),
       width: double.infinity,
       constraints: BoxConstraints(
         minHeight: 170,
@@ -503,35 +499,22 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
         final errorMessage = _searchPageController.imageSearchError;
 
         if (_searchPageController.isImageSearching) {
-          return _buildStateCard(
-            colorScheme: colorScheme,
-            textTheme: textTheme,
-            icon: const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
+          return const KazumiStatePanel(
+            kind: KazumiStateKind.loading,
             title: '正在识别图片',
-            description: '请稍候，正在从截图中匹配番剧信息',
+            message: '请稍候，正在从截图中匹配番剧信息',
+            compact: true,
           );
         }
 
         if (results.isEmpty) {
-          return _buildStateCard(
-            colorScheme: colorScheme,
-            textTheme: textTheme,
-            icon: Icon(
-              errorMessage.isEmpty
-                  ? Icons.grid_view_rounded
-                  : Icons.error_outline,
-              size: 30,
-              color: errorMessage.isEmpty
-                  ? colorScheme.primary
-                  : colorScheme.error,
-            ),
+          return KazumiStatePanel(
+            kind: errorMessage.isEmpty
+                ? KazumiStateKind.info
+                : KazumiStateKind.error,
             title: errorMessage.isEmpty ? '搜索结果将在这里展示' : '未获取到搜索结果',
-            description:
-                errorMessage.isEmpty ? '选择图片文件或输入图片链接后开始搜索' : errorMessage,
+            message: errorMessage.isEmpty ? '选择图片文件或输入图片链接后开始搜索' : errorMessage,
+            compact: true,
           );
         }
 
@@ -550,6 +533,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                 final crossAxisCount = _resolveCrossAxisCount(
                   constraints.maxWidth,
                 );
+                final textScale = MediaQuery.textScalerOf(context).scale(1);
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -558,15 +542,18 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                     crossAxisCount: crossAxisCount,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    mainAxisExtent: 152,
+                    mainAxisExtent:
+                        152 + ((textScale - 1).clamp(0.0, 1.0) * 48),
                   ),
                   itemBuilder: (context, index) {
                     final result = results[index];
-                    return InkWell(
+                    return KazumiInteractiveSurface(
                       onTap: () {
                         final title = _formatTraceResultTitle(result);
                         context.pop(title);
                       },
+                      semanticLabel:
+                          '选择识别结果 ${_formatTraceResultTitle(result)}',
                       child: _buildResultCard(
                         context,
                         colorScheme,
@@ -584,44 +571,6 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
     );
   }
 
-  Widget _buildStateCard({
-    required ColorScheme colorScheme,
-    required TextTheme textTheme,
-    required Widget icon,
-    required String title,
-    required String description,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          icon,
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            textAlign: TextAlign.center,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildResultCard(
     BuildContext context,
     ColorScheme colorScheme,
@@ -632,15 +581,8 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
         result.anilist?.coverImage?.large ??
         result.anilist?.coverImage?.medium;
 
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.16),
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -738,12 +680,18 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
             WidgetSpan(
               alignment: PlaceholderAlignment.baseline,
               baseline: TextBaseline.alphabetic,
-              child: GestureDetector(
-                onTap: () => launchUrl(
-                  Uri.parse('https://trace.moe'),
-                  mode: LaunchMode.externalApplication,
+              child: Semantics(
+                link: true,
+                label: '打开 trace.moe',
+                child: InkWell(
+                  borderRadius:
+                      BorderRadius.circular(context.design.radiusControl),
+                  onTap: () => launchUrl(
+                    Uri.parse('https://trace.moe'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: Text('trace.moe', style: linkStyle),
                 ),
-                child: Text('trace.moe', style: linkStyle),
               ),
             ),
             const TextSpan(text: ' 提供支持'),

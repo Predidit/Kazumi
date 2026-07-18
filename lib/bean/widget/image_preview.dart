@@ -2,7 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter/services.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
@@ -160,22 +162,23 @@ class _ImageViewerState extends State<ImageViewer> {
   void _goToPreviousImage() {
     if (_currentIndex <= 0) return;
     _pageController.previousPage(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
+      duration: context.motion(KazumiDesignTokens.motionStandard),
+      curve: KazumiDesignTokens.standardCurve,
     );
   }
 
   void _goToNextImage() {
     if (_currentIndex >= widget.imageUrls.length - 1) return;
     _pageController.nextPage(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
+      duration: context.motion(KazumiDesignTokens.motionStandard),
+      curve: KazumiDesignTokens.standardCurve,
     );
   }
 
   Widget _buildNavButton({
     required IconData icon,
     required VoidCallback? onPressed,
+    required String tooltip,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -184,6 +187,7 @@ class _ImageViewerState extends State<ImageViewer> {
       ),
       child: IconButton(
         onPressed: onPressed,
+        tooltip: tooltip,
         icon: Icon(
           icon,
           color: onPressed != null ? Colors.white : Colors.white38,
@@ -195,72 +199,88 @@ class _ImageViewerState extends State<ImageViewer> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          _isMultiImage ? _buildGallery() : _buildSingleImage(),
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            right: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                onPressed: _closePreview,
-                icon: const Icon(Icons.close, color: Colors.white),
-              ),
-            ),
-          ),
-          if (_isMultiImage)
-            Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + 24,
-              left: 0,
-              right: 0,
-              child: Center(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.escape): _closePreview,
+        const SingleActivator(LogicalKeyboardKey.arrowLeft): _goToPreviousImage,
+        const SingleActivator(LogicalKeyboardKey.arrowRight): _goToNextImage,
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              _isMultiImage ? _buildGallery() : _buildSingleImage(),
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 16,
+                right: 16,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(16),
+                    shape: BoxShape.circle,
                   ),
-                  child: Text(
-                    '${_currentIndex + 1} / ${widget.imageUrls.length}',
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  child: IconButton(
+                    onPressed: _closePreview,
+                    tooltip: '关闭图片预览',
+                    icon: const Icon(Icons.close, color: Colors.white),
                   ),
                 ),
               ),
-            ),
-          if (isDesktop() && _isMultiImage) ...[
-            Positioned(
-              left: 16,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: _buildNavButton(
-                  icon: Icons.chevron_left,
-                  onPressed: _currentIndex > 0 ? _goToPreviousImage : null,
+              if (_isMultiImage)
+                Positioned(
+                  bottom: MediaQuery.of(context).padding.bottom + 24,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        '${_currentIndex + 1} / ${widget.imageUrls.length}',
+                        semanticsLabel:
+                            '第 ${_currentIndex + 1} 张，共 ${widget.imageUrls.length} 张',
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              right: 16,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: _buildNavButton(
-                  icon: Icons.chevron_right,
-                  onPressed: _currentIndex < widget.imageUrls.length - 1
-                      ? _goToNextImage
-                      : null,
+              if (isDesktop() && _isMultiImage) ...[
+                Positioned(
+                  left: 16,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _buildNavButton(
+                      icon: Icons.chevron_left,
+                      tooltip: '上一张图片',
+                      onPressed: _currentIndex > 0 ? _goToPreviousImage : null,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ],
+                Positioned(
+                  right: 16,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _buildNavButton(
+                      icon: Icons.chevron_right,
+                      tooltip: '下一张图片',
+                      onPressed: _currentIndex < widget.imageUrls.length - 1
+                          ? _goToNextImage
+                          : null,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -273,14 +293,12 @@ class _ImageViewerState extends State<ImageViewer> {
           Icon(
             Icons.broken_image,
             size: 48,
-            color: Theme.of(context).colorScheme.onErrorContainer,
+            color: Colors.white,
           ),
           const SizedBox(height: 8),
           Text(
             '图片加载失败',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onErrorContainer,
-            ),
+            style: const TextStyle(color: Colors.white),
           ),
         ],
       ),

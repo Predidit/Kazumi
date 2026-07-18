@@ -231,8 +231,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        AnimatedPositioned(
-          duration: const Duration(seconds: 1),
+        Positioned(
           top: 0,
           left: 0,
           right: 0,
@@ -275,8 +274,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             );
           }),
         ),
-        AnimatedPositioned(
-          duration: const Duration(seconds: 1),
+        Positioned(
           bottom: 0,
           left: 0,
           right: 0,
@@ -413,6 +411,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
           icon: PlayPauseIcon(
             iconColor: Colors.white,
             playing: playerController.playback.playing,
+            disableAnimations: widget.disableAnimations,
           ),
           tooltip: playerController.playback.playing ? '暂停' : '播放',
           onPressed: () {

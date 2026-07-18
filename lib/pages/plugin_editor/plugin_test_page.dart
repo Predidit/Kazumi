@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
@@ -245,9 +246,11 @@ class _PluginTestPageState extends State<PluginTestPage> {
         decoration: InputDecoration(
           labelText: '测试关键词',
           border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(context.design.radiusControl),
               borderSide:
                   BorderSide(color: theme.getCoreColor(CoreColorType.waiting))),
           focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(context.design.radiusControl),
               borderSide:
                   BorderSide(color: theme.getCoreColor(CoreColorType.success))),
           labelStyle:
@@ -265,7 +268,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
           decoration: BoxDecoration(
             color: theme.colorScheme.errorContainer,
             border: Border.all(color: theme.getCoreColor(CoreColorType.error)),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(context.design.radiusControl),
           ),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Icon(Icons.error_outline,
@@ -345,7 +348,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
       margin: const EdgeInsets.only(bottom: 8.0),
       padding: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(context.design.radiusControl),
         border: Border.all(color: theme.getCoreColor(CoreColorType.waiting)),
         color: theme.colorScheme.surface,
       ),
@@ -398,7 +401,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer,
         border: Border.all(color: theme.getCoreColor(CoreColorType.error)),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(context.design.radiusControl),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,8 +420,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
             (message) => Padding(
               padding: const EdgeInsets.only(bottom: 4.0),
               child: SelectableText(message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onErrorContainer)),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onErrorContainer)),
             ),
           ),
         ],
@@ -433,7 +436,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
     return Column(children: [
       Card(
         margin: const EdgeInsets.only(bottom: 8.0),
-        elevation: 1,
+        elevation: 0,
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child:
@@ -470,7 +473,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
           margin: const EdgeInsets.only(bottom: 8.0),
           padding: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(context.design.radiusControl),
             border:
                 Border.all(color: theme.getCoreColor(CoreColorType.waiting)),
             color: theme.colorScheme.surface,
@@ -516,7 +519,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
             constraints: const BoxConstraints(maxHeight: 220),
             width: double.infinity,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(context.design.radiusControl),
               border:
                   Border.all(color: theme.getCoreColor(CoreColorType.waiting)),
             ),
@@ -555,7 +558,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   Widget _buildChapterCard(Road road, int i, ThemeData theme) => Card(
         margin: const EdgeInsets.only(bottom: 8.0),
-        elevation: 1,
+        elevation: 0,
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(

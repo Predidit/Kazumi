@@ -46,6 +46,7 @@ class _DownloadPageState extends State<DownloadPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: const SysAppBar(title: Text('下载管理')),
       body: Observer(builder: (context) {
         final recordKeys = downloadController.recordKeys.toList();
@@ -204,8 +205,7 @@ class _DownloadPageState extends State<DownloadPage> {
         break;
       case DownloadStatus.pending:
         buttons.add(IconButton(
-          icon: Icon(Icons.priority_high,
-              size: 20, color: colorScheme.primary),
+          icon: Icon(Icons.priority_high, size: 20, color: colorScheme.primary),
           onPressed: () {
             downloadController.priorityDownload(
               bangumiId: record.bangumiId,

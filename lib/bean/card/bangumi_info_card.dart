@@ -6,6 +6,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 // 视频卡片 - 水平布局
 class BangumiInfoCardV extends StatefulWidget {
@@ -39,7 +40,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
           AspectRatio(
             aspectRatio: 2,
             child: BarChart(
-              duration: Duration(milliseconds: 80),
+              duration: context.motion(KazumiDesignTokens.motionInstant),
               BarChartData(
                 // alignment: BarChartAlignment.spaceEvenly,
                 borderData: FlBorderData(show: false),
@@ -118,8 +119,10 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
 
   @override
   Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final scaleExtra = (textScale - 1).clamp(0.0, 1.0) * 80;
     return Container(
-      height: 300,
+      height: 300 + scaleExtra,
       constraints: BoxConstraints(maxWidth: 950),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,36 +203,36 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                 ),
                               ),
                             if (!widget.isLoading)
-                               Row(
-                                  children: [
-                                    Text(
-                                      widget.showRating
-                                          ? '${widget.bangumiItem.ratingScore}'
-                                          : '***',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                        Theme.of(context).colorScheme.primary,
-                                      ),
+                              Row(
+                                children: [
+                                  Text(
+                                    widget.showRating
+                                        ? '${widget.bangumiItem.ratingScore}'
+                                        : '***',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
-                                    const SizedBox(width: 8),
-                                    RatingBarIndicator(
-                                      itemCount: 5,
-                                      rating: widget.showRating
-                                          ? widget.bangumiItem.ratingScore
-                                          .toDouble() /
-                                          2
-                                          : 0,
-                                      itemBuilder: (context, index) => Icon(
-                                        Icons.star_rounded,
-                                        color:
-                                        Theme.of(context).colorScheme.primary,
-                                      ),
-                                      itemSize: 20.0,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  RatingBarIndicator(
+                                    itemCount: 5,
+                                    rating: widget.showRating
+                                        ? widget.bangumiItem.ratingScore
+                                                .toDouble() /
+                                            2
+                                        : 0,
+                                    itemBuilder: (context, index) => Icon(
+                                      Icons.star_rounded,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
-                                  ],
-                               ),
+                                    itemSize: 20.0,
+                                  ),
+                                ],
+                              ),
                             SizedBox(height: 8),
                             Text(
                               'Bangumi Ranked:',

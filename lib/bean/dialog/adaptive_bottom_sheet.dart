@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
 
 BoxConstraints adaptiveBottomSheetConstraints(
   BuildContext context, {
@@ -33,8 +34,9 @@ Future<T?> showAdaptiveBottomSheet<T>({
   double maxHeightFactor = 0.75,
   double compactLandscapeMaxHeightFactor = 0.9,
   Color? backgroundColor,
-  bool showDragHandle = false,
+  bool showDragHandle = true,
 }) {
+  final tokens = context.design;
   return showModalBottomSheet<T>(
     context: context,
     builder: builder,
@@ -46,10 +48,13 @@ Future<T?> showAdaptiveBottomSheet<T>({
       maxHeightFactor: maxHeightFactor,
       compactLandscapeMaxHeightFactor: compactLandscapeMaxHeightFactor,
     ),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(tokens.radiusSheet),
+      ),
     ),
     clipBehavior: Clip.antiAlias,
-    backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.surface,
+    backgroundColor:
+        backgroundColor ?? Theme.of(context).colorScheme.surfaceContainerHigh,
   );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 class GeneralErrorWidget extends StatelessWidget {
   const GeneralErrorWidget({
@@ -12,33 +13,48 @@ class GeneralErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            return ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: constraints.maxWidth * 2 / 3,
-              ),
-              child: Text(
-                errMsg,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 20),
-        if (actions != null)
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: actions!,
-          ),
-      ],
+    return KazumiStatePanel(
+      kind: KazumiStateKind.error,
+      title: '暂时无法加载',
+      message: errMsg,
+      actions: actions ?? const [],
+    );
+  }
+}
+
+class GeneralLoadingWidget extends StatelessWidget {
+  const GeneralLoadingWidget({super.key, this.message = '正在加载'});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return KazumiStatePanel(
+      kind: KazumiStateKind.loading,
+      title: message,
+    );
+  }
+}
+
+class GeneralEmptyWidget extends StatelessWidget {
+  const GeneralEmptyWidget({
+    super.key,
+    this.title = '这里还没有内容',
+    this.message,
+    this.actions = const [],
+  });
+
+  final String title;
+  final String? message;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return KazumiStatePanel(
+      kind: KazumiStateKind.empty,
+      title: title,
+      message: message,
+      actions: actions,
     );
   }
 }
@@ -57,15 +73,7 @@ class GeneralErrorButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return FilledButton.tonal(
       onPressed: onPressed,
-      style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.resolveWith((_) {
-          return Theme.of(context).colorScheme.primary.withAlpha(20);
-        }),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: Theme.of(context).colorScheme.primary),
-      ),
+      child: Text(text),
     );
   }
 }

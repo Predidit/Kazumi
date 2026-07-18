@@ -28,6 +28,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: SysAppBar(
         title: const Text('规则仓库'),
         actions: [

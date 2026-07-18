@@ -127,8 +127,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
             }
             if (commentsIsEmpty) {
               return const SliverFillRemaining(
-                child: Center(
-                  child: Text('什么都没有找到 (´;ω;`)'),
+                child: GeneralEmptyWidget(
+                  title: '本集暂无评论',
+                  message: 'Bangumi 还没有收录本集吐槽。',
                 ),
               );
             }

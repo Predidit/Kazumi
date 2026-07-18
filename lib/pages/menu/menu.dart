@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/design_system/kazumi_design_tokens.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 import 'package:kazumi/pages/router.dart';
+import 'package:kazumi/utils/device.dart';
 
 class ScaffoldMenu extends StatefulWidget {
   const ScaffoldMenu({super.key});
@@ -20,9 +23,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
     _lastExitPromptAt = null;
     final currentIndex =
         menu.indexForPath(context.routeState(listen: false).uri.path);
-    if (index == currentIndex) {
-      return;
-    }
+    if (index == currentIndex) return;
     _outletKey.currentState?.navigate('/tab${menu.getPath(index)}/');
   }
 
@@ -58,15 +59,16 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          _handleSystemBack(context);
-        }
+        if (!didPop) _handleSystemBack(context);
       },
-      child: OrientationBuilder(
-        builder: (context, orientation) {
-          return orientation == Orientation.portrait
-              ? _bottomMenu(context, selectedIndex)
-              : _sideMenu(context, selectedIndex);
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final useSideNavigation = isDesktop()
+              ? constraints.maxWidth >= KazumiDesignTokens.shellBreakpoint
+              : MediaQuery.orientationOf(context) == Orientation.landscape;
+          return useSideNavigation
+              ? _sideMenu(context, selectedIndex)
+              : _bottomMenu(context, selectedIndex);
         },
       ),
     );
@@ -74,16 +76,15 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
 
   Widget _outlet(BuildContext context, {BorderRadius? borderRadius}) {
     Widget child = NotificationListener<NavigationNotification>(
-      // A non-poppable outlet must not override the shell's PopScope state.
       onNotification: (notification) => !notification.canHandlePop,
       child: RouterOutlet(key: _outletKey),
     );
     if (borderRadius != null) {
       child = ClipRRect(borderRadius: borderRadius, child: child);
     }
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: borderRadius,
       ),
       child: child,
@@ -92,27 +93,36 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
 
   Widget _bottomMenu(BuildContext context, int selectedIndex) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: _outlet(context),
+      floatingActionButton: isDesktop()
+          ? FloatingActionButton.small(
+              heroTag: null,
+              tooltip: '搜索',
+              onPressed: () => context.pushNamed('/search/'),
+              child: const Icon(Icons.search_rounded),
+            )
+          : null,
       bottomNavigationBar: NavigationBar(
         destinations: const <Widget>[
           NavigationDestination(
-            selectedIcon: Icon(Icons.home),
+            selectedIcon: Icon(Icons.home_rounded),
             icon: Icon(Icons.home_outlined),
             label: '推荐',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.timeline),
+            selectedIcon: Icon(Icons.timeline_rounded),
             icon: Icon(Icons.timeline_outlined),
             label: '时间表',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.favorite),
-            icon: Icon(Icons.favorite_outlined),
+            selectedIcon: Icon(Icons.favorite_rounded),
+            icon: Icon(Icons.favorite_border_rounded),
             label: '追番',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings),
+            selectedIcon: Icon(Icons.settings_rounded),
+            icon: Icon(Icons.settings_outlined),
             label: '我的',
           ),
         ],
@@ -123,53 +133,73 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
   }
 
   Widget _sideMenu(BuildContext context, int selectedIndex) {
-    const borderRadius = BorderRadius.only(
-      topLeft: Radius.circular(16),
-      bottomLeft: Radius.circular(16),
-    );
+    final tokens = context.design;
+    final borderRadius = BorderRadius.circular(tokens.radiusSurface);
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-      body: Row(
-        children: [
-          EmbeddedNativeControlArea(
-            child: NavigationRail(
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-              groupAlignment: 1,
-              leading: FloatingActionButton(
-                elevation: 0,
-                heroTag: null,
-                onPressed: () => context.pushNamed('/search/'),
-                child: const Icon(Icons.search),
+      backgroundColor: Colors.transparent,
+      body: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            EmbeddedNativeControlArea(
+              child: KazumiGlassSurface(
+                borderRadius: borderRadius,
+                shadow: false,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: NavigationRail(
+                  groupAlignment: 0.35,
+                  leading: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.movie_filter_rounded,
+                          size: 30,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: 14),
+                        FloatingActionButton.small(
+                          heroTag: null,
+                          tooltip: '搜索',
+                          onPressed: () => context.pushNamed('/search/'),
+                          child: const Icon(Icons.search_rounded),
+                        ),
+                      ],
+                    ),
+                  ),
+                  labelType: NavigationRailLabelType.selected,
+                  destinations: const <NavigationRailDestination>[
+                    NavigationRailDestination(
+                      selectedIcon: Icon(Icons.home_rounded),
+                      icon: Icon(Icons.home_outlined),
+                      label: Text('推荐'),
+                    ),
+                    NavigationRailDestination(
+                      selectedIcon: Icon(Icons.timeline_rounded),
+                      icon: Icon(Icons.timeline_outlined),
+                      label: Text('时间表'),
+                    ),
+                    NavigationRailDestination(
+                      selectedIcon: Icon(Icons.favorite_rounded),
+                      icon: Icon(Icons.favorite_border_rounded),
+                      label: Text('追番'),
+                    ),
+                    NavigationRailDestination(
+                      selectedIcon: Icon(Icons.settings_rounded),
+                      icon: Icon(Icons.settings_outlined),
+                      label: Text('我的'),
+                    ),
+                  ],
+                  selectedIndex: selectedIndex,
+                  onDestinationSelected: _selectDestination,
+                ),
               ),
-              labelType: NavigationRailLabelType.selected,
-              destinations: const <NavigationRailDestination>[
-                NavigationRailDestination(
-                  selectedIcon: Icon(Icons.home),
-                  icon: Icon(Icons.home_outlined),
-                  label: Text('推荐'),
-                ),
-                NavigationRailDestination(
-                  selectedIcon: Icon(Icons.timeline),
-                  icon: Icon(Icons.timeline_outlined),
-                  label: Text('时间表'),
-                ),
-                NavigationRailDestination(
-                  selectedIcon: Icon(Icons.favorite),
-                  icon: Icon(Icons.favorite_border),
-                  label: Text('追番'),
-                ),
-                NavigationRailDestination(
-                  selectedIcon: Icon(Icons.settings),
-                  icon: Icon(Icons.settings_outlined),
-                  label: Text('我的'),
-                ),
-              ],
-              selectedIndex: selectedIndex,
-              onDestinationSelected: _selectDestination,
             ),
-          ),
-          Expanded(child: _outlet(context, borderRadius: borderRadius)),
-        ],
+            const SizedBox(width: 10),
+            Expanded(child: _outlet(context, borderRadius: borderRadius)),
+          ],
+        ),
       ),
     );
   }

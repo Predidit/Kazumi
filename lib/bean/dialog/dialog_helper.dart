@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/design_system/kazumi_surfaces.dart';
 
 // A simple dialog helper class to show dialogs and toasts based on flutter native implementation (replace flutter_smart_dialog)
 // flutter_smart_dialog use overlays and self-managed route stack to show dialogs.
@@ -104,22 +105,13 @@ class KazumiDialog {
           barrierDismissible: barrierDismissible,
           builder: (BuildContext context) {
             return Center(
-              child: Card(
-                elevation: 8.0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(
-                        msg ?? 'Loading...',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
+              child: Dialog(
+                child: SizedBox(
+                  width: 320,
+                  child: KazumiStatePanel(
+                    kind: KazumiStateKind.loading,
+                    title: msg ?? '正在加载',
+                    compact: true,
                   ),
                 ),
               ),

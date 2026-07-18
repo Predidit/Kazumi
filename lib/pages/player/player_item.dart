@@ -1180,8 +1180,8 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
-  void _copyVideoInfo(String label, String value) {
-    Clipboard.setData(ClipboardData(text: '$label\n$value'));
+  void _copyVideoInfo(String value) {
+    Clipboard.setData(ClipboardData(text: value));
     KazumiDialog.showToast(message: '已复制到剪贴板');
   }
 
@@ -1234,13 +1234,13 @@ class _PlayerItemState extends State<PlayerItem>
               trailing: IconButton(
                 onPressed: item.value.isEmpty
                     ? null
-                    : () => _copyVideoInfo(item.label, item.value),
+                    : () => _copyVideoInfo(item.value),
                 tooltip: '复制${item.label}',
                 icon: const Icon(Icons.copy_rounded),
               ),
               onTap: item.value.isEmpty
                   ? null
-                  : () => _copyVideoInfo(item.label, item.value),
+                  : () => _copyVideoInfo(item.value),
             ),
         ],
       ),
@@ -1354,7 +1354,7 @@ class _PlayerItemState extends State<PlayerItem>
                 FilledButton.tonalIcon(
                   onPressed: logs.isEmpty
                       ? null
-                      : () => _copyVideoInfo('播放器日志', logs.join('\n')),
+                      : () => _copyVideoInfo(logs.join('\n')),
                   icon: const Icon(Icons.copy_all_rounded),
                   label: const Text('全部复制'),
                 ),

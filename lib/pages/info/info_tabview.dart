@@ -213,7 +213,7 @@ class _InfoTabViewState extends State<InfoTabView>
           scrollBehavior: const ScrollBehavior().copyWith(
             scrollbars: false,
           ),
-          key: const PageStorageKey<String>('关联条目'),
+          key: const PageStorageKey<String>('关联'),
           slivers: <Widget>[
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),

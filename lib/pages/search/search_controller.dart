@@ -28,6 +28,8 @@ abstract class _SearchPageController with Store {
 
   int _searchOffset = 0;
 
+  bool hasMoreSearchResults = true;
+
   @observable
   bool isLoading = false;
 
@@ -67,6 +69,7 @@ abstract class _SearchPageController with Store {
     if (type != 'add') {
       bangumiList.clear();
       _searchOffset = 0;
+      hasMoreSearchResults = true;
       bool privateMode = _collectRepository.getPrivateMode();
       if (!privateMode) {
         // 检查是否已满，删除最旧的记录
@@ -93,24 +96,35 @@ abstract class _SearchPageController with Store {
         if (item != null) {
           bangumiList.add(item);
         }
+        hasMoreSearchResults = false;
         isLoading = false;
         isTimeOut = bangumiList.isEmpty;
         return;
       }
     }
-    final result = await BangumiApi.bangumiSearch(filterState.keyword,
-        tags: filterState.tags,
-        offset: _searchOffset,
-        sort: filterState.sort,
-        dateRange: filterState.effectiveDateRange,
-        rankRange: filterState.rankRange,
-        scoreRange: filterState.scoreRange,
-        weekdays: filterState.weekdays);
-    if (result.isNotEmpty) {
-      _searchOffset += _searchPageSize;
-    }
-    final existingIds = bangumiList.map((item) => item.id).toSet();
-    bangumiList.addAll(result.where((item) => existingIds.add(item.id)));
+    var addedVisibleItems = false;
+    do {
+      final page = await BangumiApi.bangumiSearch(filterState.keyword,
+          tags: filterState.tags,
+          offset: _searchOffset,
+          sort: filterState.sort,
+          dateRange: filterState.effectiveDateRange,
+          rankRange: filterState.rankRange,
+          scoreRange: filterState.scoreRange,
+          weekdays: filterState.weekdays);
+      if (page == null) {
+        break;
+      }
+      _searchOffset += page.rawCount;
+      hasMoreSearchResults = page.rawCount == _searchPageSize;
+      final existingIds = bangumiList.map((item) => item.id).toSet();
+      final newItems =
+          page.items.where((item) => existingIds.add(item.id)).toList();
+      if (newItems.isNotEmpty) {
+        bangumiList.addAll(newItems);
+        addedVisibleItems = true;
+      }
+    } while (!addedVisibleItems && hasMoreSearchResults);
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;
   }

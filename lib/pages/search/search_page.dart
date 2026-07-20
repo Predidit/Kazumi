@@ -98,7 +98,7 @@ class _SearchPageState extends State<SearchPage> {
         !searchPageController.isLoading &&
         (searchController.text.trim().isNotEmpty ||
             filterState.hasAdvancedFilters) &&
-        searchPageController.bangumiList.length >= 20) {
+        searchPageController.hasMoreSearchResults) {
       KazumiLogger().i('SearchController: search results is loading more');
       searchPageController.searchBangumi(searchController.text, type: 'add');
     }

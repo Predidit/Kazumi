@@ -16,6 +16,8 @@ part 'search_controller.g.dart';
 class SearchPageController = _SearchPageController with _$SearchPageController;
 
 abstract class _SearchPageController with Store {
+  static const int _searchPageSize = 20;
+
   _SearchPageController(
     this._collectRepository,
     this._searchHistoryRepository,
@@ -23,6 +25,8 @@ abstract class _SearchPageController with Store {
 
   final ICollectRepository _collectRepository;
   final ISearchHistoryRepository _searchHistoryRepository;
+
+  int _searchOffset = 0;
 
   @observable
   bool isLoading = false;
@@ -62,6 +66,7 @@ abstract class _SearchPageController with Store {
   Future<void> searchBangumi(String input, {String type = 'add'}) async {
     if (type != 'add') {
       bangumiList.clear();
+      _searchOffset = 0;
       bool privateMode = _collectRepository.getPrivateMode();
       if (!privateMode) {
         // 检查是否已满，删除最旧的记录
@@ -95,13 +100,17 @@ abstract class _SearchPageController with Store {
     }
     final result = await BangumiApi.bangumiSearch(filterState.keyword,
         tags: filterState.tags,
-        offset: bangumiList.length,
+        offset: _searchOffset,
         sort: filterState.sort,
         dateRange: filterState.effectiveDateRange,
         rankRange: filterState.rankRange,
         scoreRange: filterState.scoreRange,
         weekdays: filterState.weekdays);
-    bangumiList.addAll(result);
+    if (result.isNotEmpty) {
+      _searchOffset += _searchPageSize;
+    }
+    final existingIds = bangumiList.map((item) => item.id).toSet();
+    bangumiList.addAll(result.where((item) => existingIds.add(item.id)));
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;
   }

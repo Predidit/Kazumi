@@ -264,7 +264,7 @@ class _CharacterPageState extends State<CharacterPage> {
       ),
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           sliver: Builder(builder: (context) {
             if (loadingComments) {
               return const SliverFillRemaining(

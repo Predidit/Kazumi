@@ -9,6 +9,10 @@ part 'popular_controller.g.dart';
 class PopularController = _PopularController with _$PopularController;
 
 abstract class _PopularController with Store {
+  static const int _trendPageSize = 24;
+
+  int _trendOffset = 0;
+
   @observable
   String currentTag = '';
 
@@ -43,13 +47,23 @@ abstract class _PopularController with Store {
   Future<void> queryBangumiByTrend({String type = 'add'}) async {
     if (type == 'init') {
       trendList.clear();
+      _trendOffset = 0;
     }
     isLoadingMore = true;
-    var result = _bangumiMirrorEnabled
+    final result = _bangumiMirrorEnabled
         ? await BangumiApi.getBangumiMirrorPopularSubjects(
-            offset: trendList.length)
-        : await BangumiApi.getBangumiTrendsList(offset: trendList.length);
-    trendList.addAll(result);
+            limit: _trendPageSize,
+            offset: _trendOffset,
+          )
+        : await BangumiApi.getBangumiTrendsList(
+            limit: _trendPageSize,
+            offset: _trendOffset,
+          );
+    if (result.isNotEmpty) {
+      _trendOffset += _trendPageSize;
+    }
+    final existingIds = trendList.map((item) => item.id).toSet();
+    trendList.addAll(result.where((item) => existingIds.add(item.id)));
     isLoadingMore = false;
     isTimeOut = trendList.isEmpty;
   }

@@ -5,6 +5,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/widget/empty_state_widget.dart';
 
 class LogsPage extends StatefulWidget {
   const LogsPage({super.key});
@@ -178,7 +179,10 @@ class _LogsPageState extends State<LogsPage> {
 
     if (_logLines.isEmpty) {
       return const Center(
-        child: Text('没有数据'),
+        child: GeneralEmptyState(
+          icon: Icons.receipt_long_rounded,
+          title: '暂无日志',
+        ),
       );
     }
 

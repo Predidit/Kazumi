@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
@@ -53,7 +54,12 @@ class _DownloadPageState extends State<DownloadPage> {
         // bangumi gets a fresh default instead of a stale cached one.
         _expanded.removeWhere((key, _) => !recordKeys.contains(key));
         if (recordKeys.isEmpty) {
-          return const Center(child: DownloadEmptyState());
+          return const Center(
+            child: GeneralEmptyState(
+              icon: Icons.download_rounded,
+              title: '暂无下载内容',
+            ),
+          );
         }
         return ListView.builder(
           padding: const EdgeInsets.all(16),

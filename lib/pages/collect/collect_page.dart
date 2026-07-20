@@ -9,6 +9,7 @@ import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -236,7 +237,10 @@ class _CollectPageState extends State<CollectPage>
       );
     } else {
       return const Center(
-        child: Text('啊嘞, 没有追番的说 (´;ω;`)'),
+        child: GeneralEmptyState(
+          icon: Icons.favorite_border_rounded,
+          title: '暂无追番内容',
+        ),
       );
     }
   }

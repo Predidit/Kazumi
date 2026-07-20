@@ -337,38 +337,3 @@ class _EpisodeStatusBadge extends StatelessWidget {
     );
   }
 }
-
-/// Empty state for the download page, following the onboarding badge idiom.
-class DownloadEmptyState extends StatelessWidget {
-  const DownloadEmptyState({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: colorScheme.secondaryContainer,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.download_rounded,
-            size: 32,
-            color: colorScheme.onSecondaryContainer,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          '暂无下载内容',
-          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      ],
-    );
-  }
-}

@@ -304,6 +304,7 @@ class BangumiApi {
 
   static Future<BangumiSearchPage?> bangumiSearch(String keyword,
       {List<String> tags = const [],
+      int limit = 20,
       int offset = 0,
       String sort = 'heat',
       SearchDateRange? dateRange,
@@ -326,7 +327,7 @@ class BangumiApi {
       final jsonData = await _client.post(
         ApiEndpoints.formatUrl(
             ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiRankSearch,
-            [20, offset]),
+            [limit, offset]),
         data: params,
       );
       final jsonList = jsonData['data'];

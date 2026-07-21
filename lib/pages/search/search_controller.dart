@@ -17,6 +17,7 @@ class SearchPageController = _SearchPageController with _$SearchPageController;
 
 abstract class _SearchPageController with Store {
   static const int _searchPageSize = 20;
+  static const int _maxPagesPerSearch = 3;
 
   _SearchPageController(
     this._collectRepository,
@@ -103,9 +104,11 @@ abstract class _SearchPageController with Store {
       }
     }
     var addedVisibleItems = false;
+    var pagesFetched = 0;
     do {
       final page = await BangumiApi.bangumiSearch(filterState.keyword,
           tags: filterState.tags,
+          limit: _searchPageSize,
           offset: _searchOffset,
           sort: filterState.sort,
           dateRange: filterState.effectiveDateRange,
@@ -115,6 +118,7 @@ abstract class _SearchPageController with Store {
       if (page == null) {
         break;
       }
+      pagesFetched++;
       _searchOffset += page.rawCount;
       hasMoreSearchResults = page.rawCount == _searchPageSize;
       final existingIds = bangumiList.map((item) => item.id).toSet();
@@ -124,7 +128,9 @@ abstract class _SearchPageController with Store {
         bangumiList.addAll(newItems);
         addedVisibleItems = true;
       }
-    } while (!addedVisibleItems && hasMoreSearchResults);
+    } while (!addedVisibleItems &&
+        hasMoreSearchResults &&
+        pagesFetched < _maxPagesPerSearch);
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;
   }

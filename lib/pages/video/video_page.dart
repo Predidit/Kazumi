@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/video/danmaku_send_sheet.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -489,52 +490,7 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Future<void> showMobileDanmakuInput() async {
-    String danmakuText = '';
-    final message = await showAdaptiveBottomSheet<String>(
-      context: context,
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            12,
-            16,
-            16 + MediaQuery.viewInsetsOf(context).bottom,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: TextField(
-                  autofocus: true,
-                  textInputAction: TextInputAction.send,
-                  onChanged: (value) => danmakuText = value,
-                  onSubmitted: (message) {
-                    Navigator.of(context).pop(message);
-                  },
-                  decoration: const InputDecoration(
-                    filled: true,
-                    hintText: '发个友善的弹幕见证当下',
-                    prefixIcon: Icon(Icons.chat_bubble_outline_rounded),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide.none,
-                      borderRadius: BorderRadius.all(Radius.circular(20)),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              IconButton.filled(
-                tooltip: '发送',
-                onPressed: () {
-                  Navigator.of(context).pop(danmakuText);
-                },
-                icon: const Icon(Icons.send_rounded),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    final message = await showMobileDanmakuInputSheet(context);
 
     if (!mounted || message == null) {
       return;

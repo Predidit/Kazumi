@@ -132,7 +132,7 @@ abstract class _SearchPageController with Store {
         hasMoreSearchResults &&
         pagesFetched < _maxPagesPerSearch);
     isLoading = false;
-    isTimeOut = bangumiList.isEmpty;
+    isTimeOut = bangumiList.isEmpty && !hasMoreSearchResults;
   }
 
   @action

@@ -30,8 +30,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
   Road get currentRoadData => videoPageController.roadList[widget.road];
   int get episodeCount => currentRoadData.data.length;
 
-  @override
-  Widget build(BuildContext context) {
+  Set<String> _collectDownloadedUrls() {
     final record = downloadController.getRecord(
       videoPageController.bangumiItem.id,
       videoPageController.currentPlugin.name,
@@ -48,6 +47,19 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
         }
       }
     }
+    return downloadedUrls;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final downloadedUrls = _collectDownloadedUrls();
+    final selectableEpisodes = <int>[
+      for (int i = 1; i <= episodeCount; i++)
+        if (!downloadedUrls.contains(currentRoadData.data[i - 1])) i,
+    ];
+    final downloadedCount = episodeCount - selectableEpisodes.length;
+    final allSelected = selectableEpisodes.isNotEmpty &&
+        _selectedEpisodes.length == selectableEpisodes.length;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -58,41 +70,18 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
         return Column(
           children: [
             MaterialBottomSheetHeader(
-              title: '选择要下载的集数',
-              description: '已选 ${_selectedEpisodes.length} 集',
+              title: '下载选集',
+              description: downloadedCount > 0
+                  ? '共 $episodeCount 集 · $downloadedCount 集已加入下载'
+                  : '共 $episodeCount 集',
               onClose: () => Navigator.of(context).pop(),
-              footer: Row(
-                children: [
-                  FilledButton.tonal(
-                    onPressed: () {
-                      setState(() {
-                        _selectedEpisodes.clear();
-                        for (int i = 1; i <= episodeCount; i++) {
-                          final url = currentRoadData.data[i - 1];
-                          if (!downloadedUrls.contains(url)) {
-                            _selectedEpisodes.add(i);
-                          }
-                        }
-                      });
-                    },
-                    child: const Text('全选'),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: () {
-                      setState(_selectedEpisodes.clear);
-                    },
-                    child: const Text('取消全选'),
-                  ),
-                ],
-              ),
             ),
             Expanded(
               child: GridView.builder(
                 controller: scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 160,
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
                   mainAxisExtent: 56,
@@ -103,74 +92,21 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                   final episodeUrl = currentRoadData.data[index];
                   final isDownloaded = downloadedUrls.contains(episodeUrl);
                   final isSelected = _selectedEpisodes.contains(episodeNumber);
-                  final identifier = currentRoadData.identifier[index];
-
-                  return Material(
-                    color: isDownloaded
-                        ? Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.5)
-                        : isSelected
-                            ? Theme.of(context).colorScheme.secondaryContainer
-                            : Theme.of(context).colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                    clipBehavior: Clip.hardEdge,
-                    child: InkWell(
-                      onTap: isDownloaded
-                          ? null
-                          : () {
-                              setState(() {
-                                if (isSelected) {
-                                  _selectedEpisodes.remove(episodeNumber);
-                                } else {
-                                  _selectedEpisodes.add(episodeNumber);
-                                }
-                              });
-                            },
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(
-                                identifier,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDownloaded
-                                      ? Theme.of(context).colorScheme.outline
-                                      : null,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (isDownloaded)
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: Icon(
-                                Icons.check_circle,
-                                size: 14,
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                            ),
-                          if (isSelected)
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: Icon(
-                                Icons.check_circle,
-                                size: 14,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+                  return _EpisodeTile(
+                    identifier: currentRoadData.identifier[index],
+                    isDownloaded: isDownloaded,
+                    isSelected: isSelected,
+                    onTap: isDownloaded
+                        ? null
+                        : () {
+                            setState(() {
+                              if (isSelected) {
+                                _selectedEpisodes.remove(episodeNumber);
+                              } else {
+                                _selectedEpisodes.add(episodeNumber);
+                              }
+                            });
+                          },
                   );
                 },
               ),
@@ -178,21 +114,48 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: SafeArea(
+                top: false,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('取消'),
+                    FilledButton.tonalIcon(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                      ),
+                      onPressed: selectableEpisodes.isEmpty
+                          ? null
+                          : () {
+                              setState(() {
+                                _selectedEpisodes.clear();
+                                if (!allSelected) {
+                                  _selectedEpisodes.addAll(selectableEpisodes);
+                                }
+                              });
+                            },
+                      icon: Icon(allSelected
+                          ? Icons.deselect_rounded
+                          : Icons.select_all_rounded),
+                      // 用透明的最宽文案占位，切换文本时按钮宽度保持稳定。
+                      label: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const Opacity(opacity: 0, child: Text('取消全选')),
+                          Text(allSelected ? '取消全选' : '全选'),
+                        ],
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    SizedBox(
-                      width: 140,
-                      child: FilledButton(
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                        ),
                         onPressed: _selectedEpisodes.isEmpty
                             ? null
                             : () => _startBatchDownload(context),
-                        child: Text('开始下载(${_selectedEpisodes.length})'),
+                        icon: const Icon(Icons.download_rounded),
+                        label: Text(_selectedEpisodes.isEmpty
+                            ? '开始下载'
+                            : '下载 ${_selectedEpisodes.length} 集'),
                       ),
                     ),
                   ],
@@ -233,6 +196,96 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
 
     KazumiDialog.showToast(
       message: '已添加 ${sortedEpisodes.length} 集到下载队列，可在下载管理中查看',
+    );
+  }
+}
+
+class _EpisodeTile extends StatelessWidget {
+  const _EpisodeTile({
+    required this.identifier,
+    required this.isDownloaded,
+    required this.isSelected,
+    this.onTap,
+  });
+
+  final String identifier;
+  final bool isDownloaded;
+  final bool isSelected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final backgroundColor = isDownloaded
+        ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+        : isSelected
+            ? colorScheme.secondaryContainer
+            : colorScheme.surfaceContainerLow;
+    final foregroundColor = isDownloaded
+        ? colorScheme.outline
+        : isSelected
+            ? colorScheme.onSecondaryContainer
+            : colorScheme.onSurface;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOutCubic,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Stack(
+            children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    identifier,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: foregroundColor,
+                    ),
+                  ),
+                ),
+              ),
+              if (isDownloaded)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Icon(
+                    Icons.download_done_rounded,
+                    size: 14,
+                    color: colorScheme.outline,
+                  ),
+                )
+              else
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: AnimatedScale(
+                    scale: isSelected ? 1 : 0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOutCubic,
+                    child: Icon(
+                      Icons.check_circle_rounded,
+                      size: 14,
+                      color: colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

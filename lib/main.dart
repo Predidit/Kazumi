@@ -1,17 +1,14 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/app_module.dart';
 import 'package:kazumi/app_widget.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
-import 'package:kazumi/services/network/system_proxy_service.dart';
+import 'package:kazumi/services/network/system_proxy.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/services/platform/app_platform.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kazumi/utils/device.dart';
@@ -24,7 +21,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   KazumiLogger.enablePersistentLogging();
   MediaKit.ensureInitialized();
-  if (Platform.isAndroid || Platform.isIOS) {
+  if (KazumiPlatform.isAndroid || KazumiPlatform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.transparent,
@@ -33,13 +30,11 @@ void main() async {
     ));
   }
 
-  if (Platform.isAndroid) {
+  if (KazumiPlatform.isAndroid) {
     await WebViewFeatureService.initialize();
   }
 
   try {
-    final hivePath = '${(await getApplicationSupportDirectory()).path}/hive';
-    await Hive.initFlutter(hivePath);
     await GStorage.init();
   } catch (e) {
     // Log the error for debugging (if logger is available)
@@ -71,7 +66,7 @@ void main() async {
       await GStorage.getSetting(SettingsKeys.showWindowButton);
   if (isDesktop()) {
     await windowManager.ensureInitialized();
-    if (Platform.isWindows) {
+    if (KazumiPlatform.isWindows) {
       await windowManager.setMinimumSize(const Size(480, 360));
     }
     final lowResolution = await isLowResolution();
@@ -80,7 +75,7 @@ void main() async {
       center: true,
       skipTaskbar: false,
       // macOS always hide title bar regardless of showWindowButton setting
-      titleBarStyle: (Platform.isMacOS || !showWindowButton)
+      titleBarStyle: (KazumiPlatform.isMacOS || !showWindowButton)
           ? TitleBarStyle.hidden
           : TitleBarStyle.normal,
       windowButtonVisibility: showWindowButton,
@@ -92,7 +87,7 @@ void main() async {
       await windowManager.focus();
     });
   }
-  if (Platform.isWindows) {
+  if (KazumiPlatform.isWindows) {
     SystemProxyService.init();
   }
   ProxyManager.applyProxy();

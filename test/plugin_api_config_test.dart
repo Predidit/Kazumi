@@ -22,6 +22,17 @@ void main() {
     expect(restored.searchMode, RuleMode.xpath);
   });
 
+  test('optional playback button selector survives JSON round trip', () {
+    final plugin = Plugin.fromJson({
+      ..._legacyRule,
+      'playButtonSelector': '#player-start',
+    });
+    final restored = Plugin.fromJson(plugin.toJson());
+
+    expect(restored.playButtonSelector, '#player-start');
+    expect(restored.toJson()['playButtonSelector'], '#player-start');
+  });
+
   test('detects rules that require a newer client API level', () {
     final compatible = Plugin.fromJson({
       ..._legacyRule,

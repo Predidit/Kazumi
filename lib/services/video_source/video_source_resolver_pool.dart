@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:kazumi/services/video_source/video_source_service.dart';
-import 'package:kazumi/services/video_source/webview_video_source_service.dart';
+import 'package:kazumi/services/video_source/video_source_service_factory.dart';
 
 class VideoSourceResolverPool {
   final List<_VideoSourceResolverWorker> _workers = [];
@@ -107,21 +107,11 @@ class VideoSourceResolverLease {
   bool get isCancelled => _isCancelled;
   bool get shouldRetire => _shouldRetire;
 
-  Future<VideoSource> resolve(
-    String episodeUrl, {
-    required bool useLegacyParser,
-    int offset = 0,
-    Duration timeout = const Duration(seconds: 30),
-  }) async {
+  Future<VideoSource> resolve(VideoSourceRequest request) async {
     if (_isCancelled) {
       throw const VideoSourceCancelledException();
     }
-    return _worker.resolve(
-      episodeUrl,
-      useLegacyParser: useLegacyParser,
-      offset: offset,
-      timeout: timeout,
-    );
+    return _worker.resolve(request);
   }
 
   void cancel() {
@@ -136,24 +126,14 @@ class VideoSourceResolverLease {
 }
 
 class _VideoSourceResolverWorker {
-  final WebViewVideoSourceService _service = WebViewVideoSourceService();
+  final IVideoSourceService _service = createVideoSourceService();
   bool isBusy = false;
   bool isRetired = false;
 
   _VideoSourceResolverWorker();
 
-  Future<VideoSource> resolve(
-    String episodeUrl, {
-    required bool useLegacyParser,
-    int offset = 0,
-    Duration timeout = const Duration(seconds: 30),
-  }) {
-    return _service.resolve(
-      episodeUrl,
-      useLegacyParser: useLegacyParser,
-      offset: offset,
-      timeout: timeout,
-    );
+  Future<VideoSource> resolve(VideoSourceRequest request) {
+    return _service.resolve(request);
   }
 
   void cancel() {

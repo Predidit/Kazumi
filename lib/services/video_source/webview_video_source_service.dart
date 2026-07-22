@@ -19,31 +19,24 @@ class WebViewVideoSourceService implements IVideoSourceService {
 
   final StreamController<String> _logController =
       StreamController<String>.broadcast();
+  @override
   Stream<String> get onLog => _logController.stream;
 
   @override
-  Future<VideoSource> resolve(
-    String episodeUrl, {
-    required bool useLegacyParser,
-    int offset = 0,
-    Duration timeout = const Duration(seconds: 15),
-  }) async {
+  Future<VideoSource> resolve(VideoSourceRequest sourceRequest) async {
     final resolveTail = _resolveTail;
     if (resolveTail == null) {
       throw const VideoSourceCancelledException();
     }
 
     _activeRequest?.cancel();
-    final request = _ResolveRequest();
-    _activeRequest = request;
+    final resolveRequest = _ResolveRequest();
+    _activeRequest = resolveRequest;
 
     final resolveFuture = resolveTail.then(
       (_) => _runResolve(
-        request,
-        episodeUrl,
-        useLegacyParser: useLegacyParser,
-        offset: offset,
-        timeout: timeout,
+        resolveRequest,
+        sourceRequest,
       ),
     );
 
@@ -53,11 +46,8 @@ class WebViewVideoSourceService implements IVideoSourceService {
 
   Future<VideoSource> _runResolve(
     _ResolveRequest request,
-    String episodeUrl, {
-    required bool useLegacyParser,
-    required int offset,
-    required Duration timeout,
-  }) async {
+    VideoSourceRequest sourceRequest,
+  ) async {
     request.throwIfNotCurrent(_activeRequest);
 
     if (_webview == null) {
@@ -76,18 +66,18 @@ class WebViewVideoSourceService implements IVideoSourceService {
       request.throwIfNotCurrent(_activeRequest);
       didStartLoad = true;
       await _webview!.loadUrl(
-        episodeUrl,
-        useLegacyParser,
-        offset: offset,
+        sourceRequest.episodeUrl,
+        sourceRequest.useLegacyParser,
+        offset: sourceRequest.offset,
       );
 
       request.throwIfNotCurrent(_activeRequest);
 
       final parserFuture = _webview!.onVideoURLParser.first.timeout(
-        timeout,
+        sourceRequest.timeout,
         onTimeout: () {
           request.throwIfNotCurrent(_activeRequest);
-          throw VideoSourceTimeoutException(timeout);
+          throw VideoSourceTimeoutException(sourceRequest.timeout);
         },
       );
       final cancelFuture = request.cancelled.then<(String, int)>((_) {

@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/hive_registrar.g.dart';
 import 'package:kazumi/modules/history/history_module.dart';
@@ -12,6 +10,7 @@ import 'package:kazumi/modules/collect/collect_sync_merger.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/storage/history_storage_coordinator.dart';
+import 'package:kazumi/services/storage/storage_backend.dart';
 
 import 'package:kazumi/services/storage/settings_keys.dart';
 export 'package:kazumi/services/storage/settings_keys.dart';
@@ -144,7 +143,7 @@ class GStorage {
   }
 
   static Future init() async {
-    _hivePath = '${(await getApplicationSupportDirectory()).path}/hive';
+    _hivePath = await StorageBackend.initializeHive();
 
     Hive.registerAdapters();
 
@@ -189,20 +188,11 @@ class GStorage {
 
   /// Delete Hive box files for a given box name
   static Future<void> _deleteBoxFiles(String boxName) async {
-    if (_hivePath == null) return;
-
-    final boxFile = File('$_hivePath/$boxName.hive');
-    final lockFile = File('$_hivePath/$boxName.lock');
-
+    final hivePath = _hivePath;
+    if (hivePath == null) return;
     try {
-      if (await boxFile.exists()) {
-        await boxFile.delete();
-        KazumiLogger().i('GStorage: Deleted corrupted box file: $boxName.hive');
-      }
-      if (await lockFile.exists()) {
-        await lockFile.delete();
-        KazumiLogger().i('GStorage: Deleted lock file: $boxName.lock');
-      }
+      await StorageBackend.deleteBoxFiles(hivePath, boxName);
+      KazumiLogger().i('GStorage: Deleted corrupted box files: $boxName');
     } catch (e) {
       KazumiLogger()
           .e('GStorage: Failed to delete box files for "$boxName"', error: e);
@@ -210,19 +200,20 @@ class GStorage {
   }
 
   static Future<void> backupBox(String boxName, String backupFilePath) async {
-    final appDocumentDir = await getApplicationSupportDirectory();
-    final hiveBoxFile = File('${appDocumentDir.path}/hive/$boxName.hive');
-    if (await hiveBoxFile.exists()) {
-      await hiveBoxFile.copy(backupFilePath);
+    try {
+      await StorageBackend.backupBox(boxName, backupFilePath);
       KazumiLogger().i('GStorage: backup success: $backupFilePath');
-    } else {
-      KazumiLogger().w('GStorage: Hive box does not exist: $boxName');
+    } catch (error) {
+      KazumiLogger().w(
+        'GStorage: backup unavailable for box $boxName',
+        error: error,
+      );
+      rethrow;
     }
   }
 
   static Future<void> patchHistory(String backupFilePath) async {
-    final backupFile = File(backupFilePath);
-    final backupContent = await backupFile.readAsBytes();
+    final backupContent = await StorageBackend.readFileBytes(backupFilePath);
     final tempBox = await Hive.openBox('tempHistoryBox', bytes: backupContent);
     try {
       final tempBoxItems = tempBox.toMap().entries;
@@ -245,8 +236,7 @@ class GStorage {
   }
 
   static Future<void> restoreCollectibles(String backupFilePath) async {
-    final backupFile = File(backupFilePath);
-    final backupContent = await backupFile.readAsBytes();
+    final backupContent = await StorageBackend.readFileBytes(backupFilePath);
     final tempBox =
         await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
@@ -262,8 +252,7 @@ class GStorage {
 
   static Future<List<CollectedBangumi>> getCollectiblesFromFile(
       String backupFilePath) async {
-    final backupFile = File(backupFilePath);
-    final backupContent = await backupFile.readAsBytes();
+    final backupContent = await StorageBackend.readFileBytes(backupFilePath);
     final tempBox =
         await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
@@ -280,8 +269,7 @@ class GStorage {
 
   static Future<List<CollectedBangumiChange>> getCollectChangesFromFile(
       String backupFilePath) async {
-    final backupFile = File(backupFilePath);
-    final backupContent = await backupFile.readAsBytes();
+    final backupContent = await StorageBackend.readFileBytes(backupFilePath);
     final tempBox =
         await Hive.openBox('tempCollectChangesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;

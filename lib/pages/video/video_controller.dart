@@ -149,7 +149,7 @@ abstract class VideoPageControllerBase with Store implements Disposable {
   final IDownloadRepository downloadRepository;
   final IDownloadManager downloadManager;
 
-  WebViewVideoSourceService? _videoSourceService;
+  IVideoSourceService? _videoSourceService;
 
   final StreamController<String> _logStreamController =
       StreamController<String>.broadcast();
@@ -617,7 +617,7 @@ abstract class VideoPageControllerBase with Store implements Disposable {
     required AsyncSession session,
     required PlayerController playerController,
   }) async {
-    _videoSourceService ??= WebViewVideoSourceService();
+    _videoSourceService ??= createVideoSourceService();
 
     await _logSubscription?.cancel();
     _logSubscription = _videoSourceService!.onLog.listen((log) {
@@ -627,10 +627,23 @@ abstract class VideoPageControllerBase with Store implements Disposable {
     });
 
     try {
+      final resolvedUserAgent = currentPlugin.userAgent.isEmpty
+          ? getRandomUA()
+          : currentPlugin.userAgent;
+      final bool forceAdBlocker =
+          GStorage.getSetting(SettingsKeys.forceAdBlocker);
       final source = await _videoSourceService!.resolve(
-        url,
-        useLegacyParser: currentPlugin.useLegacyParser,
-        offset: offset,
+        VideoSourceRequest(
+          episodeUrl: url,
+          pluginName: currentPlugin.name,
+          version: currentPlugin.version,
+          useLegacyParser: currentPlugin.useLegacyParser,
+          userAgent: resolvedUserAgent,
+          referer: currentPlugin.referer,
+          adBlocker: forceAdBlocker || currentPlugin.adBlocker,
+          playButtonSelector: currentPlugin.playButtonSelector,
+          offset: offset,
+        ),
       );
 
       if (session.isStale) {
@@ -641,9 +654,6 @@ abstract class VideoPageControllerBase with Store implements Disposable {
         'plugin=${currentPlugin.name}, road=${resolvedEpisode.roadIndex}, '
         'episode=${resolvedEpisode.listIndex}',
       );
-
-      final bool forceAdBlocker =
-          GStorage.getSetting(SettingsKeys.forceAdBlocker);
 
       final params = PlaybackInitParams(
         videoUrl: source.url,
@@ -656,9 +666,7 @@ abstract class VideoPageControllerBase with Store implements Disposable {
         pageUrl: resolvedEpisode.pageUrl,
         sortNumber: resolvedEpisode.sortNumber,
         httpHeaders: {
-          'user-agent': currentPlugin.userAgent.isEmpty
-              ? getRandomUA()
-              : currentPlugin.userAgent,
+          'user-agent': resolvedUserAgent,
           if (currentPlugin.referer.isNotEmpty)
             'referer': currentPlugin.referer,
         },

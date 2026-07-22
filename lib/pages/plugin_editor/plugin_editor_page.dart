@@ -119,6 +119,9 @@ abstract final class _RuleEditorText {
   static const userAgentHelper = '仅用于播放器和下载器。';
   static const referer = '播放请求来源（Referer）';
   static const refererHelper = '仅用于播放器和下载器。';
+  static const playButtonSelector = '播放按钮选择器（CSS，可选）';
+  static const playButtonSelectorHelper =
+      '仅在播放页必须由一次明确点击才会加载媒体时使用；留空时解析器不会自动点击。';
 
   static const captchaDetectValue = '验证页检测值';
   static const captchaDetectValueHelper = '留空时使用验证码图片或验证按钮的 XPath 进行检测。';
@@ -162,6 +165,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final TextEditingController chapterRoadsController = TextEditingController();
   final TextEditingController chapterResultController = TextEditingController();
   final TextEditingController refererController = TextEditingController();
+  final TextEditingController playButtonSelectorController =
+      TextEditingController();
   final TextEditingController searchApiURLController = TextEditingController();
   final TextEditingController searchApiHeadersController =
       TextEditingController();
@@ -280,6 +285,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     chapterRoadsController.text = plugin.chapterRoads;
     chapterResultController.text = plugin.chapterResult;
     refererController.text = plugin.referer;
+    playButtonSelectorController.text = plugin.playButtonSelector;
     searchMode = plugin.searchMode;
     chapterMode = plugin.chapterMode;
     searchApiMethod = plugin.searchApiConfig.request.method;
@@ -359,6 +365,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     chapterRoadsController.dispose();
     chapterResultController.dispose();
     refererController.dispose();
+    playButtonSelectorController.dispose();
     searchApiURLController.dispose();
     searchApiHeadersController.dispose();
     searchApiQueryController.dispose();
@@ -549,6 +556,12 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           controller: refererController,
           label: _RuleEditorText.referer,
           helper: _RuleEditorText.refererHelper,
+        ),
+        const SizedBox(height: 16),
+        EditorTextField(
+          controller: playButtonSelectorController,
+          label: _RuleEditorText.playButtonSelector,
+          helper: _RuleEditorText.playButtonSelectorHelper,
         ),
         if (searchMode == RuleMode.xpath) ...[
           const EditorSubheader(label: _RuleEditorText.groupAntiCrawler),
@@ -917,6 +930,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       chapterRoads: chapterRoadsController.text,
       chapterResult: chapterResultController.text,
       referer: refererController.text,
+      playButtonSelector: playButtonSelectorController.text.trim(),
       searchMode: searchMode,
       chapterMode: chapterMode,
       searchApiConfig: searchConfig,

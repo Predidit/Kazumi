@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/player_keyboard_shortcuts.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
@@ -18,7 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/services/platform/app_platform.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -164,7 +163,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> _syncAndroidAutoEnterPIPSetting() async {
-    if (!Platform.isAndroid) {
+    if (!KazumiPlatform.isAndroid) {
       return;
     }
     final bool autoEnterPIPEnabled =
@@ -180,7 +179,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> _syncAndroidPIPPlayerPageState(bool inPlayerPage) async {
-    if (!Platform.isAndroid) {
+    if (!KazumiPlatform.isAndroid) {
       return;
     }
     try {
@@ -194,7 +193,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> _updateAndroidPIPActions({bool force = false}) async {
-    if (!Platform.isAndroid) {
+    if (!KazumiPlatform.isAndroid) {
       return;
     }
     final bool playing = playerController.playback.playing;
@@ -220,7 +219,7 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.debug.playerHeight <= 0) {
       return;
     }
-    if (Platform.isAndroid) {
+    if (KazumiPlatform.isAndroid) {
       await _updateAndroidPIPActions(force: true);
       return;
     }
@@ -692,7 +691,7 @@ class _PlayerItemState extends State<PlayerItem>
     if (!mounted) return;
 
     // The mediacodec_embed renderer cannot apply super-resolution shaders.
-    if (Platform.isAndroid && mode != SuperResolutionMode.off) {
+    if (KazumiPlatform.isAndroid && mode != SuperResolutionMode.off) {
       final String androidVideoRenderer =
           GStorage.getSetting(SettingsKeys.androidVideoRenderer);
 
@@ -933,6 +932,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> setBrightness(double value) async {
+    if (KazumiPlatform.isWeb) return;
     try {
       await ScreenBrightnessPlatform.instance
           .setApplicationScreenBrightness(value);
@@ -1040,9 +1040,10 @@ class _PlayerItemState extends State<PlayerItem>
               .applyExternalVolume(playerController.playback.playerVolume);
         }
       }
-      if (!Platform.isWindows &&
-          !Platform.isMacOS &&
-          !Platform.isLinux &&
+      if (!KazumiPlatform.isWeb &&
+          !KazumiPlatform.isWindows &&
+          !KazumiPlatform.isMacOS &&
+          !KazumiPlatform.isLinux &&
           !playerController.panel.brightnessSeeking) {
         ScreenBrightnessPlatform.instance.application.then((value) {
           if (!mounted) return;
@@ -1742,7 +1743,7 @@ class _PlayerItemState extends State<PlayerItem>
         unawaited(_syncPIPAspectWhenVideoSizeReady());
       },
     );
-    if (Platform.isAndroid) {
+    if (KazumiPlatform.isAndroid) {
       PipUtils.initPipHandler(
         onAction: (action) async {
           if (!mounted) return;
@@ -1858,7 +1859,7 @@ class _PlayerItemState extends State<PlayerItem>
     _panelVisibilityController.dispose();
     _screenshotFeedbackController.dispose();
     _disposePlayerMenu();
-    if (Platform.isAndroid) {
+    if (KazumiPlatform.isAndroid) {
       unawaited(_syncAndroidPIPPlayerPageState(false));
       PipUtils.disposePipHandler();
     }
@@ -2138,6 +2139,9 @@ class _PlayerItemState extends State<PlayerItem>
                                 final double delta = details.delta.dy;
 
                                 if (tapPosition < sectionWidth) {
+                                  if (KazumiPlatform.isWeb) {
+                                    return;
+                                  }
                                   // Left half adjusts brightness.
                                   playerController.panel.brightnessSeeking =
                                       true;

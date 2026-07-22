@@ -1,9 +1,8 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 Future<bool> isLowResolution() async {
-  if (Platform.isMacOS) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
     return false;
   }
   final screenInfo = await getScreenInfo();
@@ -24,7 +23,10 @@ Future<Map<String, double>> getScreenInfo() async {
 }
 
 bool isDesktop() {
-  return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  if (kIsWeb) return false;
+  return defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.linux;
 }
 
 bool isWideScreen() {

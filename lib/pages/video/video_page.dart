@@ -18,7 +18,7 @@ import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/services/platform/app_platform.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
@@ -260,7 +260,7 @@ class _VideoPageState extends State<VideoPage>
     } catch (_) {}
     // Cancellation and log-stream teardown happen in VideoPageController's
     // own dispose when Modular releases the route scope.
-    if (!isDesktop()) {
+    if (!KazumiPlatform.isWeb && !isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
       } catch (_) {}

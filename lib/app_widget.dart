@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -6,9 +5,8 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:tray_manager/tray_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/services/platform/app_platform.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/navigation.dart';
@@ -54,7 +52,7 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   Future<void> _configurePreferredDisplayMode() async {
-    if (!Platform.isAndroid) return;
+    if (!KazumiPlatform.isAndroid) return;
 
     try {
       final modes = await FlutterDisplayMode.supported;
@@ -193,7 +191,7 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   void _syncWindowsTitleBarBrightness(ThemeProvider themeProvider) {
-    if (!Platform.isWindows) return;
+    if (!KazumiPlatform.isWindows) return;
 
     final brightness =
         themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light;
@@ -231,7 +229,7 @@ class _AppWidgetState extends State<AppWidget>
 
   Future<void> _performExit() async {
     await ApplicationLifecycleService.flushBeforeExit();
-    exit(0);
+    exitApplicationProcess();
   }
 
   /// 处理窗口关闭事件，
@@ -334,16 +332,16 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   Future<void> _handleTray() async {
-    if (Platform.isWindows) {
+    if (KazumiPlatform.isWindows) {
       await trayManager.setIcon('assets/images/logo/logo_lanczos.ico');
-    } else if (Platform.environment.containsKey('FLATPAK_ID') ||
-        Platform.environment.containsKey('SNAP')) {
+    } else if (KazumiPlatform.environment.containsKey('FLATPAK_ID') ||
+        KazumiPlatform.environment.containsKey('SNAP')) {
       await trayManager.setIcon('io.github.Predidit.Kazumi');
     } else {
       await trayManager.setIcon('assets/images/logo/logo_rounded.png');
     }
 
-    if (!Platform.isLinux) {
+    if (!KazumiPlatform.isLinux) {
       await trayManager.setToolTip('Kazumi');
     }
 

@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/services/player/external_playback_launcher.dart';
@@ -19,6 +17,8 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
+import 'package:kazumi/services/platform/app_platform.dart';
+import 'package:kazumi/services/player/system_volume_service.dart';
 import 'package:kazumi/utils/async_session.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -28,8 +28,10 @@ class PlayerController implements Disposable {
   PlayerController(
     this.shaderAssetService,
     DownloadController downloadController,
-    this.audioController,
-  ) {
+    this.audioController, {
+    SystemVolumeService? systemVolumeService,
+  }) : _systemVolumeService =
+            systemVolumeService ?? createSystemVolumeService() {
     danmaku = PlayerDanmakuController(
       isLocalPlayback: () => isLocalPlayback,
       downloadController: downloadController,
@@ -38,6 +40,7 @@ class PlayerController implements Disposable {
 
   final ShaderAssetService shaderAssetService;
   final AudioController audioController;
+  final SystemVolumeService _systemVolumeService;
   final AsyncSessionOwner _initializations = AsyncSessionOwner();
   Future<void>? _shutdownFuture;
   final PlayerPanelController panel = PlayerPanelController();
@@ -45,9 +48,10 @@ class PlayerController implements Disposable {
 
   late final PlayerDanmakuController danmaku;
   late final PlayerPlaybackController playback = PlayerPlaybackController(
-    shaderAssetService: shaderAssetService,
+    shaderDirectoryPath: () => shaderAssetService.shadersDirectory.path,
     debug: debug,
     videoUrl: () => videoUrl,
+    systemVolumeService: _systemVolumeService,
   );
   late final PlayerSyncPlayController syncplay = PlayerSyncPlayController(
     bangumiId: () => bangumiId,
@@ -85,6 +89,8 @@ class PlayerController implements Disposable {
   Timer? hideVolumeUITimer;
   Timer? _volumeGestureSyncTimer;
   double? _pendingGestureVolume;
+  bool _systemVolumeListenerAttached = false;
+  bool _systemVolumeUiHidden = false;
 
   bool muted = false;
   double _preMuteVolume = 100;
@@ -217,50 +223,66 @@ class PlayerController implements Disposable {
       return false;
     }
 
-    if (isDesktop()) {
-      final freshStart = playback.volume == -1;
-      if (freshStart) {
-        muted = GStorage.getSetting(SettingsKeys.playerMuted);
-        final remembered = GStorage.getSetting(SettingsKeys.defaultVolume);
-        _preMuteVolume = remembered > 0 ? remembered : 100;
-        playback.volume = muted ? 0 : remembered;
+    if (playback.usePlayerVolume) {
+      if (isDesktop()) {
+        final freshStart = playback.volume == -1;
+        if (freshStart) {
+          muted = GStorage.getSetting(SettingsKeys.playerMuted);
+          final remembered = GStorage.getSetting(SettingsKeys.defaultVolume);
+          _preMuteVolume = remembered > 0 ? remembered : 100;
+          playback.volume = muted ? 0 : remembered;
+        }
+      } else if (playback.volume < 0) {
+        final playerVolume = playback.playerVolume;
+        playback.volume =
+            playerVolume < 0 ? 100 : playerVolume.clamp(0.0, 100.0).toDouble();
       }
       await setVolume(playback.volume);
       if (!_ownsInitialization(initialization, player)) {
         return false;
       }
     } else {
-      await FlutterVolumeController.getVolume().then((value) {
-        playback.volume = (value ?? 0.0) * 100;
-      });
+      final systemVolume = await _systemVolumeService.getVolume();
+      playback.volume =
+          ((systemVolume ?? 0.0) * 100).clamp(0.0, 100.0).toDouble();
       if (!_ownsInitialization(initialization, player)) {
         return false;
       }
 
-      await FlutterVolumeController.updateShowSystemUI(false);
+      await _systemVolumeService.setSystemUiVisible(false);
+      _systemVolumeUiHidden = true;
       if (!_ownsInitialization(initialization, player)) {
-        await FlutterVolumeController.updateShowSystemUI(true);
+        await _restoreSystemVolumeUi();
         return false;
       }
 
-      FlutterVolumeController.addListener((volume) {
-        if (player == null || !_ownsInitialization(initialization, player)) {
-          return;
-        }
-        if (panel.volumeSeeking) {
-          return;
-        }
-        playback.applyExternalVolume(volume * 100);
-        if (!Platform.isAndroid && !panel.volumeSeeking) {
-          panel.showVolume = true;
-          hideVolumeUITimer?.cancel();
-          hideVolumeUITimer = Timer(const Duration(seconds: 1), () {
-            panel.showVolume = false;
-            hideVolumeUITimer = null;
-          });
-        }
-      }, category: AudioSessionCategory.playback, emitOnStart: false);
+      _systemVolumeListenerAttached = true;
+      try {
+        _systemVolumeService.addListener((volume) {
+          if (!_ownsInitialization(initialization, player!)) {
+            return;
+          }
+          if (panel.volumeSeeking) {
+            return;
+          }
+          playback.applyExternalVolume(volume * 100);
+          if (!KazumiPlatform.isAndroid && !panel.volumeSeeking) {
+            panel.showVolume = true;
+            hideVolumeUITimer?.cancel();
+            hideVolumeUITimer = Timer(const Duration(seconds: 1), () {
+              panel.showVolume = false;
+              hideVolumeUITimer = null;
+            });
+          }
+        });
+      } catch (_) {
+        _detachSystemVolumeListener();
+        await _restoreSystemVolumeUi();
+        rethrow;
+      }
       if (!_ownsInitialization(initialization, player)) {
+        _detachSystemVolumeListener();
+        await _restoreSystemVolumeUi();
         return false;
       }
     }
@@ -407,8 +429,11 @@ class PlayerController implements Disposable {
 
   Future<void> _releasePlaybackResources() async {
     hideVolumeUITimer?.cancel();
+    hideVolumeUITimer = null;
     _volumeGestureSyncTimer?.cancel();
-    FlutterVolumeController.removeListener();
+    _volumeGestureSyncTimer = null;
+    _pendingGestureVolume = null;
+    _detachSystemVolumeListener();
     await Future.wait([
       audioController.deactivate(),
       playback.stop(),
@@ -416,10 +441,32 @@ class PlayerController implements Disposable {
     ]);
   }
 
-  Future<void> _restoreSystemVolumeUi() async {
+  void _detachSystemVolumeListener() {
+    if (!_systemVolumeListenerAttached) {
+      return;
+    }
+    _systemVolumeListenerAttached = false;
     try {
-      await FlutterVolumeController.updateShowSystemUI(true);
+      _systemVolumeService.removeListener();
     } catch (error, stackTrace) {
+      _systemVolumeListenerAttached = true;
+      KazumiLogger().w(
+        'PlayerController: failed to remove the system volume listener',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> _restoreSystemVolumeUi() async {
+    if (!_systemVolumeUiHidden) {
+      return;
+    }
+    _systemVolumeUiHidden = false;
+    try {
+      await _systemVolumeService.setSystemUiVisible(true);
+    } catch (error, stackTrace) {
+      _systemVolumeUiHidden = true;
       KazumiLogger().w(
         'PlayerController: failed to restore the system volume UI',
         error: error,

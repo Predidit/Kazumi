@@ -1,10 +1,8 @@
-import 'dart:io';
-
-import 'package:dio/io.dart';
+import 'package:dio/dio.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
-import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/request/core/network_adapter.dart';
 
 class NetworkConfig {
   const NetworkConfig({
@@ -25,17 +23,10 @@ class NetworkConfig {
 
   bool get hasProxy => proxyHost != null && proxyPort != null;
 
-  IOHttpClientAdapter createAdapter() {
-    return IOHttpClientAdapter(
-      createHttpClient: () {
-        final client = HttpClient();
-        if (hasProxy) {
-          client.findProxy = (_) => 'PROXY $proxyHost:$proxyPort';
-        } else if (Platform.isWindows) {
-          client.findProxy = SystemProxyService.findProxy;
-        }
-        return client;
-      },
+  HttpClientAdapter createAdapter() {
+    return createPlatformHttpClientAdapter(
+      proxyHost: proxyHost,
+      proxyPort: proxyPort,
     );
   }
 

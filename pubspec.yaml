@@ -103,6 +103,7 @@ dependencies:
   upgrader: ^12.3.0
   open_filex: ^4.7.0
   html: any
+  web: ^1.1.1
   material_color_utilities: any
   path: any
   photo_view: ^0.15.0

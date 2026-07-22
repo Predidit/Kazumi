@@ -40,6 +40,7 @@ class Plugin {
   String chapterRoads;
   String chapterResult;
   String referer;
+  String playButtonSelector;
   String searchMode;
   String chapterMode;
   ApiSearchConfig searchApiConfig;
@@ -66,6 +67,7 @@ class Plugin {
     required this.chapterRoads,
     required this.chapterResult,
     required this.referer,
+    this.playButtonSelector = '',
     this.searchMode = RuleMode.xpath,
     this.chapterMode = RuleMode.xpath,
     ApiSearchConfig? searchApiConfig,
@@ -96,6 +98,7 @@ class Plugin {
       chapterRoads: json['chapterRoads'] as String? ?? '',
       chapterResult: json['chapterResult'] as String? ?? '',
       referer: json['referer'] ?? '',
+      playButtonSelector: json['playButtonSelector'] as String? ?? '',
       searchMode: RuleMode.normalize(json['searchMode']),
       chapterMode: RuleMode.normalize(json['chapterMode']),
       searchApiConfig: json['searchApiConfig'] is Map
@@ -166,6 +169,8 @@ class Plugin {
       'chapterRoads': chapterRoads,
       'chapterResult': chapterResult,
       'referer': referer,
+      if (playButtonSelector.trim().isNotEmpty)
+        'playButtonSelector': playButtonSelector.trim(),
       'searchMode': searchMode,
       'chapterMode': chapterMode,
       // Persisting re-serializes the whole plugin list, so a configured API

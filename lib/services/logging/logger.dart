@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:logger/logger.dart';
+import 'package:kazumi/services/logging/log_backend.dart';
 import 'package:kazumi/services/logging/log_sanitizer.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:synchronized/synchronized.dart';
 
 const Symbol _forceLogKey = #_forceLog;
 
@@ -105,74 +102,24 @@ class KazumiLogPrinter extends PrettyPrinter {
 }
 
 class KazumiLogOutput extends LogOutput {
-  static final Lock _logLock = Lock();
-  static String? _logFilePath;
   static bool _persistentLoggingEnabled = false;
 
   static void enablePersistentLogging() {
     _persistentLoggingEnabled = true;
   }
 
-  static Future<String> _getLogFilePath() async {
-    if (_logFilePath != null) return _logFilePath!;
-
-    final dir = (await getApplicationSupportDirectory()).path;
-    final logDir = p.join(dir, "logs");
-    final directory = Directory(logDir);
-    if (!await directory.exists()) {
-      await directory.create(recursive: true);
-    }
-    _logFilePath = p.join(logDir, "kazumi_logs.log");
-    return _logFilePath!;
-  }
-
   @override
   void output(OutputEvent event) {
     for (var line in event.lines) {
-      stdout.writeln(LogSanitizer.sanitizeText(line));
+      KazumiLogBackend.writeConsole(LogSanitizer.sanitizeText(line));
     }
 
     // Write to file if: warning/error/fatal OR forceLog is enabled
     final forceLog = Zone.current[_forceLogKey] as bool? ?? false;
     if (_persistentLoggingEnabled &&
         (event.level.index >= Level.warning.index || forceLog)) {
-      _writeToFile(event);
+      KazumiLogBackend.writePersistent(event.lines);
     }
-  }
-
-  void _writeToFile(OutputEvent event) {
-    _logLock.synchronized(() async {
-      try {
-        final filePath = await _getLogFilePath();
-        final file = File(filePath);
-
-        final timestamp = DateTime.now().toString();
-
-        final buffer = StringBuffer();
-        buffer.writeln('[$timestamp]');
-        for (var line in event.lines) {
-          final cleanLine = LogSanitizer.sanitizeText(
-            _removeAnsiCodes(line),
-          );
-          buffer.writeln(cleanLine);
-        }
-        buffer.writeln();
-
-        await file.writeAsString(
-          buffer.toString(),
-          mode: FileMode.writeOnlyAppend,
-        );
-      } catch (e) {
-        stderr.writeln(
-          LogSanitizer.sanitizeText('Failed to write log to file: $e'),
-        );
-      }
-    });
-  }
-
-  /// Remove ANSI escape codes from string to ensure clean log files
-  String _removeAnsiCodes(String text) {
-    return text.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '');
   }
 }
 
@@ -250,38 +197,6 @@ class KazumiLogger {
   }
 }
 
-Future<File> getLogsPath() async {
-  final dir = (await getApplicationSupportDirectory()).path;
-  final logDir = p.join(dir, "logs");
-  final filename = p.join(logDir, "kazumi_logs.log");
+Future<dynamic> getLogsPath() => KazumiLogBackend.getLogsPath();
 
-  final directory = Directory(logDir);
-  if (!await directory.exists()) {
-    await directory.create(recursive: true);
-  }
-
-  final file = File(filename);
-  if (!await file.exists()) {
-    await KazumiLogOutput._logLock.synchronized(() async {
-      if (!await file.exists()) {
-        await file.create();
-      }
-    });
-  }
-  return file;
-}
-
-Future<bool> clearLogs() async {
-  try {
-    final file = await getLogsPath();
-    await KazumiLogOutput._logLock.synchronized(() async {
-      await file.writeAsString('');
-    });
-    return true;
-  } catch (e) {
-    stderr.writeln(
-      LogSanitizer.sanitizeText('Error clearing file: $e'),
-    );
-    return false;
-  }
-}
+Future<bool> clearLogs() => KazumiLogBackend.clearLogs();

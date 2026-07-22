@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -21,6 +20,7 @@ import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
+import 'package:kazumi/services/platform/app_platform.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/format.dart';
@@ -1036,7 +1036,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 ),
                 forwardIcon(),
                 if ((isDesktop() && !videoPageController.isFullscreen) ||
-                    Platform.isAndroid)
+                    KazumiPlatform.isAndroid)
                   IconButton(
                     onPressed: () async {
                       if (isDesktop()) {

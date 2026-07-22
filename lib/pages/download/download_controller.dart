@@ -577,9 +577,17 @@ abstract class DownloadControllerBase with Store {
           throw const VideoSourceCancelledException();
         }
         final source = await lease.resolve(
-          fullUrl,
-          useLegacyParser: plugin.useLegacyParser,
-          timeout: const Duration(seconds: 30),
+          VideoSourceRequest(
+            episodeUrl: fullUrl,
+            pluginName: plugin.name,
+            version: plugin.version,
+            useLegacyParser: plugin.useLegacyParser,
+            userAgent: plugin.userAgent,
+            referer: plugin.referer,
+            adBlocker: _repository.getForceAdBlocker() || plugin.adBlocker,
+            playButtonSelector: plugin.playButtonSelector,
+            timeout: const Duration(seconds: 30),
+          ),
         );
         m3u8Url = source.url;
       } on VideoSourceTimeoutException {

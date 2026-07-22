@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -18,6 +17,7 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/services/platform/app_platform.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/format.dart';
@@ -511,7 +511,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
               child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
             ),
             forwardIcon(),
-            if (isDesktop() || Platform.isAndroid)
+            if (isDesktop() || KazumiPlatform.isAndroid)
               IconButton(
                   onPressed: () async {
                     if (isDesktop()) {

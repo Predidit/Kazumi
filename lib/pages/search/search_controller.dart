@@ -104,6 +104,7 @@ abstract class _SearchPageController with Store {
       }
     }
     var addedVisibleItems = false;
+    var fetchedAnyPage = false;
     var pagesFetched = 0;
     do {
       final page = await BangumiApi.bangumiSearch(filterState.keyword,
@@ -118,6 +119,7 @@ abstract class _SearchPageController with Store {
       if (page == null) {
         break;
       }
+      fetchedAnyPage = true;
       pagesFetched++;
       _searchOffset += page.rawCount;
       hasMoreSearchResults = page.rawCount == _searchPageSize;
@@ -132,7 +134,8 @@ abstract class _SearchPageController with Store {
         hasMoreSearchResults &&
         pagesFetched < _maxPagesPerSearch);
     isLoading = false;
-    isTimeOut = bangumiList.isEmpty && !hasMoreSearchResults;
+    isTimeOut =
+        bangumiList.isEmpty && (!fetchedAnyPage || !hasMoreSearchResults);
   }
 
   @action

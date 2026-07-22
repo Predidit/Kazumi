@@ -15,6 +15,16 @@ import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/search_parser.dart';
 
+class BangumiSearchPage {
+  const BangumiSearchPage({
+    required this.items,
+    required this.rawCount,
+  });
+
+  final List<BangumiItem> items;
+  final int rawCount;
+}
+
 class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
 
@@ -292,8 +302,9 @@ class BangumiApi {
     };
   }
 
-  static Future<List<BangumiItem>> bangumiSearch(String keyword,
+  static Future<BangumiSearchPage?> bangumiSearch(String keyword,
       {List<String> tags = const [],
+      int limit = 20,
       int offset = 0,
       String sort = 'heat',
       SearchDateRange? dateRange,
@@ -316,7 +327,7 @@ class BangumiApi {
       final jsonData = await _client.post(
         ApiEndpoints.formatUrl(
             ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiRankSearch,
-            [20, offset]),
+            [limit, offset]),
         data: params,
       );
       final jsonList = jsonData['data'];
@@ -333,10 +344,14 @@ class BangumiApi {
           }
         }
       }
+      return BangumiSearchPage(
+        items: bangumiList,
+        rawCount: jsonList.length,
+      );
     } catch (e) {
       KazumiLogger().e('Network: unknown search problem', error: e);
+      return null;
     }
-    return bangumiList;
   }
 
   static Future<BangumiItem?> getBangumiInfoByID(int id) async {

@@ -13,6 +13,7 @@ import 'package:kazumi/pages/onboarding/steps/update_source_step.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/update/startup_update_check.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({
@@ -136,12 +137,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   void _finish() {
     final myController = widget.myController;
-    // delay to ensure that the default page is fully loaded
-    unawaited(Future.delayed(const Duration(milliseconds: 500)).then((_) {
-      if (GStorage.getSetting(SettingsKeys.autoUpdate)) {
-        myController.checkUpdate(type: 'auto');
-      }
-    }));
+    unawaited(runStartupUpdateCheck(
+      isEnabled: () => GStorage.getSetting(SettingsKeys.autoUpdate),
+      checkForUpdate: () async {
+        await myController.checkUpdate(type: 'auto');
+      },
+    ));
     context.navigate(GStorage.getSetting(SettingsKeys.defaultStartupPage));
   }
 

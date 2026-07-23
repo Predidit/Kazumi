@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:logger/logger.dart';
@@ -7,6 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:synchronized/synchronized.dart';
 
 const Symbol _forceLogKey = #_forceLog;
+
+String _singleLineLogText(Object? value) {
+  return value.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+}
 
 class KazumiLogFilter extends LogFilter {
   @override
@@ -19,87 +24,72 @@ class KazumiLogFilter extends LogFilter {
   }
 }
 
-class KazumiLogPrinter extends PrettyPrinter {
-  KazumiLogPrinter()
-      : super(
-          methodCount: 0,
-          errorMethodCount: 8,
-          lineLength: 120,
-          colors: true,
-          // Disable emojis for better compatibility
-          printEmojis: false,
-          dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-        );
+class KazumiLogPrinter extends LogPrinter {
+  static const int _fatalStackFrameLimit = 8;
 
   @override
   List<String> log(LogEvent event) {
-    // For trace, debug, info - never show stack trace
-    if (event.level == Level.trace ||
-        event.level == Level.debug ||
-        event.level == Level.info) {
-      final messageStr = stringifyMessage(event.message);
-      final time = getTime(event.time);
-      final prefix = _getPrefix(event.level);
-      final levelName = _getLevelName(event.level);
+    final time = _formatTime(event.time);
+    final level = _colorizeLevel(event.level);
+    final message = _singleLineLogText(_stringifyMessage(event.message));
+    final error =
+        event.error == null ? '' : ' | ${_singleLineLogText(event.error)}';
+    final lines = <String>['$time $level $message$error'];
 
-      return [
-        '$prefix $time $levelName $messageStr',
-      ];
+    if (event.level == Level.fatal) {
+      lines.addAll(_formatStackTrace(event.stackTrace ?? StackTrace.current));
     }
 
-    // For warning, error, fatal - use default behavior which shows stack if provided
-    return super.log(event);
+    return lines;
   }
 
-  /// Colored prefix for log level
-  String _getPrefix(Level level) {
-    if (!colors) return _getLevelTag(level);
-
+  String _colorizeLevel(Level level) {
     const reset = '\x1B[0m';
-    String colorCode;
-
-    switch (level) {
-      case Level.trace:
-        colorCode = '\x1B[90m'; // Bright Black
-      case Level.debug:
-        colorCode = '\x1B[36m'; // Cyan
-      case Level.info:
-        colorCode = '\x1B[32m'; // Green
-      case Level.warning:
-        colorCode = '\x1B[33m'; // Yellow
-      case Level.error:
-        colorCode = '\x1B[31m'; // Red
-      case Level.fatal:
-        colorCode = '\x1B[35m'; // Magenta
-      default:
-        colorCode = '';
-    }
-
-    return '$colorCode${_getLevelTag(level)}$reset';
+    final color = switch (level) {
+      Level.trace => '\x1B[90m',
+      Level.debug => '\x1B[36m',
+      Level.info => '\x1B[32m',
+      Level.warning => '\x1B[33m',
+      Level.error => '\x1B[31m',
+      Level.fatal => '\x1B[35m',
+      _ => '',
+    };
+    final name = level.name.toUpperCase().padRight(7);
+    return '$color$name$reset';
   }
 
-  /// Tag symbol for log level
-  String _getLevelTag(Level level) {
-    switch (level) {
-      case Level.trace:
-        return '[·]';
-      case Level.debug:
-        return '[*]';
-      case Level.info:
-        return '[i]';
-      case Level.warning:
-        return '[!]';
-      case Level.error:
-        return '[×]';
-      case Level.fatal:
-        return '[‼]';
-      default:
-        return '[-]';
-    }
+  String _formatTime(DateTime time) {
+    String twoDigits(int value) => value.toString().padLeft(2, '0');
+    final milliseconds = time.millisecond.toString().padLeft(3, '0');
+    return '${twoDigits(time.hour)}:${twoDigits(time.minute)}:'
+        '${twoDigits(time.second)}.$milliseconds';
   }
 
-  String _getLevelName(Level level) {
-    return level.name.toUpperCase().padRight(7);
+  String _stringifyMessage(dynamic message) {
+    final value = message is Function ? message() : message;
+    if (value is Map || value is Iterable) {
+      try {
+        return jsonEncode(
+          value,
+          toEncodable: (object) => object.toString(),
+        );
+      } catch (_) {
+        return value.toString();
+      }
+    }
+    return value.toString();
+  }
+
+  Iterable<String> _formatStackTrace(StackTrace stackTrace) {
+    return stackTrace
+        .toString()
+        .split('\n')
+        .where((line) =>
+            line.trim().isNotEmpty &&
+            !line.contains('package:logger/') &&
+            !line.contains('package:kazumi/services/logging/logger.dart'))
+        .take(_fatalStackFrameLimit)
+        .map((line) => '  ${line.trim()}');
   }
 }
 
@@ -139,22 +129,18 @@ class KazumiLogOutput extends LogOutput {
         final filePath = await _getLogFilePath();
         final file = File(filePath);
 
-        final timestamp = DateTime.now().toString();
-
         final buffer = StringBuffer();
-        buffer.writeln('[$timestamp]');
         for (var line in event.lines) {
           final cleanLine = _removeAnsiCodes(line);
           buffer.writeln(cleanLine);
         }
-        buffer.writeln();
 
         await file.writeAsString(
           buffer.toString(),
           mode: FileMode.writeOnlyAppend,
         );
       } catch (e) {
-        print('Failed to write log to file: $e');
+        print('Failed to write log to file: ${_singleLineLogText(e)}');
       }
     });
   }
@@ -191,43 +177,44 @@ class KazumiLogger {
   /// Trace log - lowest level, very detailed information
   void t(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _log(() => _logger.t(message, error: error, stackTrace: stackTrace),
-        forceLog);
+    _log(() => _logger.t(message, error: error), forceLog);
   }
 
   /// Debug log - detailed information for debugging
   void d(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _log(() => _logger.d(message, error: error, stackTrace: stackTrace),
-        forceLog);
+    _log(() => _logger.d(message, error: error), forceLog);
   }
 
   /// Info log - informational messages
   void i(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _log(() => _logger.i(message, error: error, stackTrace: stackTrace),
-        forceLog);
+    _log(() => _logger.i(message, error: error), forceLog);
   }
 
   /// Warning log - potentially harmful situations
   void w(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _log(() => _logger.w(message, error: error, stackTrace: stackTrace),
-        forceLog);
+    _log(() => _logger.w(message, error: error), forceLog);
   }
 
   /// Error log - error events that might still allow the app to continue
   void e(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _log(() => _logger.e(message, error: error, stackTrace: stackTrace),
-        forceLog);
+    _log(() => _logger.e(message, error: error), forceLog);
   }
 
-  /// Fatal log - very severe error events that will presumably lead the app to abort
+  /// Fatal log - very severe error events that may cause the app to abort.
   void f(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _log(() => _logger.f(message, error: error, stackTrace: stackTrace),
-        forceLog);
+    _log(
+      () => _logger.f(
+        message,
+        error: error,
+        stackTrace: stackTrace ?? StackTrace.current,
+      ),
+      forceLog,
+    );
   }
 }
 
@@ -260,7 +247,7 @@ Future<bool> clearLogs() async {
     });
     return true;
   } catch (e) {
-    print('Error clearing file: $e');
+    print('Error clearing file: ${_singleLineLogText(e)}');
     return false;
   }
 }

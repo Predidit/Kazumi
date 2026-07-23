@@ -800,10 +800,14 @@ class _TimelinePageState extends State<TimelinePage>
                   (BuildContext context, int index) {
                     if (filteredList.isEmpty) return null;
                     final item = filteredList[index];
-                    return BangumiTimelineCard(
+                    return Observer(
+                      builder: (_) => BangumiTimelineCard(
                         bangumiItem: item,
                         cardHeight: cardHeight,
-                        showRating: showRating);
+                        showRating: showRating,
+                        airingTime: timelineController.airingTimes[item.id],
+                      ),
+                    );
                   },
                   childCount:
                       filteredList.isNotEmpty ? filteredList.length : 10,

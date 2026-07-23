@@ -5,11 +5,14 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
+import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
 
 class InfoTabView extends StatefulWidget {
@@ -21,16 +24,20 @@ class InfoTabView extends StatefulWidget {
     required this.charactersIsEmpty,
     required this.staffQueryTimeout,
     required this.staffIsEmpty,
+    required this.relationsQueryTimeout,
+    required this.relationsIsLoading,
     required this.tabController,
     required this.loadMoreComments,
     required this.loadCharacters,
     required this.loadStaff,
+    required this.loadRelations,
     required this.bangumiItem,
     required this.commentsList,
     required this.commentsIsLoading,
     this.onCommentsTabSelected,
     required this.characterList,
     required this.staffList,
+    required this.relationList,
     required this.isLoading,
   });
 
@@ -42,14 +49,18 @@ class InfoTabView extends StatefulWidget {
   final bool charactersIsEmpty;
   final bool staffQueryTimeout;
   final bool staffIsEmpty;
+  final bool relationsQueryTimeout;
+  final bool relationsIsLoading;
   final TabController tabController;
   final Future<void> Function({bool loadMore}) loadMoreComments;
   final Future<void> Function() loadCharacters;
   final Future<void> Function() loadStaff;
+  final Future<void> Function() loadRelations;
   final BangumiItem bangumiItem;
   final List<CommentItem> commentsList;
   final List<CharacterItem> characterList;
   final List<StaffFullItem> staffList;
+  final List<BangumiRelation> relationList;
   final bool isLoading;
 
   @override
@@ -187,11 +198,106 @@ class _InfoTabViewState extends State<InfoTabView>
                     },
                   );
                 }).toList(),
-              )
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget get relationsListBody {
+    return Builder(
+      builder: (BuildContext context) {
+        return CustomScrollView(
+          scrollBehavior: const ScrollBehavior().copyWith(
+            scrollbars: false,
+          ),
+          key: const PageStorageKey<String>('关联'),
+          slivers: <Widget>[
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverLayoutBuilder(
+              builder: (context, constraints) {
+                if (widget.relationsQueryTimeout) {
+                  return SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: GeneralErrorWidget(
+                      errMsg: '获取关联条目失败，请重试',
+                      actions: [
+                        GeneralErrorButton(
+                          onPressed: widget.loadRelations,
+                          text: '重试',
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                if (!widget.relationsIsLoading && widget.relationList.isEmpty) {
+                  return const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(child: Text('暂无关联条目')),
+                  );
+                }
+
+                final horizontalPadding =
+                    ((constraints.crossAxisExtent - maxWidth) / 2)
+                        .clamp(16.0, double.infinity)
+                        .toDouble();
+                final contentWidth =
+                    constraints.crossAxisExtent - horizontalPadding * 2;
+                final crossAxisCount = contentWidth >= 840
+                    ? 3
+                    : contentWidth >= 560
+                        ? 2
+                        : 1;
+                final itemCount = widget.relationsIsLoading
+                    ? crossAxisCount
+                    : widget.relationList.length;
+
+                return SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    16,
+                    horizontalPadding,
+                    16,
+                  ),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: StyleString.cardSpace,
+                      crossAxisSpacing: StyleString.cardSpace,
+                      mainAxisExtent: _RelatedBangumiCardH.cardHeight,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        if (widget.relationsIsLoading) {
+                          return LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Skeletonizer.zone(
+                                child: Bone(
+                                  width: constraints.maxWidth,
+                                  height: _RelatedBangumiCardH.cardHeight,
+                                  uniRadius: 14,
+                                ),
+                              );
+                            },
+                          );
+                        }
+                        return _RelatedBangumiCardH(
+                          relation: widget.relationList[index],
+                        );
+                      },
+                      childCount: itemCount,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -570,28 +676,103 @@ class _InfoTabViewState extends State<InfoTabView>
         ),
         commentsListBody,
         charactersListBody,
-        Builder(
-          builder: (BuildContext context) {
-            return CustomScrollView(
-              scrollBehavior: const ScrollBehavior().copyWith(
-                scrollbars: false,
-              ),
-              key: PageStorageKey<String>('评论'),
-              slivers: <Widget>[
-                SliverOverlapInjector(
-                  handle:
-                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                ),
-                // TODO: 评论区
-                SliverFillRemaining(
-                  child: Center(child: Text('施工中')),
-                ),
-              ],
-            );
-          },
-        ),
+        relationsListBody,
         staffListBody,
       ],
+    );
+  }
+}
+
+class _RelatedBangumiCardH extends StatelessWidget {
+  const _RelatedBangumiCardH({required this.relation});
+
+  static const double cardHeight = 108;
+  static const double imageHeight = 92;
+  static const double posterAspectRatio = 0.65;
+
+  final BangumiRelation relation;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final relationLabel = relation.relation.isEmpty ? '关联' : relation.relation;
+    final bangumiItem = relation.toBangumiItem();
+    final title = bangumiItem.nameCn.isEmpty
+        ? bangumiItem.name.trim()
+        : bangumiItem.nameCn.trim();
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: colorScheme.surfaceContainerLow,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: InkWell(
+        onTap: () {
+          context.pushNamed('/info/', arguments: bangumiItem);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final gap = constraints.maxWidth.clamp(0.0, 10.0).toDouble();
+              final maxImageWidth =
+                  (constraints.maxWidth - gap).clamp(0.0, 152.0);
+              final imageWidth = (constraints.maxWidth * 0.42)
+                  .clamp(0.0, maxImageWidth)
+                  .toDouble();
+
+              return Row(
+                children: [
+                  Hero(
+                    transitionOnUserGestures: true,
+                    flightShuttleBuilder:
+                        NetworkImgLayer.heroFlightShuttleBuilder,
+                    tag: bangumiItem.id,
+                    child: NetworkImgLayer(
+                      src: bangumiItem.images['large'] ?? '',
+                      width: imageWidth,
+                      height: imageHeight,
+                      origAspectRatio: posterAspectRatio,
+                    ),
+                  ),
+                  SizedBox(width: gap),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          relationLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 }

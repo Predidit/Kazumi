@@ -1,8 +1,10 @@
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/clients/bangumi_client.dart';
 import 'package:kazumi/request/core/network_exception.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/modules/characters/characters_response.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
@@ -367,6 +369,51 @@ class BangumiApi {
       KazumiLogger().e('Network: resolve bangumi item failed', error: e);
       return null;
     }
+  }
+
+  static String buildBangumiRelationsUrl(
+    int id, {
+    required bool useMirror,
+  }) {
+    final domain = useMirror
+        ? ApiEndpoints.bangumiAuthAPIMirrorDomain
+        : ApiEndpoints.bangumiAPIDomain;
+    return ApiEndpoints.formatUrl(
+      domain + ApiEndpoints.bangumiRelationsByID,
+      [id],
+    );
+  }
+
+  static Future<List<BangumiRelation>> getBangumiRelationsByID(int id) async {
+    final bool useMirror = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+    final jsonData = await _client.get(
+      buildBangumiRelationsUrl(
+        id,
+        useMirror: useMirror,
+      ),
+    );
+    if (jsonData is! List) {
+      throw const FormatException('Bangumi relations response must be a list');
+    }
+
+    final relations = <BangumiRelation>[];
+    for (final jsonItem in jsonData) {
+      try {
+        if (jsonItem is! Map) {
+          throw const FormatException('Bangumi relation must be an object');
+        }
+        relations.add(
+          BangumiRelation.fromJson(Map<String, dynamic>.from(jsonItem)),
+        );
+      } catch (e, stackTrace) {
+        KazumiLogger().w(
+          'BangumiApi: skipped malformed relation item',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+    return relations;
   }
 
   static Future<EpisodeInfo> getBangumiEpisodeByID(int id, int episode) async {

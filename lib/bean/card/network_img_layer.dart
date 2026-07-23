@@ -65,19 +65,28 @@ class NetworkImgLayer extends StatelessWidget {
     double aspectRatio = (width / height).toDouble();
 
     void setMemCacheSizes() {
-      if (aspectRatio > 1) {
-        memCacheHeight = height.cacheSize(context);
-      } else if (aspectRatio < 1) {
-        memCacheWidth = width.cacheSize(context);
-      } else {
-        if (origAspectRatio != null && origAspectRatio! > 1) {
+      final sourceAspectRatio = origAspectRatio;
+      if (sourceAspectRatio != null) {
+        // BoxFit.cover needs the decoded image to fill the target's limiting
+        // axis. A portrait source shown in a landscape box must therefore be
+        // decoded by width, otherwise it is downscaled and enlarged again.
+        if (sourceAspectRatio < aspectRatio) {
           memCacheWidth = width.cacheSize(context);
-        } else if (origAspectRatio != null && origAspectRatio! < 1) {
+        } else if (sourceAspectRatio > aspectRatio) {
           memCacheHeight = height.cacheSize(context);
         } else {
           memCacheWidth = width.cacheSize(context);
           memCacheHeight = height.cacheSize(context);
         }
+        return;
+      }
+      if (aspectRatio > 1) {
+        memCacheHeight = height.cacheSize(context);
+      } else if (aspectRatio < 1) {
+        memCacheWidth = width.cacheSize(context);
+      } else {
+        memCacheWidth = width.cacheSize(context);
+        memCacheHeight = height.cacheSize(context);
       }
     }
 

@@ -1,6 +1,7 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
@@ -38,6 +39,10 @@ abstract class _InfoController with Store {
 
   @observable
   var staffList = ObservableList<StaffFullItem>();
+
+  final relationList = <BangumiRelation>[];
+
+  int _relationRequestGeneration = 0;
 
   bool _isFillingInterestUserProfile = false;
 
@@ -203,6 +208,38 @@ abstract class _InfoController with Store {
     KazumiLogger()
         .i('InfoController: loaded staff list length ${staffList.length}');
   }
+
+  void clearRelations() {
+    _relationRequestGeneration++;
+    relationList.clear();
+  }
+
+  Future<void> queryBangumiRelationsByID(int id) async {
+    final requestGeneration = ++_relationRequestGeneration;
+    try {
+      final relations = await resolveRelatedAnimeChain(
+        currentSubjectId: id,
+        fetchRelations: BangumiApi.getBangumiRelationsByID,
+      );
+      if (!_isCurrentRelationRequest(requestGeneration, id)) {
+        return;
+      }
+      relationList
+        ..clear()
+        ..addAll(relations);
+      KazumiLogger().i(
+        'InfoController: loaded related anime list length ${relationList.length}',
+      );
+    } catch (_) {
+      if (_isCurrentRelationRequest(requestGeneration, id)) {
+        rethrow;
+      }
+    }
+  }
+
+  bool _isCurrentRelationRequest(int requestGeneration, int subjectId) =>
+      requestGeneration == _relationRequestGeneration &&
+      bangumiItem.id == subjectId;
 
   Future<bool> rateBangumi(RatingReviewResult data,
       {required int localType}) async {

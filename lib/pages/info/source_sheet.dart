@@ -24,11 +24,9 @@ import 'package:kazumi/utils/device.dart';
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
     super.key,
-    required this.tabController,
     required this.infoController,
   });
 
-  final TabController tabController;
   final InfoController infoController;
 
   @override
@@ -40,6 +38,8 @@ class _SourceSheetState extends State<SourceSheet>
   final CollectController collectController = inject<CollectController>();
   final PluginsController pluginsController = inject<PluginsController>();
   late String keyword;
+  late final List<Plugin> _plugins;
+  TabController? _tabController;
 
   /// Concurrent plugin search service.
   PluginSearchService? pluginSearchService;
@@ -52,15 +52,21 @@ class _SourceSheetState extends State<SourceSheet>
 
   @override
   void initState() {
+    super.initState();
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
+    _plugins = List<Plugin>.of(pluginsController.enabledPlugins);
+    if (_plugins.isEmpty) {
+      return;
+    }
+    _tabController = TabController(length: _plugins.length, vsync: this);
     pluginSearchService = PluginSearchService(
       infoController: widget.infoController,
       pluginsController: pluginsController,
+      plugins: _plugins,
     );
     pluginSearchService?.queryAllSource(keyword);
-    super.initState();
   }
 
   @override
@@ -71,6 +77,7 @@ class _SourceSheetState extends State<SourceSheet>
     _captchaVerificationService = null;
     _captchaVerifyTimer?.cancel();
     _captchaVerifyTimer = null;
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -479,6 +486,13 @@ class _SourceSheetState extends State<SourceSheet>
 
   @override
   Widget build(BuildContext context) {
+    final tabController = _tabController;
+    if (_plugins.isEmpty || tabController == null) {
+      return const Center(
+        child: Text('没有启用的视频源规则'),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: Column(
@@ -491,8 +505,8 @@ class _SourceSheetState extends State<SourceSheet>
           MaterialBottomSheetTabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.center,
-            controller: widget.tabController,
-            tabs: pluginsController.pluginList
+            controller: tabController,
+            tabs: _plugins
                 .map(
                   (plugin) => Observer(
                     builder: (context) {
@@ -529,9 +543,8 @@ class _SourceSheetState extends State<SourceSheet>
             trailing: IconButton(
               tooltip: '在浏览器中打开',
               onPressed: () {
-                int currentIndex = widget.tabController.index;
-                final currentPlugin =
-                    pluginsController.pluginList[currentIndex];
+                int currentIndex = tabController.index;
+                final currentPlugin = _plugins[currentIndex];
                 final targetUrl = currentPlugin.usesApiSearch
                     ? currentPlugin.baseUrl
                     : currentPlugin.searchURL.replaceFirst(
@@ -550,10 +563,9 @@ class _SourceSheetState extends State<SourceSheet>
           Expanded(
             child: Observer(
               builder: (context) => TabBarView(
-                controller: widget.tabController,
-                children: List.generate(pluginsController.pluginList.length,
-                    (pluginIndex) {
-                  var plugin = pluginsController.pluginList[pluginIndex];
+                controller: tabController,
+                children: List.generate(_plugins.length, (pluginIndex) {
+                  var plugin = _plugins[pluginIndex];
                   var cardList = <Widget>[];
                   for (var searchResponse
                       in widget.infoController.pluginSearchResponseList) {

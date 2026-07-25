@@ -65,8 +65,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool staffIsLoading = false;
   bool staffQueryTimeout = false;
   bool staffIsEmpty = false;
-  bool relationsIsLoading = false;
-  bool relationsQueryTimeout = false;
   bool _showBangumiInfoSkeleton = false;
   int _fabTabIndex = 0;
 
@@ -141,27 +139,11 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   }
 
   Future<void> loadRelations() async {
-    if (relationsIsLoading) return;
-    setState(() {
-      relationsIsLoading = true;
-      relationsQueryTimeout = false;
-    });
     try {
       await infoController
           .queryBangumiRelationsByID(infoController.bangumiItem.id);
     } catch (e) {
       KazumiLogger().e('InfoPage: failed to load relations', error: e);
-      if (mounted) {
-        setState(() {
-          relationsQueryTimeout = true;
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          relationsIsLoading = false;
-        });
-      }
     }
   }
 
@@ -511,8 +493,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 characterList: infoController.characterList,
                 staffList: infoController.staffList,
                 relationList: infoController.relationList,
-                relationsIsLoading: relationsIsLoading,
-                relationsQueryTimeout: relationsQueryTimeout,
+                relationsIsLoading: infoController.relationsIsLoading,
+                relationsQueryTimeout: infoController.relationsQueryTimeout,
                 loadRelations: loadRelations,
                 isLoading: showBangumiInfoSkeleton,
               );

@@ -40,7 +40,14 @@ abstract class _InfoController with Store {
   @observable
   var staffList = ObservableList<StaffFullItem>();
 
-  final relationList = <BangumiRelation>[];
+  @observable
+  var relationList = ObservableList<BangumiRelation>();
+
+  @observable
+  bool relationsIsLoading = false;
+
+  @observable
+  bool relationsQueryTimeout = false;
 
   int _relationRequestGeneration = 0;
 
@@ -209,13 +216,21 @@ abstract class _InfoController with Store {
         .i('InfoController: loaded staff list length ${staffList.length}');
   }
 
+  @action
   void clearRelations() {
     _relationRequestGeneration++;
-    relationList.clear();
+    relationList = ObservableList<BangumiRelation>();
+    relationsIsLoading = false;
+    relationsQueryTimeout = false;
   }
 
+  @action
   Future<void> queryBangumiRelationsByID(int id) async {
+    if (relationsIsLoading) return;
+
     final requestGeneration = ++_relationRequestGeneration;
+    relationsIsLoading = true;
+    relationsQueryTimeout = false;
     try {
       final relations = await resolveRelatedAnimeChain(
         currentSubjectId: id,
@@ -224,15 +239,18 @@ abstract class _InfoController with Store {
       if (!_isCurrentRelationRequest(requestGeneration, id)) {
         return;
       }
-      relationList
-        ..clear()
-        ..addAll(relations);
+      relationList = ObservableList<BangumiRelation>.of(relations);
       KazumiLogger().i(
         'InfoController: loaded related anime list length ${relationList.length}',
       );
     } catch (_) {
       if (_isCurrentRelationRequest(requestGeneration, id)) {
+        relationsQueryTimeout = true;
         rethrow;
+      }
+    } finally {
+      if (_isCurrentRelationRequest(requestGeneration, id)) {
+        relationsIsLoading = false;
       }
     }
   }

@@ -1,3 +1,15 @@
+/// Official endpoint selected for new and reset settings.
+const String defaultSyncPlayEndPoint = 'syncplay.pl:8996';
+
+/// Official public endpoints that must use STARTTLS.
+const Set<String> officialSyncPlayEndPoints = {
+  'syncplay.pl:8995',
+  defaultSyncPlayEndPoint,
+  'syncplay.pl:8997',
+  'syncplay.pl:8998',
+  'syncplay.pl:8999',
+};
+
 class SyncPlayEndPoint {
   final String host;
   final int port;
@@ -46,4 +58,9 @@ SyncPlayEndPoint? parseSyncPlayEndPoint(String endPoint) {
   }
 
   return SyncPlayEndPoint(host: host, port: port);
+}
+
+bool isOfficialSyncPlayEndPoint(SyncPlayEndPoint endPoint) {
+  final normalizedEndPoint = '${endPoint.host.toLowerCase()}:${endPoint.port}';
+  return officialSyncPlayEndPoints.contains(normalizedEndPoint);
 }

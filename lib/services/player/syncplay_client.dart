@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-const double PING_MOVING_AVERAGE_WEIGHT = 0.85;
+const double _pingMovingAverageWeight = 0.85;
 const Duration _tlsHandshakeTimeout = Duration(seconds: 10);
 const Duration _socketWriteTimeout = Duration(seconds: 10);
 
@@ -179,10 +179,10 @@ class ChatMessage extends SyncplayMessage {
   Map<String, dynamic> toJson() => {'Chat': message};
 }
 
-class TLSMessage extends SyncplayMessage {
+class _TLSMessage extends SyncplayMessage {
   final String message;
 
-  TLSMessage({
+  _TLSMessage({
     required this.message,
   });
 
@@ -239,17 +239,9 @@ class SyncplayClient {
   int _serverIgnoringOnTheFly = 0;
 
   bool get isConnected =>
-      !_closed &&
-      _socket != null &&
-      (_tlsHandshakeCompleter == null || _isTLS);
-  bool get isTLS => _isTLS;
+      !_closed && _socket != null && (_tlsHandshakeCompleter == null || _isTLS);
   String? get username => _username;
-  String? get currentRoom => _currentRoom;
   String? get currentFileName => _currentFileName;
-  double get clientRtt => _clientRtt;
-  double get serverRtt => _serverRtt;
-  double get avgRtt => _avrRtt;
-  double get fd => _fd;
 
   Stream<Map<String, dynamic>> get onGeneralMessage {
     _generalMessageController ??= StreamController.broadcast();
@@ -280,7 +272,8 @@ class SyncplayClient {
       : _host = host,
         _port = port;
 
-  Future<void> connect({bool enableTLS = true}) async {
+  /// Opens the connection using the TLS policy selected by the caller.
+  Future<void> connect({required bool enableTLS}) async {
     if (_closed) {
       throw StateError('SyncplayClient cannot connect after disconnect');
     }
@@ -289,7 +282,6 @@ class SyncplayClient {
     }
     _connectCalled = true;
     try {
-      print('SyncPlay: connecting to Syncplay server: $_host:$_port');
       final socket = await RawSocket.connect(_host, _port);
       if (_closed) {
         await _forceCloseSocket(socket);
@@ -297,7 +289,6 @@ class SyncplayClient {
       }
       _socket = socket;
       _transportSocket = socket;
-      print('SyncPlay: connected to Syncplay server: $_host:$_port');
       _setupSocketHandlers(socket);
       if (enableTLS) {
         final handshakeCompleter = Completer<void>();
@@ -305,7 +296,7 @@ class SyncplayClient {
         try {
           await Future.wait<void>(
             [
-              requestTLS(),
+              _requestTLS(),
               handshakeCompleter.future,
             ],
             eagerError: true,
@@ -348,18 +339,16 @@ class SyncplayClient {
     }
   }
 
-  Future<void> requestTLS() async {
+  Future<void> _requestTLS() async {
     if (_socket == null) {
       throw SyncplayConnectionException(
         'SyncPlay: cannot request TLS before connecting',
       );
     }
-    print('SyncPlay: requesting TLS connection upgrade');
-    await _sendMessage(TLSMessage(message: 'send'));
+    await _sendMessage(_TLSMessage(message: 'send'));
   }
 
   Future<void> joinRoom(String room, String username) async {
-    print('SyncPlay: joining room: $room as $username');
     await _sendMessage(HelloMessage(
       username: username,
       version: '1.7.0',
@@ -411,7 +400,6 @@ class SyncplayClient {
       return;
     }
     _closed = true;
-    print('SyncPlay: disconnecting from Syncplay server: $_host:$_port');
     final exception =
         SyncplayConnectionException('SyncPlay: connection closed');
     _completeTLSHandshakeError(exception);
@@ -586,8 +574,7 @@ class SyncplayClient {
     if (!identical(socket, _socket)) {
       return;
     }
-    final handshakePending =
-        !(_tlsHandshakeCompleter?.isCompleted ?? true);
+    final handshakePending = !(_tlsHandshakeCompleter?.isCompleted ?? true);
     final closeFuture = _closeSockets(
       pendingWriteError: exception,
       stackTrace: stackTrace,
@@ -623,8 +610,6 @@ class SyncplayClient {
           json['Hello']['room'].containsKey('name')) {
         _username = json['Hello']['username'];
         _currentRoom = json['Hello']['room']['name'];
-        print(
-            'SyncPlay: joined room: $_currentRoom as $_username, version: ${json['Hello']['version']}');
         _runInBackground(_setReady());
       }
       _generalMessageController?.add({
@@ -761,7 +746,6 @@ class SyncplayClient {
       _socket = secureSocket;
       _isTLS = true;
       _setupSocketHandlers(secureSocket);
-      print('SyncPlay: TLS connection established');
       final handshakeCompleter = _tlsHandshakeCompleter;
       if (handshakeCompleter != null && !handshakeCompleter.isCompleted) {
         handshakeCompleter.complete();
@@ -775,7 +759,6 @@ class SyncplayClient {
       final exception = SyncplayConnectionException(
         'SyncPlay: TLS connection upgrade failed: $error',
       );
-      print(exception.message);
       _completeTLSHandshakeError(exception, stackTrace);
     }
   }
@@ -955,8 +938,8 @@ class SyncplayClient {
     }
 
     // Use moving average to update RTT, smooth the delay data
-    _avrRtt = _avrRtt * PING_MOVING_AVERAGE_WEIGHT +
-        _clientRtt * (1 - PING_MOVING_AVERAGE_WEIGHT);
+    _avrRtt = _avrRtt * _pingMovingAverageWeight +
+        _clientRtt * (1 - _pingMovingAverageWeight);
 
     // Calculate the forward delay based on the sender's RTT
     if (senderRtt < _clientRtt) {

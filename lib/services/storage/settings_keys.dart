@@ -1,3 +1,5 @@
+import 'package:kazumi/services/player/syncplay_endpoint.dart';
+
 enum SettingGroup {
   player,
   danmaku,
@@ -328,7 +330,7 @@ class SettingsKeys {
   );
   static const syncPlayEndPoint = SettingKey<String>(
     _SettingBoxKey.syncPlayEndPoint,
-    '127.0.0.1:8999',
+    defaultSyncPlayEndPoint,
     group: SettingGroup.player,
   );
   static const androidEnableOpenSLES = SettingKey<bool>(

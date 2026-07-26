@@ -72,8 +72,7 @@ abstract class _PlayerSyncPlayController with Store {
       String room,
       String username,
       Future<void> Function(int episode, {int currentRoad, int offset})
-          changeEpisode,
-      {bool enableTLS = true}) async {
+          changeEpisode) async {
     if (_connectionSessions.isClosed) {
       return;
     }
@@ -88,25 +87,17 @@ abstract class _PlayerSyncPlayController with Store {
     }
     final String syncPlayEndPoint =
         GStorage.getSetting(SettingsKeys.syncPlayEndPoint);
-    String syncPlayEndPointHost = '';
-    int syncPlayEndPointPort = 0;
     KazumiLogger().i('SyncPlay: connecting to $syncPlayEndPoint');
-    try {
-      final parsed = parseSyncPlayEndPoint(syncPlayEndPoint);
-      if (parsed != null) {
-        syncPlayEndPointHost = parsed.host;
-        syncPlayEndPointPort = parsed.port;
-      }
-    } catch (_) {}
-    if (syncPlayEndPointHost == '' || syncPlayEndPointPort == 0) {
+    final parsed = parseSyncPlayEndPoint(syncPlayEndPoint);
+    if (parsed == null) {
       KazumiDialog.showToast(
         message: 'SyncPlay: 服务器地址不合法 $syncPlayEndPoint',
       );
       KazumiLogger().e('SyncPlay: invalid server address $syncPlayEndPoint');
       return;
     }
-    final client =
-        SyncplayClient(host: syncPlayEndPointHost, port: syncPlayEndPointPort);
+    final enableTLS = isOfficialSyncPlayEndPoint(parsed);
+    final client = SyncplayClient(host: parsed.host, port: parsed.port);
     syncplayController = client;
     try {
       await client.connect(enableTLS: enableTLS);
@@ -114,12 +105,9 @@ abstract class _PlayerSyncPlayController with Store {
         await client.disconnect();
         return;
       }
-      KazumiLogger().i(
-          'SyncPlay: connected to $syncPlayEndPointHost:$syncPlayEndPointPort');
+      KazumiLogger().i('SyncPlay: connected to ${parsed.host}:${parsed.port}');
       client.onGeneralMessage.listen(
-        (message) {
-          // print('SyncPlay: general message: ${message.toString()}');
-        },
+        null,
         onError: (error) {
           if (!_isCurrentConnection(session, client)) {
             return;
@@ -134,8 +122,7 @@ abstract class _PlayerSyncPlayController with Store {
               duration: const Duration(seconds: 5),
               showActionButton: true,
               actionLabel: '重新连接',
-              onActionPressed: () => createRoom(room, username, changeEpisode,
-                  enableTLS: enableTLS),
+              onActionPressed: () => createRoom(room, username, changeEpisode),
             );
           }
         },

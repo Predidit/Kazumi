@@ -7,6 +7,7 @@ import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/player_pointer_interaction.dart';
 import 'package:kazumi/pages/player/player_screenshot_feedback_overlay.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
+import 'package:kazumi/services/player/syncplay_endpoint.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
@@ -1189,17 +1190,18 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
 
-    final String defaultCustomSyncPlayEndPoint = '自定义服务器';
-    String customSyncPlayEndPoint = defaultCustomSyncPlayEndPoint;
+    const customServerOption = '自定义服务器';
+    String customSyncPlayEndPoint = customServerOption;
     String selectedSyncPlayEndPoint =
         GStorage.getSetting(SettingsKeys.syncPlayEndPoint);
 
     KazumiDialog.show(
       builder: (context) {
         return StatefulBuilder(builder: (context, setDialogState) {
-          List<String> syncPlayEndPoints = [];
-          syncPlayEndPoints.addAll(defaultSyncPlayEndPoints);
-          syncPlayEndPoints.add(customSyncPlayEndPoint);
+          final syncPlayEndPoints = <String>[
+            ...officialSyncPlayEndPoints,
+            customSyncPlayEndPoint,
+          ];
           if (!syncPlayEndPoints.contains(selectedSyncPlayEndPoint)) {
             syncPlayEndPoints.add(selectedSyncPlayEndPoint);
           }
@@ -1234,7 +1236,7 @@ class _PlayerItemState extends State<PlayerItem>
                     },
                     onChanged: (String? newValue) {
                       if (newValue != null) {
-                        if (newValue == defaultCustomSyncPlayEndPoint) {
+                        if (newValue == customServerOption) {
                           String serverText = '';
                           KazumiDialog.show(
                             builder: (context) {

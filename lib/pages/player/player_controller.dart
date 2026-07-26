@@ -48,6 +48,7 @@ class PlayerController implements Disposable {
     shaderAssetService: shaderAssetService,
     debug: debug,
     videoUrl: () => videoUrl,
+    isLocalPlayback: () => isLocalPlayback,
   );
   late final PlayerSyncPlayController syncplay = PlayerSyncPlayController(
     bangumiId: () => bangumiId,

@@ -12,6 +12,7 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
+import 'package:kazumi/services/player/playback_cache_policy.dart';
 import 'package:kazumi/services/player/player_screenshot_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:media_kit/media_kit.dart';
@@ -57,13 +58,19 @@ abstract class _PlayerPlaybackController with Store {
     required this.shaderAssetService,
     required this.debug,
     required this.videoUrl,
+    required this.isLocalPlayback,
   });
 
   final ShaderAssetService shaderAssetService;
   final PlayerDebugController debug;
   final String Function() videoUrl;
+  final bool Function() isLocalPlayback;
   final PlayerScreenshotService screenshotService =
       const PlayerScreenshotService();
+  late final PlaybackCachePolicy cachePolicy = PlaybackCachePolicy(
+    isLocalPlayback: isLocalPlayback,
+    currentPlayer: () => mediaPlayer,
+  );
 
   _OwnedPlayer? _ownedPlayer;
   Player? get mediaPlayer => _ownedPlayer?.player;
@@ -72,7 +79,6 @@ abstract class _PlayerPlaybackController with Store {
   bool hAenable = true;
   late String hardwareDecoder;
   bool androidEnableOpenSLES = true;
-  bool lowMemoryMode = false;
   bool autoPlay = true;
   bool playerDebugMode = false;
   int buttonSkipTime = 80;
@@ -238,7 +244,6 @@ abstract class _PlayerPlaybackController with Store {
         GStorage.getSetting(SettingsKeys.androidEnableOpenSLES);
     hardwareDecoder = GStorage.getSetting(SettingsKeys.hardwareDecoder);
     autoPlay = GStorage.getSetting(SettingsKeys.autoPlay);
-    lowMemoryMode = GStorage.getSetting(SettingsKeys.lowMemoryMode);
     playerDebugMode = GStorage.getSetting(SettingsKeys.playerDebugMode);
 
     if (!canInstall()) {
@@ -247,7 +252,7 @@ abstract class _PlayerPlaybackController with Store {
     final candidate = _OwnedPlayer(
       Player(
         configuration: PlayerConfiguration(
-          bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
+          bufferSize: cachePolicy.bufferSize,
           osc: false,
           logLevel: MPVLogLevel.values[debug.playerLogLevel],
           adBlocker: adBlockerEnabled,
@@ -260,6 +265,7 @@ abstract class _PlayerPlaybackController with Store {
       return null;
     }
     _ownedPlayer = candidate;
+    cachePolicy.startWatching();
 
     try {
       debug.playerLog.clear();
@@ -277,6 +283,10 @@ abstract class _PlayerPlaybackController with Store {
       // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
       // 该设置可以在所有平台上正确启用双重缓存
       await pp.setProperty("demuxer-cache-dir", await getPlayerTempPath());
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(candidate);
+      }
+      await cachePolicy.apply();
       if (!isCurrentPlayer(player)) {
         return await _discardIfNotCurrent(candidate);
       }
@@ -409,9 +419,14 @@ abstract class _PlayerPlaybackController with Store {
         return await _discardIfNotCurrent(candidate);
       }
 
+      if (cachePolicy.networkForced) {
+        KazumiDialog.showToast(message: '正在使用移动数据，已临时启用低内存模式以减少缓存');
+      }
+
       return player;
     } catch (error, stackTrace) {
       if (identical(_ownedPlayer, candidate)) {
+        cachePolicy.stopWatching();
         _ownedPlayer = null;
         videoController = null;
       }
@@ -554,6 +569,7 @@ abstract class _PlayerPlaybackController with Store {
   }
 
   Future<void> stop() async {
+    cachePolicy.stopWatching();
     final ownedPlayer = _ownedPlayer;
     _ownedPlayer = null;
     videoController = null;

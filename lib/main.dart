@@ -7,6 +7,7 @@ import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:kazumi/services/network/metered_network_service.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:flutter/services.dart';
@@ -90,6 +91,7 @@ void main() async {
   if (Platform.isWindows) {
     SystemProxyService.init();
   }
+  MeteredNetworkService.init();
   ProxyManager.applyProxy();
   runApp(
     ModularApp(

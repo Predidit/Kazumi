@@ -5,6 +5,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
+import 'package:kazumi/services/network/metered_network_service.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
@@ -50,6 +51,18 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   void initState() {
     super.initState();
     _loadSettingsFromStorage();
+    MeteredNetworkService.listenable.addListener(_onMeteredNetworkChanged);
+  }
+
+  @override
+  void dispose() {
+    MeteredNetworkService.listenable.removeListener(_onMeteredNetworkChanged);
+    super.dispose();
+  }
+
+  void _onMeteredNetworkChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _loadSettingsFromStorage() {
@@ -296,6 +309,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   ),
                 ],
                 SettingsTile.switchTile(
+                  enabled: !MeteredNetworkService.isMetered,
                   onToggle: (value) async {
                     lowMemoryMode = value ?? !lowMemoryMode;
                     await GStorage.putSetting<bool>(
@@ -304,9 +318,14 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   },
                   title:
                       Text('低内存模式', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('禁用高级缓存以减少内存占用',
+                  description: Text(
+                      MeteredNetworkService.isMetered
+                          ? '移动网络下已自动启用'
+                          : '禁用高级缓存以减少内存占用',
                       style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: lowMemoryMode,
+                  // Effective state, not the stored one, which stays untouched.
+                  initialValue:
+                      lowMemoryMode || MeteredNetworkService.isMetered,
                 ),
                 if (Platform.isAndroid) ...[
                   SettingsTile.switchTile(

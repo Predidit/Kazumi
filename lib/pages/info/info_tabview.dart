@@ -27,6 +27,7 @@ class InfoTabView extends StatefulWidget {
     required this.relationsQueryTimeout,
     required this.relationsIsLoading,
     required this.relationsHasLoaded,
+    required this.canLoadRelations,
     required this.tabController,
     required this.loadMoreComments,
     required this.loadCharacters,
@@ -53,6 +54,7 @@ class InfoTabView extends StatefulWidget {
   final bool relationsQueryTimeout;
   final bool relationsIsLoading;
   final bool relationsHasLoaded;
+  final bool canLoadRelations;
   final TabController tabController;
   final Future<void> Function({bool loadMore}) loadMoreComments;
   final Future<void> Function() loadCharacters;
@@ -74,19 +76,35 @@ class _InfoTabViewState extends State<InfoTabView>
   final maxWidth = 950.0;
   bool fullIntro = false;
   bool fullTag = false;
+  bool _relationsLoadScheduled = false;
 
   @override
   void initState() {
     super.initState();
     widget.tabController.addListener(_onTabChanged);
+    widget.tabController.animation?.addListener(_onTabAnimationChanged);
     if (widget.tabController.index == 1) {
       widget.onCommentsTabSelected?.call();
     }
+    _scheduleRelationsLoadIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant InfoTabView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tabController != widget.tabController) {
+      oldWidget.tabController.removeListener(_onTabChanged);
+      oldWidget.tabController.animation?.removeListener(_onTabAnimationChanged);
+      widget.tabController.addListener(_onTabChanged);
+      widget.tabController.animation?.addListener(_onTabAnimationChanged);
+    }
+    _scheduleRelationsLoadIfNeeded();
   }
 
   @override
   void dispose() {
     widget.tabController.removeListener(_onTabChanged);
+    widget.tabController.animation?.removeListener(_onTabAnimationChanged);
     super.dispose();
   }
 
@@ -94,6 +112,33 @@ class _InfoTabViewState extends State<InfoTabView>
     if (widget.tabController.index == 1) {
       widget.onCommentsTabSelected?.call();
     }
+    _scheduleRelationsLoadIfNeeded();
+  }
+
+  void _onTabAnimationChanged() {
+    _scheduleRelationsLoadIfNeeded();
+  }
+
+  bool get _canLoadRelations {
+    final tabController = widget.tabController;
+    return tabController.index == 3 &&
+        !tabController.indexIsChanging &&
+        tabController.offset.abs() < 0.001 &&
+        widget.canLoadRelations;
+  }
+
+  void _scheduleRelationsLoadIfNeeded() {
+    if (_relationsLoadScheduled || !_canLoadRelations) {
+      return;
+    }
+    _relationsLoadScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _relationsLoadScheduled = false;
+      if (!mounted || !_canLoadRelations) {
+        return;
+      }
+      widget.loadRelations();
+    });
   }
 
   Widget get infoBody {
@@ -211,6 +256,7 @@ class _InfoTabViewState extends State<InfoTabView>
   Widget get relationsListBody {
     return Builder(
       builder: (BuildContext context) {
+        _scheduleRelationsLoadIfNeeded();
         return CustomScrollView(
           scrollBehavior: const ScrollBehavior().copyWith(
             scrollbars: false,

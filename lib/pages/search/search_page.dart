@@ -215,6 +215,8 @@ class _SearchPageState extends State<SearchPage> {
         }
         final preparing = searchPageController.isHiddenViewPreparing;
         final failed = searchPageController.hiddenViewError != null;
+        final canRetrySelectedHiddenView = failed &&
+            searchPageController.selectedViewMode == SearchViewMode.hideWatched;
         return Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           child: Row(
@@ -239,7 +241,7 @@ class _SearchPageState extends State<SearchPage> {
                       value: SearchViewMode.hideWatched,
                       label: const Text('隐藏已看'),
                       icon: failed
-                          ? const Icon(Icons.refresh_rounded)
+                          ? const Icon(Icons.error_outline)
                           : preparing
                               ? const SizedBox(
                                   width: 16,
@@ -253,6 +255,16 @@ class _SearchPageState extends State<SearchPage> {
                   ],
                 ),
               ),
+              if (canRetrySelectedHiddenView) ...[
+                const SizedBox(width: 4),
+                Tooltip(
+                  message: '重试准备隐藏已看',
+                  child: IconButton(
+                    icon: const Icon(Icons.refresh_rounded),
+                    onPressed: searchPageController.retryHiddenView,
+                  ),
+                ),
+              ],
             ],
           ),
         );

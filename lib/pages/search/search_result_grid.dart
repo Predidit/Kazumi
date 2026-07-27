@@ -41,9 +41,8 @@ class _SearchResultGridState extends State<SearchResultGrid>
   List<BangumiItem> _fromItems = const [];
   List<BangumiItem> _toItems = const [];
   late final AnimationController _animationController;
-  int? _anchorId;
-  double? _anchorY;
   bool _animating = false;
+  bool _reversingToStart = false;
 
   double get _rowExtent => widget.cardExtent + widget.spacing;
 
@@ -56,7 +55,9 @@ class _SearchResultGridState extends State<SearchResultGrid>
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 420),
-    )..addStatusListener(_handleAnimationStatus);
+    )
+      ..addListener(_rebuildForAnimation)
+      ..addStatusListener(_handleAnimationStatus);
   }
 
   @override
@@ -68,15 +69,33 @@ class _SearchResultGridState extends State<SearchResultGrid>
 
   @override
   void dispose() {
+    _animationController.removeListener(_rebuildForAnimation);
     _animationController.dispose();
     super.dispose();
   }
 
+  void _rebuildForAnimation() {
+    if (mounted && _animating) {
+      setState(() {});
+    }
+  }
+
   void _startTransition(List<BangumiItem> nextItems) {
-    _captureAnchor(nextItems);
+    if (_animating && _sameIds(nextItems, _fromItems)) {
+      _reversingToStart = true;
+      _animationController.reverse();
+      return;
+    }
+    if (_animating && _sameIds(nextItems, _toItems)) {
+      _reversingToStart = false;
+      _animationController.forward();
+      return;
+    }
+
     _animationController.stop();
     _fromItems = List<BangumiItem>.of(_visibleItems);
     _toItems = nextItems;
+    _reversingToStart = false;
 
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -86,7 +105,6 @@ class _SearchResultGridState extends State<SearchResultGrid>
         _fromItems = nextItems;
         _animating = false;
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) => _restoreAnchor());
       return;
     }
 
@@ -94,73 +112,20 @@ class _SearchResultGridState extends State<SearchResultGrid>
     _animationController.forward(from: 0);
   }
 
-  void _captureAnchor(List<BangumiItem> nextItems) {
-    if (!widget.scrollController.hasClients || _visibleItems.isEmpty) {
-      _anchorId = null;
-      _anchorY = null;
-      return;
-    }
-    final offset = widget.scrollController.offset;
-    var row = math.max(0, (offset / _rowExtent).floor());
-    if (offset - row * _rowExtent >= widget.cardExtent) {
-      row++;
-    }
-    final firstVisibleIndex = math.min(
-      row * widget.crossCount,
-      _visibleItems.length - 1,
-    );
-    final nextIds = nextItems.map((item) => item.id).toSet();
-    var anchorIndex = -1;
-
-    for (var index = firstVisibleIndex; index < _visibleItems.length; index++) {
-      if (nextIds.contains(_visibleItems[index].id)) {
-        anchorIndex = index;
-        break;
-      }
-    }
-    for (var index = firstVisibleIndex - 1;
-        anchorIndex < 0 && index >= 0;
-        index--) {
-      if (nextIds.contains(_visibleItems[index].id)) {
-        anchorIndex = index;
-      }
-    }
-    if (anchorIndex < 0) {
-      _anchorId = null;
-      _anchorY = null;
-      return;
-    }
-
-    _anchorId = _visibleItems[anchorIndex].id;
-    _anchorY = (anchorIndex ~/ widget.crossCount) * _rowExtent - offset;
-  }
-
   void _handleAnimationStatus(AnimationStatus status) {
-    if (status != AnimationStatus.completed || !mounted) return;
+    if (!mounted ||
+        (status != AnimationStatus.completed &&
+            (status != AnimationStatus.dismissed || !_reversingToStart))) {
+      return;
+    }
+    final settledItems =
+        status == AnimationStatus.completed ? _toItems : _fromItems;
     setState(() {
-      _visibleItems = List<BangumiItem>.of(_toItems);
+      _visibleItems = List<BangumiItem>.of(settledItems);
       _fromItems = _visibleItems;
       _animating = false;
+      _reversingToStart = false;
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _restoreAnchor());
-  }
-
-  void _restoreAnchor() {
-    final anchorId = _anchorId;
-    final anchorY = _anchorY;
-    if (anchorId == null ||
-        anchorY == null ||
-        !widget.scrollController.hasClients) {
-      return;
-    }
-    final index = _visibleItems.indexWhere((item) => item.id == anchorId);
-    if (index < 0) return;
-    final row = index ~/ widget.crossCount;
-    final desiredOffset = row * _rowExtent - anchorY;
-    final position = widget.scrollController.position;
-    final clamped =
-        desiredOffset.clamp(0.0, position.maxScrollExtent).toDouble();
-    widget.scrollController.jumpTo(clamped);
   }
 
   bool _sameIds(List<BangumiItem> first, List<BangumiItem> second) {

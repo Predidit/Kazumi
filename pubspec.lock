@@ -116,7 +116,7 @@ packages:
     source: hosted
     version: "2.0.3"
   auto_injector:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: auto_injector
       sha256: "81815294ad9a512e294d97819bdbeccc7f93f18daeceac321e0c046a6f25eeb1"

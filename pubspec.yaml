@@ -168,6 +168,7 @@ dependency_overrides:
       path: ./libs/ohos/media_kit_libs_ohos
 
 dev_dependencies:
+  auto_injector: ^2.2.0
   path_provider_platform_interface: ^2.1.2
   plugin_platform_interface: ^2.1.8
   flutter_test:

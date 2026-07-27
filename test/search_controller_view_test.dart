@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:auto_injector/auto_injector.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
@@ -100,14 +101,25 @@ SearchPageController _controller(
   SearchPageRequestLoader loader,
   _CollectRepository collect,
 ) {
-  return SearchPageController(
+  return SearchPageController.withPageLoader(
     collect,
     _SearchHistoryRepository(),
-    pageLoader: loader,
+    loader,
   );
 }
 
 void main() {
+  test('can be created through the route injector', () {
+    final injector = AutoInjector();
+    injector
+      ..add<ICollectRepository>(_CollectRepository.new)
+      ..add<ISearchHistoryRepository>(_SearchHistoryRepository.new)
+      ..add<SearchPageController>(SearchPageController.new)
+      ..commit();
+
+    expect(injector.get<SearchPageController>(), isA<SearchPageController>());
+  });
+
   test('initial search exposes all items before hidden view finishes',
       () async {
     final secondPage = Completer<BangumiSearchPage?>();
@@ -188,6 +200,55 @@ void main() {
     expect(controller.hiddenViewError, isNull);
     expect(controller.selectedViewMode, SearchViewMode.hideWatched);
     expect(controller.bangumiList.first.id, 20);
+  });
+
+  test('a failed search started from hidden mode can retry in place', () async {
+    var attempts = 0;
+    final collect = _CollectRepository()
+      ..watched = {for (var i = 1; i < 20; i++) i};
+    final controller = _controller((keyword, filter, offset) {
+      if (offset == 0) {
+        return Future.value(_page(Iterable<int>.generate(20, (i) => i + 1)));
+      }
+      attempts++;
+      return attempts == 1
+          ? Future<BangumiSearchPage?>.error(StateError('offline'))
+          : Future.value(_page(Iterable<int>.generate(20, (i) => i + 21)));
+    }, collect)
+      ..selectedViewMode = SearchViewMode.hideWatched;
+
+    await controller.searchBangumi('alpha', type: 'init');
+
+    expect(controller.selectedViewMode, SearchViewMode.hideWatched);
+    expect(controller.hiddenViewError, isA<StateError>());
+    expect(controller.bangumiList, isEmpty);
+
+    await controller.retryHiddenView();
+
+    expect(controller.selectedViewMode, SearchViewMode.hideWatched);
+    expect(controller.hiddenViewError, isNull);
+    expect(controller.isTimeOut, isFalse);
+    expect(controller.bangumiList.first.id, 20);
+  });
+
+  test('finishing a load more request preserves a newer view selection',
+      () async {
+    final secondPage = Completer<BangumiSearchPage?>();
+    final controller = _controller(
+      (keyword, filter, offset) => offset == 0
+          ? Future.value(_page(Iterable<int>.generate(20, (i) => i + 1)))
+          : secondPage.future,
+      _CollectRepository(),
+    );
+
+    await controller.searchBangumi('alpha', type: 'init');
+    final loadMore = controller.searchBangumi('alpha', type: 'add');
+    await Future<void>.delayed(Duration.zero);
+    await controller.requestViewMode(SearchViewMode.hideWatched);
+    secondPage.complete(_page(Iterable<int>.generate(20, (i) => i + 21)));
+    await loadMore;
+
+    expect(controller.selectedViewMode, SearchViewMode.hideWatched);
   });
 
   test('late pages from an old query cannot replace the new query', () async {

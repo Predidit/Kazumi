@@ -79,15 +79,68 @@ void main() {
       ),
     );
 
+    final initialPosition = tester.getTopLeft(find.text('item-3'));
     update(() => items = [_item(1), _item(3)]);
-    await tester.pump(const Duration(milliseconds: 80));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 210));
+
     expect(find.text('item-2'), findsOneWidget);
+    final middlePosition = tester.getTopLeft(find.text('item-3'));
     await tester.pumpAndSettle();
+
+    final finalPosition = tester.getTopLeft(find.text('item-3'));
+    expect(middlePosition.dy, lessThan(initialPosition.dy));
+    expect(middlePosition.dy, greaterThan(finalPosition.dy));
     expect(find.text('item-2'), findsNothing);
     expect(find.text('item-3'), findsOneWidget);
   });
 
-  testWidgets('preserves the visible anchor after restoring the all list',
+  testWidgets('reverses an in-progress view transition without snapping',
+      (tester) async {
+    late StateSetter update;
+    var items = [_item(1), _item(2), _item(3), _item(4)];
+    final scrollController = ScrollController();
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) {
+          update = setState;
+          return MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                height: 250,
+                child: SearchResultGrid(
+                  items: items,
+                  crossCount: 2,
+                  cardExtent: 100,
+                  itemBuilder: _card,
+                  scrollController: scrollController,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    final initialPosition = tester.getTopLeft(find.text('item-3'));
+    update(() => items = [_item(1), _item(3)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 210));
+    final hiddenPosition = tester.getTopLeft(find.text('item-3'));
+
+    update(() => items = [_item(1), _item(2), _item(3), _item(4)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 105));
+    final returningPosition = tester.getTopLeft(find.text('item-3'));
+
+    expect(returningPosition.dy, greaterThan(hiddenPosition.dy));
+    expect(returningPosition.dy, lessThan(initialPosition.dy));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.text('item-3')).dy,
+        closeTo(initialPosition.dy, 0.1));
+  });
+
+  testWidgets('keeps the current scroll position when switching views',
       (tester) async {
     late StateSetter update;
     var items = List<BangumiItem>.generate(12, (index) => _item(index + 1));
@@ -128,7 +181,7 @@ void main() {
           _item(12),
         ]);
     await tester.pumpAndSettle();
-    expect(scrollController.offset, closeTo(100, 2));
+    expect(scrollController.offset, closeTo(208, 2));
 
     update(() =>
         items = List<BangumiItem>.generate(12, (index) => _item(index + 1)));

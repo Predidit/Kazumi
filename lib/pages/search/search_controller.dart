@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
@@ -20,14 +21,31 @@ typedef SearchPageRequestLoader = Future<BangumiSearchPage?> Function(
   int offset,
 );
 
-class SearchPageController = _SearchPageController with _$SearchPageController;
+class SearchPageController extends _SearchPageController
+    with _$SearchPageController {
+  SearchPageController(
+    super.collectRepository,
+    super.searchHistoryRepository,
+  );
+
+  @visibleForTesting
+  SearchPageController.withPageLoader(
+    super.collectRepository,
+    super.searchHistoryRepository,
+    SearchPageRequestLoader pageLoader,
+  ) : super(pageLoader: pageLoader);
+}
 
 abstract class _SearchPageController with Store {
   static const int _searchPageSize = 20;
 
-  _SearchPageController(this._collectRepository, this._searchHistoryRepository,
-      {SearchPageRequestLoader? pageLoader})
-      : _pageLoader = pageLoader ?? _defaultPageLoader;
+  _SearchPageController(
+    ICollectRepository collectRepository,
+    ISearchHistoryRepository searchHistoryRepository, {
+    SearchPageRequestLoader? pageLoader,
+  })  : _collectRepository = collectRepository,
+        _searchHistoryRepository = searchHistoryRepository,
+        _pageLoader = pageLoader ?? _defaultPageLoader;
 
   final ICollectRepository _collectRepository;
   final ISearchHistoryRepository _searchHistoryRepository;
@@ -243,15 +261,25 @@ abstract class _SearchPageController with Store {
   Future<void> retryHiddenView() async {
     final buffer = _resultBuffer;
     if (buffer == null) return;
+    final retryingSelectedHiddenView =
+        selectedViewMode == SearchViewMode.hideWatched;
     pendingViewMode = SearchViewMode.hideWatched;
     hiddenViewError = null;
     isHiddenViewPreparing = true;
+    if (retryingSelectedHiddenView) {
+      isLoading = true;
+      isTimeOut = false;
+    }
     final generation = _queryGeneration;
     final future = buffer.retry(minimumItems: _searchPageSize);
     _backgroundPreparation = future;
     await future;
     if (generation != _queryGeneration) return;
     _finishHiddenPreparation(generation);
+    if (retryingSelectedHiddenView) {
+      isLoading = false;
+      isTimeOut = hiddenViewError != null;
+    }
   }
 
   Future<void> waitForBackgroundPreparation() async {
@@ -324,7 +352,11 @@ abstract class _SearchPageController with Store {
       await buffer.ensureReadyFor(mode, minimumItems: target);
     }
     if (generation != _queryGeneration) return;
-    _publishMode(mode, minimumItems: target);
+    final activeMode = selectedViewMode;
+    final activeMinimumItems = activeMode == mode
+        ? target
+        : _publishedCounts[activeMode] ?? _searchPageSize;
+    _publishMode(activeMode, minimumItems: activeMinimumItems);
     isLoading = false;
     hasMoreSearchResults = !buffer.isExhausted;
     if (!isHiddenViewReady && !isHiddenViewPreparing) {

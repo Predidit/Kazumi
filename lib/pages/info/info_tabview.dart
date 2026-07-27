@@ -256,7 +256,6 @@ class _InfoTabViewState extends State<InfoTabView>
   Widget get relationsListBody {
     return Builder(
       builder: (BuildContext context) {
-        _scheduleRelationsLoadIfNeeded();
         return CustomScrollView(
           scrollBehavior: const ScrollBehavior().copyWith(
             scrollbars: false,

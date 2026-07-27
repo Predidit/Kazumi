@@ -91,6 +91,87 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
+  late final _$selectedViewModeAtom =
+      Atom(name: '_SearchPageController.selectedViewMode', context: context);
+
+  @override
+  SearchViewMode get selectedViewMode {
+    _$selectedViewModeAtom.reportRead();
+    return super.selectedViewMode;
+  }
+
+  @override
+  set selectedViewMode(SearchViewMode value) {
+    _$selectedViewModeAtom.reportWrite(value, super.selectedViewMode, () {
+      super.selectedViewMode = value;
+    });
+  }
+
+  late final _$pendingViewModeAtom =
+      Atom(name: '_SearchPageController.pendingViewMode', context: context);
+
+  @override
+  SearchViewMode? get pendingViewMode {
+    _$pendingViewModeAtom.reportRead();
+    return super.pendingViewMode;
+  }
+
+  @override
+  set pendingViewMode(SearchViewMode? value) {
+    _$pendingViewModeAtom.reportWrite(value, super.pendingViewMode, () {
+      super.pendingViewMode = value;
+    });
+  }
+
+  late final _$isHiddenViewPreparingAtom = Atom(
+      name: '_SearchPageController.isHiddenViewPreparing', context: context);
+
+  @override
+  bool get isHiddenViewPreparing {
+    _$isHiddenViewPreparingAtom.reportRead();
+    return super.isHiddenViewPreparing;
+  }
+
+  @override
+  set isHiddenViewPreparing(bool value) {
+    _$isHiddenViewPreparingAtom.reportWrite(value, super.isHiddenViewPreparing,
+        () {
+      super.isHiddenViewPreparing = value;
+    });
+  }
+
+  late final _$isHiddenViewReadyAtom =
+      Atom(name: '_SearchPageController.isHiddenViewReady', context: context);
+
+  @override
+  bool get isHiddenViewReady {
+    _$isHiddenViewReadyAtom.reportRead();
+    return super.isHiddenViewReady;
+  }
+
+  @override
+  set isHiddenViewReady(bool value) {
+    _$isHiddenViewReadyAtom.reportWrite(value, super.isHiddenViewReady, () {
+      super.isHiddenViewReady = value;
+    });
+  }
+
+  late final _$hiddenViewErrorAtom =
+      Atom(name: '_SearchPageController.hiddenViewError', context: context);
+
+  @override
+  Object? get hiddenViewError {
+    _$hiddenViewErrorAtom.reportRead();
+    return super.hiddenViewError;
+  }
+
+  @override
+  set hiddenViewError(Object? value) {
+    _$hiddenViewErrorAtom.reportWrite(value, super.hiddenViewError, () {
+      super.hiddenViewError = value;
+    });
+  }
+
   late final _$searchHistoriesAtom =
       Atom(name: '_SearchPageController.searchHistories', context: context);
 
@@ -162,6 +243,22 @@ mixin _$SearchPageController on _SearchPageController, Store {
   Future<void> searchBangumi(String input, {String type = 'add'}) {
     return _$searchBangumiAsyncAction
         .run(() => super.searchBangumi(input, type: type));
+  }
+
+  late final _$requestViewModeAsyncAction =
+      AsyncAction('_SearchPageController.requestViewMode', context: context);
+
+  @override
+  Future<void> requestViewMode(SearchViewMode mode) {
+    return _$requestViewModeAsyncAction.run(() => super.requestViewMode(mode));
+  }
+
+  late final _$retryHiddenViewAsyncAction =
+      AsyncAction('_SearchPageController.retryHiddenView', context: context);
+
+  @override
+  Future<void> retryHiddenView() {
+    return _$retryHiddenViewAsyncAction.run(() => super.retryHiddenView());
   }
 
   late final _$deleteSearchHistoryAsyncAction = AsyncAction(
@@ -254,6 +351,11 @@ isTimeOut: ${isTimeOut},
 notShowWatchedBangumis: ${notShowWatchedBangumis},
 notShowAbandonedBangumis: ${notShowAbandonedBangumis},
 bangumiList: ${bangumiList},
+selectedViewMode: ${selectedViewMode},
+pendingViewMode: ${pendingViewMode},
+isHiddenViewPreparing: ${isHiddenViewPreparing},
+isHiddenViewReady: ${isHiddenViewReady},
+hiddenViewError: ${hiddenViewError},
 searchHistories: ${searchHistories},
 isImageSearching: ${isImageSearching},
 imageSearchError: ${imageSearchError},

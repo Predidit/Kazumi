@@ -6,8 +6,9 @@ import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
+import 'package:kazumi/pages/search/search_result_buffer.dart';
+import 'package:kazumi/pages/search/search_result_grid.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/date_time.dart';
@@ -112,7 +113,6 @@ class _SearchPageState extends State<SearchPage> {
       builder: (context) {
         return _SearchWorkbenchSheet(
           initialState: filterState,
-          initialNotShowWatched: searchPageController.notShowWatchedBangumis,
           initialNotShowAbandoned:
               searchPageController.notShowAbandonedBangumis,
         );
@@ -120,7 +120,6 @@ class _SearchPageState extends State<SearchPage> {
     );
 
     if (result == null) return;
-    await searchPageController.setNotShowWatchedBangumis(result.notShowWatched);
     await searchPageController
         .setNotShowAbandonedBangumis(result.notShowAbandoned);
     await _applyFilterState(result.filterState, search: result.shouldSearch);
@@ -195,14 +194,6 @@ class _SearchPageState extends State<SearchPage> {
         ),
       ));
     }
-    if (searchPageController.notShowWatchedBangumis) {
-      chips.add(InputChip(
-        label: const Text('隐藏已看'),
-        onDeleted: () async {
-          await searchPageController.setNotShowWatchedBangumis(false);
-        },
-      ));
-    }
     if (searchPageController.notShowAbandonedBangumis) {
       chips.add(InputChip(
         label: const Text('隐藏已弃'),
@@ -213,6 +204,60 @@ class _SearchPageState extends State<SearchPage> {
     }
 
     return chips;
+  }
+
+  Widget buildViewModeControl() {
+    return Observer(
+      builder: (_) {
+        if (searchPageController.bangumiList.isEmpty &&
+            searchPageController.selectedViewMode == SearchViewMode.all) {
+          return const SizedBox.shrink();
+        }
+        final preparing = searchPageController.isHiddenViewPreparing;
+        final failed = searchPageController.hiddenViewError != null;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<SearchViewMode>(
+                  selected: {searchPageController.selectedViewMode},
+                  onSelectionChanged: (selection) {
+                    final mode = selection.first;
+                    if (mode == SearchViewMode.hideWatched && failed) {
+                      searchPageController.retryHiddenView();
+                    } else {
+                      searchPageController.requestViewMode(mode);
+                    }
+                  },
+                  segments: [
+                    const ButtonSegment(
+                      value: SearchViewMode.all,
+                      label: Text('全部'),
+                    ),
+                    ButtonSegment(
+                      value: SearchViewMode.hideWatched,
+                      label: const Text('隐藏已看'),
+                      icon: failed
+                          ? const Icon(Icons.refresh_rounded)
+                          : preparing
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : null,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _submitSearch(String value) async {
@@ -331,6 +376,7 @@ class _SearchPageState extends State<SearchPage> {
               );
             },
           ),
+          buildViewModeControl(),
           Expanded(
             child: Observer(builder: (context) {
               if (searchPageController.isTimeOut) {
@@ -367,45 +413,22 @@ class _SearchPageState extends State<SearchPage> {
                   LayoutBreakpoint.medium['width']!) {
                 crossCount = 6;
               }
-              List<BangumiItem> filteredList =
-                  searchPageController.bangumiList.toList();
-
-              if (searchPageController.notShowWatchedBangumis) {
-                final watchedBangumiIds =
-                    searchPageController.loadWatchedBangumiIds();
-                filteredList = filteredList
-                    .where((item) => !watchedBangumiIds.contains(item.id))
-                    .toList();
+              final items = searchPageController.bangumiList.toList();
+              if (items.isEmpty) {
+                return const Center(child: Text('当前视图没有可显示的番剧'));
               }
-
-              if (searchPageController.notShowAbandonedBangumis) {
-                final abandonedBangumiIds =
-                    searchPageController.loadAbandonedBangumiIds();
-                filteredList = filteredList
-                    .where((item) => !abandonedBangumiIds.contains(item.id))
-                    .toList();
-              }
-
-              return GridView.builder(
-                controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  mainAxisSpacing: StyleString.cardSpace - 2,
-                  crossAxisSpacing: StyleString.cardSpace,
-                  crossAxisCount: crossCount,
-                  mainAxisExtent:
-                      MediaQuery.of(context).size.width / crossCount / 0.65 +
-                          MediaQuery.textScalerOf(context).scale(32.0),
+              return SearchResultGrid(
+                items: items,
+                crossCount: crossCount,
+                cardExtent:
+                    MediaQuery.sizeOf(context).width / crossCount / 0.65 +
+                        MediaQuery.textScalerOf(context).scale(32.0),
+                itemBuilder: (context, item) => BangumiCardV(
+                  enableHero: false,
+                  bangumiItem: item,
                 ),
-                itemCount: filteredList.isNotEmpty ? filteredList.length : 10,
-                itemBuilder: (context, index) {
-                  return filteredList.isNotEmpty
-                      ? BangumiCardV(
-                          enableHero: false,
-                          bangumiItem: filteredList[index],
-                        )
-                      : Container();
-                },
+                scrollController: scrollController,
+                spacing: StyleString.cardSpace,
               );
             }),
           ),
@@ -418,13 +441,11 @@ class _SearchPageState extends State<SearchPage> {
 class _SearchWorkbenchResult {
   const _SearchWorkbenchResult({
     required this.filterState,
-    required this.notShowWatched,
     required this.notShowAbandoned,
     required this.shouldSearch,
   });
 
   final SearchFilterState filterState;
-  final bool notShowWatched;
   final bool notShowAbandoned;
   final bool shouldSearch;
 }
@@ -432,12 +453,10 @@ class _SearchWorkbenchResult {
 class _SearchWorkbenchSheet extends StatefulWidget {
   const _SearchWorkbenchSheet({
     required this.initialState,
-    required this.initialNotShowWatched,
     required this.initialNotShowAbandoned,
   });
 
   final SearchFilterState initialState;
-  final bool initialNotShowWatched;
   final bool initialNotShowAbandoned;
 
   @override
@@ -446,7 +465,6 @@ class _SearchWorkbenchSheet extends StatefulWidget {
 
 class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
   late SearchFilterState draft = widget.initialState;
-  late bool notShowWatched = widget.initialNotShowWatched;
   late bool notShowAbandoned = widget.initialNotShowAbandoned;
   final TextEditingController tagController = TextEditingController();
 
@@ -840,17 +858,10 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                 const SizedBox(height: 12),
                 MaterialBottomSheetSection(
                   title: '过滤',
-                  description: '控制是否隐藏已经看过或放弃的番剧。',
+                  description: '控制是否隐藏已经放弃的番剧。',
                   icon: Icons.filter_alt_outlined,
                   child: Column(
                     children: [
-                      _SearchSwitchTile(
-                        title: '隐藏已看',
-                        value: notShowWatched,
-                        onChanged: (value) {
-                          setState(() => notShowWatched = value);
-                        },
-                      ),
                       _SearchSwitchTile(
                         title: '隐藏已弃',
                         value: notShowAbandoned,
@@ -872,7 +883,6 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                   onPressed: () {
                     setState(() {
                       draft = resetAdvancedFilters();
-                      notShowWatched = false;
                       notShowAbandoned = false;
                     });
                   },
@@ -886,7 +896,6 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                       context,
                       _SearchWorkbenchResult(
                         filterState: draft,
-                        notShowWatched: notShowWatched,
                         notShowAbandoned: notShowAbandoned,
                         shouldSearch: true,
                       ),

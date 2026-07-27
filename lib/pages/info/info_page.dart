@@ -15,6 +15,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
+import 'package:kazumi/pages/info/episode_list_sheet.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -206,6 +207,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
+    infoController.clearEpisodes();
     // Search results can miss rating distribution or summaries, so fill those
     // fields without replacing image URLs that are already rendered.
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
@@ -216,6 +218,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         enforceMinimumLoadingDuration: true,
       );
     }
+    // 分集列表仅做展示，与播放页解耦，进入详情页即自动预加载。
+    loadEpisodes();
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
@@ -224,6 +228,34 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoTabController.addListener(onInfoTabChanged);
     infoTabController.addListener(_syncFabTabIndex);
     infoTabController.animation?.addListener(_syncFabTabIndex);
+  }
+
+  Future<void> loadEpisodes() async {
+    await infoController.queryBangumiEpisodesByID(infoController.bangumiItem.id);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> retryLoadEpisodes() async {
+    await infoController.queryBangumiEpisodesByID(infoController.bangumiItem.id);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void showEpisodeListSheet() {
+    showAdaptiveBottomSheet<void>(
+      context: context,
+      builder: (context) => EpisodeListSheet(
+        bangumiItem: infoController.bangumiItem,
+        episodeList: infoController.episodeList,
+        isLoading: infoController.episodesIsLoading,
+        queryTimeout: infoController.episodesQueryTimeout,
+        isEmpty: infoController.episodesIsEmpty,
+        onRetry: retryLoadEpisodes,
+      ),
+    );
   }
 
   void onInfoTabChanged() {
@@ -290,6 +322,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
+    infoController.clearEpisodes();
     sourceTabController.dispose();
     infoTabController.dispose();
     super.dispose();
@@ -440,6 +473,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                       bangumiItem: infoController.bangumiItem,
                                       isLoading: showBangumiInfoSkeleton,
                                       showRating: showRating,
+                                      onEpisodesTap: showEpisodeListSheet,
                                     ),
                                   ),
                                 ),

@@ -49,6 +49,9 @@ abstract class _InfoController with Store {
   @observable
   bool relationsQueryTimeout = false;
 
+  @observable
+  bool relationsHasLoaded = false;
+
   int _relationRequestGeneration = 0;
 
   bool _isFillingInterestUserProfile = false;
@@ -222,7 +225,11 @@ abstract class _InfoController with Store {
     relationList = ObservableList<BangumiRelation>();
     relationsIsLoading = false;
     relationsQueryTimeout = false;
+    relationsHasLoaded = false;
   }
+
+  bool get canLoadRelations =>
+      !relationsHasLoaded && !relationsIsLoading && !relationsQueryTimeout;
 
   @action
   Future<void> queryBangumiRelationsByID(int id) async {
@@ -231,6 +238,7 @@ abstract class _InfoController with Store {
     final requestGeneration = ++_relationRequestGeneration;
     relationsIsLoading = true;
     relationsQueryTimeout = false;
+    relationsHasLoaded = false;
     try {
       final relations = await resolveRelatedAnimeChain(
         currentSubjectId: id,
@@ -240,6 +248,7 @@ abstract class _InfoController with Store {
         return;
       }
       relationList = ObservableList<BangumiRelation>.of(relations);
+      relationsHasLoaded = true;
       KazumiLogger().i(
         'InfoController: loaded related anime list length ${relationList.length}',
       );

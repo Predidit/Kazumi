@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
@@ -226,7 +227,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         enforceMinimumLoadingDuration: true,
       );
     }
-    loadRelations();
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
@@ -239,12 +239,17 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   void onInfoTabChanged() {
     final index = infoTabController.index;
+    final isTabSettled = !infoTabController.indexIsChanging &&
+        infoTabController.offset.abs() < 0.001;
     if (index == 2 &&
         infoController.characterList.isEmpty &&
         !charactersIsLoading &&
         !charactersIsEmpty &&
         !charactersQueryTimeout) {
       loadCharacters();
+    }
+    if (index == 3 && isTabSettled && infoController.canLoadRelations) {
+      scheduleMicrotask(_loadRelationsIfTabSettled);
     }
     if (index == 4 &&
         infoController.staffList.isEmpty &&
@@ -253,6 +258,17 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         !staffQueryTimeout) {
       loadStaff();
     }
+  }
+
+  void _loadRelationsIfTabSettled() {
+    if (!mounted ||
+        infoTabController.index != 3 ||
+        infoTabController.indexIsChanging ||
+        infoTabController.offset.abs() >= 0.001 ||
+        !infoController.canLoadRelations) {
+      return;
+    }
+    loadRelations();
   }
 
   void _syncFabTabIndex() {
@@ -495,6 +511,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 relationList: infoController.relationList,
                 relationsIsLoading: infoController.relationsIsLoading,
                 relationsQueryTimeout: infoController.relationsQueryTimeout,
+                relationsHasLoaded: infoController.relationsHasLoaded,
                 loadRelations: loadRelations,
                 isLoading: showBangumiInfoSkeleton,
               );

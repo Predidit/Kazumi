@@ -155,6 +155,22 @@ mixin _$InfoController on _InfoController, Store {
     });
   }
 
+  late final _$relationsHasLoadedAtom =
+      Atom(name: '_InfoController.relationsHasLoaded', context: context);
+
+  @override
+  bool get relationsHasLoaded {
+    _$relationsHasLoadedAtom.reportRead();
+    return super.relationsHasLoaded;
+  }
+
+  @override
+  set relationsHasLoaded(bool value) {
+    _$relationsHasLoadedAtom.reportWrite(value, super.relationsHasLoaded, () {
+      super.relationsHasLoaded = value;
+    });
+  }
+
   late final _$queryBangumiRelationsByIDAsyncAction = AsyncAction(
       '_InfoController.queryBangumiRelationsByID',
       context: context);
@@ -190,7 +206,8 @@ characterList: ${characterList},
 staffList: ${staffList},
 relationList: ${relationList},
 relationsIsLoading: ${relationsIsLoading},
-relationsQueryTimeout: ${relationsQueryTimeout}
+relationsQueryTimeout: ${relationsQueryTimeout},
+relationsHasLoaded: ${relationsHasLoaded}
     ''';
   }
 }

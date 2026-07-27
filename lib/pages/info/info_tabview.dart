@@ -26,6 +26,7 @@ class InfoTabView extends StatefulWidget {
     required this.staffIsEmpty,
     required this.relationsQueryTimeout,
     required this.relationsIsLoading,
+    required this.relationsHasLoaded,
     required this.tabController,
     required this.loadMoreComments,
     required this.loadCharacters,
@@ -51,6 +52,7 @@ class InfoTabView extends StatefulWidget {
   final bool staffIsEmpty;
   final bool relationsQueryTimeout;
   final bool relationsIsLoading;
+  final bool relationsHasLoaded;
   final TabController tabController;
   final Future<void> Function({bool loadMore}) loadMoreComments;
   final Future<void> Function() loadCharacters;
@@ -234,7 +236,7 @@ class _InfoTabViewState extends State<InfoTabView>
                     ),
                   );
                 }
-                if (!widget.relationsIsLoading && widget.relationList.isEmpty) {
+                if (widget.relationsHasLoaded && widget.relationList.isEmpty) {
                   return const SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(child: Text('暂无关联条目')),
@@ -252,9 +254,10 @@ class _InfoTabViewState extends State<InfoTabView>
                     : contentWidth >= 560
                         ? 2
                         : 1;
-                final itemCount = widget.relationsIsLoading
-                    ? crossAxisCount
-                    : widget.relationList.length;
+                final showSkeleton =
+                    !widget.relationsHasLoaded || widget.relationsIsLoading;
+                final itemCount =
+                    showSkeleton ? crossAxisCount : widget.relationList.length;
 
                 return SliverPadding(
                   padding: EdgeInsets.fromLTRB(
@@ -272,7 +275,7 @@ class _InfoTabViewState extends State<InfoTabView>
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        if (widget.relationsIsLoading) {
+                        if (showSkeleton) {
                           return LayoutBuilder(
                             builder: (context, constraints) {
                               return Skeletonizer.zone(
@@ -696,6 +699,8 @@ class _RelatedBangumiCardH extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final textScaler =
+        MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.1);
     final relationLabel = relation.relation.isEmpty ? '关联' : relation.relation;
     final bangumiItem = relation.toBangumiItem();
     final title = bangumiItem.nameCn.isEmpty
@@ -745,20 +750,26 @@ class _RelatedBangumiCardH extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: colorScheme.onSurface,
-                            fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textScaler: textScaler,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: colorScheme.onSurface,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
-                        const Spacer(),
                         Text(
                           relationLabel,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          textScaler: textScaler,
                           style: theme.textTheme.titleSmall?.copyWith(
                             color: colorScheme.primary,
                             fontWeight: FontWeight.w600,

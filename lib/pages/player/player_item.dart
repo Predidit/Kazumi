@@ -150,14 +150,19 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.playback.playerPlaying) {
       try {
         await playerController.pause(enableSync: false);
-      } catch (_) {}
+      } catch (e) {
+        KazumiLogger().w('Player: pause on lifecycle paused failed', error: e);
+      }
       return;
     }
     try {
       if (playerController.playback.playerPlaying) {
         playerController.danmaku.canvasController.resume();
       }
-    } catch (_) {}
+    } catch (e) {
+      KazumiLogger()
+          .w('Player: danmaku resume on lifecycle resumed failed', error: e);
+    }
   }
 
   Future<void> _syncAndroidAutoEnterPIPSetting() async {
@@ -353,7 +358,10 @@ class _PlayerItemState extends State<PlayerItem>
     if (videoPageController.isFullscreen && !isTablet()) {
       try {
         playerController.danmaku.canvasController.clear();
-      } catch (_) {}
+      } catch (e) {
+        KazumiLogger()
+            .w('Player: danmaku clear on exit fullscreen failed', error: e);
+      }
       DisplayModeService.exitFullScreen();
       videoPageController.isFullscreen = !videoPageController.isFullscreen;
     } else if (!Platform.isMacOS) {
@@ -1037,7 +1045,9 @@ class _PlayerItemState extends State<PlayerItem>
           }
           try {
             playerTimer!.cancel();
-          } catch (_) {}
+          } catch (e) {
+            KazumiLogger().w('Player: cancel playerTimer failed', error: e);
+          }
           widget.changeEpisode(playingSelection.episode + 1,
               currentRoad: playingSelection.road);
         }

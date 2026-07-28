@@ -433,7 +433,10 @@ $script
     if (_navigationListener != null) {
       try {
         webviewController?.isNavigating.removeListener(_navigationListener!);
-      } catch (_) {}
+      } catch (e) {
+        KazumiLogger().w('CaptchaWebView: failed to remove navigation listener',
+            error: e);
+      }
       _navigationListener = null;
     }
     try {
@@ -441,7 +444,10 @@ $script
       captchaDisappearedController.close();
       initEventController.close();
       logEventController.close();
-    } catch (_) {}
+    } catch (e) {
+      KazumiLogger().w('CaptchaWebView: failed to close controllers on dispose',
+          error: e);
+    }
     webviewController?.close();
     webviewController = null;
   }

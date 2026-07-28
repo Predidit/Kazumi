@@ -268,7 +268,10 @@ if (!_checkForCaptcha()) {
       await PlatformCookieManager(const PlatformCookieManagerCreationParams())
           .deleteAllCookies();
       logEventController.add('[Captcha WebView] Cookies cleared before load');
-    } catch (_) {}
+    } catch (e) {
+      KazumiLogger()
+          .w('CaptchaWebView: failed to clear cookies before load', error: e);
+    }
     await webviewController?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
   }
 
@@ -284,7 +287,10 @@ if (!_checkForCaptcha()) {
       await PlatformCookieManager(const PlatformCookieManagerCreationParams())
           .deleteAllCookies();
       logEventController.add('[Captcha WebView] Cookies cleared before load');
-    } catch (_) {}
+    } catch (e) {
+      KazumiLogger()
+          .w('CaptchaWebView: failed to clear cookies before load', error: e);
+    }
     await webviewController?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
   }
 
@@ -480,7 +486,9 @@ if (!_checkAndClick()) {
     try {
       await webviewController?.loadUrl(
           urlRequest: URLRequest(url: WebUri('about:blank')));
-    } catch (_) {}
+    } catch (e) {
+      KazumiLogger().w('CaptchaWebView: failed to load about:blank', error: e);
+    }
   }
 
   @override
@@ -493,13 +501,19 @@ if (!_checkAndClick()) {
     try {
       PlatformCookieManager(const PlatformCookieManagerCreationParams())
           .deleteAllCookies();
-    } catch (_) {}
+    } catch (e) {
+      KazumiLogger()
+          .w('CaptchaWebView: failed to clear cookies on dispose', error: e);
+    }
     try {
       captchaImageFoundController.close();
       captchaDisappearedController.close();
       initEventController.close();
       logEventController.close();
-    } catch (_) {}
+    } catch (e) {
+      KazumiLogger().w('CaptchaWebView: failed to close controllers on dispose',
+          error: e);
+    }
     _headlessWebView?.dispose();
     _headlessWebView = null;
     webviewController = null;

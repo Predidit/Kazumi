@@ -460,7 +460,10 @@ $script
     for (final s in _subscriptions) {
       try {
         s.cancel();
-      } catch (_) {}
+      } catch (e) {
+        KazumiLogger()
+            .w('CaptchaWebView: failed to cancel subscription', error: e);
+      }
     }
     _subscriptions.clear();
     try {
@@ -468,7 +471,10 @@ $script
       captchaDisappearedController.close();
       initEventController.close();
       logEventController.close();
-    } catch (_) {}
+    } catch (e) {
+      KazumiLogger().w('CaptchaWebView: failed to close controllers on dispose',
+          error: e);
+    }
     _headlessWebview?.dispose();
     _headlessWebview = null;
   }

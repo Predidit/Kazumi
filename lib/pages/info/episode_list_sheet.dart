@@ -1,71 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 /// 番剧详情页的「集数详情」浮动展示。
 ///
 /// 仅展示 Bangumi `/v0/episodes` 返回的分集元信息，点击不跳转播放页，
 /// 与视频源/播放链路完全解耦。
+///
+/// 直接订阅 [InfoController] 的 MobX 状态，加载/重试/成功/失败切换时
+/// sheet 会自动重建，无需外部传入快照。
 class EpisodeListSheet extends StatelessWidget {
   const EpisodeListSheet({
     super.key,
-    required this.bangumiItem,
-    required this.episodeList,
-    required this.isLoading,
-    required this.queryTimeout,
-    required this.isEmpty,
+    required this.infoController,
     required this.onRetry,
   });
 
-  final BangumiItem bangumiItem;
-  final List<EpisodeInfo> episodeList;
-  final bool isLoading;
-  final bool queryTimeout;
-  final bool isEmpty;
+  final InfoController infoController;
   final Future<void> Function() onRetry;
 
-  /// 把 [EpisodeInfo.type] 映射为分段标题。
-  /// 0=本篇 / 1=特别篇 / 2=片头曲 / 3=片尾曲。
-  String _sectionTitle(int type) {
-    switch (type) {
-      case 0:
-        return '本篇';
-      case 1:
-        return '特别篇';
-      case 2:
-        return '片头曲';
-      case 3:
-        return '片尾曲';
-      default:
-        return '其它';
-    }
-  }
-
-  /// 渲染单集编号前缀，例如 `EP1`、`SP2`、`OP`、`ED`。
-  /// type=2/3 的 OP/ED 通常没有 sort，直接显示类型缩写。
-  String _episodePrefix(EpisodeInfo episode) {
-    final typeStr = episode.readType().toUpperCase();
-    final sort = episode.episode;
-    if (sort == 0 && (episode.type == 2 || episode.type == 3)) {
-      return typeStr;
-    }
-    // sort 是 num，可能是 1.0 或 1.5。整数显示为整数。
-    final sortStr =
-        sort == sort.toInt() ? sort.toInt().toString() : sort.toString();
-    return '$typeStr$sortStr';
-  }
-
-  /// 优先用中文名，回退到日文名。
-  String _episodeName(EpisodeInfo episode) {
-    final cn = episode.nameCn.trim();
-    if (cn.isNotEmpty) return cn;
-    return episode.name.trim();
-  }
-
   /// 按 type 分组并保留 Bangumi 返回顺序。
-  List<({String title, List<EpisodeInfo> episodes})> _groupedSections() {
+  /// 分段标题由 [EpisodeInfo.sectionTitleForType] 提供。
+  List<({String title, List<EpisodeInfo> episodes})> _groupedSections(
+      List<EpisodeInfo> episodeList) {
     final byType = <int, List<EpisodeInfo>>{};
     final order = <int>[];
     for (final ep in episodeList) {
@@ -78,42 +38,39 @@ class EpisodeListSheet extends StatelessWidget {
     }
     return [
       for (final type in order)
-        (title: _sectionTitle(type), episodes: byType[type]!),
+        (title: EpisodeInfo.sectionTitleForType(type), episodes: byType[type]!),
     ];
   }
 
   Widget _buildSectionHeader(BuildContext context, String title, int count) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(width: 6),
-          Text(
-            '($count)',
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.outline,
-            ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '($count)',
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.outline,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildEpisodeTile(BuildContext context, EpisodeInfo episode) {
-    final prefix = _episodePrefix(episode);
-    final name = _episodeName(episode);
+    final prefix = episode.prefix();
+    final name = episode.displayName();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -145,28 +102,32 @@ class EpisodeListSheet extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
-    if (isLoading && episodeList.isEmpty) {
+    final episodeList = infoController.episodeList.toList();
+    if (infoController.episodesIsLoading && episodeList.isEmpty) {
       return Skeletonizer.zone(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (int i = 0; i < 6; i++)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Bone.text(fontSize: 14, width: 40),
-                    const SizedBox(width: 8),
-                    Expanded(child: Bone.text(fontSize: 14, width: 200)),
-                  ],
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (int i = 0; i < 6; i++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Bone.text(fontSize: 14, width: 40),
+                      const SizedBox(width: 8),
+                      Expanded(child: Bone.text(fontSize: 14, width: 200)),
+                    ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       );
     }
 
-    if (queryTimeout && episodeList.isEmpty) {
+    if (infoController.episodesQueryTimeout && episodeList.isEmpty) {
       return GeneralErrorWidget(
         errMsg: '集数获取失败',
         actions: [
@@ -178,7 +139,7 @@ class EpisodeListSheet extends StatelessWidget {
       );
     }
 
-    if (isEmpty && episodeList.isEmpty) {
+    if (infoController.episodesIsEmpty && episodeList.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 32),
@@ -187,22 +148,29 @@ class EpisodeListSheet extends StatelessWidget {
       );
     }
 
-    final sections = _groupedSections();
-    return ListView.builder(
-      shrinkWrap: true,
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-      itemCount: sections.length,
-      itemBuilder: (context, sectionIndex) {
-        final section = sections[sectionIndex];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionHeader(context, section.title, section.episodes.length),
-            for (final episode in section.episodes)
-              _buildEpisodeTile(context, episode),
-          ],
-        );
-      },
+    final sections = _groupedSections(episodeList);
+    // 用 CustomScrollView + SliverList 实现真正的懒加载：
+    // 每个 section 一个 SliverToBoxAdapter(header) + SliverList(episodes)，
+    // 长番剧只构建可见区域内的 tile。
+    return CustomScrollView(
+      slivers: [
+        const SliverToBoxAdapter(child: SizedBox(height: 4)),
+        for (final section in sections) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+              child: _buildSectionHeader(context, section.title,
+                  section.episodes.length),
+            ),
+          ),
+          SliverList.builder(
+            itemCount: section.episodes.length,
+            itemBuilder: (context, index) =>
+                _buildEpisodeTile(context, section.episodes[index]),
+          ),
+        ],
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+      ],
     );
   }
 
@@ -250,7 +218,11 @@ class EpisodeListSheet extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-          Flexible(child: _buildContent(context)),
+          Flexible(
+            child: Observer(
+              builder: (context) => _buildContent(context),
+            ),
+          ),
         ],
       ),
     );

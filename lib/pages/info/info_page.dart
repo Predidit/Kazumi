@@ -207,7 +207,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
-    infoController.clearEpisodes();
+    infoController.resetEpisodesState();
     // Search results can miss rating distribution or summaries, so fill those
     // fields without replacing image URLs that are already rendered.
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
@@ -218,8 +218,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         enforceMinimumLoadingDuration: true,
       );
     }
-    // 分集列表仅做展示，与播放页解耦，进入详情页即自动预加载。
-    loadEpisodes();
+    // 集数详情：懒加载，仅在用户首次打开 sheet 时才请求 Bangumi。
+    // 避免每次进入详情页都预取完整分集列表，浪费流量。
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
@@ -230,30 +230,24 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoTabController.animation?.addListener(_syncFabTabIndex);
   }
 
+  /// 加载集数详情。仅在首次打开 sheet 或重试时调用。
   Future<void> loadEpisodes() async {
+    if (!mounted) return;
     await infoController.queryBangumiEpisodesByID(infoController.bangumiItem.id);
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  Future<void> retryLoadEpisodes() async {
-    await infoController.queryBangumiEpisodesByID(infoController.bangumiItem.id);
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   void showEpisodeListSheet() {
+    // 首次打开或失败后重试时触发加载；已加载成功则直接展示。
+    if (!infoController.episodesIsLoading &&
+        infoController.episodeList.isEmpty &&
+        !infoController.episodesQueryTimeout) {
+      loadEpisodes();
+    }
     showAdaptiveBottomSheet<void>(
       context: context,
       builder: (context) => EpisodeListSheet(
-        bangumiItem: infoController.bangumiItem,
-        episodeList: infoController.episodeList,
-        isLoading: infoController.episodesIsLoading,
-        queryTimeout: infoController.episodesQueryTimeout,
-        isEmpty: infoController.episodesIsEmpty,
-        onRetry: retryLoadEpisodes,
+        infoController: infoController,
+        onRetry: loadEpisodes,
       ),
     );
   }

@@ -253,11 +253,18 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(
-                              width: 120,
-                              height: 40,
-                              child: CollectButton.extend(
-                                bangumiItem: widget.bangumiItem,
+                            Flexible(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minWidth: 80,
+                                  maxWidth: 160,
+                                ),
+                                child: SizedBox(
+                                  height: 40,
+                                  child: CollectButton.extend(
+                                    bangumiItem: widget.bangumiItem,
+                                  ),
+                                ),
                               ),
                             ),
                             if (widget.onEpisodesTap != null) ...[
@@ -292,6 +299,8 @@ class _EpisodeListButton extends StatelessWidget {
     required this.onPressed,
   });
 
+  static const String _tooltip = '集数详情';
+
   final VoidCallback onPressed;
 
   @override
@@ -302,6 +311,7 @@ class _EpisodeListButton extends StatelessWidget {
       height: 40,
       child: IconButton(
         onPressed: onPressed,
+        tooltip: _tooltip,
         icon: const Icon(Icons.video_collection_rounded),
         style: IconButton.styleFrom(
           backgroundColor: theme.colorScheme.primaryContainer,

@@ -62,7 +62,16 @@ abstract class _InfoController with Store {
     _commentsOffset = 0;
   }
 
+  /// 仅清空数据，保留 in-flight 标志 [episodesIsLoading]。
+  /// 用于 sheet 关闭后重置展示数据，避免破坏 [queryBangumiEpisodesByID]
+  /// 的重入保护：如果请求正在进行中，重置数据不应让其它调用者绕过 guard。
   void clearEpisodes() {
+    episodeList.clear();
+  }
+
+  /// 完整重置集数状态：数据 + 所有标志位。
+  /// 仅在 [InfoPage.initState] 切换 subject 时调用。
+  void resetEpisodesState() {
     episodeList.clear();
     episodesIsLoading = false;
     episodesQueryTimeout = false;
@@ -234,7 +243,12 @@ abstract class _InfoController with Store {
     episodesIsEmpty = false;
     try {
       final list = await BangumiApi.getBangumiEpisodesByID(id);
-      episodeList = ObservableList<EpisodeInfo>.of(list);
+      // 用 mutation 方式更新 ObservableList（clear + addAll），
+      // 而非替换整个 list 引用。符合 MobX 官方文档推荐用法：
+      // Observer 会跟踪 list 内部 mutation，无需替换引用。
+      episodeList
+        ..clear()
+        ..addAll(list);
       // BangumiApi.getBangumiEpisodesByID 内部吞掉异常后返回空列表，
       // 因此空列表既可能是失败也可能是真空。统一走「重试」入口，
       // 让用户决定是再拉一次还是放弃。

@@ -245,6 +245,9 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         !charactersQueryTimeout) {
       loadCharacters();
     }
+    if (index == 3 && infoController.canLoadRelations) {
+      loadRelations();
+    }
     if (index == 4 &&
         infoController.staffList.isEmpty &&
         !staffIsLoading &&
@@ -495,7 +498,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 relationsIsLoading: infoController.relationsIsLoading,
                 relationsQueryTimeout: infoController.relationsQueryTimeout,
                 relationsHasLoaded: infoController.relationsHasLoaded,
-                canLoadRelations: infoController.canLoadRelations,
                 loadRelations: loadRelations,
                 isLoading: showBangumiInfoSkeleton,
               );

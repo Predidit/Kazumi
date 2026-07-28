@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
 
 void main() {
   group('BangumiRelation.fromJson', () {
@@ -471,22 +470,6 @@ void main() {
       );
 
       await expectLater(future, throwsStateError);
-    });
-  });
-
-  group('BangumiApi.buildBangumiRelationsUrl', () {
-    test('uses the official API when mirror mode is disabled', () {
-      expect(
-        BangumiApi.buildBangumiRelationsUrl(501963, useMirror: false),
-        'https://api.bgm.tv/v0/subjects/501963/subjects',
-      );
-    });
-
-    test('uses the compatible mirror when mirror mode is enabled', () {
-      expect(
-        BangumiApi.buildBangumiRelationsUrl(501963, useMirror: true),
-        'https://api.bgmapi.com/v0/subjects/501963/subjects',
-      );
     });
   });
 }

@@ -1,5 +1,4 @@
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/clients/bangumi_client.dart';
 import 'package:kazumi/request/core/network_exception.dart';
@@ -356,25 +355,11 @@ class BangumiApi {
     }
   }
 
-  static String buildBangumiRelationsUrl(
-    int id, {
-    required bool useMirror,
-  }) {
-    final domain = useMirror
-        ? ApiEndpoints.bangumiAuthAPIMirrorDomain
-        : ApiEndpoints.bangumiAPIDomain;
-    return ApiEndpoints.formatUrl(
-      domain + ApiEndpoints.bangumiRelationsByID,
-      [id],
-    );
-  }
-
   static Future<List<BangumiRelation>> getBangumiRelationsByID(int id) async {
-    final bool useMirror = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
     final jsonData = await _client.get(
-      buildBangumiRelationsUrl(
-        id,
-        useMirror: useMirror,
+      ApiEndpoints.formatUrl(
+        ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiRelationsByID,
+        [id],
       ),
     );
     if (jsonData is! List) {

@@ -35,11 +35,12 @@ class KazumiDialog {
         onDismiss?.call();
         return result;
       } catch (e) {
-        KazumiLogger().e('Failed to show dialog', error: e);
+        KazumiLogger().e('Kazumi Dialog: Failed to show dialog', error: e);
         return null;
       }
     } else {
-      KazumiLogger().w('No context available to show the dialog');
+      KazumiLogger()
+          .d('Kazumi Dialog: No context available to show the dialog');
       return null;
     }
   }
@@ -62,8 +63,7 @@ class KazumiDialog {
             SnackBar(
               content: Text(message),
               behavior: SnackBarBehavior.floating,
-              width:
-                  MediaQuery.sizeOf(toastContext).width >
+              width: MediaQuery.sizeOf(toastContext).width >
                       LayoutBreakpoint.medium['width']!
                   ? 600
                   : null,
@@ -81,10 +81,11 @@ class KazumiDialog {
             ),
           );
       } catch (e) {
-        KazumiLogger().e('Failed to show toast', error: e);
+        KazumiLogger().e('Kazumi Dialog: Failed to show toast', error: e);
       }
     } else {
-      KazumiLogger().w('No ScaffoldMessenger available to show Toast');
+      KazumiLogger()
+          .d('Kazumi Dialog: No ScaffoldMessenger available to show Toast');
     }
   }
 
@@ -130,10 +131,12 @@ class KazumiDialog {
         );
         onDismiss?.call();
       } catch (e) {
-        KazumiLogger().e('Failed to show loading dialog', error: e);
+        KazumiLogger()
+            .e('Kazumi Dialog: Failed to show loading dialog', error: e);
       }
     } else {
-      KazumiLogger().w('No context available to show the loading dialog');
+      KazumiLogger()
+          .d('Kazumi Dialog: No context available to show the loading dialog');
     }
   }
 
@@ -156,8 +159,7 @@ class KazumiDialog {
     bool useSafeArea = false,
   }) async {
     // Use provided context first, then root context, then fallback to current context
-    final ctx =
-        context ??
+    final ctx = context ??
         rootNavigatorKey.currentContext ??
         observer.rootContext ??
         observer.currentContext;
@@ -184,11 +186,13 @@ class KazumiDialog {
         );
         return result;
       } catch (e) {
-        KazumiLogger().e('Failed to show bottom sheet', error: e);
+        KazumiLogger()
+            .e('Kazumi Dialog: Failed to show bottom sheet', error: e);
         return null;
       }
     } else {
-      KazumiLogger().w('No context available to show the bottom sheet');
+      KazumiLogger()
+          .d('Kazumi Dialog: No context available to show the bottom sheet');
       return null;
     }
   }
@@ -199,7 +203,7 @@ class KazumiDialog {
       try {
         Navigator.of(observer.kazumiDialogContext!).pop(popWith);
       } catch (e) {
-        KazumiLogger().e('Failed to dismiss dialog', error: e);
+        KazumiLogger().e('Kazumi Dialog: Failed to dismiss dialog', error: e);
       }
     } else {
       KazumiLogger().d('Kazumi Dialog: No active dialog to dismiss');

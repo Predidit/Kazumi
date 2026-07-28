@@ -236,24 +236,20 @@ class _VideoPageState extends State<VideoPage>
     } catch (e) {
       KazumiLogger().w('dispose animation failed', error: e);
     }
-    try {
-      _syncChatSubscription?.cancel();
-    } catch (e) {
+    _syncChatSubscription?.cancel().catchError((e) {
       KazumiLogger().w('dispose syncChatSubscription failed', error: e);
-    }
-    try {
-      _logSubscription?.cancel();
-    } catch (e) {
+    });
+    _logSubscription?.cancel().catchError((e) {
       KazumiLogger().w('dispose logSubscription failed', error: e);
-    }
+    });
     // Cancellation and log-stream teardown happen in VideoPageController's
     // own dispose when Modular releases the route scope.
     if (!isDesktop()) {
-      try {
-        ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
-      } catch (e) {
+      ScreenBrightnessPlatform.instance
+          .resetApplicationScreenBrightness()
+          .catchError((e) {
         KazumiLogger().w('reset screen brightness failed', error: e);
-      }
+      });
     }
     DisplayModeService.unlockScreenRotation();
     keyboardFocus.dispose();
@@ -523,54 +519,54 @@ class _VideoPageState extends State<VideoPage>
 
     final DanmakuDestination? result =
         await showAdaptiveBottomSheet<DanmakuDestination>(
-          context: context,
-          builder: (context) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  MaterialBottomSheetHeader(
-                    title: '发送弹幕至',
-                    description: '选择这条弹幕的发送位置',
-                    onClose: () => Navigator.of(context).pop(),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: MaterialBottomSheetGroup(
-                      title: '发送位置',
-                      children: [
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                          ),
-                          leading: const Icon(Icons.groups_rounded),
-                          title: const Text('发送到聊天室'),
-                          subtitle: const Text('同步观看成员均可看到'),
-                          onTap: () => Navigator.of(
-                            context,
-                          ).pop(DanmakuDestination.chatRoom),
-                        ),
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                          ),
-                          leading: const Icon(Icons.cloud_upload_rounded),
-                          title: const Text('发送到远程弹幕库'),
-                          subtitle: const Text('作为视频弹幕发送'),
-                          onTap: () => Navigator.of(
-                            context,
-                          ).pop(DanmakuDestination.remoteDanmaku),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+      context: context,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MaterialBottomSheetHeader(
+                title: '发送弹幕至',
+                description: '选择这条弹幕的发送位置',
+                onClose: () => Navigator.of(context).pop(),
               ),
-            );
-          },
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: MaterialBottomSheetGroup(
+                  title: '发送位置',
+                  children: [
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      leading: const Icon(Icons.groups_rounded),
+                      title: const Text('发送到聊天室'),
+                      subtitle: const Text('同步观看成员均可看到'),
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(DanmakuDestination.chatRoom),
+                    ),
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      leading: const Icon(Icons.cloud_upload_rounded),
+                      title: const Text('发送到远程弹幕库'),
+                      subtitle: const Text('作为视频弹幕发送'),
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(DanmakuDestination.remoteDanmaku),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
+      },
+    );
 
     if (result == null || !mounted) {
       return false;
@@ -677,8 +673,8 @@ class _VideoPageState extends State<VideoPage>
       width: (!isDesktop() && !isTablet())
           ? MediaQuery.sizeOf(context).height
           : (MediaQuery.sizeOf(context).width / 3 > 420
-                ? 420
-                : MediaQuery.sizeOf(context).width / 3),
+              ? 420
+              : MediaQuery.sizeOf(context).width / 3),
       child: Container(
         color: Theme.of(context).canvasColor,
         child: GridViewObserver(
@@ -770,8 +766,7 @@ class _VideoPageState extends State<VideoPage>
                   ),
                 ),
               Visibility(
-                visible:
-                    (videoPageController.loading || playerLoading) &&
+                visible: (videoPageController.loading || playerLoading) &&
                     showDebugLog,
                 child: Container(
                   color: Colors.black,
@@ -827,8 +822,7 @@ class _VideoPageState extends State<VideoPage>
                             },
                           ),
                           Visibility(
-                            visible:
-                                MediaQuery.sizeOf(context).width >
+                            visible: MediaQuery.sizeOf(context).width >
                                 MediaQuery.sizeOf(context).height,
                             child: IconButton(
                               onPressed: () {
@@ -1072,12 +1066,10 @@ class _VideoPageState extends State<VideoPage>
                             children: [
                               if (count0 ==
                                       (videoPageController
-                                          .selectedEpisode
-                                          .episode) &&
+                                          .selectedEpisode.episode) &&
                                   visibleRoad ==
                                       videoPageController
-                                          .selectedEpisode
-                                          .road) ...<Widget>[
+                                          .selectedEpisode.road) ...<Widget>[
                                 Image.asset(
                                   'assets/images/playing.gif',
                                   color: Theme.of(context).colorScheme.primary,
@@ -1092,15 +1084,12 @@ class _VideoPageState extends State<VideoPage>
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color:
-                                        (count0 ==
+                                    color: (count0 ==
                                                 videoPageController
-                                                    .selectedEpisode
-                                                    .episode &&
+                                                    .selectedEpisode.episode &&
                                             visibleRoad ==
                                                 videoPageController
-                                                    .selectedEpisode
-                                                    .road)
+                                                    .selectedEpisode.road)
                                         ? Theme.of(context).colorScheme.primary
                                         : Theme.of(
                                             context,

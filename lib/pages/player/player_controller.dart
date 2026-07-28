@@ -325,7 +325,7 @@ class PlayerController implements Disposable {
       seeking.seekBy(offset, enableSync: enableSync);
 
   Future<void> _onSeekCompleted(bool enableSync) async {
-    if (syncplay.syncplayController != null) {
+    if (syncplay.hasSession) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
         await requestSyncPlaySync(doSeek: true);
@@ -343,7 +343,7 @@ class PlayerController implements Disposable {
       return;
     }
     playback.playing = false;
-    if (syncplay.syncplayController != null) {
+    if (syncplay.hasSession) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
         await requestSyncPlaySync();
@@ -361,7 +361,7 @@ class PlayerController implements Disposable {
       return;
     }
     playback.playing = true;
-    if (syncplay.syncplayController != null) {
+    if (syncplay.hasSession) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
         await requestSyncPlaySync();

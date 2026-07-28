@@ -49,8 +49,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleDanmaku,
     required this.skipOP,
     required this.showVideoInfo,
-    required this.showSyncPlayRoomCreateDialog,
-    required this.showSyncPlayEndPointSwitchDialog,
+    required this.showSyncPlayPanel,
     required this.showDanmakuDestinationPickerAndSend,
     required this.pauseForTimedShutdown,
     this.disableAnimations = false,
@@ -78,8 +77,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() skipOP;
   final bool Function(String) sendDanmaku;
   final void Function() showVideoInfo;
-  final void Function() showSyncPlayRoomCreateDialog;
-  final void Function() showSyncPlayEndPointSwitchDialog;
+  final void Function() showSyncPlayPanel;
   final Future<bool> Function(String) showDanmakuDestinationPickerAndSend;
   final VoidCallback pauseForTimedShutdown;
   final bool disableAnimations;
@@ -1208,70 +1206,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       ),
                     ),
                   ),
-                  SubmenuButton(
-                    menuChildren: [
-                      MenuItemButton(
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                                "当前房间: ${playerController.syncplay.syncplayRoom == '' ? '未加入' : playerController.syncplay.syncplayRoom}"),
-                          ),
-                        ),
-                      ),
-                      MenuItemButton(
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                                "网络延时: ${playerController.syncplay.syncplayClientRtt}ms"),
-                          ),
-                        ),
-                      ),
-                      MenuItemButton(
-                        onPressed: () {
-                          widget.showSyncPlayRoomCreateDialog();
-                        },
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("加入房间"),
-                          ),
-                        ),
-                      ),
-                      MenuItemButton(
-                        onPressed: () {
-                          widget.showSyncPlayEndPointSwitchDialog();
-                        },
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("切换服务器"),
-                          ),
-                        ),
-                      ),
-                      MenuItemButton(
-                        onPressed: () async {
-                          await playerController.exitSyncPlayRoom();
-                        },
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("断开连接"),
-                          ),
-                        ),
-                      ),
-                    ],
+                  MenuItemButton(
+                    onPressed: () {
+                      widget.showSyncPlayPanel();
+                    },
                     child: Container(
                       height: 48,
                       constraints: BoxConstraints(minWidth: 112),

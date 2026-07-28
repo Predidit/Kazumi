@@ -9,6 +9,22 @@ part of 'player_syncplay_controller.dart';
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
 mixin _$PlayerSyncPlayController on _PlayerSyncPlayController, Store {
+  late final _$syncplayControllerAtom = Atom(
+      name: '_PlayerSyncPlayController.syncplayController', context: context);
+
+  @override
+  SyncplayClient? get syncplayController {
+    _$syncplayControllerAtom.reportRead();
+    return super.syncplayController;
+  }
+
+  @override
+  set syncplayController(SyncplayClient? value) {
+    _$syncplayControllerAtom.reportWrite(value, super.syncplayController, () {
+      super.syncplayController = value;
+    });
+  }
+
   late final _$syncplayRoomAtom =
       Atom(name: '_PlayerSyncPlayController.syncplayRoom', context: context);
 
@@ -52,6 +68,7 @@ mixin _$PlayerSyncPlayController on _PlayerSyncPlayController, Store {
   @override
   String toString() {
     return '''
+syncplayController: ${syncplayController},
 syncplayRoom: ${syncplayRoom},
 syncplayClientRtt: ${syncplayClientRtt}
     ''';

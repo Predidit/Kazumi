@@ -7,7 +7,7 @@ import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/player_pointer_interaction.dart';
 import 'package:kazumi/pages/player/player_screenshot_feedback_overlay.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
-import 'package:kazumi/services/player/syncplay_endpoint.dart';
+import 'package:kazumi/pages/player/syncplay_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
@@ -1184,202 +1184,12 @@ class _PlayerItemState extends State<PlayerItem>
     showVideoDetailsSheet(context, playerController: playerController);
   }
 
-  void showSyncPlayEndPointSwitchDialog() {
-    if (playerController.syncplay.syncplayController != null) {
-      KazumiDialog.showToast(message: 'SyncPlay: 请先退出当前房间再切换服务器');
-      return;
-    }
-
-    const customServerOption = '自定义服务器';
-    String customSyncPlayEndPoint = customServerOption;
-    String selectedSyncPlayEndPoint =
-        GStorage.getSetting(SettingsKeys.syncPlayEndPoint);
-
-    KazumiDialog.show(
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          final syncPlayEndPoints = <String>[
-            ...officialSyncPlayEndPoints,
-            customSyncPlayEndPoint,
-          ];
-          if (!syncPlayEndPoints.contains(selectedSyncPlayEndPoint)) {
-            syncPlayEndPoints.add(selectedSyncPlayEndPoint);
-          }
-          return AlertDialog(
-            title: const Text('选择服务器'),
-            content: SingleChildScrollView(
-              child: ListBody(
-                children: <Widget>[
-                  DropdownButtonFormField<String>(
-                    key: ValueKey(selectedSyncPlayEndPoint),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                    isExpanded: true,
-                    initialValue: selectedSyncPlayEndPoint,
-                    items: syncPlayEndPoints.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(
-                          value,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    }).toList(),
-                    selectedItemBuilder: (context) {
-                      return syncPlayEndPoints.map((String value) {
-                        return Text(
-                          value,
-                          overflow: TextOverflow.ellipsis,
-                        );
-                      }).toList();
-                    },
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        if (newValue == customServerOption) {
-                          String serverText = '';
-                          KazumiDialog.show(
-                            builder: (context) {
-                              return AlertDialog(
-                                title: const Text('自定义服务器'),
-                                content: TextField(
-                                  decoration: const InputDecoration(
-                                    hintText: '请输入服务器地址',
-                                  ),
-                                  onChanged: (value) => serverText = value,
-                                ),
-                                actions: <Widget>[
-                                  TextButton(
-                                    child: const Text('取消'),
-                                    onPressed: () {
-                                      KazumiDialog.dismiss();
-                                    },
-                                  ),
-                                  TextButton(
-                                    child: const Text('确认'),
-                                    onPressed: () {
-                                      if (serverText.isNotEmpty &&
-                                          !syncPlayEndPoints
-                                              .contains(serverText)) {
-                                        KazumiDialog.dismiss();
-                                        setDialogState(() {
-                                          customSyncPlayEndPoint = serverText;
-                                          selectedSyncPlayEndPoint = serverText;
-                                        });
-                                      } else {
-                                        KazumiDialog.showToast(
-                                            message: '服务器地址不能重复或为空');
-                                      }
-                                    },
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        } else {
-                          setDialogState(() {
-                            selectedSyncPlayEndPoint = newValue;
-                          });
-                        }
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('取消'),
-                onPressed: () {
-                  KazumiDialog.dismiss();
-                },
-              ),
-              TextButton(
-                child: const Text('确认'),
-                onPressed: () {
-                  GStorage.putSetting(
-                    SettingsKeys.syncPlayEndPoint,
-                    selectedSyncPlayEndPoint,
-                  );
-                  KazumiDialog.dismiss();
-                },
-              ),
-            ],
-          );
-        });
-      },
+  void showSyncPlayPanel() {
+    showSyncPlaySheet(
+      context,
+      playerController: playerController,
+      changeEpisode: widget.changeEpisode,
     );
-  }
-
-  void showSyncPlayRoomCreateDialog() {
-    final formKey = GlobalKey<FormState>();
-    String room = '';
-    String username = '';
-    KazumiDialog.show(builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('加入房间'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: '房间号',
-                ),
-                onChanged: (value) => room = value,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入房间号';
-                  }
-                  final regex = RegExp(r'^[0-9]{6,10}$');
-                  if (!regex.hasMatch(value)) {
-                    return '房间号需要6到10位数字';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: '用户名',
-                ),
-                onChanged: (value) => username = value,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入用户名';
-                  }
-                  final regex = RegExp(r'^[a-zA-Z]{4,12}$');
-                  if (!regex.hasMatch(value)) {
-                    return '用户名必须为4到12位英文字符';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              KazumiDialog.dismiss();
-            },
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                KazumiDialog.dismiss();
-                playerController.createSyncPlayRoom(
-                    room, username, widget.changeEpisode);
-              }
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      );
-    });
   }
 
   /// Used to decide which panel is used.
@@ -1722,10 +1532,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 _handlePlayerMenuVisibilityChanged,
                             handleDanmaku: handleDanmaku,
                             showVideoInfo: showVideoInfo,
-                            showSyncPlayRoomCreateDialog:
-                                showSyncPlayRoomCreateDialog,
-                            showSyncPlayEndPointSwitchDialog:
-                                showSyncPlayEndPointSwitchDialog,
+                            showSyncPlayPanel: showSyncPlayPanel,
                             showDanmakuDestinationPickerAndSend:
                                 widget.showDanmakuDestinationPickerAndSend,
                             pauseForTimedShutdown: widget.pauseForTimedShutdown,
@@ -1752,10 +1559,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 _handlePlayerMenuVisibilityChanged,
                             handleDanmaku: handleDanmaku,
                             showVideoInfo: showVideoInfo,
-                            showSyncPlayRoomCreateDialog:
-                                showSyncPlayRoomCreateDialog,
-                            showSyncPlayEndPointSwitchDialog:
-                                showSyncPlayEndPointSwitchDialog,
+                            showSyncPlayPanel: showSyncPlayPanel,
                             pauseForTimedShutdown: widget.pauseForTimedShutdown,
                             disableAnimations: widget.disableAnimations,
                             skipOP: skipOP,

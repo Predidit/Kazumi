@@ -55,10 +55,15 @@ class CaptchaVerificationService {
   }
 
   /// 订阅验证通过事件：收尾后把收割到的 HTML 交给 [onVerified]。
+  ///
+  /// [onFinalizing] 在观察到验证通过、开始收尾之前触发。收尾需要数秒，
+  /// 调用方若对验证设有超时，必须以此为准而非 [onVerified]，
+  /// 否则超时会在收尾途中把已经成功的验证判成失败。
   void _listenForVerification(
     String pluginName,
     void Function(String pageHtml) onVerified, {
     String logPrefix = '',
+    void Function()? onFinalizing,
   }) {
     final controller = _controller;
     if (controller == null) return;
@@ -68,6 +73,7 @@ class CaptchaVerificationService {
       // 重新读取：订阅到事件之间可能已被 dispose 置空。
       final current = _controller;
       if (current == null) return;
+      onFinalizing?.call();
       final pageHtml = await _finalize.run(() =>
           _saveCookiesAndUnload(current, pluginName, logPrefix: logPrefix));
       if (_disposed || !_claimOutcome()) return;
@@ -123,12 +129,15 @@ class CaptchaVerificationService {
   }
 
   /// 在页面中填写 [captchaCode] 并点击 [buttonXpath] 提交
+  ///
+  /// [onFinalizing] 在验证通过、开始收尾时触发，早于 [onVerified] 数秒。
   Future<void> submitCaptcha({
     required String captchaCode,
     required String inputXpath,
     required String buttonXpath,
     required String pluginName,
     required void Function(String pageHtml) onVerified,
+    void Function()? onFinalizing,
   }) async {
     if (_controller == null) {
       KazumiLogger()
@@ -139,7 +148,7 @@ class CaptchaVerificationService {
     KazumiLogger()
         .i('[CaptchaVerificationService] Submitting captcha code via interact');
 
-    _listenForVerification(pluginName, onVerified);
+    _listenForVerification(pluginName, onVerified, onFinalizing: onFinalizing);
     await _controller!
         .submitCaptchaInteract(captchaCode, inputXpath, buttonXpath);
   }
@@ -199,33 +208,46 @@ class CaptchaVerificationService {
   }
 
   /// 保存 Cookie 与 User-Agent 并卸载页面。
+  ///
   /// [harvestHtml] 为 true 时先收割验证后页面的 HTML 并返回，
   /// 供上层直接解析检索结果；取消路径不收割。
+  ///
+  /// 按契约不抛异常：成功与取消两条路径共享这一个 Future，任何异常都会同时
+  /// 打断两边——成功路径的 onVerified 不再触发，取消路径 onDismiss 里的
+  /// dispose 与回落检索也会被跳过。故内部兜住异常，尽力返回已取到的内容。
   Future<String> _saveCookiesAndUnload(
     CaptchaWebviewController controller,
     String pluginName, {
     String logPrefix = '',
     bool harvestHtml = true,
   }) async {
-    // 先收割：等待结果页稳定的同时，也让 JS 写入的 Cookie 落地后再读取。
     String pageHtml = '';
-    if (harvestHtml) {
-      pageHtml = await _waitForPageHtml(controller);
+    try {
+      // 先收割：等待结果页稳定的同时，也让 JS 写入的 Cookie 落地后再读取。
+      if (harvestHtml) {
+        pageHtml = await _waitForPageHtml(controller);
+        KazumiLogger().i(
+            '[CaptchaVerificationService] ${logPrefix}Harvested page html length: ${pageHtml.length}');
+      }
+      final cookieString = await controller.getCookieString(_pageUrl);
+      final userAgent = await controller.getUserAgent();
       KazumiLogger().i(
-          '[CaptchaVerificationService] ${logPrefix}Harvested page html length: ${pageHtml.length}');
+          '[CaptchaVerificationService] ${logPrefix}Captured cookies: $cookieString');
+      if (cookieString.isNotEmpty) {
+        await PluginCookieManager.instance.saveFromWebView(
+            pluginName, _pageUrl, cookieString,
+            userAgent: userAgent);
+        KazumiLogger().i(
+            '[CaptchaVerificationService] ${logPrefix}Cookies saved for plugin: $pluginName');
+      }
+      await controller.unloadPage();
+    } catch (error, stackTrace) {
+      KazumiLogger().w(
+        '[CaptchaVerificationService] ${logPrefix}Finalize failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
-    final cookieString = await controller.getCookieString(_pageUrl);
-    final userAgent = await controller.getUserAgent();
-    KazumiLogger().i(
-        '[CaptchaVerificationService] ${logPrefix}Captured cookies: $cookieString');
-    if (cookieString.isNotEmpty) {
-      await PluginCookieManager.instance.saveFromWebView(
-          pluginName, _pageUrl, cookieString,
-          userAgent: userAgent);
-      KazumiLogger().i(
-          '[CaptchaVerificationService] ${logPrefix}Cookies saved for plugin: $pluginName');
-    }
-    await controller.unloadPage();
     return pageHtml;
   }
 

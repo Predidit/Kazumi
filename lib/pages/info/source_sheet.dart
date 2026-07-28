@@ -113,6 +113,11 @@ class _SourceSheetState extends State<SourceSheet>
     /// flag whether verification has passed, used to distinguish normal dismissal from cancellation in onDismiss
     bool verified = false;
 
+    /// Set once the webview reports the captcha gone. The timeout below only
+    /// guards "verification was never detected", so it keys off this rather
+    /// than [verified], which lands seconds later when the harvest finishes.
+    bool finalizing = false;
+
     _captchaVerificationService?.dispose();
     _captchaVerificationService = CaptchaVerificationService();
 
@@ -131,9 +136,14 @@ class _SourceSheetState extends State<SourceSheet>
         inputXpath: plugin.antiCrawlerConfig.captchaInput,
         buttonXpath: plugin.antiCrawlerConfig.captchaButton,
         pluginName: plugin.name,
-        onVerified: (pageHtml) {
+        // Verification is already confirmed here; the harvest that follows
+        // takes seconds, so retire the timeout now rather than in onVerified.
+        onFinalizing: () {
+          finalizing = true;
           _captchaVerifyTimer?.cancel();
           _captchaVerifyTimer = null;
+        },
+        onVerified: (pageHtml) {
           verified = true;
           KazumiDialog.dismiss();
           _showVerifiedResult(plugin, pageHtml);
@@ -141,11 +151,11 @@ class _SourceSheetState extends State<SourceSheet>
       );
       // submitCaptcha completes after the JS button click is fired.
       // Start the 8-second timeout only NOW, waiting for the webview to
-      // detect the captcha disappearing and call onVerified.
-      if (!verified) {
+      // detect the captcha disappearing.
+      if (!finalizing) {
         _captchaVerifyTimer?.cancel();
         _captchaVerifyTimer = Timer(const Duration(seconds: 8), () {
-          if (!verified) {
+          if (!finalizing) {
             KazumiDialog.dismiss();
           }
         });

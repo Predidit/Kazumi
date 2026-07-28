@@ -44,7 +44,6 @@ void main() async {
     await Hive.initFlutter(hivePath);
     await GStorage.init();
   } catch (e) {
-    // Log the error for debugging (if logger is available)
     KazumiLogger().e('Storage initialization failed', error: e);
 
     if (isDesktop()) {

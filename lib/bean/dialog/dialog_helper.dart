@@ -202,7 +202,7 @@ class KazumiDialog {
         KazumiLogger().e('Failed to dismiss dialog', error: e);
       }
     } else {
-      KazumiLogger().w('No active KazumiDialog to dismiss');
+      KazumiLogger().d('Kazumi Dialog: No active dialog to dismiss');
     }
   }
 

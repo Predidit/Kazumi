@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 class WindowsShortcut {
   static const _channel = MethodChannel('com.predidit.kazumi/shortcut');
@@ -11,7 +11,7 @@ class WindowsShortcut {
       return await _channel.invokeMethod<bool>('createDesktopShortcut') ??
           false;
     } catch (e) {
-      debugPrint('Failed to create desktop shortcut: $e');
+      KazumiLogger().e('Failed to create desktop shortcut', error: e);
       return false;
     }
   }

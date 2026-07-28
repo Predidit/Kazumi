@@ -32,7 +32,7 @@ class VideoWebviewAndroidImpl
           geolocationEnabled: false,
         ),
         onWebViewCreated: (controller) {
-          print('[WebView] Created');
+          KazumiLogger().i('[WebView] Created');
           webviewController = controller;
           initEventController.add(true);
         },
@@ -48,8 +48,11 @@ class VideoWebviewAndroidImpl
   }
 
   @override
-  Future<void> loadUrl(String url, bool useLegacyParser,
-      {int offset = 0}) async {
+  Future<void> loadUrl(
+    String url,
+    bool useLegacyParser, {
+    int offset = 0,
+  }) async {
     await unloadPage();
     if (!hasInjectedScripts) {
       addJavaScriptHandlers(useLegacyParser);
@@ -69,60 +72,67 @@ class VideoWebviewAndroidImpl
   void addJavaScriptHandlers(bool useLegacyParser) {
     logEventController.add('Adding LogBridge handler');
     webviewController?.addJavaScriptHandler(
-        handlerName: 'LogBridge',
-        callback: (args) {
-          String message = args[0].toString();
-          if (message.contains('about:blank')) {
-            return;
-          }
-          logEventController.add(message);
-        });
+      handlerName: 'LogBridge',
+      callback: (args) {
+        String message = args[0].toString();
+        if (message.contains('about:blank')) {
+          return;
+        }
+        logEventController.add(message);
+      },
+    );
 
     if (useLegacyParser) {
       logEventController.add('Adding JSBridgeDebug handler');
       webviewController?.addJavaScriptHandler(
-          handlerName: 'JSBridgeDebug',
-          callback: (args) {
-            String message = args[0].toString();
-            logEventController.add('Callback received: $message');
-            logEventController.add(
-                'If there is audio but no video, please report it to the rule developer.');
-            if ((message.contains('http') || message.startsWith('//')) &&
-                !message.contains('googleads') &&
-                !message.contains('googlesyndication.com') &&
-                !message.contains('prestrain.html') &&
-                !message.contains('prestrain%2Ehtml') &&
-                !message.contains('adtrafficquality')) {
-              logEventController.add('Parsing video source $message');
-              String encodedUrl = Uri.encodeFull(message);
-              if (decodeVideoSource(encodedUrl) != encodedUrl) {
-                isIframeLoaded = true;
-                isVideoSourceLoaded = true;
-                videoLoadingEventController.add(false);
-                logEventController.add(
-                    'Loading video source ${decodeVideoSource(encodedUrl)}');
-                unloadPage();
-                videoParserEventController
-                    .add((decodeVideoSource(encodedUrl), offset));
-              }
-            }
-          });
-    } else {
-      logEventController.add('Adding VideoBridgeDebug handler');
-      webviewController?.addJavaScriptHandler(
-          handlerName: 'VideoBridgeDebug',
-          callback: (args) {
-            String message = args[0].toString();
-            logEventController.add('Callback received: $message');
-            if (message.contains('http') && !isVideoSourceLoaded) {
-              logEventController.add('Loading video source: $message');
+        handlerName: 'JSBridgeDebug',
+        callback: (args) {
+          String message = args[0].toString();
+          logEventController.add('Callback received: $message');
+          logEventController.add(
+            'If there is audio but no video, please report it to the rule developer.',
+          );
+          if ((message.contains('http') || message.startsWith('//')) &&
+              !message.contains('googleads') &&
+              !message.contains('googlesyndication.com') &&
+              !message.contains('prestrain.html') &&
+              !message.contains('prestrain%2Ehtml') &&
+              !message.contains('adtrafficquality')) {
+            logEventController.add('Parsing video source $message');
+            String encodedUrl = Uri.encodeFull(message);
+            if (decodeVideoSource(encodedUrl) != encodedUrl) {
               isIframeLoaded = true;
               isVideoSourceLoaded = true;
               videoLoadingEventController.add(false);
+              logEventController.add(
+                'Loading video source ${decodeVideoSource(encodedUrl)}',
+              );
               unloadPage();
-              videoParserEventController.add((message, offset));
+              videoParserEventController.add((
+                decodeVideoSource(encodedUrl),
+                offset,
+              ));
             }
-          });
+          }
+        },
+      );
+    } else {
+      logEventController.add('Adding VideoBridgeDebug handler');
+      webviewController?.addJavaScriptHandler(
+        handlerName: 'VideoBridgeDebug',
+        callback: (args) {
+          String message = args[0].toString();
+          logEventController.add('Callback received: $message');
+          if (message.contains('http') && !isVideoSourceLoaded) {
+            logEventController.add('Loading video source: $message');
+            isIframeLoaded = true;
+            isVideoSourceLoaded = true;
+            videoLoadingEventController.add(false);
+            unloadPage();
+            videoParserEventController.add((message, offset));
+          }
+        },
+      );
     }
   }
 
@@ -164,10 +174,12 @@ class VideoWebviewAndroidImpl
           attributeFilter: ['src']
         });
       """;
-      scripts.add(UserScript(
-        source: jsBridgeDebugScript,
-        injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
-      ));
+      scripts.add(
+        UserScript(
+          source: jsBridgeDebugScript,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        ),
+      );
     } else {
       logEventController.add('Adding VideoBridgeDebug UserScripts');
       const String blobParserScript = """
@@ -259,25 +271,28 @@ class VideoWebviewAndroidImpl
           setupVideoProcessing();
         }
     """;
-      scripts.add(UserScript(
-        source: blobParserScript,
-        injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
-      ));
-      scripts.add(UserScript(
-        source: videoTagParserScript,
-        injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
-      ));
+      scripts.add(
+        UserScript(
+          source: blobParserScript,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        ),
+      );
+      scripts.add(
+        UserScript(
+          source: videoTagParserScript,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        ),
+      );
     }
 
-    await webviewController?.addUserScripts(
-      userScripts: scripts,
-    );
+    await webviewController?.addUserScripts(userScripts: scripts);
   }
 
   @override
   Future<void> unloadPage() async {
-    await webviewController!
-        .loadUrl(urlRequest: URLRequest(url: WebUri("about:blank")));
+    await webviewController!.loadUrl(
+      urlRequest: URLRequest(url: WebUri("about:blank")),
+    );
   }
 
   @override
@@ -312,11 +327,7 @@ class VideoWebviewAndroidImpl
       final proxyController = android_webview.AndroidProxyController.instance();
       await proxyController.clearProxyOverride();
       await proxyController.setProxyOverride(
-        settings: ProxySettings(
-          proxyRules: [
-            ProxyRule(url: formattedProxy),
-          ],
-        ),
+        settings: ProxySettings(proxyRules: [ProxyRule(url: formattedProxy)]),
       );
       KazumiLogger().i('WebView: 代理设置成功 $formattedProxy');
     } catch (e) {

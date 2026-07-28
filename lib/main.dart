@@ -17,6 +17,7 @@ import 'package:kazumi/pages/error/storage_error_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/webview_feature_service.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/navigation.dart';
 
@@ -25,11 +26,13 @@ void main() async {
   MediaKit.ensureInitialized();
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarDividerColor: Colors.transparent,
-      statusBarColor: Colors.transparent,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        statusBarColor: Colors.transparent,
+      ),
+    );
   }
 
   if (Platform.isAndroid) {
@@ -42,7 +45,7 @@ void main() async {
     await GStorage.init();
   } catch (e) {
     // Log the error for debugging (if logger is available)
-    debugPrint('Storage initialization failed: $e');
+    KazumiLogger().e('Storage initialization failed', error: e);
 
     if (isDesktop()) {
       await windowManager.ensureInitialized();
@@ -52,22 +55,32 @@ void main() async {
         await windowManager.focus();
       });
     }
-    runApp(MaterialApp(
+    runApp(
+      MaterialApp(
         title: '初始化失败',
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
         supportedLocales: const [
           Locale.fromSubtags(
-              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
+            languageCode: 'zh',
+            scriptCode: 'Hans',
+            countryCode: "CN",
+          ),
         ],
         locale: const Locale.fromSubtags(
-            languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
+          languageCode: 'zh',
+          scriptCode: 'Hans',
+          countryCode: "CN",
+        ),
         builder: (context, child) {
           return const StorageErrorPage();
-        }));
+        },
+      ),
+    );
     return;
   }
-  bool showWindowButton =
-      await GStorage.getSetting(SettingsKeys.showWindowButton);
+  bool showWindowButton = await GStorage.getSetting(
+    SettingsKeys.showWindowButton,
+  );
   if (isDesktop()) {
     await windowManager.ensureInitialized();
     final lowResolution = await isLowResolution();

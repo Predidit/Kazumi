@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/constants.dart';
 
 // A simple dialog helper class to show dialogs and toasts based on flutter native implementation (replace flutter_smart_dialog)
@@ -34,12 +35,11 @@ class KazumiDialog {
         onDismiss?.call();
         return result;
       } catch (e) {
-        debugPrint('Kazumi Dialog Error: Failed to show dialog: $e');
+        KazumiLogger().e('Failed to show dialog', error: e);
         return null;
       }
     } else {
-      debugPrint(
-          'Kazumi Dialog Error: No context available to show the dialog');
+      KazumiLogger().w('No context available to show the dialog');
       return null;
     }
   }
@@ -62,7 +62,8 @@ class KazumiDialog {
             SnackBar(
               content: Text(message),
               behavior: SnackBarBehavior.floating,
-              width: MediaQuery.sizeOf(toastContext).width >
+              width:
+                  MediaQuery.sizeOf(toastContext).width >
                       LayoutBreakpoint.medium['width']!
                   ? 600
                   : null,
@@ -80,11 +81,10 @@ class KazumiDialog {
             ),
           );
       } catch (e) {
-        debugPrint('Kazumi Dialog Error: Failed to show toast: $e');
+        KazumiLogger().e('Failed to show toast', error: e);
       }
     } else {
-      debugPrint(
-          'Kazumi Dialog Error: No ScaffoldMessenger available to show Toast');
+      KazumiLogger().w('No ScaffoldMessenger available to show Toast');
     }
   }
 
@@ -107,7 +107,8 @@ class KazumiDialog {
               child: Card(
                 elevation: 8.0,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -129,11 +130,10 @@ class KazumiDialog {
         );
         onDismiss?.call();
       } catch (e) {
-        debugPrint('Kazumi Dialog Error: Failed to show loading dialog: $e');
+        KazumiLogger().e('Failed to show loading dialog', error: e);
       }
     } else {
-      debugPrint(
-          'Kazumi Dialog Error: No context available to show the loading dialog');
+      KazumiLogger().w('No context available to show the loading dialog');
     }
   }
 
@@ -156,7 +156,8 @@ class KazumiDialog {
     bool useSafeArea = false,
   }) async {
     // Use provided context first, then root context, then fallback to current context
-    final ctx = context ??
+    final ctx =
+        context ??
         rootNavigatorKey.currentContext ??
         observer.rootContext ??
         observer.currentContext;
@@ -183,12 +184,11 @@ class KazumiDialog {
         );
         return result;
       } catch (e) {
-        debugPrint('Kazumi Dialog Error: Failed to show bottom sheet: $e');
+        KazumiLogger().e('Failed to show bottom sheet', error: e);
         return null;
       }
     } else {
-      debugPrint(
-          'Kazumi Dialog Error: No context available to show the bottom sheet');
+      KazumiLogger().w('No context available to show the bottom sheet');
       return null;
     }
   }
@@ -199,10 +199,10 @@ class KazumiDialog {
       try {
         Navigator.of(observer.kazumiDialogContext!).pop(popWith);
       } catch (e) {
-        debugPrint('Kazumi Dialog Error: Failed to dismiss dialog: $e');
+        KazumiLogger().e('Failed to dismiss dialog', error: e);
       }
     } else {
-      debugPrint('Kazumi Dialog Debug: No active KazumiDialog to dismiss');
+      KazumiLogger().w('No active KazumiDialog to dismiss');
     }
   }
 
@@ -319,10 +319,7 @@ class _TimedSuccessDialogState extends State<_TimedSuccessDialog> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 16),
-              Text(
-                widget.title,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 6),
               Text(
                 widget.message,

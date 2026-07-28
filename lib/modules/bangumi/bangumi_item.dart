@@ -110,6 +110,7 @@ class BangumiItem {
         final s = v.toString().trim();
         return s.isEmpty ? null : s;
       }
+
       // For api.bgm.tv date
       final fromTop = nonEmpty(jsonData['date']);
       if (fromTop != null) return fromTop;
@@ -133,7 +134,8 @@ class BangumiItem {
     if (interestRaw is Map<String, dynamic>) {
       interest = BangumiInterest.fromJson(json['interest']);
     } else if (interestRaw is Map) {
-      interest = BangumiInterest.fromJson(Map<String, dynamic>.from(interestRaw));
+      interest =
+          BangumiInterest.fromJson(Map<String, dynamic>.from(interestRaw));
     }
     return BangumiItem(
       id: json['id'],
@@ -144,7 +146,8 @@ class BangumiItem {
           : json['name_cn'],
       summary: json['summary'] ?? '',
       airDate: airDateStr,
-      airWeekday: dateStringToWeekday(airDateStr.isEmpty ? '2000-11-11' : airDateStr),
+      airWeekday:
+          dateStringToWeekday(airDateStr.isEmpty ? '2000-11-11' : airDateStr),
       rank: json['rating']['rank'] ?? 0,
       images: Map<String, String>.from(
         json['images'] ??

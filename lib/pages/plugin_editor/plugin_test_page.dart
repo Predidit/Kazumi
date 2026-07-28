@@ -417,8 +417,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
             (message) => Padding(
               padding: const EdgeInsets.only(bottom: 4.0),
               child: SelectableText(message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onErrorContainer)),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onErrorContainer)),
             ),
           ),
         ],

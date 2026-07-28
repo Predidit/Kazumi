@@ -100,9 +100,7 @@ class _OptionCard extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Icon(
-                selected
-                    ? Icons.check_circle_rounded
-                    : Icons.circle_outlined,
+                selected ? Icons.check_circle_rounded : Icons.circle_outlined,
                 color: selected ? colorScheme.primary : colorScheme.outline,
               ),
             ],

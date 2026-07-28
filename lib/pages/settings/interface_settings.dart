@@ -114,7 +114,8 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
             SettingsTile.switchTile(
               onToggle: (value) async {
                 showAnimeCounter = value ?? !showAnimeCounter;
-                await GStorage.putSetting(SettingsKeys.showAnimeCounter, showAnimeCounter);
+                await GStorage.putSetting(
+                    SettingsKeys.showAnimeCounter, showAnimeCounter);
                 setState(() {});
               },
               title: Text('显示追番统计', style: TextStyle(fontFamily: fontFamily)),

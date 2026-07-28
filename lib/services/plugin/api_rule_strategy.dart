@@ -297,9 +297,7 @@ class ApiRuleStrategy {
         }
         roads.add(
           Road(
-            name: roadName.isEmpty
-                ? '播放线路${roads.length + 1}'
-                : roadName,
+            name: roadName.isEmpty ? '播放线路${roads.length + 1}' : roadName,
             data: urls,
             identifier: names,
           ),

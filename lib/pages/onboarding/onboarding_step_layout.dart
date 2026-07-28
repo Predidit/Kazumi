@@ -33,8 +33,8 @@ class OnboardingStepLayout extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style:
-              textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+          style: textTheme.bodyMedium
+              ?.copyWith(color: colorScheme.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),

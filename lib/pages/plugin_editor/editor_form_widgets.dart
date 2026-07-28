@@ -11,9 +11,9 @@ TextStyle? _sectionTitleStyle(ThemeData theme) =>
       fontWeight: FontWeight.w700,
     );
 
-TextStyle? _sectionDescriptionStyle(ThemeData theme) => theme
-    .textTheme.bodySmall
-    ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+TextStyle? _sectionDescriptionStyle(ThemeData theme) =>
+    theme.textTheme.bodySmall
+        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
 
 /// Shared tonal shell of the editor section cards.
 class _SectionShell extends StatelessWidget {

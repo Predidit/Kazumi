@@ -62,8 +62,7 @@ String normalizeEpisodeUrl(String baseUrl, String raw) {
   }
 
   final bool hasQuery = resolved.hasQuery && resolved.query.isNotEmpty;
-  final bool hasFragment =
-      resolved.hasFragment && resolved.fragment.isNotEmpty;
+  final bool hasFragment = resolved.hasFragment && resolved.fragment.isNotEmpty;
 
   final normalized = Uri(
     scheme: resolved.scheme,

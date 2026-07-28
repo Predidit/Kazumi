@@ -98,8 +98,7 @@ class SystemProxyService {
       if (!isActive) return 'DIRECT';
       final state = _state;
       if (_shouldBypass(url, state)) return 'DIRECT';
-      final proxy =
-          url.scheme == 'https' ? state.httpsProxy : state.httpProxy;
+      final proxy = url.scheme == 'https' ? state.httpsProxy : state.httpProxy;
       if (proxy == null) return 'DIRECT';
       return 'PROXY ${proxy.$1}:${proxy.$2}';
     } catch (_) {

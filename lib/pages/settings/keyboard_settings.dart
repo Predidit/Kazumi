@@ -311,8 +311,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                 const SizedBox(width: 12),
                 Text(
                   group.title,
-                  style:
-                      textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -361,9 +361,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       label: listening ? '按任意键' : keyAliases[keys[i]] ?? keys[i],
       listening: listening,
       onTap: () => onKeyCapTap(func, i),
-      onDelete: realCount >= 2 && !listening
-          ? () => onRemoveKey(func, i)
-          : null,
+      onDelete:
+          realCount >= 2 && !listening ? () => onRemoveKey(func, i) : null,
     );
   }
 }

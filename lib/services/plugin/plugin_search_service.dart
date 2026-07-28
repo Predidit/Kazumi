@@ -51,9 +51,8 @@ class PluginSearchService {
 
   Future<void> _queryPlugin(Plugin plugin, String keyword) async {
     if (_isCancelled) return;
-    final session = _querySessions
-        .putIfAbsent(plugin.name, AsyncSessionOwner.new)
-        .begin();
+    final session =
+        _querySessions.putIfAbsent(plugin.name, AsyncSessionOwner.new).begin();
     try {
       final result = await plugin.queryBangumi(
         keyword,

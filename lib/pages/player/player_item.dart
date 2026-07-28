@@ -160,8 +160,7 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.danmaku.canvasController.resume();
       }
     } catch (e) {
-      KazumiLogger()
-          .w('Player: danmaku resume on lifecycle resumed failed', error: e);
+      KazumiLogger().w('Player: danmaku resume on $state failed', error: e);
     }
   }
 

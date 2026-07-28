@@ -458,12 +458,10 @@ $script
     buttonWasClicked = false;
     _currentPageUrl = '';
     for (final s in _subscriptions) {
-      try {
-        s.cancel();
-      } catch (e) {
+      s.cancel().catchError((e) {
         KazumiLogger()
             .w('CaptchaWebView: failed to cancel subscription', error: e);
-      }
+      });
     }
     _subscriptions.clear();
     try {

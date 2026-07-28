@@ -76,16 +76,19 @@ class BangumiContent extends StatelessWidget {
 
   final BangumiItem bangumiItem;
 
-  @override
-  Widget build(BuildContext context) {
-    final ts = MediaQuery.textScalerOf(context);
-
-    final int maxTextLines = isDesktop()
+  static int maxTextLinesFor(BuildContext context) {
+    return isDesktop()
         ? 3
         : (isTablet() &&
                 MediaQuery.of(context).orientation == Orientation.landscape)
             ? 3
             : 2;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ts = MediaQuery.textScalerOf(context);
+    final int maxTextLines = maxTextLinesFor(context);
 
     return Expanded(
       child: Padding(

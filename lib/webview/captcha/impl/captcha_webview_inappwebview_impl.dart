@@ -476,6 +476,31 @@ if (!_checkAndClick()) {
   }
 
   @override
+  Future<String> getPageHtml() async {
+    try {
+      final result = await webviewController?.evaluateJavascript(
+          source:
+              "document.readyState === 'loading' ? '' : document.documentElement.outerHTML;");
+      return result is String ? result : '';
+    } catch (e) {
+      KazumiLogger().d('[Captcha WebView] getPageHtml error: $e');
+      return '';
+    }
+  }
+
+  @override
+  Future<String> getUserAgent() async {
+    try {
+      final result = await webviewController?.evaluateJavascript(
+          source: 'navigator.userAgent;');
+      return result is String ? result : '';
+    } catch (e) {
+      KazumiLogger().d('[Captcha WebView] getUserAgent error: $e');
+      return '';
+    }
+  }
+
+  @override
   Future<void> unloadPage() async {
     try {
       await webviewController?.loadUrl(

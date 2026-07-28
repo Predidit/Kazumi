@@ -74,6 +74,28 @@ class _SourceSheetState extends State<SourceSheet>
     super.dispose();
   }
 
+  /// After verification the webview already shows the real result page;
+  /// prefer publishing the harvested HTML directly and only fall back to a
+  /// delayed re-search when it does not parse.
+  void _showVerifiedResult(Plugin plugin, String pageHtml) {
+    final harvested = pluginSearchService?.applyHarvestedSearchResult(
+          plugin.name,
+          pageHtml,
+        ) ??
+        false;
+    if (harvested) {
+      KazumiDialog.showToast(message: '验证成功');
+      return;
+    }
+    // show a 3s countdown progress dialog before re-querying,
+    // to avoid triggering rate limits immediately after verification.
+    KazumiDialog.showTimedSuccessDialog(
+      title: '验证成功',
+      message: '即将重新检索',
+      onComplete: () => pluginSearchService?.querySource(keyword, plugin.name),
+    );
+  }
+
   void showAntiCrawlerDialog(Plugin plugin) {
     switch (plugin.antiCrawlerConfig.captchaType) {
       case CaptchaType.customJavaScript:
@@ -109,19 +131,12 @@ class _SourceSheetState extends State<SourceSheet>
         inputXpath: plugin.antiCrawlerConfig.captchaInput,
         buttonXpath: plugin.antiCrawlerConfig.captchaButton,
         pluginName: plugin.name,
-        onVerified: () {
+        onVerified: (pageHtml) {
           _captchaVerifyTimer?.cancel();
           _captchaVerifyTimer = null;
           verified = true;
           KazumiDialog.dismiss();
-          // show a 3s countdown progress dialog before re-querying,
-          // to avoid triggering rate limits immediately after verification.
-          KazumiDialog.showTimedSuccessDialog(
-            title: '验证成功',
-            message: '正在重新检索，请稍候…',
-            onComplete: () =>
-                pluginSearchService?.querySource(keyword, plugin.name),
-          );
+          _showVerifiedResult(plugin, pageHtml);
         },
       );
       // submitCaptcha completes after the JS button click is fired.
@@ -148,7 +163,7 @@ class _SourceSheetState extends State<SourceSheet>
         final captchaService = _captchaVerificationService;
         _captchaVerificationService = null;
         if (!verified) {
-          await captchaService?.saveAndUnload(plugin.name);
+          await captchaService?.cancelAndSave(plugin.name);
           captchaService?.dispose();
           pluginSearchService?.querySource(keyword, plugin.name);
         } else {
@@ -202,7 +217,7 @@ class _SourceSheetState extends State<SourceSheet>
     required Future<void> Function(
       CaptchaVerificationService captchaService,
       String searchUrl,
-      void Function() onVerified,
+      void Function(String pageHtml) onVerified,
     ) startVerification,
   }) {
     bool verified = false;
@@ -214,16 +229,10 @@ class _SourceSheetState extends State<SourceSheet>
     final searchUrl = plugin.searchURL
         .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
 
-    void onVerified() {
-      if (verified) return;
+    void onVerified(String pageHtml) {
       verified = true;
       KazumiDialog.dismiss();
-      KazumiDialog.showTimedSuccessDialog(
-        title: '验证成功',
-        message: '正在重新检索，请稍候…',
-        onComplete: () =>
-            pluginSearchService?.querySource(keyword, plugin.name),
-      );
+      _showVerifiedResult(plugin, pageHtml);
     }
 
     unawaited(startVerification(captchaService, searchUrl, onVerified));
@@ -235,7 +244,7 @@ class _SourceSheetState extends State<SourceSheet>
         if (verified) {
           captchaService?.dispose();
         } else {
-          await captchaService?.saveAndUnload(plugin.name);
+          await captchaService?.cancelAndSave(plugin.name);
           captchaService?.dispose();
           pluginSearchService?.querySource(keyword, plugin.name);
         }

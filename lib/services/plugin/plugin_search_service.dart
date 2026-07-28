@@ -35,6 +35,27 @@ class PluginSearchService {
     }
   }
 
+  /// Publishes the result page harvested by the captcha webview, skipping
+  /// one network round trip. Returns false when the HTML does not parse
+  /// into results; callers should fall back to [querySource].
+  bool applyHarvestedSearchResult(String pluginName, String html) {
+    if (_isCancelled) return false;
+    for (final plugin in pluginsController.pluginList) {
+      if (plugin.name != pluginName) continue;
+      final result = plugin.parseHarvestedSearch(html);
+      if (result == null) return false;
+      infoController.pluginSearchResponseList.removeWhere(
+        (response) => response.pluginName == pluginName,
+      );
+      infoController.pluginSearchStatus[pluginName] =
+          PluginSearchStatus.success;
+      pluginsController.validityTracker.markSearchValid(pluginName);
+      infoController.pluginSearchResponseList.add(result);
+      return true;
+    }
+    return false;
+  }
+
   Future<void> queryAllSource(String keyword) async {
     infoController.pluginSearchResponseList.clear();
     infoController.pluginSearchStatus.clear();

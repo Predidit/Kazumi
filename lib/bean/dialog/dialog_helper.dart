@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -257,7 +256,7 @@ class KazumiDialog {
   }
 }
 
-class _TimedSuccessDialog extends StatefulWidget {
+class _TimedSuccessDialog extends StatelessWidget {
   const _TimedSuccessDialog({
     required this.title,
     required this.message,
@@ -269,67 +268,52 @@ class _TimedSuccessDialog extends StatefulWidget {
   final Duration duration;
 
   @override
-  State<_TimedSuccessDialog> createState() => _TimedSuccessDialogState();
-}
-
-class _TimedSuccessDialogState extends State<_TimedSuccessDialog> {
-  Timer? _countdownTimer;
-  late final Stopwatch _stopwatch = Stopwatch()..start();
-  double _progress = 0.0;
-
-  @override
-  void initState() {
-    super.initState();
-    _countdownTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
-      final totalMs = widget.duration.inMilliseconds.clamp(1, 1 << 31);
-      final elapsed = _stopwatch.elapsedMilliseconds;
-      final nextProgress = (elapsed / totalMs).clamp(0.0, 1.0).toDouble();
-      if (!mounted) return;
-      setState(() {
-        _progress = nextProgress;
-      });
-      if (elapsed >= totalMs) {
-        _countdownTimer?.cancel();
-        _countdownTimer = null;
-        KazumiDialog.dismiss(popWith: true);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _countdownTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Dialog(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+        padding: const EdgeInsets.all(24),
         child: SizedBox(
-          width: 320,
+          width: 300,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.check_circle_rounded,
-                size: 52,
-                color: Theme.of(context).colorScheme.primary,
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: colorScheme.secondaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_rounded,
+                  size: 32,
+                  color: colorScheme.onSecondaryContainer,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
-                widget.title,
-                style: Theme.of(context).textTheme.titleLarge,
+                title,
+                style: textTheme.headlineSmall,
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
-                widget.message,
-                style: Theme.of(context).textTheme.bodyMedium,
+                message,
+                style: textTheme.bodyMedium
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              LinearProgressIndicator(value: _progress),
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: duration,
+                onEnd: () => KazumiDialog.dismiss(popWith: true),
+                builder: (context, value, _) =>
+                    LinearProgressIndicator(value: value),
+              ),
             ],
           ),
         ),

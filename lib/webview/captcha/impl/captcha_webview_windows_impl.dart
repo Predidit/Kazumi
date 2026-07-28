@@ -440,6 +440,30 @@ $script
   }
 
   @override
+  Future<String> getPageHtml() async {
+    try {
+      final result = await _headlessWebview?.executeScript(
+          "document.readyState === 'loading' ? '' : document.documentElement.outerHTML;");
+      return result is String ? result : '';
+    } catch (e) {
+      KazumiLogger().d('[Captcha WebView] getPageHtml error: $e');
+      return '';
+    }
+  }
+
+  @override
+  Future<String> getUserAgent() async {
+    try {
+      final result =
+          await _headlessWebview?.executeScript('navigator.userAgent;');
+      return result is String ? result : '';
+    } catch (e) {
+      KazumiLogger().d('[Captcha WebView] getUserAgent error: $e');
+      return '';
+    }
+  }
+
+  @override
   Future<void> unloadPage() async {
     try {
       await _headlessWebview

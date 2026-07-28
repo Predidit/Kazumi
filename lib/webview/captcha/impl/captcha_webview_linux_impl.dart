@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
@@ -125,7 +126,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController<Webview> {
   } catch(e) { return 'absent'; }
 })();
 ''');
-      return result?.contains('present') ?? false;
+      return _decodeJsString(result) == 'present';
     } catch (e) {
       KazumiLogger().d('[Captcha WebView] _isCaptchaPresent error: $e');
       return false;
@@ -415,6 +416,48 @@ $script
     } catch (e) {
       KazumiLogger().e('[Captcha WebView] getCookieString error: $e');
       return '';
+    }
+  }
+
+  @override
+  Future<String> getPageHtml() async {
+    try {
+      final result = await webviewController?.evaluateJavaScript('''
+(function() {
+  try {
+    return document.readyState === 'loading' ? '' : document.documentElement.outerHTML;
+  } catch(e) { return ''; }
+})();
+''');
+      return _decodeJsString(result);
+    } catch (e) {
+      KazumiLogger().d('[Captcha WebView] getPageHtml error: $e');
+      return '';
+    }
+  }
+
+  @override
+  Future<String> getUserAgent() async {
+    try {
+      final result = await webviewController?.evaluateJavaScript(
+          '(function() { return navigator.userAgent; })();');
+      return _decodeJsString(result);
+    } catch (e) {
+      KazumiLogger().d('[Captcha WebView] getUserAgent error: $e');
+      return '';
+    }
+  }
+
+  /// WebKitGTK 通过 jsc_value_to_json 返回结果，字符串会带外围双引号且内容
+  /// 被转义，必须解码后才能当作 HTML 或 UA 使用。旧 WebKit 若返回裸字符串，
+  /// 解码失败则按原值回落。
+  String _decodeJsString(String? raw) {
+    if (raw == null || raw.isEmpty) return '';
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is String ? decoded : '';
+    } catch (_) {
+      return raw;
     }
   }
 

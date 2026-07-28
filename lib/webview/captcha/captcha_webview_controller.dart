@@ -74,6 +74,15 @@ abstract class CaptchaWebviewController<T> {
   /// [pageUrl] 当前加载的页面地址，部分平台用于精确过滤 Cookie
   Future<String> getCookieString(String pageUrl);
 
+  /// 获取当前页面的完整 HTML（document.documentElement.outerHTML）
+  ///
+  /// 页面仍在加载（document.readyState === 'loading'）时返回空字符串，
+  /// 由调用方决定是否重试。
+  Future<String> getPageHtml();
+
+  /// 获取 WebView 实际使用的 User-Agent（navigator.userAgent）
+  Future<String> getUserAgent();
+
   /// 卸载当前页面（跳转到 about:blank）
   Future<void> unloadPage();
 

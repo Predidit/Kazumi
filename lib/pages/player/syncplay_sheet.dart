@@ -10,14 +10,9 @@ import 'package:kazumi/services/player/syncplay_endpoint.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
 
-/// Which sheet the flow moves to next. A step pops itself with the value, so
-/// the framework plays its own dismiss/present animation between steps.
-enum _SyncPlayDestination { home, create, join, server }
-
-/// Sentinel entry in the server list standing for a user supplied address.
-const String _customEndPointOption = '自定义服务器';
-
-final Random _random = Random();
+/// The lobby pops itself with the step to open next, so the framework animates
+/// the swap. Steps never route back — dismissing one ends the flow.
+enum _SyncPlayDestination { create, join, server }
 
 /// Single entry point for everything SyncPlay: status, create, join, server.
 Future<void> showSyncPlaySheet(
@@ -26,64 +21,36 @@ Future<void> showSyncPlaySheet(
   required Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode,
 }) async {
-  _SyncPlayDestination? destination = _SyncPlayDestination.home;
-  while (destination != null) {
-    if (!context.mounted) {
-      return;
-    }
-    switch (destination) {
-      case _SyncPlayDestination.home:
-        destination = await _showStep(
-          context,
-          (context) => _SyncPlayHomeSheet(playerController: playerController),
-        );
-      case _SyncPlayDestination.create || _SyncPlayDestination.join:
-        final bool isCreate = destination == _SyncPlayDestination.create;
-        destination = await _showStep(
-          context,
-          (context) => _SyncPlayRoomSheet(
-            isCreate: isCreate,
-            playerController: playerController,
-            changeEpisode: changeEpisode,
-          ),
-        );
-      case _SyncPlayDestination.server:
-        destination =
-            await _showStep(context, (context) => const _SyncPlayServerSheet());
-    }
+  final _SyncPlayDestination? destination =
+      await _showStep<_SyncPlayDestination>(
+    context,
+    (context) => _SyncPlayHomeSheet(playerController: playerController),
+  );
+  if (destination == null || !context.mounted) {
+    return;
   }
+  await _showStep<void>(
+    context,
+    (context) => switch (destination) {
+      _SyncPlayDestination.create ||
+      _SyncPlayDestination.join =>
+        _SyncPlayRoomSheet(
+          isCreate: destination == _SyncPlayDestination.create,
+          playerController: playerController,
+          changeEpisode: changeEpisode,
+        ),
+      _SyncPlayDestination.server => const _SyncPlayServerSheet(),
+    },
+  );
 }
 
-Future<_SyncPlayDestination?> _showStep(
-  BuildContext context,
-  WidgetBuilder builder,
-) {
-  return showAdaptiveBottomSheet<_SyncPlayDestination>(
+Future<T?> _showStep<T>(BuildContext context, WidgetBuilder builder) {
+  return showAdaptiveBottomSheet<T>(
     context: context,
     maxHeightFactor: 0.8,
     compactLandscapeMaxHeightFactor: 0.95,
     builder: builder,
   );
-}
-
-/// Eight digits keeps accidental collisions with strangers on the public
-/// server unlikely while staying inside the 6-10 digit room name rule.
-String _generateRoomNumber() =>
-    List.generate(8, (_) => _random.nextInt(10)).join();
-
-/// Alternating consonants and vowels: the field only accepts 4-12 latin
-/// letters, and plain random letters out of that alphabet read as noise.
-String _generateUserName() {
-  const String consonants = 'bcdfghjklmnpqrstvwxyz';
-  const String vowels = 'aeiou';
-  final int syllables = 3 + _random.nextInt(2);
-  final StringBuffer buffer = StringBuffer();
-  for (int i = 0; i < syllables; i++) {
-    buffer.write(consonants[_random.nextInt(consonants.length)]);
-    buffer.write(vowels[_random.nextInt(vowels.length)]);
-  }
-  final String name = buffer.toString();
-  return name[0].toUpperCase() + name.substring(1);
 }
 
 String _readEndPoint() =>
@@ -127,16 +94,14 @@ class _SyncPlaySheetScaffold extends StatelessWidget {
     required this.title,
     required this.description,
     required this.bodyBuilder,
-    this.onBack,
-    this.backLabel = '返回',
+    this.showCancel = false,
     this.primaryAction,
   });
 
   final String title;
   final String description;
   final Widget Function(BuildContext context, bool compact) bodyBuilder;
-  final VoidCallback? onBack;
-  final String backLabel;
+  final bool showCancel;
   final Widget? primaryAction;
 
   @override
@@ -160,21 +125,9 @@ class _SyncPlaySheetScaffold extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.fromLTRB(
-              onBack != null ? 8 : 20,
-              compact ? 12 : 20,
-              12,
-              compact ? 10 : 16,
-            ),
+                20, compact ? 12 : 20, 12, compact ? 10 : 16),
             child: Row(
               children: [
-                if (onBack != null) ...[
-                  IconButton(
-                    onPressed: onBack,
-                    tooltip: backLabel,
-                    icon: const Icon(Icons.arrow_back_rounded),
-                  ),
-                  const SizedBox(width: 4),
-                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,13 +178,16 @@ class _SyncPlaySheetScaffold extends StatelessWidget {
           ),
           if (compact)
             const SizedBox(height: 12)
-          else if (onBack != null || primaryAction != null)
+          else if (showCancel || primaryAction != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: Row(
                 children: [
-                  if (onBack != null)
-                    TextButton(onPressed: onBack, child: Text(backLabel)),
+                  if (showCancel)
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('取消'),
+                    ),
                   const Spacer(),
                   if (primaryAction != null) primaryAction!,
                 ],
@@ -262,8 +218,8 @@ class _SyncPlayHomeSheet extends StatelessWidget {
       final String room = playerController.syncplay.syncplayRoom;
       final int rtt = playerController.syncplay.syncplayClientRtt;
       final bool connected = room.isNotEmpty;
-      // Connected socket, room not joined yet. The server picker stays out of
-      // reach here, or the saved address stops matching what we are dialing.
+      // Connected socket, room not joined yet. The server picker must stay out
+      // of reach, otherwise the saved address stops matching what we dialed.
       final bool connecting = hasSession && !connected;
 
       return _SyncPlaySheetScaffold(
@@ -589,6 +545,28 @@ class _SyncPlayRoomSheet extends StatefulWidget {
 }
 
 class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
+  static final Random _random = Random();
+
+  /// Eight digits keeps accidental collisions with strangers on the public
+  /// server unlikely while staying inside the 6-10 digit room name rule.
+  static String _generateRoomNumber() =>
+      List.generate(8, (_) => _random.nextInt(10)).join();
+
+  /// Alternating consonants and vowels: the field only accepts 4-12 latin
+  /// letters, and plain random letters out of that alphabet read as noise.
+  static String _generateUserName() {
+    const String consonants = 'bcdfghjklmnpqrstvwxyz';
+    const String vowels = 'aeiou';
+    final int syllables = 3 + _random.nextInt(2);
+    final StringBuffer buffer = StringBuffer();
+    for (int i = 0; i < syllables; i++) {
+      buffer.write(consonants[_random.nextInt(consonants.length)]);
+      buffer.write(vowels[_random.nextInt(vowels.length)]);
+    }
+    final String name = buffer.toString();
+    return name[0].toUpperCase() + name.substring(1);
+  }
+
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _roomController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
@@ -620,8 +598,8 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
     final String room =
         widget.isCreate ? _createdRoom : _roomController.text.trim();
     GStorage.putSetting<String>(SettingsKeys.syncPlayUserName, username);
-    // Closing first ends the flow and lets the connection toasts land on the
-    // page underneath rather than behind this sheet.
+    // Close first so the connection toasts land on the page underneath rather
+    // than behind this sheet.
     Navigator.of(context).pop();
     widget.playerController
         .createSyncPlayRoom(room, username, widget.changeEpisode);
@@ -634,7 +612,7 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
     return _SyncPlaySheetScaffold(
       title: isCreate ? '创建房间' : '加入房间',
       description: isCreate ? '将房间号分享给好友' : '输入好友的房间号',
-      onBack: () => Navigator.of(context).pop(_SyncPlayDestination.home),
+      showCancel: true,
       primaryAction: FilledButton.icon(
         onPressed: _submit,
         icon: Icon(
@@ -744,6 +722,9 @@ class _SyncPlayServerSheet extends StatefulWidget {
 }
 
 class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
+  /// Stands in for a user supplied address in the otherwise fixed list.
+  static const String _customOption = '自定义服务器';
+
   final TextEditingController _customEndPointController =
       TextEditingController();
 
@@ -761,7 +742,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
     if (officialSyncPlayEndPoints.contains(savedEndPoint)) {
       _selectedEndPoint = savedEndPoint;
     } else {
-      _selectedEndPoint = _customEndPointOption;
+      _selectedEndPoint = _customOption;
       _customEndPointController.text = savedEndPoint;
     }
   }
@@ -774,7 +755,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
 
   void _save() {
     String endPoint = _selectedEndPoint;
-    if (endPoint == _customEndPointOption) {
+    if (endPoint == _customOption) {
       endPoint = _customEndPointController.text.trim();
       if (parseSyncPlayEndPoint(endPoint) == null) {
         setState(() => _customEndPointError = '地址格式为 host:port');
@@ -782,7 +763,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
       }
     }
     GStorage.putSetting<String>(SettingsKeys.syncPlayEndPoint, endPoint);
-    Navigator.of(context).pop(_SyncPlayDestination.home);
+    Navigator.of(context).pop();
   }
 
   @override
@@ -790,8 +771,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
     return _SyncPlaySheetScaffold(
       title: '同步服务器',
       description: '房间成员需使用同一服务器',
-      backLabel: '取消',
-      onBack: () => Navigator.of(context).pop(_SyncPlayDestination.home),
+      showCancel: true,
       primaryAction: FilledButton(
         onPressed: _save,
         child: const Text('保存'),
@@ -800,7 +780,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
         final ColorScheme colorScheme = Theme.of(context).colorScheme;
         final List<String> endPoints = [
           ...officialSyncPlayEndPoints,
-          _customEndPointOption,
+          _customOption,
         ];
 
         return Column(
@@ -824,7 +804,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
                 ],
               ),
             ),
-            if (_selectedEndPoint == _customEndPointOption) ...[
+            if (_selectedEndPoint == _customOption) ...[
               const SizedBox(height: 16),
               TextField(
                 controller: _customEndPointController,
@@ -855,7 +835,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
     final bool selected = _selectedEndPoint == endPoint;
-    final bool isCustom = endPoint == _customEndPointOption;
+    final bool isCustom = endPoint == _customOption;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 18),

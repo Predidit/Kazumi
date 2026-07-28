@@ -14,11 +14,15 @@ class BangumiInfoCardV extends StatefulWidget {
     required this.bangumiItem,
     required this.isLoading,
     required this.showRating,
+    this.onEpisodesTap,
   });
 
   final BangumiItem bangumiItem;
   final bool isLoading;
   final bool showRating;
+
+  /// 点击「集数详情」按钮的回调。为 null 时不显示该按钮。
+  final VoidCallback? onEpisodesTap;
 
   @override
   State<BangumiInfoCardV> createState() => _BangumiInfoCardVState();
@@ -246,12 +250,30 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             ),
                           ],
                         ),
-                        SizedBox(
-                          width: 120,
-                          height: 40,
-                          child: CollectButton.extend(
-                            bangumiItem: widget.bangumiItem,
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minWidth: 80,
+                                  maxWidth: 160,
+                                ),
+                                child: SizedBox(
+                                  height: 40,
+                                  child: CollectButton.extend(
+                                    bangumiItem: widget.bangumiItem,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (widget.onEpisodesTap != null) ...[
+                              const SizedBox(width: 8),
+                              _EpisodeListButton(
+                                onPressed: widget.onEpisodesTap!,
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
@@ -266,6 +288,40 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 番剧详情卡片右上角的「集数详情」按钮
+class _EpisodeListButton extends StatelessWidget {
+  const _EpisodeListButton({
+    required this.onPressed,
+  });
+
+  static const String _tooltip = '集数详情';
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: _tooltip,
+        icon: const Icon(Icons.video_collection_rounded),
+        style: IconButton.styleFrom(
+          backgroundColor: theme.colorScheme.primaryContainer,
+          foregroundColor: theme.colorScheme.onPrimaryContainer,
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(40, 40),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
@@ -39,6 +40,19 @@ abstract class _InfoController with Store {
   @observable
   var staffList = ObservableList<StaffFullItem>();
 
+  // 分集列表：进入番剧详情页自动预加载，仅用于展示。
+  @observable
+  var episodeList = ObservableList<EpisodeInfo>();
+
+  @observable
+  bool episodesIsLoading = false;
+
+  @observable
+  bool episodesQueryTimeout = false;
+
+  @observable
+  bool episodesIsEmpty = false;
+
   bool _isFillingInterestUserProfile = false;
 
   int _commentsOffset = 0;
@@ -46,6 +60,22 @@ abstract class _InfoController with Store {
   void clearComments() {
     commentsList.clear();
     _commentsOffset = 0;
+  }
+
+  /// 仅清空数据，保留 in-flight 标志 [episodesIsLoading]。
+  /// 用于 sheet 关闭后重置展示数据，避免破坏 [queryBangumiEpisodesByID]
+  /// 的重入保护：如果请求正在进行中，重置数据不应让其它调用者绕过 guard。
+  void clearEpisodes() {
+    episodeList.clear();
+  }
+
+  /// 完整重置集数状态：数据 + 所有标志位。
+  /// 仅在 [InfoPage.initState] 切换 subject 时调用。
+  void resetEpisodesState() {
+    episodeList.clear();
+    episodesIsLoading = false;
+    episodesQueryTimeout = false;
+    episodesIsEmpty = false;
   }
 
   Future<bool> fillInterestUserProfileIfNeeded() async {
@@ -202,6 +232,37 @@ abstract class _InfoController with Store {
     });
     KazumiLogger()
         .i('InfoController: loaded staff list length ${staffList.length}');
+  }
+
+  Future<void> queryBangumiEpisodesByID(int id) async {
+    if (episodesIsLoading) {
+      return;
+    }
+    episodesIsLoading = true;
+    episodesQueryTimeout = false;
+    episodesIsEmpty = false;
+    try {
+      final list = await BangumiApi.getBangumiEpisodesByID(id);
+      // 用 mutation 方式更新 ObservableList（clear + addAll），
+      // 而非替换整个 list 引用。符合 MobX 官方文档推荐用法：
+      // Observer 会跟踪 list 内部 mutation，无需替换引用。
+      episodeList
+        ..clear()
+        ..addAll(list);
+      // BangumiApi.getBangumiEpisodesByID 内部吞掉异常后返回空列表，
+      // 因此空列表既可能是失败也可能是真空。统一走「重试」入口，
+      // 让用户决定是再拉一次还是放弃。
+      if (episodeList.isEmpty) {
+        episodesQueryTimeout = true;
+      }
+      KazumiLogger().i(
+          'InfoController: loaded episode list length ${episodeList.length}');
+    } catch (e) {
+      KazumiLogger().e('InfoController: failed to load episodes', error: e);
+      episodesQueryTimeout = true;
+    } finally {
+      episodesIsLoading = false;
+    }
   }
 
   Future<bool> rateBangumi(RatingReviewResult data,

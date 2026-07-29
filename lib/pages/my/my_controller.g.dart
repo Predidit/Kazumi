@@ -45,11 +45,11 @@ mixin _$MyController on _MyController, Store {
       ActionController(name: '_MyController', context: context);
 
   @override
-  void refresh() {
+  void _refresh() {
     final _$actionInfo = _$_MyControllerActionController.startAction(
-        name: '_MyController.refresh');
+        name: '_MyController._refresh');
     try {
-      return super.refresh();
+      return super._refresh();
     } finally {
       _$_MyControllerActionController.endAction(_$actionInfo);
     }

@@ -37,41 +37,48 @@ abstract class _MyController with Store {
   static const Duration _refreshDebounce = Duration(milliseconds: 300);
 
   int _viewerCount = 0;
-  StreamSubscription<void>? _historySubscription;
+  final List<StreamSubscription<void>> _subscriptions = [];
   Timer? _refreshDebounceTimer;
 
-  /// Live history updates while a viewer is on screen, plus a catch-up
-  /// derivation for everything that changed while there was none. The count
-  /// keeps the subscription alive when one page attaches before another
-  /// detaches during a route swap.
+  /// Follows every source the stats are derived from while a viewer is on
+  /// screen, and derives once more to catch up on what changed while there was
+  /// none. The count survives a route swap that attaches the next page before
+  /// detaching the last.
   void attach() {
     _viewerCount++;
-    _historySubscription ??= _historyRepository.changes.listen(
-      (_) => _scheduleRefresh(),
-    );
-    refresh();
+    if (_subscriptions.isEmpty) {
+      for (final changes in [
+        _historyRepository.changes,
+        _collectCrudRepository.changes,
+        _downloadRepository.changes,
+      ]) {
+        _subscriptions.add(changes.listen((_) => _scheduleRefresh()));
+      }
+    }
+    _refresh();
   }
 
   void detach() {
-    _viewerCount--;
-    if (_viewerCount > 0) {
+    if (--_viewerCount > 0) {
       return;
     }
-    _viewerCount = 0;
     _refreshDebounceTimer?.cancel();
     _refreshDebounceTimer = null;
-    _historySubscription?.cancel();
-    _historySubscription = null;
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
   }
 
   void _scheduleRefresh() {
-    // Playback rewrites history every second; coalesce those into one pass.
+    // Playback rewrites history every second and a sync restore rewrites
+    // collectibles one by one; coalesce those into one pass.
     _refreshDebounceTimer?.cancel();
-    _refreshDebounceTimer = Timer(_refreshDebounce, refresh);
+    _refreshDebounceTimer = Timer(_refreshDebounce, _refresh);
   }
 
   @action
-  void refresh() {
+  void _refresh() {
     final histories = _historyRepository.getAllHistories();
     watchStats = WatchStats.from(
       histories: histories,

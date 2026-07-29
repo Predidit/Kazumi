@@ -87,10 +87,7 @@ class WatchStats {
       collectCounts[type] = (collectCounts[type] ?? 0) + 1;
     }
 
-    // Counts every task rather than only completed ones: tasks change when the
-    // user adds or removes them on a page that covers the my page, whereas an
-    // episode finishing happens in the background, where nothing tells the my
-    // page to re-derive.
+    // Every task counts, in flight or finished.
     var downloadTaskCount = 0;
     for (final record in downloadRecords) {
       downloadTaskCount += record.episodes.length;

@@ -8,6 +8,9 @@ import 'package:kazumi/services/logging/logger.dart';
 ///
 /// 提供收藏数据的增删改查操作
 abstract class ICollectCrudRepository {
+  /// Emits once per collectible write, WebDAV sync restores included.
+  Stream<void> get changes;
+
   /// 获取所有收藏
   List<CollectedBangumi> getAllCollectibles();
 
@@ -57,6 +60,9 @@ abstract class ICollectCrudRepository {
 class CollectCrudRepository implements ICollectCrudRepository {
   final _collectiblesBox = GStorage.collectibles;
   final _favoritesBox = GStorage.favorites;
+
+  @override
+  Stream<void> get changes => _collectiblesBox.watch();
 
   @override
   List<CollectedBangumi> getAllCollectibles() {

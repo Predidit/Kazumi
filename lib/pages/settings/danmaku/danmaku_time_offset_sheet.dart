@@ -75,7 +75,6 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final fontFamily = theme.textTheme.bodyMedium?.fontFamily;
     final direction = _offset == 0 ? '无偏移' : (_offset > 0 ? '延后' : '提前');
 
     return SafeArea(
@@ -109,7 +108,6 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                             direction,
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: colorScheme.onSecondaryContainer,
-                              fontFamily: fontFamily,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -118,7 +116,6 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                             _formatDanmakuOffsetDuration(_offset),
                             style: theme.textTheme.displaySmall?.copyWith(
                               color: colorScheme.onSecondaryContainer,
-                              fontFamily: fontFamily,
                               fontFeatures: const [
                                 FontFeature.tabularFigures()
                               ],
@@ -135,7 +132,6 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                           '提前 3:00',
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
-                            fontFamily: fontFamily,
                           ),
                         ),
                         const Spacer(),
@@ -143,7 +139,6 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                           '延后 3:00',
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
-                            fontFamily: fontFamily,
                           ),
                         ),
                       ],

@@ -3,7 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 
 class SetDisplayMode extends StatefulWidget {
   const SetDisplayMode({super.key});
@@ -67,7 +67,6 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
 
   @override
   Widget build(BuildContext context) {
-    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
       appBar: AppBar(title: const Text('屏幕帧率设置')),
       body: (modes.isEmpty)
@@ -75,26 +74,22 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
           : SettingsList(
               maxWidth: 1000,
               sections: [
-                SettingsSection(
-                  title: Text('没有生效? 重启app试试',
-                      style: TextStyle(fontFamily: fontFamily)),
+                SettingsRadioSection<DisplayMode>(
+                  title: Text('没有生效? 重启app试试'),
+                  groupValue: preferred,
+                  onChanged: (DisplayMode? newMode) async {
+                    await FlutterDisplayMode.setPreferredMode(newMode!);
+                    await Future<dynamic>.delayed(
+                      const Duration(milliseconds: 100),
+                    );
+                    await fetchAll();
+                  },
                   tiles: modes
                       .map((e) => SettingsTile<DisplayMode>.radioTile(
                             radioValue: e,
-                            groupValue: preferred,
-                            onChanged: (DisplayMode? newMode) async {
-                              await FlutterDisplayMode.setPreferredMode(
-                                  newMode!);
-                              await Future<dynamic>.delayed(
-                                const Duration(milliseconds: 100),
-                              );
-                              await fetchAll();
-                            },
                             title: e == DisplayMode.auto
-                                ? Text('自动',
-                                    style: TextStyle(fontFamily: fontFamily))
-                                : Text('$e${e == active ? "  [系统]" : ""}',
-                                    style: TextStyle(fontFamily: fontFamily)),
+                                ? Text('自动')
+                                : Text('$e${e == active ? "  [系统]" : ""}'),
                           ))
                       .toList(),
                 ),

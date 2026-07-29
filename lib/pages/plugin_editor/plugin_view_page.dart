@@ -8,7 +8,7 @@ import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/encoding.dart';
@@ -190,86 +190,83 @@ class _PluginViewPageState extends State<PluginViewPage> {
         }
         onBackPressed(context);
       },
-      child: Scaffold(
-        appBar: SysAppBar(
-          title: isMultiSelectMode
-              ? Text('已选择 ${selectedNames.length} 项')
-              : const Text('规则管理'),
-          leading: isMultiSelectMode
-              ? IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    setState(() {
-                      isMultiSelectMode = false;
-                      selectedNames.clear();
-                    });
-                  },
-                )
-              : null,
-          actions: [
-            if (isMultiSelectMode) ...[
-              IconButton(
-                onPressed: selectedNames.isEmpty
-                    ? null
-                    : () {
-                        KazumiDialog.show(
-                          builder: (context) => AlertDialog(
-                            title: const Text('删除规则'),
-                            content:
-                                Text('确定要删除选中的 ${selectedNames.length} 条规则吗？'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => KazumiDialog.dismiss(),
-                                child: Text(
-                                  '取消',
-                                  style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outline),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () async {
-                                  try {
-                                    await pluginsController
-                                        .removePlugins(selectedNames);
-                                  } catch (_) {
-                                    KazumiDialog.showToast(message: '删除规则失败');
-                                    return;
-                                  }
-                                  if (!mounted) return;
-                                  setState(() {
-                                    isMultiSelectMode = false;
-                                    selectedNames.clear();
-                                  });
-                                  KazumiDialog.dismiss();
-                                },
-                                child: const Text('删除'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                icon: const Icon(Icons.delete),
-              ),
-            ] else ...[
-              IconButton(
+      child: SettingsDetailScaffold(
+        title: isMultiSelectMode
+            ? Text('已选择 ${selectedNames.length} 项')
+            : const Text('规则管理'),
+        leading: isMultiSelectMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
                 onPressed: () {
-                  _handleUpdate();
+                  setState(() {
+                    isMultiSelectMode = false;
+                    selectedNames.clear();
+                  });
                 },
-                tooltip: '更新全部',
-                icon: const Icon(Icons.update),
-              ),
-              IconButton(
-                onPressed: () {
-                  _handleAdd();
-                },
-                tooltip: '添加规则',
-                icon: const Icon(Icons.add),
               )
-            ],
+            : null,
+        actions: [
+          if (isMultiSelectMode) ...[
+            IconButton(
+              onPressed: selectedNames.isEmpty
+                  ? null
+                  : () {
+                      KazumiDialog.show(
+                        builder: (context) => AlertDialog(
+                          title: const Text('删除规则'),
+                          content:
+                              Text('确定要删除选中的 ${selectedNames.length} 条规则吗？'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => KazumiDialog.dismiss(),
+                              child: Text(
+                                '取消',
+                                style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.outline),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                try {
+                                  await pluginsController
+                                      .removePlugins(selectedNames);
+                                } catch (_) {
+                                  KazumiDialog.showToast(message: '删除规则失败');
+                                  return;
+                                }
+                                if (!mounted) return;
+                                setState(() {
+                                  isMultiSelectMode = false;
+                                  selectedNames.clear();
+                                });
+                                KazumiDialog.dismiss();
+                              },
+                              child: const Text('删除'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+              icon: const Icon(Icons.delete),
+            ),
+          ] else ...[
+            IconButton(
+              onPressed: () {
+                _handleUpdate();
+              },
+              tooltip: '更新全部',
+              icon: const Icon(Icons.update),
+            ),
+            IconButton(
+              onPressed: () {
+                _handleAdd();
+              },
+              tooltip: '添加规则',
+              icon: const Icon(Icons.add),
+            )
           ],
-        ),
+        ],
         body: Observer(builder: (context) {
           return pluginsController.pluginList.isEmpty
               ? const Center(

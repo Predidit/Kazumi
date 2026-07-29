@@ -6,9 +6,9 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
@@ -135,21 +135,20 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         onBackPressed(context);
       },
-      child: Scaffold(
-        appBar: const SysAppBar(title: Text('外观设置')),
+      child: SettingsDetailScaffold(
+        title: const Text('外观设置'),
         body: SettingsList(
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: Text('外观', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('外观'),
               tiles: [
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) {
                     if (menuController.isOpen) {
                       menuController.close();
@@ -157,7 +156,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       menuController.open();
                     }
                   },
-                  title: Text('深色模式', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('深色模式'),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
                     controller: menuController,
@@ -166,7 +165,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                         defaultThemeMode == 'light'
                             ? '浅色'
                             : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
-                        style: TextStyle(fontFamily: fontFamily),
                       );
                     },
                     menuChildren: [
@@ -193,7 +191,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                     color: defaultThemeMode == 'system'
                                         ? Theme.of(context).colorScheme.primary
                                         : null,
-                                    fontFamily: fontFamily,
                                   ),
                                 ),
                               ],
@@ -225,8 +222,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                           ? Theme.of(context)
                                               .colorScheme
                                               .primary
-                                          : null,
-                                      fontFamily: fontFamily),
+                                          : null),
                                 ),
                               ],
                             ),
@@ -256,7 +252,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                     color: defaultThemeMode == 'dark'
                                         ? Theme.of(context).colorScheme.primary
                                         : null,
-                                    fontFamily: fontFamily,
                                   ),
                                 ),
                               ],
@@ -267,13 +262,12 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     ],
                   ),
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   enabled: !useDynamicColor,
                   onPressed: (_) async {
                     KazumiDialog.show(builder: (context) {
                       return AlertDialog(
-                        title: Text('配色方案',
-                            style: TextStyle(fontFamily: fontFamily)),
+                        title: Text('配色方案'),
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
                           final List<Map<String, dynamic>> colorThemes =
@@ -316,7 +310,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       );
                     });
                   },
-                  title: Text('配色方案', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('配色方案'),
                 ),
                 SettingsTile.switchTile(
                   enabled: !Platform.isIOS,
@@ -327,7 +321,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     themeProvider.setDynamic(useDynamicColor);
                     setState(() {});
                   },
-                  title: Text('动态配色', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('动态配色'),
                   initialValue: useDynamicColor,
                 ),
                 SettingsTile.switchTile(
@@ -345,15 +339,12 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     setTheme(color);
                     setState(() {});
                   },
-                  title:
-                      Text('使用系统字体', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('关闭后使用 MI Sans 字体',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('使用系统字体'),
+                  description: Text('关闭后使用 MI Sans 字体'),
                   initialValue: useSystemFont,
                 ),
               ],
-              bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台',
-                  style: TextStyle(fontFamily: fontFamily)),
+              bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台'),
             ),
             SettingsSection(
               tiles: [
@@ -365,10 +356,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     updateOledEnhance();
                     setState(() {});
                   },
-                  title:
-                      Text('OLED优化', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('深色模式下使用纯黑背景',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('OLED优化'),
+                  description: Text('深色模式下使用纯黑背景'),
                   initialValue: oledEnhance,
                 ),
               ],
@@ -383,10 +372,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                           SettingsKeys.showWindowButton, showWindowButton);
                       setState(() {});
                     },
-                    title: Text('使用系统标题栏',
-                        style: TextStyle(fontFamily: fontFamily)),
-                    description: Text('重启应用生效',
-                        style: TextStyle(fontFamily: fontFamily)),
+                    title: Text('使用系统标题栏'),
+                    description: Text('重启应用生效'),
                     initialValue: showWindowButton,
                   ),
                 ],
@@ -394,12 +381,11 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             if (Platform.isAndroid)
               SettingsSection(
                 tiles: [
-                  SettingsTile.navigation(
+                  SettingsTile(
                     onPressed: (_) async {
                       context.pushNamed('/settings/theme/display');
                     },
-                    title:
-                        Text('屏幕帧率', style: TextStyle(fontFamily: fontFamily)),
+                    title: Text('屏幕帧率'),
                   ),
                 ],
               ),

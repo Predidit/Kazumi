@@ -253,9 +253,10 @@ void main() {
     final refreshedItems = [_item(1), _item(2), _item(3), _item(4)];
     refreshedItems.first.nameCn = 'updated-name';
     update(() => items = refreshedItems);
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('updated-name'), findsOneWidget);
+    await tester.pumpAndSettle();
   });
 
   testWidgets('resumes toward the target when toggled during a reverse',

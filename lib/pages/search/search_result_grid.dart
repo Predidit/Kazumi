@@ -258,7 +258,10 @@ class _SearchResultGridState extends State<SearchResultGrid>
           ...toIndexes.keys,
         };
         final itemById = <int, BangumiItem>{
-          for (final item in [..._fromItems, ..._toItems]) item.id: item,
+          for (final item in _reversingToStart ? _toItems : _fromItems)
+            item.id: item,
+          for (final item in _reversingToStart ? _fromItems : _toItems)
+            item.id: item,
         };
         final maxRows = math.max(
           (_fromItems.length / crossCount).ceil(),

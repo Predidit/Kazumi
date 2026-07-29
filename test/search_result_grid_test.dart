@@ -172,6 +172,138 @@ void main() {
         closeTo(initialPosition.dy, 0.1));
   });
 
+  testWidgets('animates the next switch after a reversed transition settles',
+      (tester) async {
+    late StateSetter update;
+    var items = [_item(1), _item(2), _item(3), _item(4)];
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) {
+          update = setState;
+          return MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                height: 250,
+                child: SearchResultGrid(
+                  items: items,
+                  crossCount: 2,
+                  cardExtent: 100,
+                  itemBuilder: _card,
+                  scrollController: scrollController,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    update(() => items = [_item(1), _item(3)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 210));
+    update(() => items = [_item(1), _item(2), _item(3), _item(4)]);
+    await tester.pumpAndSettle();
+
+    update(() => items = [_item(1), _item(3)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 210));
+
+    expect(find.text('item-2'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('item-2'), findsNothing);
+  });
+
+  testWidgets('preserves refreshed card content while reversing',
+      (tester) async {
+    late StateSetter update;
+    var items = [_item(1), _item(2), _item(3), _item(4)];
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) {
+          update = setState;
+          return MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                height: 250,
+                child: SearchResultGrid(
+                  items: items,
+                  crossCount: 2,
+                  cardExtent: 100,
+                  itemBuilder: (context, item) => Text(item.nameCn),
+                  scrollController: scrollController,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    update(() => items = [_item(1), _item(3)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 210));
+    update(() => items = [_item(1), _item(2), _item(3), _item(4)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 105));
+
+    final refreshedItems = [_item(1), _item(2), _item(3), _item(4)];
+    refreshedItems.first.nameCn = 'updated-name';
+    update(() => items = refreshedItems);
+    await tester.pumpAndSettle();
+
+    expect(find.text('updated-name'), findsOneWidget);
+  });
+
+  testWidgets('resumes toward the target when toggled during a reverse',
+      (tester) async {
+    late StateSetter update;
+    var items = [_item(1), _item(2), _item(3), _item(4)];
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) {
+          update = setState;
+          return MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                height: 250,
+                child: SearchResultGrid(
+                  items: items,
+                  crossCount: 2,
+                  cardExtent: 100,
+                  itemBuilder: _card,
+                  scrollController: scrollController,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    update(() => items = [_item(1), _item(3)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 210));
+    update(() => items = [_item(1), _item(2), _item(3), _item(4)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 105));
+    final reversingPosition = tester.getTopLeft(find.text('item-3'));
+
+    update(() => items = [_item(1), _item(3)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 105));
+    final resumedPosition = tester.getTopLeft(find.text('item-3'));
+
+    expect(resumedPosition.dy, lessThan(reversingPosition.dy));
+    await tester.pumpAndSettle();
+    expect(find.text('item-2'), findsNothing);
+  });
+
   testWidgets('keeps the current scroll position when switching views',
       (tester) async {
     late StateSetter update;

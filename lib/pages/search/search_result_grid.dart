@@ -69,7 +69,10 @@ class _SearchResultGridState extends State<SearchResultGrid>
     if (_sameIds(widget.items, _toItems)) {
       final refreshedItems = List<BangumiItem>.of(widget.items);
       _toItems = refreshedItems;
-      if (!_animating) {
+      if (_animating && _reversingToStart) {
+        _reversingToStart = false;
+        _animationController.forward();
+      } else if (!_animating) {
         _visibleItems = refreshedItems;
         _fromItems = refreshedItems;
       }
@@ -93,13 +96,9 @@ class _SearchResultGridState extends State<SearchResultGrid>
 
   void _startTransition(List<BangumiItem> nextItems) {
     if (_animating && _sameIds(nextItems, _fromItems)) {
+      _fromItems = nextItems;
       _reversingToStart = true;
       _animationController.reverse();
-      return;
-    }
-    if (_animating && _sameIds(nextItems, _toItems)) {
-      _reversingToStart = false;
-      _animationController.forward();
       return;
     }
 
@@ -134,6 +133,7 @@ class _SearchResultGridState extends State<SearchResultGrid>
     setState(() {
       _visibleItems = List<BangumiItem>.of(settledItems);
       _fromItems = _visibleItems;
+      _toItems = _visibleItems;
       _animating = false;
       _reversingToStart = false;
     });

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show mapEquals;
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/download/download_module.dart';
@@ -12,8 +13,6 @@ class WatchStats {
     this.watchedEpisodeCount = 0,
     this.watchedBangumiCount = 0,
     this.downloadTaskCount = 0,
-    this.downloadBangumiCount = 0,
-    this.downloadedBytes = 0,
     this.lastWatchTime,
     this.lastWatchName,
   });
@@ -23,8 +22,6 @@ class WatchStats {
   final int watchedEpisodeCount;
   final int watchedBangumiCount;
   final int downloadTaskCount;
-  final int downloadBangumiCount;
-  final int downloadedBytes;
   final DateTime? lastWatchTime;
   final String? lastWatchName;
 
@@ -38,8 +35,6 @@ class WatchStats {
         other.watchedEpisodeCount == watchedEpisodeCount &&
         other.watchedBangumiCount == watchedBangumiCount &&
         other.downloadTaskCount == downloadTaskCount &&
-        other.downloadBangumiCount == downloadBangumiCount &&
-        other.downloadedBytes == downloadedBytes &&
         other.lastWatchTime == lastWatchTime &&
         other.lastWatchName == lastWatchName;
   }
@@ -51,8 +46,6 @@ class WatchStats {
         watchedEpisodeCount,
         watchedBangumiCount,
         downloadTaskCount,
-        downloadBangumiCount,
-        downloadedBytes,
         lastWatchTime,
         lastWatchName,
       );
@@ -97,20 +90,10 @@ class WatchStats {
     // Counts every task rather than only completed ones: tasks change when the
     // user adds or removes them on a page that covers the my page, whereas an
     // episode finishing happens in the background, where nothing tells the my
-    // page to re-derive. totalBytes holds bytes already on disk, so summing it
-    // across unfinished tasks still reports real usage.
+    // page to re-derive.
     var downloadTaskCount = 0;
-    var downloadBangumiCount = 0;
-    var downloadedBytes = 0;
     for (final record in downloadRecords) {
-      if (record.episodes.isEmpty) {
-        continue;
-      }
-      downloadBangumiCount++;
-      for (final episode in record.episodes.values) {
-        downloadTaskCount++;
-        downloadedBytes += episode.totalBytes;
-      }
+      downloadTaskCount += record.episodes.length;
     }
 
     return WatchStats(
@@ -119,14 +102,17 @@ class WatchStats {
       watchedEpisodeCount: watchedEpisodeKeys.length,
       watchedBangumiCount: watchedBangumiIds.length,
       downloadTaskCount: downloadTaskCount,
-      downloadBangumiCount: downloadBangumiCount,
-      downloadedBytes: downloadedBytes,
       lastWatchTime: lastWatched?.lastWatchTime,
       lastWatchName: lastWatched == null
           ? null
-          : (lastWatched.bangumiItem.nameCn.isEmpty
-              ? lastWatched.bangumiItem.name
-              : lastWatched.bangumiItem.nameCn),
+          : _displayName(lastWatched.bangumiItem),
     );
+  }
+
+  static String? _displayName(BangumiItem item) {
+    if (item.nameCn.isNotEmpty) {
+      return item.nameCn;
+    }
+    return item.name.isEmpty ? null : item.name;
   }
 }

@@ -9,7 +9,6 @@ import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/my/recent_watch_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/date_time.dart';
-import 'package:kazumi/utils/format.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key, required this.controller});
@@ -100,41 +99,48 @@ class _MyPageState extends State<MyPage> {
       _CollectHero(stats: stats),
       const SizedBox(height: 12),
       _statTiles(stats),
-      const SizedBox(height: 24),
-      _sectionLabel('快捷入口'),
-      const SizedBox(height: 12),
-      ..._entryCards(stats),
+      for (final entry in _entryCards(stats)) ...[
+        const SizedBox(height: 12),
+        entry,
+      ],
     ];
   }
 
   Widget _wideHeader(WatchStats stats) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _CollectHero(stats: stats),
-              const SizedBox(height: 12),
-              _statTiles(stats),
-            ],
+    final entries = _entryCards(stats);
+    // Both columns end level; the entry column keeps its cards at their natural
+    // height and spreads whatever is left over into the gaps between them.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _CollectHero(stats: stats),
+                const SizedBox(height: 12),
+                _statTiles(stats),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _sectionLabel('快捷入口'),
-              const SizedBox(height: 12),
-              ..._entryCards(stats),
-            ],
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 2,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < entries.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  entries[i],
+                ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -184,31 +190,21 @@ class _MyPageState extends State<MyPage> {
   }
 
   Widget _statTiles(WatchStats stats) {
-    final colorScheme = Theme.of(context).colorScheme;
     final tiles = <Widget>[
       _StatTile(
-        icon: Icons.smart_display_rounded,
-        iconColor: colorScheme.primary,
         value: '${stats.watchedBangumiCount}',
         unit: '部',
         label: '看过番剧',
       ),
       _StatTile(
-        icon: Icons.playlist_play_rounded,
-        iconColor: colorScheme.secondary,
         value: '${stats.watchedEpisodeCount}',
         unit: '集',
         label: '观看集数',
       ),
       _StatTile(
-        icon: Icons.sd_storage_rounded,
-        iconColor: colorScheme.tertiary,
         value: '${stats.downloadTaskCount}',
         unit: '集',
         label: '离线缓存',
-        caption: stats.downloadedBytes > 0
-            ? formatBytes(stats.downloadedBytes)
-            : null,
       ),
     ];
     // Tiles hold different amounts of text; stretch keeps them level.
@@ -238,18 +234,14 @@ class _MyPageState extends State<MyPage> {
         foreground: colorScheme.onSecondaryContainer,
         onTap: () => context.pushNamed('/settings/history/'),
       ),
-      const SizedBox(height: 12),
       _EntryCard(
         icon: Icons.download_rounded,
         title: '离线下载',
-        subtitle: stats.downloadBangumiCount > 0
-            ? '${stats.downloadBangumiCount} 部番剧已缓存'
-            : '还没有缓存内容',
+        subtitle: '管理缓存任务与本地文件',
         background: colorScheme.tertiaryContainer,
         foreground: colorScheme.onTertiaryContainer,
         onTap: () => context.pushNamed('/settings/download/'),
       ),
-      const SizedBox(height: 12),
       _EntryCard(
         icon: Icons.settings_rounded,
         title: '设置',
@@ -392,20 +384,14 @@ class _CollectChip extends StatelessWidget {
 
 class _StatTile extends StatelessWidget {
   const _StatTile({
-    required this.icon,
-    required this.iconColor,
     required this.value,
     required this.unit,
     required this.label,
-    this.caption,
   });
 
-  final IconData icon;
-  final Color iconColor;
   final String value;
   final String unit;
   final String label;
-  final String? caption;
 
   @override
   Widget build(BuildContext context) {
@@ -420,8 +406,6 @@ class _StatTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: iconColor),
-          const SizedBox(height: 12),
           Text.rich(
             TextSpan(
               children: [
@@ -452,13 +436,6 @@ class _StatTile extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          if (caption != null)
-            Text(
-              caption!,
-              style: textTheme.bodySmall?.copyWith(color: iconColor),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
         ],
       ),
     );

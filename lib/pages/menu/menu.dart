@@ -148,8 +148,8 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
             label: '追番',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.person),
-            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.settings),
+            icon: Icon(Icons.settings),
             label: '我的',
           ),
         ],
@@ -196,8 +196,8 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
                   label: Text('追番'),
                 ),
                 NavigationRailDestination(
-                  selectedIcon: Icon(Icons.person),
-                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.settings),
+                  icon: Icon(Icons.settings_outlined),
                   label: Text('我的'),
                 ),
               ],

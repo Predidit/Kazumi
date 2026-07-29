@@ -23,6 +23,11 @@ typedef HistoryClearSyncAppender = Future<void> Function();
 ///
 /// 提供观看历史相关的数据访问抽象
 abstract class IHistoryRepository {
+  /// 历史记录变更事件流
+  ///
+  /// 写入、删除、清空各推送一次。所有历史写入都经过本仓库。
+  Stream<void> get changes;
+
   /// 获取所有历史记录（按时间倒序）
   List<History> getAllHistories();
 
@@ -142,6 +147,9 @@ class HistoryRepository implements IHistoryRepository {
       () => historySyncService.appendClearAll(),
     );
   }
+
+  @override
+  Stream<void> get changes => _historiesBox.watch();
 
   @override
   List<History> getAllHistories() {

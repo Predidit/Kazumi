@@ -5,8 +5,8 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 
 class WebDavSettingsPage extends StatefulWidget {
   const WebDavSettingsPage({super.key});
@@ -70,19 +70,18 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         onBackPressed(context);
       },
-      child: Scaffold(
-        appBar: const SysAppBar(title: Text('同步设置')),
+      child: SettingsDetailScaffold(
+        title: const Text('同步设置'),
         body: SettingsList(
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: Text('规则仓库', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('规则仓库'),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -91,16 +90,14 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         SettingsKeys.enableGitProxy, enableGitProxy);
                     setState(() {});
                   },
-                  title:
-                      Text('规则仓库镜像', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('使用镜像访问规则更新和管理仓库',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('规则仓库镜像'),
+                  description: Text('使用镜像访问规则更新和管理仓库'),
                   initialValue: enableGitProxy,
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Bangumi'),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -111,10 +108,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       setState(() {});
                     }
                   },
-                  title: Text('Bangumi 镜像',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('使用本地 Bangumi 缓存后端加载热门与分类榜单',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Bangumi 镜像'),
+                  description: Text('使用本地 Bangumi 缓存后端加载热门与分类榜单'),
                   initialValue: enableBangumiProxy,
                 ),
                 SettingsTile.switchTile(
@@ -149,26 +144,23 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     }
                     setState(() {});
                   },
-                  title: Text('Bangumi 同步',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('允许与Bangumi自动同步收藏/追番状态',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Bangumi 同步'),
+                  description: Text('允许与Bangumi自动同步收藏/追番状态'),
                   initialValue: bangumiSyncEnable,
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) async {
                     await context.pushNamed('/settings/bangumi/');
                     bangumiSyncEnable =
                         GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
                     setState(() {});
                   },
-                  title: Text('Bangumi 配置',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Bangumi 配置'),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('WEBDAV', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('WEBDAV'),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -195,8 +187,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       setState(() {});
                     }
                   },
-                  title: Text('WEBDAV同步',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('WEBDAV同步'),
                   initialValue: webDavEnable,
                 ),
                 SettingsTile.switchTile(
@@ -210,10 +201,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         SettingsKeys.webDavEnableHistory, webDavEnableHistory);
                     setState(() {});
                   },
-                  title:
-                      Text('观看记录同步', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('允许自动同步观看记录',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('观看记录同步'),
+                  description: Text('允许自动同步观看记录'),
                   initialValue: webDavEnableHistory,
                 ),
                 SettingsTile.switchTile(
@@ -227,27 +216,23 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         SettingsKeys.webDavEnableCollect, webDavEnableCollect);
                     setState(() {});
                   },
-                  title: Text('收藏同步', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('允许 WebDAV 参与追番状态同步',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('收藏同步'),
+                  description: Text('允许 WebDAV 参与追番状态同步'),
                   initialValue: webDavEnableCollect,
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) async {
                     context.pushNamed('/settings/webdav/editor');
                   },
-                  title: Text('WEBDAV配置',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('WEBDAV配置'),
                 ),
                 SettingsTile(
                   trailing: const Icon(Icons.sync_rounded),
                   onPressed: (_) {
                     syncHistoryWithWebDav();
                   },
-                  title: Text('立即同步观看记录',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('与WEBDAV双向合并观看记录',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('立即同步观看记录'),
+                  description: Text('与WEBDAV双向合并观看记录'),
                 ),
               ],
             ),

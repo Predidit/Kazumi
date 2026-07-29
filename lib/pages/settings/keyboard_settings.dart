@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
 /// Display group for the shortcut list. Functions missing from every group
@@ -217,17 +217,15 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Scaffold(
-      appBar: SysAppBar(
-        title: const Text('操作设置'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_backup_restore_rounded),
-            tooltip: '恢复默认',
-            onPressed: restoreDefaults,
-          ),
-        ],
-      ),
+    return SettingsDetailScaffold(
+      title: const Text('操作设置'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.settings_backup_restore_rounded),
+          tooltip: '恢复默认',
+          onPressed: restoreDefaults,
+        ),
+      ],
       body: FocusScope(
         autofocus: true,
         child: Focus(
@@ -311,8 +309,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                 const SizedBox(width: 12),
                 Text(
                   group.title,
-                  style:
-                      textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -361,9 +359,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       label: listening ? '按任意键' : keyAliases[keys[i]] ?? keys[i],
       listening: listening,
       onTap: () => onKeyCapTap(func, i),
-      onDelete: realCount >= 2 && !listening
-          ? () => onRemoveKey(func, i)
-          : null,
+      onDelete:
+          realCount >= 2 && !listening ? () => onRemoveKey(func, i) : null,
     );
   }
 }

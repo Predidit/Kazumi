@@ -52,7 +52,6 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   image: ^4.8.0
   # cached_network_image_ce: ^4.6.4
-  card_settings_ui: ^2.0.1
   file_picker: ^10.3.7
 
   # fvp: ^0.28.0

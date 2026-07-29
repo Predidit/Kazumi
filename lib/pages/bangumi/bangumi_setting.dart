@@ -1,4 +1,4 @@
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -93,7 +93,6 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return PopScope(
       canPop: !syncCollectiblesing,
       child: Scaffold(
@@ -139,13 +138,11 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                             setState(() {});
                           }
                         },
-                        title: Text('即时同步提示',
-                            style: TextStyle(fontFamily: fontFamily)),
-                        description: Text('点击追番按钮触发即时同步时显示提示框',
-                            style: TextStyle(fontFamily: fontFamily)),
+                        title: Text('即时同步提示'),
+                        description: Text('点击追番按钮触发即时同步时显示提示框'),
                         initialValue: bangumiImmediateSyncToastEnable,
                       ),
-                      SettingsTile.navigation(
+                      SettingsTile(
                         onPressed: (_) async {
                           if (syncPriorityMenuController.isOpen) {
                             syncPriorityMenuController.close();
@@ -153,17 +150,14 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                             syncPriorityMenuController.open();
                           }
                         },
-                        title: Text('同步优先级',
-                            style: TextStyle(fontFamily: fontFamily)),
-                        description: Text('当本地与 Bangumi 状态不一致时优先使用哪个状态',
-                            style: TextStyle(fontFamily: fontFamily)),
+                        title: Text('同步优先级'),
+                        description: Text('当本地与 Bangumi 状态不一致时优先使用哪个状态'),
                         value: MenuAnchor(
                             consumeOutsideTap: true,
                             controller: syncPriorityMenuController,
                             builder: (context, controller, child) => Text(
                                 BangumiSyncPriority.fromValue(syncPriority)
-                                    .label,
-                                style: TextStyle(fontFamily: fontFamily)),
+                                    .label),
                             menuChildren: [
                               for (final entry in BangumiSyncPriority.values)
                                 MenuItemButton(
@@ -184,7 +178,6 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                                                       .colorScheme
                                                       .primary
                                                   : null,
-                                              fontFamily: fontFamily,
                                             ),
                                           ),
                                         )))
@@ -202,10 +195,8 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                         onPressed: (_) async {
                           await syncWithProgress();
                         },
-                        title: Text("立即同步状态",
-                            style: TextStyle(fontFamily: fontFamily)),
-                        description: Text('同步状态不一致或仅存在于本地/远端的条目',
-                            style: TextStyle(fontFamily: fontFamily)),
+                        title: Text("立即同步状态"),
+                        description: Text('同步状态不一致或仅存在于本地/远端的条目'),
                       ),
                     ],
                   ),
@@ -226,7 +217,6 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.primary,
-                        fontFamily: fontFamily,
                         decoration: TextDecoration.underline,
                       ),
                     ),

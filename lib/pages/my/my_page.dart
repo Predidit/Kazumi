@@ -99,15 +99,12 @@ class _MyPageState extends State<MyPage> {
       _CollectHero(stats: stats),
       const SizedBox(height: 12),
       _statTiles(stats),
-      for (final entry in _entryCards(stats)) ...[
-        const SizedBox(height: 12),
-        entry,
-      ],
+      const SizedBox(height: 12),
+      _entryGroup(stats),
     ];
   }
 
   Widget _wideHeader(WatchStats stats) {
-    final entries = _entryCards(stats);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -123,18 +120,7 @@ class _MyPageState extends State<MyPage> {
           ),
         ),
         const SizedBox(width: 16),
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < entries.length; i++) ...[
-                if (i > 0) const SizedBox(height: 12),
-                entries[i],
-              ],
-            ],
-          ),
-        ),
+        Expanded(flex: 2, child: _entryGroup(stats)),
       ],
     );
   }
@@ -216,36 +202,49 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  List<Widget> _entryCards(WatchStats stats) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return [
-      _EntryCard(
+  /// Peer entries share one surface: the tonal accent belongs on the icon
+  /// badge, not on the card, so the page keeps a single point of emphasis.
+  /// Grouped corners (round outside, tight inside) tie them into one block.
+  Widget _entryGroup(WatchStats stats) {
+    final entries = <_EntryData>[
+      _EntryData(
         icon: Icons.history_rounded,
         title: '历史记录',
         subtitle: stats.lastWatchName != null
             ? '最近看到 ${stats.lastWatchName}'
             : '还没有观看记录',
-        background: colorScheme.secondaryContainer,
-        foreground: colorScheme.onSecondaryContainer,
         onTap: () => context.pushNamed('/settings/history/'),
       ),
-      _EntryCard(
+      _EntryData(
         icon: Icons.download_rounded,
         title: '离线下载',
-        subtitle: '管理缓存任务与本地文件',
-        background: colorScheme.tertiaryContainer,
-        foreground: colorScheme.onTertiaryContainer,
+        subtitle: '缓存任务与本地文件',
         onTap: () => context.pushNamed('/settings/download/'),
       ),
-      _EntryCard(
+      _EntryData(
         icon: Icons.settings_rounded,
         title: '设置',
         subtitle: '播放、弹幕、外观与规则',
-        background: colorScheme.surfaceContainerLow,
-        foreground: colorScheme.onSurface,
         onTap: () => context.pushNamed('/settings/'),
       ),
     ];
+    const outer = Radius.circular(16);
+    const inner = Radius.circular(4);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (i > 0) const SizedBox(height: 2),
+          _EntryTile(
+            data: entries[i],
+            borderRadius: BorderRadius.vertical(
+              top: i == 0 ? outer : inner,
+              bottom: i == entries.length - 1 ? outer : inner,
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -437,59 +436,69 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-class _EntryCard extends StatelessWidget {
-  const _EntryCard({
+class _EntryData {
+  const _EntryData({
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.background,
-    required this.foreground,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final Color background;
-  final Color foreground;
   final VoidCallback onTap;
+}
+
+class _EntryTile extends StatelessWidget {
+  const _EntryTile({required this.data, required this.borderRadius});
+
+  final _EntryData data;
+  final BorderRadiusGeometry borderRadius;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(16),
+      color: colorScheme.surfaceContainerLow,
+      borderRadius: borderRadius,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: data.onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: foreground.withValues(alpha: 0.12),
+                  color: colorScheme.secondaryContainer,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 22, color: foreground),
+                child: Icon(
+                  data.icon,
+                  size: 18,
+                  color: colorScheme.onSecondaryContainer,
+                ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
-                      style: textTheme.titleMedium?.copyWith(color: foreground),
+                      data.title,
+                      style: textTheme.titleMedium?.copyWith(
+                        color: colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      subtitle,
+                      data.subtitle,
                       style: textTheme.bodySmall?.copyWith(
-                        color: foreground.withValues(alpha: 0.75),
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -499,7 +508,8 @@ class _EntryCard extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right_rounded,
-                color: foreground.withValues(alpha: 0.75),
+                size: 20,
+                color: colorScheme.onSurfaceVariant,
               ),
             ],
           ),

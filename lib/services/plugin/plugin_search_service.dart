@@ -10,10 +10,12 @@ class PluginSearchService {
   PluginSearchService({
     required this.infoController,
     required this.pluginsController,
-  });
+    List<Plugin>? plugins,
+  }) : _plugins = plugins == null ? null : List.unmodifiable(plugins);
 
   final InfoController infoController;
   final PluginsController pluginsController;
+  final List<Plugin>? _plugins;
   final RuleCancelToken _cancelToken = RuleCancelToken();
 
   /// Per-plugin sessions so a replacement query (alias/manual search)
@@ -21,8 +23,11 @@ class PluginSearchService {
   final Map<String, AsyncSessionOwner> _querySessions = {};
   bool _isCancelled = false;
 
+  List<Plugin> get _queryPlugins =>
+      _plugins ?? List<Plugin>.of(pluginsController.enabledPlugins);
+
   Future<void> querySource(String keyword, String pluginName) async {
-    for (final plugin in pluginsController.pluginList) {
+    for (final plugin in _queryPlugins) {
       if (plugin.name == pluginName) {
         infoController.pluginSearchResponseList.removeWhere(
           (response) => response.pluginName == pluginName,
@@ -33,6 +38,7 @@ class PluginSearchService {
         return;
       }
     }
+    infoController.pluginSearchStatus.remove(pluginName);
   }
 
   /// Publishes the result page harvested by the captcha webview, skipping
@@ -60,7 +66,7 @@ class PluginSearchService {
     infoController.pluginSearchResponseList.clear();
     infoController.pluginSearchStatus.clear();
 
-    final plugins = List<Plugin>.of(pluginsController.pluginList);
+    final plugins = _queryPlugins;
     for (final plugin in plugins) {
       infoController.pluginSearchStatus[plugin.name] =
           PluginSearchStatus.pending;

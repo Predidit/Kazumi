@@ -9,6 +9,7 @@ import 'package:kazumi/services/plugin/plugin_install_time_tracker.dart';
 import 'package:kazumi/request/apis/plugin_catalog_api.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:kazumi/utils/async_single_flight.dart';
 import 'package:kazumi/utils/version.dart';
@@ -63,6 +64,8 @@ void _defaultPluginErrorReporter(
 }
 
 abstract class _PluginsController with Store {
+  static const String disabledPluginNamesSettingKey = 'disabledPluginNames';
+
   _PluginsController({
     PluginCatalogLoader? catalogLoader,
     PluginLoader? pluginLoader,
@@ -95,6 +98,9 @@ abstract class _PluginsController with Store {
   @observable
   ObservableList<PluginHTTPItem> pluginHTTPList = ObservableList.of([]);
 
+  final ObservableSet<String> disabledPluginNames =
+      ObservableSet<String>.of({});
+
   // 规则有效性追踪器
   final validityTracker = PluginValidityTracker();
 
@@ -119,6 +125,7 @@ abstract class _PluginsController with Store {
       await newPluginDirectory!.create(recursive: true);
     }
     await _loadAllPlugins();
+    await loadPluginEnabledState();
   }
 
   // Loads all plugins from the directory, populates the plugin list, and saves to plugins.json if needed
@@ -188,6 +195,77 @@ abstract class _PluginsController with Store {
     return json;
   }
 
+  Future<void> loadPluginEnabledState() async {
+    disabledPluginNames
+      ..clear()
+      ..addAll(
+          GStorage.getStringListSettingByName(disabledPluginNamesSettingKey));
+    if (_pruneDisabledPluginNames()) {
+      await saveDisabledPluginNames();
+    }
+  }
+
+  bool isPluginEnabled(String name) => !disabledPluginNames.contains(name);
+
+  List<Plugin> get enabledPlugins => pluginList
+      .where((plugin) => isPluginEnabled(plugin.name))
+      .toList(growable: false);
+
+  Future<void> setPluginEnabled(
+    String name,
+    bool enabled,
+  ) async {
+    if (!pluginList.any((plugin) => plugin.name == name)) {
+      return;
+    }
+    final changed = enabled
+        ? disabledPluginNames.remove(name)
+        : disabledPluginNames.add(name);
+    if (changed) {
+      await saveDisabledPluginNames();
+    }
+  }
+
+  Future<void> setPluginsEnabled(
+    Iterable<String> names,
+    bool enabled,
+  ) async {
+    final pluginNames = pluginList.map((plugin) => plugin.name).toSet();
+    var changed = false;
+    for (final name in names) {
+      if (!pluginNames.contains(name)) {
+        continue;
+      }
+      if (enabled) {
+        changed = disabledPluginNames.remove(name) || changed;
+      } else {
+        changed = disabledPluginNames.add(name) || changed;
+      }
+    }
+    if (changed) {
+      await saveDisabledPluginNames();
+    }
+  }
+
+  Future<void> saveDisabledPluginNames() async {
+    await GStorage.putStringListSettingByName(
+      disabledPluginNamesSettingKey,
+      disabledPluginNames.toList(growable: false)..sort(),
+    );
+  }
+
+  bool _pruneDisabledPluginNames() {
+    final pluginNames = pluginList.map((plugin) => plugin.name).toSet();
+    final namesToRemove = disabledPluginNames
+        .where((name) => !pluginNames.contains(name))
+        .toList(growable: false);
+    if (namesToRemove.isEmpty) {
+      return false;
+    }
+    disabledPluginNames.removeAll(namesToRemove);
+    return true;
+  }
+
   // Converts a JSON string into a list of Plugin objects.
   List<Plugin> _getPluginListFromJson(String jsonString) {
     List<dynamic> json = jsonDecode(jsonString);
@@ -198,13 +276,21 @@ abstract class _PluginsController with Store {
     return plugins;
   }
 
-  Future<void> removePlugin(Plugin plugin) {
-    return _mutateAndPersist(
-      () => pluginList.removeWhere(
-        (candidate) => _catalogKey(candidate.name) == _catalogKey(plugin.name),
-      ),
+  Future<void> removePlugin(Plugin plugin) async {
+    final disabledChanged = disabledPluginNames.contains(plugin.name);
+    await _mutateAndPersist(
+      () {
+        pluginList.removeWhere(
+          (candidate) =>
+              _catalogKey(candidate.name) == _catalogKey(plugin.name),
+        );
+        disabledPluginNames.remove(plugin.name);
+      },
       errorMessage: 'Plugin: failed to persist rule removal',
     );
+    if (disabledChanged) {
+      await saveDisabledPluginNames();
+    }
   }
 
   bool get isPluginCatalogFresh {
@@ -543,9 +629,12 @@ abstract class _PluginsController with Store {
     return results.cast<_PluginUpdateAttempt>();
   }
 
-  Future<void> removePlugins(Set<String> pluginNames) {
+  Future<void> removePlugins(
+    Set<String> pluginNames,
+  ) async {
     final names = Set<String>.of(pluginNames);
-    return _mutateAndPersist(
+    final disabledChanged = names.any(disabledPluginNames.contains);
+    await _mutateAndPersist(
       () {
         for (int i = pluginList.length - 1; i >= 0; --i) {
           var name = pluginList[i].name;
@@ -553,8 +642,12 @@ abstract class _PluginsController with Store {
             pluginList.removeAt(i);
           }
         }
+        disabledPluginNames.removeAll(names);
       },
       errorMessage: 'Plugin: failed to persist batch rule removal',
     );
+    if (disabledChanged) {
+      await saveDisabledPluginNames();
+    }
   }
 }

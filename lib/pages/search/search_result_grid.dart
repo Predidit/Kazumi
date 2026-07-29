@@ -66,7 +66,15 @@ class _SearchResultGridState extends State<SearchResultGrid>
       oldWidget.scrollController.removeListener(_handleScroll);
       widget.scrollController.addListener(_handleScroll);
     }
-    if (_sameIds(widget.items, _toItems)) return;
+    if (_sameIds(widget.items, _toItems)) {
+      final refreshedItems = List<BangumiItem>.of(widget.items);
+      _toItems = refreshedItems;
+      if (!_animating) {
+        _visibleItems = refreshedItems;
+        _fromItems = refreshedItems;
+      }
+      return;
+    }
     _startTransition(List<BangumiItem>.of(widget.items));
   }
 

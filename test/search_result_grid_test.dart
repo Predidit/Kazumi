@@ -52,6 +52,38 @@ void main() {
     expect(find.text('item-3'), findsOneWidget);
   });
 
+  testWidgets('refreshes card content when item ids stay unchanged',
+      (tester) async {
+    late StateSetter update;
+    var items = [_item(1)];
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) {
+          update = setState;
+          return MaterialApp(
+            home: Scaffold(
+              body: SearchResultGrid(
+                items: items,
+                crossCount: 1,
+                cardExtent: 100,
+                itemBuilder: (context, item) => Text(item.nameCn),
+                scrollController: scrollController,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    final refreshedItem = _item(1)..nameCn = 'updated-name';
+    update(() => items = [refreshedItem]);
+    await tester.pump();
+
+    expect(find.text('updated-name'), findsOneWidget);
+  });
+
   testWidgets('animates removed cards before settling on the hidden list',
       (tester) async {
     late StateSetter update;

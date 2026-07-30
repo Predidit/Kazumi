@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - "Casks/**"
+      - 'Casks/**'
   pull_request:
     paths:
-      - "Casks/**"
+      - 'Casks/**'
 
 jobs:
   test-bot:

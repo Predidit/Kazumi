@@ -58,6 +58,12 @@ class _DanmakuSettingsSheet extends StatefulWidget {
 }
 
 class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
+  DanmakuOption get _option => widget.danmakuController.option;
+
+  void _applyOption(DanmakuOption option) {
+    setState(() => widget.danmakuController.updateOption(option));
+  }
+
   void _showDanmakuShieldSheet() {
     showAdaptiveBottomSheet<void>(
       context: context,
@@ -95,49 +101,33 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                   SettingsSection(
                     title: Text('弹幕样式'),
                     tiles: [
-                      SettingsTile(
+                      SettingsSliderTile(
                         leading: Icons.format_size_rounded,
                         title: Text('字体大小'),
-                        description: Slider(
-                          value: widget.danmakuController.option.fontSize,
-                          min: 10,
-                          max: isCompact() ? 32 : 48,
-                          label:
-                              '${widget.danmakuController.option.fontSize.floorToDouble()}',
-                          onChanged: (value) {
-                            setState(
-                                () => widget.danmakuController.updateOption(
-                                      widget.danmakuController.option.copyWith(
-                                        fontSize: value.floorToDouble(),
-                                      ),
-                                    ));
-                            GStorage.putSetting<double>(
-                                SettingsKeys.danmakuFontSize,
-                                value.floorToDouble());
-                          },
-                        ),
+                        value: _option.fontSize,
+                        min: 10,
+                        max: isCompact() ? 32 : 48,
+                        valueLabel: '${_option.fontSize.floor()}',
+                        onChanged: (value) {
+                          final fontSize = value.floorToDouble();
+                          _applyOption(_option.copyWith(fontSize: fontSize));
+                          GStorage.putSetting<double>(
+                              SettingsKeys.danmakuFontSize, fontSize);
+                        },
                       ),
-                      SettingsTile(
+                      SettingsSliderTile(
                         leading: Icons.opacity_rounded,
                         title: Text('弹幕不透明度'),
-                        description: Slider(
-                          value: widget.danmakuController.option.opacity,
-                          min: 0.1,
-                          max: 1,
-                          label:
-                              '${(widget.danmakuController.option.opacity * 100).round()}%',
-                          onChanged: (value) {
-                            setState(
-                                () => widget.danmakuController.updateOption(
-                                      widget.danmakuController.option.copyWith(
-                                        opacity: value,
-                                      ),
-                                    ));
-                            GStorage.putSetting<double>(
-                                SettingsKeys.danmakuOpacity,
-                                double.parse(value.toStringAsFixed(2)));
-                          },
-                        ),
+                        value: _option.opacity,
+                        min: 0.1,
+                        max: 1,
+                        valueLabel: '${(_option.opacity * 100).round()}%',
+                        onChanged: (value) {
+                          _applyOption(_option.copyWith(opacity: value));
+                          GStorage.putSetting<double>(
+                              SettingsKeys.danmakuOpacity,
+                              double.parse(value.toStringAsFixed(2)));
+                        },
                       ),
                     ],
                   ),
@@ -160,125 +150,84 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                           ),
                         ),
                       ),
-                      SettingsTile(
+                      SettingsSliderTile(
                         leading: Icons.crop_free_rounded,
                         title: Text('弹幕区域'),
-                        description: Slider(
-                          value: widget.danmakuController.option.area,
-                          min: 0,
-                          max: 1,
-                          divisions: 8,
-                          label:
-                              '${(widget.danmakuController.option.area * 100).round()}%',
-                          onChanged: (value) {
-                            setState(
-                                () => widget.danmakuController.updateOption(
-                                      widget.danmakuController.option.copyWith(
-                                        area: value,
-                                      ),
-                                    ));
-                            GStorage.putSetting<double>(
-                                SettingsKeys.danmakuArea, value);
-                          },
-                        ),
+                        value: _option.area,
+                        min: 0,
+                        max: 1,
+                        divisions: 8,
+                        valueLabel: '${(_option.area * 100).round()}%',
+                        onChanged: (value) {
+                          _applyOption(_option.copyWith(area: value));
+                          GStorage.putSetting<double>(
+                              SettingsKeys.danmakuArea, value);
+                        },
                       ),
-                      SettingsTile(
+                      SettingsSliderTile(
                         leading: Icons.timer_rounded,
                         title: Text('持续时间'),
-                        description: Slider(
-                          value: widget.danmakuController.option.duration
-                              .toDouble(),
-                          min: 2,
-                          max: 16,
-                          divisions: 14,
-                          label:
-                              '${widget.danmakuController.option.duration.round()}',
-                          onChanged: (value) {
-                            setState(
-                                () => widget.danmakuController.updateOption(
-                                      widget.danmakuController.option.copyWith(
-                                        duration: value,
-                                      ),
-                                    ));
-                            GStorage.putSetting<double>(
-                                SettingsKeys.danmakuDuration,
-                                value.round().toDouble());
-                          },
-                        ),
+                        value: _option.duration.toDouble(),
+                        min: 2,
+                        max: 16,
+                        divisions: 14,
+                        valueLabel: '${_option.duration.round()} 秒',
+                        onChanged: (value) {
+                          _applyOption(_option.copyWith(duration: value));
+                          GStorage.putSetting<double>(
+                              SettingsKeys.danmakuDuration,
+                              value.roundToDouble());
+                        },
                       ),
-                      SettingsTile(
+                      SettingsSliderTile(
                         leading: Icons.format_line_spacing_rounded,
                         title: Text('行高'),
-                        description: Slider(
-                          value: widget.danmakuController.option.lineHeight,
-                          min: 0,
-                          max: 3,
-                          divisions: 30,
-                          label: widget.danmakuController.option.lineHeight
-                              .toStringAsFixed(1),
-                          onChanged: (value) {
-                            setState(() =>
-                                widget.danmakuController.updateOption(
-                                  widget.danmakuController.option.copyWith(
-                                    lineHeight:
-                                        double.parse(value.toStringAsFixed(1)),
-                                  ),
-                                ));
-                            GStorage.putSetting<double>(
-                                SettingsKeys.danmakuLineHeight,
-                                double.parse(value.toStringAsFixed(1)));
-                          },
-                        ),
+                        value: _option.lineHeight,
+                        min: 0,
+                        max: 3,
+                        divisions: 30,
+                        valueLabel: _option.lineHeight.toStringAsFixed(1),
+                        onChanged: (value) {
+                          final lineHeight =
+                              double.parse(value.toStringAsFixed(1));
+                          _applyOption(
+                              _option.copyWith(lineHeight: lineHeight));
+                          GStorage.putSetting<double>(
+                              SettingsKeys.danmakuLineHeight, lineHeight);
+                        },
                       ),
                       SettingsTile.switchTile(
                         leading: Icons.vertical_align_top_rounded,
                         onToggle: (value) {
-                          bool show =
-                              value ?? widget.danmakuController.option.hideTop;
-                          setState(() => widget.danmakuController.updateOption(
-                                widget.danmakuController.option.copyWith(
-                                  hideTop: !show,
-                                ),
-                              ));
+                          final show = value ?? _option.hideTop;
+                          _applyOption(_option.copyWith(hideTop: !show));
                           GStorage.putSetting<bool>(
                               SettingsKeys.danmakuTop, show);
                         },
                         title: Text('顶部弹幕'),
-                        initialValue: !widget.danmakuController.option.hideTop,
+                        initialValue: !_option.hideTop,
                       ),
                       SettingsTile.switchTile(
                         leading: Icons.vertical_align_bottom_rounded,
                         onToggle: (value) {
-                          bool show = value ??
-                              widget.danmakuController.option.hideBottom;
-                          setState(() => widget.danmakuController.updateOption(
-                                widget.danmakuController.option.copyWith(
-                                  hideBottom: !show,
-                                ),
-                              ));
+                          final show = value ?? _option.hideBottom;
+                          _applyOption(_option.copyWith(hideBottom: !show));
                           GStorage.putSetting<bool>(
                               SettingsKeys.danmakuBottom, show);
                         },
                         title: Text('底部弹幕'),
-                        initialValue:
-                            !widget.danmakuController.option.hideBottom,
+                        initialValue: !_option.hideBottom,
                       ),
                       SettingsTile.switchTile(
                         leading: Icons.swap_horiz_rounded,
                         onToggle: (value) {
-                          bool show = value ??
-                              widget.danmakuController.option.hideScroll;
-                          setState(() => widget.danmakuController.updateOption(
-                                widget.danmakuController.option.copyWith(
-                                  hideScroll: !show,
-                                ),
-                              ));
+                          final show = value ?? _option.hideScroll;
+                          _applyOption(_option.copyWith(hideScroll: !show));
                           GStorage.putSetting<bool>(
                               SettingsKeys.danmakuScroll, show);
                         },
                         title: Text('滚动弹幕'),
-                        initialValue:
-                            !widget.danmakuController.option.hideScroll,
+                        initialValue: !_option.hideScroll,
                       ),
                       SettingsTile.switchTile(
                         leading: Icons.speed_rounded,

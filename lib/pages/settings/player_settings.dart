@@ -531,57 +531,49 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             SettingsSection(
               title: Text('播放参数'),
               tiles: [
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.speed_rounded,
                   title: Text('默认倍速'),
-                  description: Slider(
-                    value: defaultPlaySpeed,
-                    min: 0.25,
-                    max: 3,
-                    divisions: 11,
-                    label: '${defaultPlaySpeed}x',
-                    onChanged: (value) {
-                      updateDefaultPlaySpeed(
-                          double.parse(value.toStringAsFixed(2)));
-                    },
-                  ),
+                  value: defaultPlaySpeed,
+                  min: 0.25,
+                  max: 3,
+                  divisions: 11,
+                  valueLabel: '${defaultPlaySpeed}x',
+                  onChanged: (value) => updateDefaultPlaySpeed(
+                      double.parse(value.toStringAsFixed(2))),
                 ),
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.fast_forward_rounded,
-                  title: Text('默认方向键/长按倍速'),
-                  description: Slider(
-                    value: defaultShortcutForwardPlaySpeed,
-                    min: 1.25,
-                    max: 3,
-                    divisions: 7,
-                    label: '${defaultShortcutForwardPlaySpeed}x',
-                    onChanged: (value) {
-                      updateDefaultShortcutForwardPlaySpeed(
-                          double.parse(value.toStringAsFixed(2)));
-                    },
-                  ),
+                  title: Text('长按倍速'),
+                  description: Text('长按屏幕或按住方向键时的倍速'),
+                  value: defaultShortcutForwardPlaySpeed,
+                  min: 1.25,
+                  max: 3,
+                  divisions: 7,
+                  valueLabel: '${defaultShortcutForwardPlaySpeed}x',
+                  onChanged: (value) => updateDefaultShortcutForwardPlaySpeed(
+                      double.parse(value.toStringAsFixed(2))),
                 ),
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.swap_horiz_rounded,
-                  description: Slider(
-                    value: playerArrowKeySkipTime.toDouble(),
-                    min: 0,
-                    max: 15,
-                    divisions: 15,
-                    label: '$playerArrowKeySkipTime秒',
-                    onChanged: (value) {
-                      final newArrowKeySkipTime = value.toInt();
-
-                      if (value != playerArrowKeySkipTime) {
-                        GStorage.putSetting<int>(
-                            SettingsKeys.arrowKeySkipTime, newArrowKeySkipTime);
-                        setState(() {
-                          playerArrowKeySkipTime = newArrowKeySkipTime;
-                        });
-                      }
-                    },
-                  ),
-                  title: Text('左右方向键的快进/快退秒数'),
+                  title: Text('方向键跳转'),
+                  description: Text('左右方向键的快进/快退秒数'),
+                  value: playerArrowKeySkipTime.toDouble(),
+                  min: 0,
+                  max: 15,
+                  divisions: 15,
+                  valueLabel: '$playerArrowKeySkipTime 秒',
+                  onChanged: (value) {
+                    final newArrowKeySkipTime = value.toInt();
+                    if (newArrowKeySkipTime == playerArrowKeySkipTime) {
+                      return;
+                    }
+                    GStorage.putSetting<int>(
+                        SettingsKeys.arrowKeySkipTime, newArrowKeySkipTime);
+                    setState(() {
+                      playerArrowKeySkipTime = newArrowKeySkipTime;
+                    });
+                  },
                 ),
                 SettingsTile(
                   leading: Icons.skip_next_rounded,
@@ -592,19 +584,17 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text('顶栏跳过按钮的秒数'),
                   value: Text('$playerButtonSkipTime 秒'),
                 ),
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.timer_rounded,
-                  title: Text(
-                      '播放控制器消失时间：${formatPlayerControllerLayerDisappearSeconds(playerControllerLayerDisappearSeconds)}'),
-                  description: Slider(
-                    value: playerControllerLayerDisappearSeconds,
-                    min: _minPlayerControllerLayerDisappearSeconds,
-                    max: _maxPlayerControllerLayerDisappearSeconds,
-                    divisions: _playerControllerLayerDisappearDivisions,
-                    label: formatPlayerControllerLayerDisappearSeconds(
-                        playerControllerLayerDisappearSeconds),
-                    onChanged: updatePlayerControllerLayerDisappearSeconds,
-                  ),
+                  title: Text('控制栏消失时间'),
+                  description: Text('播放控制器自动隐藏前的停留时长'),
+                  value: playerControllerLayerDisappearSeconds,
+                  min: _minPlayerControllerLayerDisappearSeconds,
+                  max: _maxPlayerControllerLayerDisappearSeconds,
+                  divisions: _playerControllerLayerDisappearDivisions,
+                  valueLabel: formatPlayerControllerLayerDisappearSeconds(
+                      playerControllerLayerDisappearSeconds),
+                  onChanged: updatePlayerControllerLayerDisappearSeconds,
                 ),
                 SettingsTile(
                   leading: Icons.aspect_ratio_rounded,

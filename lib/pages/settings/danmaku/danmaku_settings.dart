@@ -220,48 +220,37 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             SettingsSection(
               title: Text('弹幕显示'),
               tiles: [
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.crop_free_rounded,
                   title: Text('弹幕区域'),
-                  description: Slider(
-                    value: defaultDanmakuArea,
-                    min: 0,
-                    max: 1,
-                    divisions: 8,
-                    label: '${(defaultDanmakuArea * 100).round()}%',
-                    onChanged: (value) {
-                      updateDanmakuArea(value);
-                    },
-                  ),
+                  value: defaultDanmakuArea,
+                  min: 0,
+                  max: 1,
+                  divisions: 8,
+                  valueLabel: '${(defaultDanmakuArea * 100).round()}%',
+                  onChanged: updateDanmakuArea,
                 ),
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.timer_rounded,
                   title: Text('弹幕持续时间'),
-                  description: Slider(
-                    value: defaultDanmakuDuration,
-                    min: 2,
-                    max: 16,
-                    divisions: 14,
-                    label: '${defaultDanmakuDuration.round()}',
-                    onChanged: (value) {
-                      updateDanmakuDuration(value.round().toDouble());
-                    },
-                  ),
+                  value: defaultDanmakuDuration,
+                  min: 2,
+                  max: 16,
+                  divisions: 14,
+                  valueLabel: '${defaultDanmakuDuration.round()} 秒',
+                  onChanged: (value) =>
+                      updateDanmakuDuration(value.roundToDouble()),
                 ),
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.format_line_spacing_rounded,
                   title: Text('弹幕行高'),
-                  description: Slider(
-                    value: defaultDanmakuLineHeight,
-                    min: 0,
-                    max: 3,
-                    divisions: 30,
-                    label: defaultDanmakuLineHeight.toStringAsFixed(1),
-                    onChanged: (value) {
-                      updateDanmakuLineHeight(
-                          double.parse(value.toStringAsFixed(1)));
-                    },
-                  ),
+                  value: defaultDanmakuLineHeight,
+                  min: 0,
+                  max: 3,
+                  divisions: 30,
+                  valueLabel: defaultDanmakuLineHeight.toStringAsFixed(1),
+                  onChanged: (value) => updateDanmakuLineHeight(
+                      double.parse(value.toStringAsFixed(1))),
                 ),
                 SettingsTile.switchTile(
                   leading: Icons.speed_rounded,
@@ -349,20 +338,16 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   title: Text('弹幕描边'),
                   initialValue: danmakuBorder,
                 ),
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.line_weight_rounded,
                   title: Text('弹幕描边粗细'),
-                  description: Slider(
-                    value: defaultdanmakuBorderSize,
-                    min: 0.1,
-                    max: 3,
-                    divisions: 29,
-                    label: defaultdanmakuBorderSize.toStringAsFixed(1),
-                    onChanged: (value) {
-                      updateDanmakuBorderSize(
-                          double.parse(value.toStringAsFixed(1)));
-                    },
-                  ),
+                  value: defaultdanmakuBorderSize,
+                  min: 0.1,
+                  max: 3,
+                  divisions: 29,
+                  valueLabel: defaultdanmakuBorderSize.toStringAsFixed(1),
+                  onChanged: (value) => updateDanmakuBorderSize(
+                      double.parse(value.toStringAsFixed(1))),
                 ),
                 SettingsTile.switchTile(
                   leading: Icons.palette_rounded,
@@ -375,46 +360,35 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   title: Text('弹幕颜色'),
                   initialValue: danmakuColor,
                 ),
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.format_size_rounded,
                   title: Text('字体大小'),
-                  description: Slider(
-                    value: defaultDanmakuFontSize,
-                    min: 10,
-                    max: isCompact() ? 32 : 48,
-                    label: '${defaultDanmakuFontSize.floorToDouble()}',
-                    onChanged: (value) {
-                      updateDanmakuFontSize(value.floorToDouble());
-                    },
-                  ),
+                  value: defaultDanmakuFontSize,
+                  min: 10,
+                  max: isCompact() ? 32 : 48,
+                  valueLabel: '${defaultDanmakuFontSize.floor()}',
+                  onChanged: (value) =>
+                      updateDanmakuFontSize(value.floorToDouble()),
                 ),
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.format_bold_rounded,
                   title: Text('字体字重'),
-                  description: Slider(
-                    value: defaultDanmakuFontWeight.toDouble(),
-                    min: 1,
-                    max: 9,
-                    divisions: 8,
-                    label: '$defaultDanmakuFontWeight',
-                    onChanged: (value) {
-                      updateDanmakuFontWeight(value.toInt());
-                    },
-                  ),
+                  value: defaultDanmakuFontWeight.toDouble(),
+                  min: 1,
+                  max: 9,
+                  divisions: 8,
+                  valueLabel: '$defaultDanmakuFontWeight',
+                  onChanged: (value) => updateDanmakuFontWeight(value.toInt()),
                 ),
-                SettingsTile(
+                SettingsSliderTile(
                   leading: Icons.opacity_rounded,
                   title: Text('弹幕不透明度'),
-                  description: Slider(
-                    value: defaultDanmakuOpacity,
-                    min: 0.1,
-                    max: 1,
-                    label: '${(defaultDanmakuOpacity * 100).round()}%',
-                    onChanged: (value) {
-                      updateDanmakuOpacity(
-                          double.parse(value.toStringAsFixed(2)));
-                    },
-                  ),
+                  value: defaultDanmakuOpacity,
+                  min: 0.1,
+                  max: 1,
+                  valueLabel: '${(defaultDanmakuOpacity * 100).round()}%',
+                  onChanged: (value) => updateDanmakuOpacity(
+                      double.parse(value.toStringAsFixed(2))),
                 ),
               ],
             ),

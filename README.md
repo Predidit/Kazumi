@@ -84,6 +84,19 @@
   alt="Get it on F-Droid" width="200">
 </a>
 
+### MacOS
+
+可以通过 [Homebrew](https://brew.sh/) 和 Kazumi 提供自托管的 Homebrew Tap 以在 Intel/Apple Silicon上的 Mac 安装。
+
+```bash
+brew tap Predidit/Kazumi
+brew trust Predidit/Kazumi
+brew install --cask kazumi
+```
+
+> [!NOTE]
+> 如果下载太慢，可以下载[Cask源文件](https://raw.githubusercontent.com/Predidit/Kazumi/refs/heads/main/Casks/kazumi.rb)并手动换源，然后执行 `brew install --cask /path/to/kazumi.rb` 安装。
+
 ### GNU/Linux
 
 <a href="https://flathub.org/apps/io.github.Predidit.Kazumi">

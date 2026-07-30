@@ -364,8 +364,10 @@ class _SettingsPageState extends State<SettingsPage> {
           SettingsSplitGroup(
             children: [
               for (final category in group.categories)
-                _CategoryTile(
-                  category: category,
+                SettingsCategoryTile(
+                  icon: category.icon,
+                  title: category.label,
+                  description: category.description,
                   onTap: () => setState(() => _selected = category),
                 ),
             ],
@@ -421,64 +423,6 @@ class _RailDestination extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({required this.category, required this.onTap});
-
-  final _SettingsCategory category;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: onTap,
-      onHighlightChanged: SettingsSplitGroup.pressReporterOf(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: colorScheme.secondaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                category.icon,
-                size: 18,
-                color: colorScheme.onSecondaryContainer,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(category.label, style: textTheme.bodyLarge),
-                  const SizedBox(height: 2),
-                  Text(
-                    category.description,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: colorScheme.onSurfaceVariant),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ],
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/my/watch_stats.dart';
 import 'package:kazumi/pages/menu/route_visibility.dart';
@@ -9,6 +10,10 @@ import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/my/recent_watch_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/date_time.dart';
+
+/// Shared by every block on this page, entry group included, so they read as
+/// one set of cards.
+const double _cardRadius = 16;
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key, required this.controller});
@@ -202,47 +207,32 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  /// Peer entries share one surface: the tonal accent belongs on the icon
-  /// badge, not on the card, so the page keeps a single point of emphasis.
-  /// Grouped corners (round outside, tight inside) tie them into one block.
+  /// The same split list the settings page uses, at this page's card radius so
+  /// the group sits level with the hero beside it.
   Widget _entryGroup(WatchStats stats) {
-    final entries = <_EntryData>[
-      _EntryData(
-        icon: Icons.history_rounded,
-        title: '历史记录',
-        subtitle: stats.lastWatchName != null
-            ? '最近看到 ${stats.lastWatchName}'
-            : '还没有观看记录',
-        onTap: () => context.pushNamed('/settings/history/'),
-      ),
-      _EntryData(
-        icon: Icons.download_rounded,
-        title: '离线下载',
-        subtitle: '缓存任务与本地文件',
-        onTap: () => context.pushNamed('/settings/download/'),
-      ),
-      _EntryData(
-        icon: Icons.settings_rounded,
-        title: '设置',
-        subtitle: '播放、弹幕、外观与规则',
-        onTap: () => context.pushNamed('/settings/'),
-      ),
-    ];
-    const outer = Radius.circular(16);
-    const inner = Radius.circular(4);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return SettingsSplitGroup(
+      outerRadius: _cardRadius,
       children: [
-        for (var i = 0; i < entries.length; i++) ...[
-          if (i > 0) const SizedBox(height: 2),
-          _EntryTile(
-            data: entries[i],
-            borderRadius: BorderRadius.vertical(
-              top: i == 0 ? outer : inner,
-              bottom: i == entries.length - 1 ? outer : inner,
-            ),
-          ),
-        ],
+        SettingsCategoryTile(
+          icon: Icons.history_rounded,
+          title: '历史记录',
+          description: stats.lastWatchName != null
+              ? '最近看到 ${stats.lastWatchName}'
+              : '还没有观看记录',
+          onTap: () => context.pushNamed('/settings/history/'),
+        ),
+        SettingsCategoryTile(
+          icon: Icons.download_rounded,
+          title: '离线下载',
+          description: '缓存任务与本地文件',
+          onTap: () => context.pushNamed('/settings/download/'),
+        ),
+        SettingsCategoryTile(
+          icon: Icons.settings_rounded,
+          title: '设置',
+          description: '播放、弹幕、外观与规则',
+          onTap: () => context.pushNamed('/settings/'),
+        ),
       ],
     );
   }
@@ -274,7 +264,7 @@ class _CollectHero extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(_cardRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,7 +385,7 @@ class _StatTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(_cardRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,85 +426,3 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-class _EntryData {
-  const _EntryData({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-}
-
-class _EntryTile extends StatelessWidget {
-  const _EntryTile({required this.data, required this.borderRadius});
-
-  final _EntryData data;
-  final BorderRadiusGeometry borderRadius;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Material(
-      color: colorScheme.surfaceContainerLow,
-      borderRadius: borderRadius,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: data.onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  data.icon,
-                  size: 18,
-                  color: colorScheme.onSecondaryContainer,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      data.title,
-                      style: textTheme.titleMedium?.copyWith(
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      data.subtitle,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

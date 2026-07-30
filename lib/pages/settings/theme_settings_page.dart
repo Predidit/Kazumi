@@ -143,12 +143,12 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       child: SettingsDetailScaffold(
         title: const Text('外观设置'),
         body: SettingsList(
-          maxWidth: 1000,
           sections: [
             SettingsSection(
               title: Text('外观'),
               tiles: [
                 SettingsTile(
+                  leading: Icons.dark_mode_rounded,
                   onPressed: (_) {
                     if (menuController.isOpen) {
                       menuController.close();
@@ -263,6 +263,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   ),
                 ),
                 SettingsTile(
+                  leading: Icons.palette_rounded,
                   enabled: !useDynamicColor,
                   onPressed: (_) async {
                     KazumiDialog.show(builder: (context) {
@@ -313,6 +314,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   title: Text('配色方案'),
                 ),
                 SettingsTile.switchTile(
+                  leading: Icons.colorize_rounded,
                   enabled: !Platform.isIOS,
                   onToggle: (value) async {
                     useDynamicColor = value ?? !useDynamicColor;
@@ -325,6 +327,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   initialValue: useDynamicColor,
                 ),
                 SettingsTile.switchTile(
+                  leading: Icons.font_download_rounded,
                   onToggle: (value) async {
                     useSystemFont = value ?? !useSystemFont;
                     await GStorage.putSetting(
@@ -347,8 +350,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台'),
             ),
             SettingsSection(
+              title: Text('显示'),
               tiles: [
                 SettingsTile.switchTile(
+                  leading: Icons.contrast_rounded,
                   onToggle: (value) async {
                     oledEnhance = value ?? !oledEnhance;
                     await GStorage.putSetting(
@@ -364,8 +369,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             ),
             if (isDesktop())
               SettingsSection(
+                title: Text('窗口'),
                 tiles: [
                   SettingsTile.switchTile(
+                    leading: Icons.web_asset_rounded,
                     onToggle: (value) async {
                       showWindowButton = value ?? !showWindowButton;
                       await GStorage.putSetting(
@@ -380,8 +387,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               ),
             if (Platform.isAndroid)
               SettingsSection(
+                title: Text('屏幕'),
                 tiles: [
                   SettingsTile(
+                    leading: Icons.sixty_fps_rounded,
                     onPressed: (_) async {
                       context.pushNamed('/settings/theme/display');
                     },

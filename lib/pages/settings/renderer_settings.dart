@@ -29,7 +29,6 @@ class _RendererSettingsState extends State<RendererSettings> {
         title: Text('视频渲染器'),
       ),
       body: SettingsList(
-        maxWidth: 1000,
         sections: [
           SettingsRadioSection<String>(
             title: Text('选择合适的渲染器以获得最佳播放体验'),

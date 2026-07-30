@@ -84,6 +84,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                     title: Text('弹幕屏蔽'),
                     tiles: [
                       SettingsTile(
+                        leading: Icons.block_rounded,
                         onPressed: (_) {
                           _showDanmakuShieldSheet();
                         },
@@ -95,6 +96,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                     title: Text('弹幕样式'),
                     tiles: [
                       SettingsTile(
+                        leading: Icons.format_size_rounded,
                         title: Text('字体大小'),
                         description: Slider(
                           value: widget.danmakuController.option.fontSize,
@@ -116,6 +118,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         ),
                       ),
                       SettingsTile(
+                        leading: Icons.opacity_rounded,
                         title: Text('弹幕不透明度'),
                         description: Slider(
                           value: widget.danmakuController.option.opacity,
@@ -142,6 +145,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                     title: Text('弹幕显示'),
                     tiles: [
                       SettingsTile(
+                        leading: Icons.schedule_rounded,
                         onPressed: (context) {
                           Navigator.of(context)
                               .pop(_DanmakuSettingsDestination.timeOffset);
@@ -157,6 +161,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         ),
                       ),
                       SettingsTile(
+                        leading: Icons.crop_free_rounded,
                         title: Text('弹幕区域'),
                         description: Slider(
                           value: widget.danmakuController.option.area,
@@ -178,6 +183,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         ),
                       ),
                       SettingsTile(
+                        leading: Icons.timer_rounded,
                         title: Text('持续时间'),
                         description: Slider(
                           value: widget.danmakuController.option.duration
@@ -201,6 +207,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         ),
                       ),
                       SettingsTile(
+                        leading: Icons.format_line_spacing_rounded,
                         title: Text('行高'),
                         description: Slider(
                           value: widget.danmakuController.option.lineHeight,
@@ -224,6 +231,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         ),
                       ),
                       SettingsTile.switchTile(
+                        leading: Icons.vertical_align_top_rounded,
                         onToggle: (value) {
                           bool show =
                               value ?? widget.danmakuController.option.hideTop;
@@ -239,6 +247,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         initialValue: !widget.danmakuController.option.hideTop,
                       ),
                       SettingsTile.switchTile(
+                        leading: Icons.vertical_align_bottom_rounded,
                         onToggle: (value) {
                           bool show = value ??
                               widget.danmakuController.option.hideBottom;
@@ -255,6 +264,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                             !widget.danmakuController.option.hideBottom,
                       ),
                       SettingsTile.switchTile(
+                        leading: Icons.swap_horiz_rounded,
                         onToggle: (value) {
                           bool show = value ??
                               widget.danmakuController.option.hideScroll;
@@ -271,6 +281,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                             !widget.danmakuController.option.hideScroll,
                       ),
                       SettingsTile.switchTile(
+                        leading: Icons.speed_rounded,
                         onToggle: (value) {
                           bool followSpeed = value ??
                               !GStorage.getSetting<bool>(

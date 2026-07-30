@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/pages/about/about_page.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_view_page.dart';
@@ -330,8 +331,8 @@ class _SettingsPageState extends State<SettingsPage> {
               padding: const EdgeInsets.fromLTRB(28, 16, 28, 8),
               child: Text(
                 group.title,
-                style: textTheme.titleSmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style:
+                    textTheme.titleSmall?.copyWith(color: colorScheme.primary),
               ),
             ),
             for (final category in group.categories)
@@ -354,27 +355,20 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         for (final group in _settingsGroups) ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               group.title,
-              style: textTheme.titleSmall
-                  ?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: textTheme.titleSmall?.copyWith(color: colorScheme.primary),
             ),
           ),
-          Material(
-            // Material, not Container, so the ink ripple paints above the fill.
-            color: colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(16),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (final category in group.categories)
-                  _CategoryTile(
-                    category: category,
-                    onTap: () => setState(() => _selected = category),
-                  ),
-              ],
-            ),
+          SettingsSplitGroup(
+            children: [
+              for (final category in group.categories)
+                _CategoryTile(
+                  category: category,
+                  onTap: () => setState(() => _selected = category),
+                ),
+            ],
           ),
         ],
       ],
@@ -445,6 +439,7 @@ class _CategoryTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     return InkWell(
       onTap: onTap,
+      onHighlightChanged: SettingsSplitGroup.pressReporterOf(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(

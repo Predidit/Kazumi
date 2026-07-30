@@ -29,7 +29,6 @@ class _DecoderSettingsState extends State<DecoderSettings> {
         title: Text('硬件解码器'),
       ),
       body: SettingsList(
-        maxWidth: 1000,
         sections: [
           SettingsRadioSection<String>(
             title: Text('选择不受支持的解码器将回退到软件解码'),

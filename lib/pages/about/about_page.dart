@@ -143,11 +143,12 @@ class _AboutPageState extends State<AboutPage> {
       child: SettingsDetailScaffold(
         title: const Text('关于'),
         body: SettingsList(
-          maxWidth: 1000,
           sections: [
             SettingsSection(
+              title: Text('开源'),
               tiles: [
                 SettingsTile(
+                  leading: Icons.gavel_rounded,
                   onPressed: (_) {
                     context.pushNamed('/settings/about/license');
                   },
@@ -160,6 +161,7 @@ class _AboutPageState extends State<AboutPage> {
               title: Text('外部链接'),
               tiles: [
                 SettingsTile(
+                  leading: Icons.home_rounded,
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.projectUrl),
                         mode: LaunchMode.externalApplication);
@@ -167,6 +169,7 @@ class _AboutPageState extends State<AboutPage> {
                   title: Text('项目主页'),
                 ),
                 SettingsTile(
+                  leading: Icons.code_rounded,
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.sourceUrl),
                         mode: LaunchMode.externalApplication);
@@ -175,6 +178,7 @@ class _AboutPageState extends State<AboutPage> {
                   value: Text('Github'),
                 ),
                 SettingsTile(
+                  leading: Icons.brush_rounded,
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.iconUrl),
                         mode: LaunchMode.externalApplication);
@@ -183,6 +187,7 @@ class _AboutPageState extends State<AboutPage> {
                   value: Text('Pixiv'),
                 ),
                 SettingsTile(
+                  leading: Icons.menu_book_rounded,
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.bangumiIndex),
                         mode: LaunchMode.externalApplication);
@@ -191,6 +196,7 @@ class _AboutPageState extends State<AboutPage> {
                   value: Text('Bangumi'),
                 ),
                 SettingsTile(
+                  leading: Icons.image_search_rounded,
                   onPressed: (_) {
                     launchUrl(Uri.parse('https://trace.moe'),
                         mode: LaunchMode.externalApplication);
@@ -199,6 +205,7 @@ class _AboutPageState extends State<AboutPage> {
                   value: Text('trace.moe'),
                 ),
                 SettingsTile(
+                  leading: Icons.subtitles_rounded,
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.dandanIndex),
                         mode: LaunchMode.externalApplication);
@@ -213,6 +220,7 @@ class _AboutPageState extends State<AboutPage> {
               title: Text('社区'),
               tiles: [
                 SettingsTile(
+                  leading: Icons.send_rounded,
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.telegramGroup),
                         mode: LaunchMode.externalApplication);
@@ -227,6 +235,7 @@ class _AboutPageState extends State<AboutPage> {
                 title: Text('默认行为'),
                 tiles: [
                   SettingsTile(
+                    leading: Icons.exit_to_app_rounded,
                     onPressed: (_) {
                       if (menuController.isOpen) {
                         menuController.close();
@@ -272,14 +281,17 @@ class _AboutPageState extends State<AboutPage> {
                 ],
               ),
             SettingsSection(
+              title: Text('存储与日志'),
               tiles: [
                 SettingsTile(
+                  leading: Icons.receipt_long_rounded,
                   onPressed: (_) {
                     context.pushNamed('/settings/about/logs');
                   },
                   title: Text('错误日志'),
                 ),
                 SettingsTile(
+                  leading: Icons.cleaning_services_rounded,
                   onPressed: (_) {
                     _showCacheDialog();
                   },
@@ -294,6 +306,7 @@ class _AboutPageState extends State<AboutPage> {
               title: Text('应用更新'),
               tiles: [
                 SettingsTile.switchTile(
+                  leading: Icons.update_rounded,
                   onToggle: (value) async {
                     autoUpdate = value ?? !autoUpdate;
                     await GStorage.putSetting(
@@ -304,6 +317,7 @@ class _AboutPageState extends State<AboutPage> {
                   initialValue: autoUpdate,
                 ),
                 SettingsTile(
+                  leading: Icons.system_update_rounded,
                   onPressed: (_) {
                     myController.checkUpdate();
                   },
@@ -316,6 +330,7 @@ class _AboutPageState extends State<AboutPage> {
               title: Text('规则更新'),
               tiles: [
                 SettingsTile.switchTile(
+                  leading: Icons.extension_rounded,
                   onToggle: (value) async {
                     checkPluginUpdateOnStartup =
                         value ?? !checkPluginUpdateOnStartup;

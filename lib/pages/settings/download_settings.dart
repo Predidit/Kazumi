@@ -111,12 +111,12 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
     return SettingsDetailScaffold(
       title: const Text('下载设置'),
       body: SettingsList(
-        maxWidth: 1000,
         sections: [
           SettingsSection(
             title: Text('并发设置'),
             tiles: [
               SettingsTile(
+                leading: Icons.video_library_rounded,
                 title: Text('同时下载集数'),
                 description: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,6 +142,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                 ),
               ),
               SettingsTile(
+                leading: Icons.call_split_rounded,
                 title: Text('分片并发数'),
                 description: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,6 +173,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             title: Text('缓存设置'),
             tiles: [
               SettingsTile(
+                leading: Icons.folder_rounded,
                 title: Text('下载位置'),
                 description: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,6 +210,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                 onPressed: (_) => _selectDownloadDirectory(),
               ),
               SettingsTile.switchTile(
+                leading: Icons.subtitles_rounded,
                 onToggle: (value) {
                   setState(() => downloadDanmaku = value ?? !downloadDanmaku);
                   GStorage.putSetting(
@@ -225,6 +228,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             title: Text('说明'),
             tiles: [
               SettingsTile(
+                leading: Icons.info_outline_rounded,
                 title: Text('关于并发设置'),
                 description: Text(
                   '• 集数并发：同时下载多少集视频\n'

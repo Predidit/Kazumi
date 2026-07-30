@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 
 enum _TileKind { plain, toggle, radio }
 
+const double _outerRadius = 24;
+const double _innerRadius = 4;
+const double _rowGap = 4;
+
 class SettingsList extends StatelessWidget {
-  const SettingsList({super.key, required this.sections, this.maxWidth});
+  const SettingsList({super.key, required this.sections, this.maxWidth = 1000});
 
   final List<Widget> sections;
-  final double? maxWidth;
+
+  /// Defaulted here so a page that says nothing still matches the others.
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +21,7 @@ class SettingsList extends StatelessWidget {
       itemCount: sections.length,
       itemBuilder: (context, index) => Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth ?? double.infinity),
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: sections[index],
         ),
       ),
@@ -48,27 +54,17 @@ class SettingsSection extends StatelessWidget {
         children: [
           if (title != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: DefaultTextStyle.merge(
-                style: textTheme.titleSmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style:
+                    textTheme.titleSmall?.copyWith(color: colorScheme.primary),
                 child: title!,
               ),
             ),
-          Material(
-            // M3 elevated card token, minus the elevation: tone carries the
-            // separation so the group never casts a shadow.
-            color: colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(16),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: tiles,
-            ),
-          ),
+          SettingsSplitGroup(children: tiles),
           if (bottomInfo != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: DefaultTextStyle.merge(
                 style: textTheme.bodySmall
                     ?.copyWith(color: colorScheme.onSurfaceVariant),
@@ -79,6 +75,91 @@ class SettingsSection extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Rows laid out as an M3 split list: large corners at the group's two ends,
+/// small ones in between, and a pressed row morphing out of the group. That
+/// morph is what separates the rows, in place of a divider.
+class SettingsSplitGroup extends StatelessWidget {
+  const SettingsSplitGroup({super.key, required this.children});
+
+  final List<Widget> children;
+
+  /// Hand to a row's [InkWell.onHighlightChanged] to drive the morph. Null
+  /// outside a group, which leaves the row's shape static.
+  static ValueChanged<bool>? pressReporterOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<_SplitRowScope>()
+        ?.onPressChanged;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(height: _rowGap),
+          _SplitRow(
+            first: i == 0,
+            last: i == children.length - 1,
+            child: children[i],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SplitRow extends StatefulWidget {
+  const _SplitRow({
+    required this.first,
+    required this.last,
+    required this.child,
+  });
+
+  final bool first;
+  final bool last;
+  final Widget child;
+
+  @override
+  State<_SplitRow> createState() => _SplitRowState();
+}
+
+class _SplitRowState extends State<_SplitRow> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = widget.first || _pressed ? _outerRadius : _innerRadius;
+    final bottom = widget.last || _pressed ? _outerRadius : _innerRadius;
+    return Material(
+      // Material animates its own shape, so the morph needs no controller.
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(top),
+          bottom: Radius.circular(bottom),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: _SplitRowScope(
+        onPressChanged: (pressed) => setState(() => _pressed = pressed),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class _SplitRowScope extends InheritedWidget {
+  const _SplitRowScope({required this.onPressChanged, required super.child});
+
+  final ValueChanged<bool> onPressChanged;
+
+  // The callback always reaches the same state, so a rebuilt scope never
+  // obsoletes the one a row already holds.
+  @override
+  bool updateShouldNotify(_SplitRowScope oldWidget) => false;
 }
 
 /// A [SettingsSection] whose tiles form a single radio group, so arrow keys
@@ -111,6 +192,7 @@ class SettingsTile<T> extends StatelessWidget {
   const SettingsTile({
     super.key,
     required this.title,
+    this.leading,
     this.description,
     this.trailing,
     this.value,
@@ -127,6 +209,7 @@ class SettingsTile<T> extends StatelessWidget {
     required this.title,
     required this.initialValue,
     required this.onToggle,
+    this.leading,
     this.description,
     this.enabled = true,
   })  : _kind = _TileKind.toggle,
@@ -141,6 +224,7 @@ class SettingsTile<T> extends StatelessWidget {
     super.key,
     required this.title,
     required T this.radioValue,
+    this.leading,
     this.description,
     this.enabled = true,
   })  : _kind = _TileKind.radio,
@@ -151,6 +235,9 @@ class SettingsTile<T> extends StatelessWidget {
         initialValue = null;
 
   final Widget title;
+
+  /// Flat, not a tonal badge — the badge marks a row opening a whole category.
+  final IconData? leading;
   final Widget? description;
   final Widget? trailing;
   final Widget? value;
@@ -186,12 +273,17 @@ class SettingsTile<T> extends StatelessWidget {
 
     return InkWell(
       onTap: _tapHandler(context),
+      onHighlightChanged: SettingsSplitGroup.pressReporterOf(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 32),
           child: Row(
             children: [
+              if (leading != null) ...[
+                Icon(leading, size: 24, color: secondary),
+                const SizedBox(width: 16),
+              ],
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

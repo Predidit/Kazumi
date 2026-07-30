@@ -34,7 +34,6 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
         title: Text('超分辨率'),
       ),
       body: SettingsList(
-        maxWidth: 1000,
         sections: [
           SettingsRadioSection<SuperResolutionMode>(
             title: Text('超分辨率需要启用硬件解码, 若启用硬件解码后仍然不生效, 尝试切换视频渲染器为 gpu'),
@@ -62,6 +61,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
             title: Text('默认行为'),
             tiles: [
               SettingsTile.switchTile(
+                leading: Icons.notifications_off_rounded,
                 title: Text('关闭提示'),
                 description: Text('关闭每次启用超分辨率时的提示'),
                 initialValue: disableWarning,

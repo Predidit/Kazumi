@@ -44,8 +44,9 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
       title: Text('界面设置'),
       body: SettingsList(
         sections: [
-          SettingsSection(tiles: [
+          SettingsSection(title: Text('启动'), tiles: [
             SettingsTile(
+              leading: Icons.home_rounded,
               onPressed: (_) async {
                 if (defaultPageMenuController.isOpen) {
                   defaultPageMenuController.close();
@@ -88,8 +89,9 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
               ),
             ),
           ]),
-          SettingsSection(tiles: [
+          SettingsSection(title: Text('展示信息'), tiles: [
             SettingsTile.switchTile(
+              leading: Icons.star_rounded,
               onToggle: (value) async {
                 showRating = value ?? !showRating;
                 await GStorage.putSetting(SettingsKeys.showRating, showRating);
@@ -99,9 +101,8 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
               description: Text('关闭后将在概览中隐藏评分信息'),
               initialValue: showRating,
             ),
-          ]),
-          SettingsSection(tiles: [
             SettingsTile.switchTile(
+              leading: Icons.insights_rounded,
               onToggle: (value) async {
                 showAnimeCounter = value ?? !showAnimeCounter;
                 await GStorage.putSetting(

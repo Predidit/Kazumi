@@ -124,9 +124,11 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   ),
                   const SizedBox(height: 16),
                   SettingsSection(
+                    title: Text('同步选项'),
                     margin: EdgeInsetsDirectional.zero,
                     tiles: [
                       SettingsTile.switchTile(
+                        leading: Icons.notifications_active_rounded,
                         onToggle: (value) async {
                           bangumiImmediateSyncToastEnable =
                               value ?? !bangumiImmediateSyncToastEnable;
@@ -143,6 +145,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                         initialValue: bangumiImmediateSyncToastEnable,
                       ),
                       SettingsTile(
+                        leading: Icons.rule_rounded,
                         onPressed: (_) async {
                           if (syncPriorityMenuController.isOpen) {
                             syncPriorityMenuController.close();
@@ -184,6 +187,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                             ]),
                       ),
                       SettingsTile(
+                        leading: Icons.cloud_sync_rounded,
                         trailing: syncCollectiblesing
                             ? const SizedBox(
                                 width: 20,

@@ -72,7 +72,6 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
       body: (modes.isEmpty)
           ? const CircularProgressIndicator()
           : SettingsList(
-              maxWidth: 1000,
               sections: [
                 SettingsRadioSection<DisplayMode>(
                   title: Text('没有生效? 重启app试试'),

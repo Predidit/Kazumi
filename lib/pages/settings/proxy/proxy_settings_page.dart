@@ -57,12 +57,12 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       child: SettingsDetailScaffold(
         title: const Text('代理设置'),
         body: SettingsList(
-          maxWidth: 800,
           sections: [
             SettingsSection(
               title: Text('代理'),
               tiles: [
                 SettingsTile.switchTile(
+                  leading: Icons.vpn_key_rounded,
                   onToggle: (value) async {
                     await updateProxyEnable(value ?? !proxyEnable);
                   },
@@ -71,6 +71,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                   initialValue: proxyEnable,
                 ),
                 SettingsTile(
+                  leading: Icons.tune_rounded,
                   onPressed: (_) async {
                     await context.pushNamed('/settings/proxy/editor');
                     setState(() {

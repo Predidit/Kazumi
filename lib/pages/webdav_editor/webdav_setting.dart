@@ -78,12 +78,12 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
       child: SettingsDetailScaffold(
         title: const Text('同步设置'),
         body: SettingsList(
-          maxWidth: 1000,
           sections: [
             SettingsSection(
               title: Text('规则仓库'),
               tiles: [
                 SettingsTile.switchTile(
+                  leading: Icons.hub_rounded,
                   onToggle: (value) async {
                     enableGitProxy = value ?? !enableGitProxy;
                     await GStorage.putSetting(
@@ -100,6 +100,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
               title: Text('Bangumi'),
               tiles: [
                 SettingsTile.switchTile(
+                  leading: Icons.cloud_rounded,
                   onToggle: (value) async {
                     enableBangumiProxy = value ?? !enableBangumiProxy;
                     await GStorage.putSetting(
@@ -113,6 +114,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   initialValue: enableBangumiProxy,
                 ),
                 SettingsTile.switchTile(
+                  leading: Icons.sync_rounded,
                   onToggle: (value) async {
                     final tBangumiEnableSync = value ?? !bangumiSyncEnable;
                     final bangumi = BangumiSyncService();
@@ -149,6 +151,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   initialValue: bangumiSyncEnable,
                 ),
                 SettingsTile(
+                  leading: Icons.tune_rounded,
                   onPressed: (_) async {
                     await context.pushNamed('/settings/bangumi/');
                     bangumiSyncEnable =
@@ -163,6 +166,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
               title: Text('WEBDAV'),
               tiles: [
                 SettingsTile.switchTile(
+                  leading: Icons.cloud_sync_rounded,
                   onToggle: (value) async {
                     webDavEnable = value ?? !webDavEnable;
                     if (!WebDav().initialized && webDavEnable) {
@@ -191,6 +195,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   initialValue: webDavEnable,
                 ),
                 SettingsTile.switchTile(
+                  leading: Icons.history_rounded,
                   onToggle: (value) async {
                     if (!webDavEnable) {
                       KazumiDialog.showToast(message: '请先开启WEBDAV同步');
@@ -206,6 +211,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   initialValue: webDavEnableHistory,
                 ),
                 SettingsTile.switchTile(
+                  leading: Icons.favorite_rounded,
                   onToggle: (value) async {
                     if (!webDavEnable) {
                       KazumiDialog.showToast(message: '请先开启WEBDAV同步');
@@ -221,12 +227,14 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   initialValue: webDavEnableCollect,
                 ),
                 SettingsTile(
+                  leading: Icons.tune_rounded,
                   onPressed: (_) async {
                     context.pushNamed('/settings/webdav/editor');
                   },
                   title: Text('WEBDAV配置'),
                 ),
                 SettingsTile(
+                  leading: Icons.cloud_upload_rounded,
                   trailing: const Icon(Icons.sync_rounded),
                   onPressed: (_) {
                     syncHistoryWithWebDav();

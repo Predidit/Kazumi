@@ -9,6 +9,23 @@ part of 'search_controller.dart';
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
 mixin _$SearchPageController on _SearchPageController, Store {
+  late final _$hasMoreSearchResultsAtom = Atom(
+      name: '_SearchPageController.hasMoreSearchResults', context: context);
+
+  @override
+  bool get hasMoreSearchResults {
+    _$hasMoreSearchResultsAtom.reportRead();
+    return super.hasMoreSearchResults;
+  }
+
+  @override
+  set hasMoreSearchResults(bool value) {
+    _$hasMoreSearchResultsAtom.reportWrite(value, super.hasMoreSearchResults,
+        () {
+      super.hasMoreSearchResults = value;
+    });
+  }
+
   late final _$isLoadingAtom =
       Atom(name: '_SearchPageController.isLoading', context: context);
 
@@ -87,71 +104,6 @@ mixin _$SearchPageController on _SearchPageController, Store {
   set selectedViewMode(SearchViewMode value) {
     _$selectedViewModeAtom.reportWrite(value, super.selectedViewMode, () {
       super.selectedViewMode = value;
-    });
-  }
-
-  late final _$pendingViewModeAtom =
-      Atom(name: '_SearchPageController.pendingViewMode', context: context);
-
-  @override
-  SearchViewMode? get pendingViewMode {
-    _$pendingViewModeAtom.reportRead();
-    return super.pendingViewMode;
-  }
-
-  @override
-  set pendingViewMode(SearchViewMode? value) {
-    _$pendingViewModeAtom.reportWrite(value, super.pendingViewMode, () {
-      super.pendingViewMode = value;
-    });
-  }
-
-  late final _$isHiddenViewPreparingAtom = Atom(
-      name: '_SearchPageController.isHiddenViewPreparing', context: context);
-
-  @override
-  bool get isHiddenViewPreparing {
-    _$isHiddenViewPreparingAtom.reportRead();
-    return super.isHiddenViewPreparing;
-  }
-
-  @override
-  set isHiddenViewPreparing(bool value) {
-    _$isHiddenViewPreparingAtom.reportWrite(value, super.isHiddenViewPreparing,
-        () {
-      super.isHiddenViewPreparing = value;
-    });
-  }
-
-  late final _$isHiddenViewReadyAtom =
-      Atom(name: '_SearchPageController.isHiddenViewReady', context: context);
-
-  @override
-  bool get isHiddenViewReady {
-    _$isHiddenViewReadyAtom.reportRead();
-    return super.isHiddenViewReady;
-  }
-
-  @override
-  set isHiddenViewReady(bool value) {
-    _$isHiddenViewReadyAtom.reportWrite(value, super.isHiddenViewReady, () {
-      super.isHiddenViewReady = value;
-    });
-  }
-
-  late final _$hiddenViewErrorAtom =
-      Atom(name: '_SearchPageController.hiddenViewError', context: context);
-
-  @override
-  Object? get hiddenViewError {
-    _$hiddenViewErrorAtom.reportRead();
-    return super.hiddenViewError;
-  }
-
-  @override
-  set hiddenViewError(Object? value) {
-    _$hiddenViewErrorAtom.reportWrite(value, super.hiddenViewError, () {
-      super.hiddenViewError = value;
     });
   }
 
@@ -236,12 +188,14 @@ mixin _$SearchPageController on _SearchPageController, Store {
     return _$requestViewModeAsyncAction.run(() => super.requestViewMode(mode));
   }
 
-  late final _$retryHiddenViewAsyncAction =
-      AsyncAction('_SearchPageController.retryHiddenView', context: context);
+  late final _$loadMoreSearchResultsAsyncAction = AsyncAction(
+      '_SearchPageController.loadMoreSearchResults',
+      context: context);
 
   @override
-  Future<void> retryHiddenView() {
-    return _$retryHiddenViewAsyncAction.run(() => super.retryHiddenView());
+  Future<void> loadMoreSearchResults() {
+    return _$loadMoreSearchResultsAsyncAction
+        .run(() => super.loadMoreSearchResults());
   }
 
   late final _$deleteSearchHistoryAsyncAction = AsyncAction(
@@ -286,9 +240,9 @@ mixin _$SearchPageController on _SearchPageController, Store {
       context: context);
 
   @override
-  Future<void> setNotShowAbandonedBangumis(bool value, {bool prepare = true}) {
+  Future<void> setNotShowAbandonedBangumis(bool value) {
     return _$setNotShowAbandonedBangumisAsyncAction
-        .run(() => super.setNotShowAbandonedBangumis(value, prepare: prepare));
+        .run(() => super.setNotShowAbandonedBangumis(value));
   }
 
   late final _$_SearchPageControllerActionController =
@@ -330,15 +284,12 @@ mixin _$SearchPageController on _SearchPageController, Store {
   @override
   String toString() {
     return '''
+hasMoreSearchResults: ${hasMoreSearchResults},
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
 notShowAbandonedBangumis: ${notShowAbandonedBangumis},
 bangumiList: ${bangumiList},
 selectedViewMode: ${selectedViewMode},
-pendingViewMode: ${pendingViewMode},
-isHiddenViewPreparing: ${isHiddenViewPreparing},
-isHiddenViewReady: ${isHiddenViewReady},
-hiddenViewError: ${hiddenViewError},
 searchHistories: ${searchHistories},
 isImageSearching: ${isImageSearching},
 imageSearchError: ${imageSearchError},

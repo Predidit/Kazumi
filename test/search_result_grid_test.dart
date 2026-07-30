@@ -52,6 +52,35 @@ void main() {
     expect(find.text('item-3'), findsOneWidget);
   });
 
+  testWidgets('places the trailing control in the next grid slot',
+      (tester) async {
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SearchResultGrid(
+            items: [_item(1), _item(2), _item(3)],
+            crossCount: 2,
+            cardExtent: 100,
+            itemBuilder: _card,
+            trailingItem: const SizedBox(
+              key: ValueKey('load-more-slot'),
+              child: Text('加载更多'),
+            ),
+            scrollController: scrollController,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('load-more-slot')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('load-more-slot'))).dy,
+      closeTo(108, 0.1),
+    );
+  });
+
   testWidgets('refreshes card content when item ids stay unchanged',
       (tester) async {
     late StateSetter update;

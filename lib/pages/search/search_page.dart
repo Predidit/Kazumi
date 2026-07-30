@@ -81,6 +81,17 @@ class _SearchPageState extends State<SearchPage> {
     _syncingSearchText = false;
   }
 
+  void scrollListener() {
+    if (!scrollController.hasClients ||
+        scrollController.position.extentAfter > 200 ||
+        searchPageController.isLoading ||
+        !searchPageController.hasMoreSearchResults) {
+      return;
+    }
+    KazumiLogger().i('SearchController: search results is loading more');
+    searchPageController.loadMoreSearchResults();
+  }
+
   Future<void> _applyFilterState(
     SearchFilterState state, {
     bool search = false,
@@ -90,18 +101,6 @@ class _SearchPageState extends State<SearchPage> {
     if (search) {
       await searchPageController.searchBangumi(searchController.text,
           type: 'init');
-    }
-  }
-
-  void scrollListener() {
-    if (scrollController.position.pixels >=
-            scrollController.position.maxScrollExtent - 200 &&
-        !searchPageController.isLoading &&
-        (searchController.text.trim().isNotEmpty ||
-            filterState.hasAdvancedFilters) &&
-        searchPageController.hasMoreSearchResults) {
-      KazumiLogger().i('SearchController: search results is loading more');
-      searchPageController.searchBangumi(searchController.text, type: 'add');
     }
   }
 
@@ -122,9 +121,6 @@ class _SearchPageState extends State<SearchPage> {
     if (result == null) return;
     await searchPageController.setNotShowAbandonedBangumis(
       result.notShowAbandoned,
-      // A new query replaces this buffer, so there is no reason to wait for
-      // the previous query's background preparation first.
-      prepare: !result.shouldSearch,
     );
     await _applyFilterState(result.filterState, search: result.shouldSearch);
   }
@@ -217,10 +213,6 @@ class _SearchPageState extends State<SearchPage> {
             searchPageController.selectedViewMode == SearchViewMode.all) {
           return const SizedBox.shrink();
         }
-        final preparing = searchPageController.isHiddenViewPreparing;
-        final failed = searchPageController.hiddenViewError != null;
-        final canRetrySelectedHiddenView = failed &&
-            searchPageController.selectedViewMode == SearchViewMode.hideWatched;
         return Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           child: Row(
@@ -230,11 +222,7 @@ class _SearchPageState extends State<SearchPage> {
                   selected: {searchPageController.selectedViewMode},
                   onSelectionChanged: (selection) {
                     final mode = selection.first;
-                    if (mode == SearchViewMode.hideWatched && failed) {
-                      searchPageController.retryHiddenView();
-                    } else {
-                      searchPageController.requestViewMode(mode);
-                    }
+                    searchPageController.requestViewMode(mode);
                   },
                   segments: [
                     const ButtonSegment(
@@ -244,31 +232,10 @@ class _SearchPageState extends State<SearchPage> {
                     ButtonSegment(
                       value: SearchViewMode.hideWatched,
                       label: const Text('隐藏已看'),
-                      icon: failed
-                          ? const Icon(Icons.error_outline)
-                          : preparing
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : null,
                     ),
                   ],
                 ),
               ),
-              if (canRetrySelectedHiddenView) ...[
-                const SizedBox(width: 4),
-                Tooltip(
-                  message: '重试准备隐藏已看',
-                  child: IconButton(
-                    icon: const Icon(Icons.refresh_rounded),
-                    onPressed: searchPageController.retryHiddenView,
-                  ),
-                ),
-              ],
             ],
           ),
         );
@@ -430,25 +397,90 @@ class _SearchPageState extends State<SearchPage> {
                 crossCount = 6;
               }
               final items = searchPageController.bangumiList.toList();
-              if (items.isEmpty) {
-                return const Center(child: Text('当前视图没有可显示的番剧'));
-              }
-              return SearchResultGrid(
-                items: items,
-                crossCount: crossCount,
-                cardExtent:
-                    MediaQuery.sizeOf(context).width / crossCount / 0.65 +
-                        MediaQuery.textScalerOf(context).scale(32.0),
-                itemBuilder: (context, item) => BangumiCardV(
-                  enableHero: false,
-                  bangumiItem: item,
-                ),
-                scrollController: scrollController,
-                spacing: StyleString.cardSpace,
-              );
+              final cardExtent =
+                  MediaQuery.sizeOf(context).width / crossCount / 0.65 +
+                      MediaQuery.textScalerOf(context).scale(32.0);
+              final canLoadMore = searchPageController.hasMoreSearchResults;
+              final resultView = items.isEmpty
+                  ? canLoadMore
+                      ? SearchResultGrid(
+                          items: items,
+                          crossCount: crossCount,
+                          cardExtent: cardExtent,
+                          itemBuilder: (context, item) => BangumiCardV(
+                            enableHero: false,
+                            bangumiItem: item,
+                          ),
+                          trailingItem: _buildLoadMoreTile(),
+                          scrollController: scrollController,
+                          spacing: StyleString.cardSpace,
+                        )
+                      : const Center(child: Text('当前视图没有可显示的番剧'))
+                  : SearchResultGrid(
+                      items: items,
+                      crossCount: crossCount,
+                      cardExtent: cardExtent,
+                      itemBuilder: (context, item) => BangumiCardV(
+                        enableHero: false,
+                        bangumiItem: item,
+                      ),
+                      trailingItem: canLoadMore ? _buildLoadMoreTile() : null,
+                      scrollController: scrollController,
+                      spacing: StyleString.cardSpace,
+                    );
+              return resultView;
             }),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLoadMoreTile() {
+    final isLoading = searchPageController.isLoading;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      color: colorScheme.surfaceContainerLow,
+      child: InkWell(
+        onTap: isLoading ? null : searchPageController.loadMoreSearchResults,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                button: true,
+                label: isLoading ? '加载中' : '加载更多',
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: colorScheme.secondaryContainer,
+                  ),
+                  child: SizedBox(
+                    width: 52,
+                    height: 52,
+                    child: Center(
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              Icons.arrow_forward,
+                              color: colorScheme.onSecondaryContainer,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(isLoading ? '加载中' : '加载更多'),
+            ],
+          ),
+        ),
       ),
     );
   }

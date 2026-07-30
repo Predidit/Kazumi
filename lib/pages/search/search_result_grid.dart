@@ -17,6 +17,7 @@ class SearchResultGrid extends StatefulWidget {
     required this.cardExtent,
     required this.itemBuilder,
     required this.scrollController,
+    this.trailingItem,
     this.spacing = 8,
     this.padding = const EdgeInsets.fromLTRB(8, 0, 8, 0),
     this.animate = true,
@@ -27,6 +28,7 @@ class SearchResultGrid extends StatefulWidget {
   final double cardExtent;
   final SearchResultItemBuilder itemBuilder;
   final ScrollController scrollController;
+  final Widget? trailingItem;
   final double spacing;
   final EdgeInsets padding;
   final bool animate;
@@ -40,6 +42,9 @@ class _SearchResultGridState extends State<SearchResultGrid>
   late List<BangumiItem> _visibleItems;
   List<BangumiItem> _fromItems = const [];
   List<BangumiItem> _toItems = const [];
+  Widget? _visibleTrailing;
+  Widget? _fromTrailing;
+  Widget? _toTrailing;
   late final AnimationController _animationController;
   bool _animating = false;
   bool _reversingToStart = false;
@@ -52,6 +57,9 @@ class _SearchResultGridState extends State<SearchResultGrid>
     _visibleItems = List<BangumiItem>.of(widget.items);
     _fromItems = _visibleItems;
     _toItems = _visibleItems;
+    _visibleTrailing = widget.trailingItem;
+    _fromTrailing = _visibleTrailing;
+    _toTrailing = _visibleTrailing;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 420),
@@ -69,16 +77,22 @@ class _SearchResultGridState extends State<SearchResultGrid>
     if (_sameIds(widget.items, _toItems)) {
       final refreshedItems = List<BangumiItem>.of(widget.items);
       _toItems = refreshedItems;
+      _toTrailing = widget.trailingItem;
       if (_animating && _reversingToStart) {
         _reversingToStart = false;
         _animationController.forward();
       } else if (!_animating) {
         _visibleItems = refreshedItems;
         _fromItems = refreshedItems;
+        _visibleTrailing = widget.trailingItem;
+        _fromTrailing = _visibleTrailing;
       }
       return;
     }
-    _startTransition(List<BangumiItem>.of(widget.items));
+    _startTransition(
+      List<BangumiItem>.of(widget.items),
+      widget.trailingItem,
+    );
   }
 
   @override
@@ -94,9 +108,12 @@ class _SearchResultGridState extends State<SearchResultGrid>
     }
   }
 
-  void _startTransition(List<BangumiItem> nextItems) {
-    if (_animating && _sameIds(nextItems, _fromItems)) {
+  void _startTransition(List<BangumiItem> nextItems, Widget? nextTrailing) {
+    if (_animating &&
+        _sameIds(nextItems, _fromItems) &&
+        _hasTrailing(_fromTrailing) == _hasTrailing(nextTrailing)) {
       _fromItems = nextItems;
+      _fromTrailing = nextTrailing;
       _reversingToStart = true;
       _animationController.reverse();
       return;
@@ -104,7 +121,9 @@ class _SearchResultGridState extends State<SearchResultGrid>
 
     _animationController.stop();
     _fromItems = List<BangumiItem>.of(_visibleItems);
+    _fromTrailing = _visibleTrailing;
     _toItems = nextItems;
+    _toTrailing = nextTrailing;
     _reversingToStart = false;
 
     final reduceMotion =
@@ -113,6 +132,8 @@ class _SearchResultGridState extends State<SearchResultGrid>
       setState(() {
         _visibleItems = nextItems;
         _fromItems = nextItems;
+        _visibleTrailing = nextTrailing;
+        _fromTrailing = nextTrailing;
         _animating = false;
       });
       return;
@@ -130,10 +151,15 @@ class _SearchResultGridState extends State<SearchResultGrid>
     }
     final settledItems =
         status == AnimationStatus.completed ? _toItems : _fromItems;
+    final settledTrailing =
+        status == AnimationStatus.completed ? _toTrailing : _fromTrailing;
     setState(() {
       _visibleItems = List<BangumiItem>.of(settledItems);
       _fromItems = _visibleItems;
       _toItems = _visibleItems;
+      _visibleTrailing = settledTrailing;
+      _fromTrailing = settledTrailing;
+      _toTrailing = settledTrailing;
       _animating = false;
       _reversingToStart = false;
     });
@@ -146,6 +172,8 @@ class _SearchResultGridState extends State<SearchResultGrid>
     }
     return true;
   }
+
+  bool _hasTrailing(Widget? trailing) => trailing != null;
 
   Offset _positionFor(int index, double tileWidth, int crossCount) {
     final row = index ~/ crossCount;
@@ -207,6 +235,57 @@ class _SearchResultGridState extends State<SearchResultGrid>
     );
   }
 
+  Widget _buildAnimatedTrailing(
+    BuildContext context,
+    Widget trailing,
+    double tileWidth,
+    int crossCount,
+    int fromIndex,
+    int toIndex,
+  ) {
+    final startIndex = fromIndex >= 0 ? fromIndex : toIndex;
+    final endIndex = toIndex >= 0 ? toIndex : fromIndex;
+    final start = _positionFor(startIndex, tileWidth, crossCount);
+    final end = _positionFor(endIndex, tileWidth, crossCount);
+    final removed = toIndex < 0;
+    final added = fromIndex < 0;
+    return AnimatedBuilder(
+      key: const ValueKey('search-result-grid-trailing'),
+      animation: _animationController,
+      child: trailing,
+      builder: (context, child) {
+        final phase = _animationController.value;
+        final progress = Curves.easeInOut.transform(phase);
+        final position = Offset.lerp(start, end, progress) ?? end;
+        final opacity = removed
+            ? 1 - Curves.easeIn.transform((phase / 0.34).clamp(0.0, 1.0))
+            : added
+                ? Curves.easeOut
+                    .transform(((phase - 0.78) / 0.22).clamp(0.0, 1.0))
+                : 1.0;
+        final scale = removed
+            ? 1 - 0.08 * Curves.easeIn.transform((phase / 0.34).clamp(0.0, 1.0))
+            : added
+                ? 0.92 +
+                    0.08 *
+                        Curves.easeOut
+                            .transform(((phase - 0.78) / 0.22).clamp(0.0, 1.0))
+                : 1.0;
+
+        return Positioned(
+          left: position.dx,
+          top: position.dy,
+          width: tileWidth,
+          height: widget.cardExtent,
+          child: Opacity(
+            opacity: opacity,
+            child: Transform.scale(scale: scale, child: child),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -231,9 +310,15 @@ class _SearchResultGridState extends State<SearchResultGrid>
                     mainAxisExtent: widget.cardExtent,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) =>
-                        widget.itemBuilder(context, _visibleItems[index]),
-                    childCount: _visibleItems.length,
+                    (context, index) {
+                      if (index == _visibleItems.length &&
+                          _visibleTrailing != null) {
+                        return _visibleTrailing;
+                      }
+                      return widget.itemBuilder(context, _visibleItems[index]);
+                    },
+                    childCount: _visibleItems.length +
+                        (_visibleTrailing == null ? 0 : 1),
                   ),
                 ),
               ),
@@ -264,8 +349,10 @@ class _SearchResultGridState extends State<SearchResultGrid>
             item.id: item,
         };
         final maxRows = math.max(
-          (_fromItems.length / crossCount).ceil(),
-          (_toItems.length / crossCount).ceil(),
+          ((_fromItems.length + (_fromTrailing == null ? 0 : 1)) / crossCount)
+              .ceil(),
+          ((_toItems.length + (_toTrailing == null ? 0 : 1)) / crossCount)
+              .ceil(),
         );
         final viewportHeight = widget.scrollController.hasClients
             ? widget.scrollController.position.viewportDimension
@@ -311,6 +398,17 @@ class _SearchResultGridState extends State<SearchResultGrid>
                           crossCount,
                           fromIndexes[id] ?? -1,
                           toIndexes[id] ?? -1,
+                        ),
+                      if (_fromTrailing != null || _toTrailing != null)
+                        _buildAnimatedTrailing(
+                          context,
+                          _reversingToStart
+                              ? (_fromTrailing ?? _toTrailing!)
+                              : (_toTrailing ?? _fromTrailing!),
+                          tileWidth,
+                          crossCount,
+                          _fromTrailing == null ? -1 : _fromItems.length,
+                          _toTrailing == null ? -1 : _toItems.length,
                         ),
                     ],
                   ),

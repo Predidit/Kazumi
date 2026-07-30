@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
 import 'package:kazumi/pages/search/search_page.dart';
 import 'package:kazumi/pages/search/search_result_buffer.dart';
+import 'package:kazumi/pages/search/search_result_grid.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/repositories/search_history_repository.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
@@ -145,32 +147,22 @@ void main() {
     expect(find.text('隐藏已看'), findsOneWidget);
   });
 
-  testWidgets('retries failed hidden view preparation from the control',
+  testWidgets('view control switches cached results without loading a page',
       (tester) async {
-    var attempts = 0;
+    final offsets = <int>[];
     final controller = SearchPageController.withPageLoader(
-      _CollectRepository()..watched = {for (var i = 1; i < 20; i++) i},
+      _CollectRepository()..watched = {1},
       _SearchHistoryRepository(),
       (keyword, filter, offset) {
-        if (offset == 0) {
-          return Future.value(
-            BangumiSearchPage(
-              items: List<BangumiItem>.generate(20, (i) => _item(i + 1)),
-              rawCount: 40,
-            ),
-          );
-        }
-        attempts++;
-        return attempts == 1
-            ? Future<BangumiSearchPage?>.error(StateError('offline'))
-            : Future.value(
-                BangumiSearchPage(
-                  items: List<BangumiItem>.generate(20, (i) => _item(i + 21)),
-                  rawCount: 40,
-                ),
-              );
+        offsets.add(offset);
+        return Future.value(
+          BangumiSearchPage(
+            items: List<BangumiItem>.generate(3, (i) => _item(i + 1)),
+            rawCount: 3,
+          ),
+        );
       },
-    )..selectedViewMode = SearchViewMode.hideWatched;
+    );
 
     await controller.searchBangumi('alpha', type: 'init');
     await tester.pumpWidget(
@@ -178,14 +170,101 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byTooltip('重试准备隐藏已看'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('重试准备隐藏已看'));
+    await tester.tap(find.text('隐藏已看'));
     await tester.pumpAndSettle();
 
-    expect(controller.hiddenViewError, isNull);
     expect(controller.selectedViewMode, SearchViewMode.hideWatched);
-    expect(find.text('name-20'), findsOneWidget);
+    expect(controller.bangumiList.map((item) => item.id), [2, 3]);
+    expect(offsets, [0]);
+    expect(find.text('name-1'), findsNothing);
+    expect(find.text('name-2'), findsOneWidget);
+  });
+
+  testWidgets('load-more control requests one page per tap', (tester) async {
+    final offsets = <int>[];
+    final controller = SearchPageController.withPageLoader(
+      _CollectRepository()..watched = {for (var i = 1; i < 20; i++) i},
+      _SearchHistoryRepository(),
+      (keyword, filter, offset) {
+        offsets.add(offset);
+        return Future.value(
+          BangumiSearchPage(
+            items: List<BangumiItem>.generate(
+              20,
+              (i) => _item(offset + i + 1),
+            ),
+            rawCount: 20,
+          ),
+        );
+      },
+    );
+
+    await controller.searchBangumi('alpha', type: 'init');
+    await controller.requestViewMode(SearchViewMode.hideWatched);
+    await tester.pumpWidget(
+      MaterialApp(home: SearchPage(controller: controller)),
+    );
+    await tester.pump();
+
+    expect(offsets, [0]);
+    expect(find.text('加载更多'), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.text('加载更多'),
+        matching: find.byType(SearchResultGrid),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('加载更多'));
+    await tester.pumpAndSettle();
+
+    expect(offsets, [0, 20]);
+    expect(controller.bangumiList.length, 21);
+  });
+
+  testWidgets('scrolling to the grid bottom loads the next page',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 1800);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final offsets = <int>[];
+    final secondPage = Completer<BangumiSearchPage?>();
+    final controller = SearchPageController.withPageLoader(
+      _CollectRepository(),
+      _SearchHistoryRepository(),
+      (keyword, filter, offset) {
+        offsets.add(offset);
+        if (offset == 0) {
+          return Future.value(
+            BangumiSearchPage(
+              items: List<BangumiItem>.generate(60, (i) => _item(i + 1)),
+              rawCount: 20,
+            ),
+          );
+        }
+        return secondPage.future;
+      },
+    );
+
+    await controller.searchBangumi('alpha', type: 'init');
+    await tester.pumpWidget(
+      MaterialApp(home: SearchPage(controller: controller)),
+    );
+    await tester.pump();
+
+    await tester.drag(
+      find.byType(CustomScrollView),
+      const Offset(0, -5000),
+    );
+    await tester.pump();
+
+    expect(offsets, [0, 20]);
+
+    secondPage.complete(
+      BangumiSearchPage(items: [_item(61)], rawCount: 1),
+    );
+    await tester.pumpAndSettle();
   });
 
   testWidgets('opens a populated result grid without a framework exception',

@@ -40,8 +40,6 @@ class SearchPageController extends _SearchPageController
 
 abstract class _SearchPageController with Store implements Disposable {
   static const int _searchPageSize = 20;
-  static const Duration _defaultPageRequestInterval =
-      Duration(milliseconds: 250);
   static const Duration _collectionRefreshDebounce = Duration(milliseconds: 50);
 
   _SearchPageController(
@@ -50,9 +48,7 @@ abstract class _SearchPageController with Store implements Disposable {
     SearchPageRequestLoader? pageLoader,
   })  : _collectRepository = collectRepository,
         _searchHistoryRepository = searchHistoryRepository,
-        _pageLoader = pageLoader ?? _defaultPageLoader,
-        _searchPageRequestInterval =
-            pageLoader == null ? _defaultPageRequestInterval : Duration.zero {
+        _pageLoader = pageLoader ?? _defaultPageLoader {
     _collectiblesSubscription =
         _collectRepository.onCollectiblesChanged.listen((_) {
       _scheduleResultProjectionRefresh();
@@ -62,7 +58,6 @@ abstract class _SearchPageController with Store implements Disposable {
   final ICollectRepository _collectRepository;
   final ISearchHistoryRepository _searchHistoryRepository;
   final SearchPageRequestLoader _pageLoader;
-  final Duration _searchPageRequestInterval;
   late final StreamSubscription<void> _collectiblesSubscription;
   Timer? _collectiblesRefreshTimer;
 
@@ -85,13 +80,12 @@ abstract class _SearchPageController with Store implements Disposable {
   }
 
   SearchResultBuffer? _resultBuffer;
-  Future<void>? _backgroundPreparation;
   int _queryGeneration = 0;
   String _activeInput = '';
   bool _disposed = false;
-  final Map<SearchViewMode, int> _publishedCounts = {};
 
-  bool hasMoreSearchResults = true;
+  @observable
+  bool hasMoreSearchResults = false;
 
   @observable
   bool isLoading = false;
@@ -107,18 +101,6 @@ abstract class _SearchPageController with Store implements Disposable {
 
   @observable
   SearchViewMode selectedViewMode = SearchViewMode.all;
-
-  @observable
-  SearchViewMode? pendingViewMode;
-
-  @observable
-  bool isHiddenViewPreparing = false;
-
-  @observable
-  bool isHiddenViewReady = false;
-
-  @observable
-  Object? hiddenViewError;
 
   @observable
   ObservableList<SearchHistory> searchHistories = ObservableList.of([]);
@@ -157,12 +139,6 @@ abstract class _SearchPageController with Store implements Disposable {
     final generation = ++_queryGeneration;
     _activeInput = normalizedInput;
     _resultBuffer = null;
-    _backgroundPreparation = null;
-    _publishedCounts.clear();
-    pendingViewMode = null;
-    isHiddenViewPreparing = false;
-    isHiddenViewReady = false;
-    hiddenViewError = null;
     hasMoreSearchResults = true;
     bangumiList.clear();
     isLoading = true;
@@ -192,26 +168,17 @@ abstract class _SearchPageController with Store implements Disposable {
           watchedIds: loadWatchedBangumiIds,
           abandonedIds: loadAbandonedBangumiIds,
           hideAbandoned: notShowAbandonedBangumis,
-          pageRequestInterval: _searchPageRequestInterval,
           shouldContinue: () =>
               generation == _queryGeneration &&
               identical(_resultBuffer, buffer),
         );
         _resultBuffer = buffer;
-        await buffer.ensureReadyFor(SearchViewMode.all);
+        await buffer.loadNextPage();
         if (generation != _queryGeneration) return;
-        if (requestedMode == SearchViewMode.hideWatched) {
-          pendingViewMode = SearchViewMode.hideWatched;
-          await _startHiddenPreparation(generation);
-          if (generation != _queryGeneration) return;
-          isLoading = false;
-          isTimeOut = hiddenViewError != null;
-        } else {
-          _publishMode(SearchViewMode.all, minimumItems: _searchPageSize);
-          isLoading = false;
-          isTimeOut = bangumiList.isEmpty;
-          _startHiddenPreparation(generation);
-        }
+        _publishMode(requestedMode);
+        isLoading = false;
+        isTimeOut =
+            bangumiList.isEmpty && (buffer.error != null || buffer.isExhausted);
         return;
       }
     }
@@ -223,198 +190,52 @@ abstract class _SearchPageController with Store implements Disposable {
       watchedIds: loadWatchedBangumiIds,
       abandonedIds: loadAbandonedBangumiIds,
       hideAbandoned: notShowAbandonedBangumis,
-      pageRequestInterval: _searchPageRequestInterval,
       shouldContinue: () =>
           generation == _queryGeneration && identical(_resultBuffer, buffer),
     );
     _resultBuffer = buffer;
-    await buffer.ensureReadyFor(SearchViewMode.all);
+    await buffer.loadNextPage();
     if (generation != _queryGeneration) return;
-    if (requestedMode == SearchViewMode.hideWatched) {
-      pendingViewMode = SearchViewMode.hideWatched;
-      await _startHiddenPreparation(generation);
-      if (generation != _queryGeneration) return;
-      isLoading = false;
-      isTimeOut = hiddenViewError != null;
-    } else {
-      _publishMode(SearchViewMode.all, minimumItems: _searchPageSize);
-      isLoading = false;
-      isTimeOut =
-          bangumiList.isEmpty && (buffer.error != null || buffer.isExhausted);
-      _startHiddenPreparation(generation);
-    }
+    _publishMode(requestedMode);
+    isLoading = false;
+    isTimeOut =
+        bangumiList.isEmpty && (buffer.error != null || buffer.isExhausted);
   }
 
   @action
   Future<void> requestViewMode(SearchViewMode mode) async {
     final buffer = _resultBuffer;
     if (buffer == null) return;
-    if (mode == selectedViewMode && pendingViewMode == null) return;
-
-    pendingViewMode = mode;
-    if (mode == SearchViewMode.all) {
-      _publishMode(
-        SearchViewMode.all,
-        minimumItems: _minimumPublishedItems(SearchViewMode.all),
-      );
-      pendingViewMode = null;
-      return;
-    }
-
-    isHiddenViewReady = buffer.isReady(SearchViewMode.hideWatched);
-    if (isHiddenViewReady && hiddenViewError == null) {
-      _publishMode(
-        SearchViewMode.hideWatched,
-        minimumItems: _minimumPublishedItems(SearchViewMode.hideWatched),
-      );
-      pendingViewMode = null;
-      return;
-    }
-    if (hiddenViewError == null) {
-      _startHiddenPreparation(_queryGeneration);
-    }
+    if (mode == selectedViewMode) return;
+    _publishMode(mode);
   }
 
   @action
-  Future<void> retryHiddenView() async {
-    final buffer = _resultBuffer;
-    if (buffer == null) return;
-    final retryingSelectedHiddenView =
-        selectedViewMode == SearchViewMode.hideWatched;
-    pendingViewMode = SearchViewMode.hideWatched;
-    hiddenViewError = null;
-    isHiddenViewPreparing = true;
-    if (retryingSelectedHiddenView) {
-      isLoading = true;
-      isTimeOut = false;
-    }
-    final generation = _queryGeneration;
-    final future = buffer.retry(minimumItems: _searchPageSize);
-    _backgroundPreparation = future;
-    try {
-      await future;
-    } finally {
-      if (identical(_backgroundPreparation, future)) {
-        _backgroundPreparation = null;
-      }
-    }
-    if (generation != _queryGeneration) return;
-    _finishHiddenPreparation(generation);
-    if (retryingSelectedHiddenView) {
-      isLoading = false;
-      isTimeOut = hiddenViewError != null;
-    }
-  }
-
-  Future<void> waitForBackgroundPreparation() async {
-    final preparation = _backgroundPreparation;
-    if (preparation == null) return;
-    await preparation;
-    await Future<void>.delayed(Duration.zero);
-  }
-
-  Future<void> _startHiddenPreparation(int generation) {
-    final buffer = _resultBuffer;
-    if (buffer == null || generation != _queryGeneration) {
-      return Future<void>.value();
-    }
-    final existing = _backgroundPreparation;
-    if (existing != null) return existing;
-    if (buffer.isReady(SearchViewMode.all) &&
-        buffer.isReady(SearchViewMode.hideWatched) &&
-        buffer.error == null) {
-      _finishHiddenPreparation(generation);
-      return Future<void>.value();
-    }
-
-    isHiddenViewPreparing = true;
-    hiddenViewError = null;
-    late final Future<void> preparation;
-    preparation =
-        buffer.ensureReady(minimumItems: _searchPageSize).whenComplete(() {
-      if (generation == _queryGeneration) {
-        _finishHiddenPreparation(generation);
-      }
-      if (identical(_backgroundPreparation, preparation)) {
-        _backgroundPreparation = null;
-      }
-    });
-    _backgroundPreparation = preparation;
-    return preparation;
-  }
-
-  void _finishHiddenPreparation(int generation) {
-    final buffer = _resultBuffer;
-    if (buffer == null || generation != _queryGeneration) return;
-    isHiddenViewPreparing = false;
-    hiddenViewError = buffer.error;
-    isHiddenViewReady = buffer.isReady(SearchViewMode.hideWatched);
-    if (hiddenViewError == null &&
-        pendingViewMode == SearchViewMode.hideWatched &&
-        isHiddenViewReady) {
-      _publishMode(
-        SearchViewMode.hideWatched,
-        minimumItems: _minimumPublishedItems(SearchViewMode.hideWatched),
-      );
-      pendingViewMode = null;
-    } else if (hiddenViewError == null &&
-        selectedViewMode == SearchViewMode.all &&
-        bangumiList.isEmpty &&
-        buffer.allItems.isNotEmpty) {
-      _publishMode(
-        SearchViewMode.all,
-        minimumItems: _minimumPublishedItems(SearchViewMode.all),
-      );
-      isTimeOut = false;
-    }
-    _updateHasMoreSearchResults();
+  Future<void> loadMoreSearchResults() async {
+    if (_disposed || isLoading) return;
+    await _loadMoreSearchResults();
   }
 
   Future<void> _loadMoreSearchResults() async {
     final buffer = _resultBuffer;
     if (buffer == null) return;
     final generation = _queryGeneration;
-    final mode = selectedViewMode;
-    final published = _minimumPublishedItems(mode);
-    final target = published + _searchPageSize;
     isLoading = true;
-    final items =
-        mode == SearchViewMode.all ? buffer.allItems : buffer.hideWatchedItems;
-    if (items.length < target && !buffer.isExhausted) {
-      await buffer.ensureReadyFor(mode, minimumItems: target);
-    }
+    await buffer.loadNextPage();
     if (generation != _queryGeneration) return;
-    final activeMode = selectedViewMode;
-    final activeMinimumItems =
-        activeMode == mode ? target : _minimumPublishedItems(activeMode);
-    _publishMode(activeMode, minimumItems: activeMinimumItems);
+    _publishMode(selectedViewMode);
     isLoading = false;
-    if (!isHiddenViewReady && !isHiddenViewPreparing) {
-      _startHiddenPreparation(generation);
-    }
   }
 
-  void _publishMode(SearchViewMode mode, {required int minimumItems}) {
+  void _publishMode(SearchViewMode mode) {
     final buffer = _resultBuffer;
     if (buffer == null) return;
     final items =
         mode == SearchViewMode.all ? buffer.allItems : buffer.hideWatchedItems;
-    final visibleCount =
-        items.length < minimumItems ? items.length : minimumItems;
-    _publishedCounts[mode] = minimumItems;
-    bangumiList = ObservableList.of(items.take(visibleCount));
+    bangumiList = ObservableList.of(items);
     selectedViewMode = mode;
     isTimeOut = false;
     _updateHasMoreSearchResults();
-    isHiddenViewReady = buffer.isReady(SearchViewMode.hideWatched);
-  }
-
-  int _minimumPublishedItems(SearchViewMode mode) {
-    final published = _publishedCounts[mode];
-    if (published == null || published < _searchPageSize) {
-      return _searchPageSize;
-    }
-    return published;
   }
 
   void _updateHasMoreSearchResults() {
@@ -423,11 +244,7 @@ abstract class _SearchPageController with Store implements Disposable {
       hasMoreSearchResults = false;
       return;
     }
-    final items = selectedViewMode == SearchViewMode.all
-        ? buffer.allItems
-        : buffer.hideWatchedItems;
-    final published = _publishedCounts[selectedViewMode] ?? 0;
-    hasMoreSearchResults = published < items.length || !buffer.isExhausted;
+    hasMoreSearchResults = !buffer.isExhausted;
   }
 
   @action
@@ -490,35 +307,13 @@ abstract class _SearchPageController with Store implements Disposable {
   }
 
   @action
-  Future<void> setNotShowAbandonedBangumis(
-    bool value, {
-    bool prepare = true,
-  }) async {
+  Future<void> setNotShowAbandonedBangumis(bool value) async {
     notShowAbandonedBangumis = value;
     final buffer = _resultBuffer;
     if (buffer == null) return;
 
-    final mode = selectedViewMode;
-    final generation = _queryGeneration;
     buffer.setHideAbandoned(value);
-    _publishMode(
-      mode,
-      minimumItems: _minimumPublishedItems(mode),
-    );
-    if (buffer.isReady(SearchViewMode.all) &&
-        buffer.isReady(SearchViewMode.hideWatched)) {
-      return;
-    }
-    if (!prepare) return;
-
-    await _startHiddenPreparation(generation);
-    if (generation != _queryGeneration || mode != selectedViewMode) return;
-    final minimumItems = _minimumPublishedItems(mode);
-    _publishMode(
-      mode,
-      minimumItems:
-          minimumItems < _searchPageSize ? _searchPageSize : minimumItems,
-    );
+    _publishMode(selectedViewMode);
   }
 
   @action
@@ -526,14 +321,7 @@ abstract class _SearchPageController with Store implements Disposable {
     if (_disposed) return;
     final buffer = _resultBuffer;
     if (buffer == null) return;
-    final generation = _queryGeneration;
-    _publishMode(
-      selectedViewMode,
-      minimumItems: _minimumPublishedItems(selectedViewMode),
-    );
-    if (!isHiddenViewReady && !isHiddenViewPreparing) {
-      _startHiddenPreparation(generation);
-    }
+    _publishMode(selectedViewMode);
   }
 
   void _scheduleResultProjectionRefresh() {
@@ -551,7 +339,6 @@ abstract class _SearchPageController with Store implements Disposable {
     _disposed = true;
     _queryGeneration++;
     _resultBuffer = null;
-    _backgroundPreparation = null;
     _collectiblesRefreshTimer?.cancel();
     _collectiblesRefreshTimer = null;
     bangumiList.clear();

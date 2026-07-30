@@ -41,12 +41,18 @@ abstract class _PlayerSyncPlayController with Store {
   final Future<void> Function({bool enableSync}) play;
   final Future<void> Function(Duration duration, {bool enableSync}) seek;
 
+  /// Set before the socket opens and cleared on teardown, so unlike
+  /// [syncplayRoom] it also covers the window where the connection is still
+  /// being established.
+  @observable
   SyncplayClient? syncplayController;
   final AsyncSessionOwner _connectionSessions = AsyncSessionOwner();
   @observable
   String syncplayRoom = '';
   @observable
   int syncplayClientRtt = 0;
+
+  bool get hasSession => syncplayController != null;
 
   final StreamController<SyncPlayChatMessage> _chatStreamController =
       StreamController<SyncPlayChatMessage>.broadcast();

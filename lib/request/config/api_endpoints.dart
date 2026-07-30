@@ -1,6 +1,6 @@
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.2.3';
+  static const String version = '2.2.4';
 
   /// 规则API级别
   static const int apiLevel = 8;
@@ -50,6 +50,9 @@ class ApiEndpoints {
 
   /// 番剧信息
   static const String bangumiInfoByID = '/v0/subjects/{0}';
+
+  /// 条目关联信息
+  static const String bangumiRelationsByID = '/v0/subjects/{0}/subjects';
 
   /// 条目搜索
   static const String bangumiRankSearch =

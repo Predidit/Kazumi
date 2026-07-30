@@ -83,15 +83,21 @@ class CommentsCard extends StatelessWidget {
                       spacing: 5,
                       children: [
                         Text(commentItem!.user.nickname),
-                        if(isOwn)
+                        if (isOwn)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 2),
                               decoration: BoxDecoration(
                                 color: Theme.of(context).colorScheme.primary,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text('我的吐槽',
-                                style: TextStyle(fontSize: 12,color: Theme.of(context).colorScheme.primaryContainer),
+                              child: Text(
+                                '我的吐槽',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer),
                               ))
                       ],
                     ),

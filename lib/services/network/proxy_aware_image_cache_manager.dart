@@ -33,7 +33,9 @@ class ProxyAwareImageFileService extends FileService {
 
     final sourceUrl =
         uri.host + uri.path + (uri.hasQuery ? '?${uri.query}' : '');
-    return 'https://wsrv.nl/?url=$sourceUrl';
+    final animationParameter =
+        uri.path.toLowerCase().endsWith('.gif') ? '&n=-1' : '';
+    return 'https://wsrv.nl/?url=$sourceUrl$animationParameter';
   }
 
   @override

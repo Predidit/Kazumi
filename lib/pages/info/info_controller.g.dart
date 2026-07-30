@@ -106,6 +106,95 @@ mixin _$InfoController on _InfoController, Store {
     });
   }
 
+  late final _$relationListAtom =
+      Atom(name: '_InfoController.relationList', context: context);
+
+  @override
+  ObservableList<BangumiRelation> get relationList {
+    _$relationListAtom.reportRead();
+    return super.relationList;
+  }
+
+  @override
+  set relationList(ObservableList<BangumiRelation> value) {
+    _$relationListAtom.reportWrite(value, super.relationList, () {
+      super.relationList = value;
+    });
+  }
+
+  late final _$relationsIsLoadingAtom =
+      Atom(name: '_InfoController.relationsIsLoading', context: context);
+
+  @override
+  bool get relationsIsLoading {
+    _$relationsIsLoadingAtom.reportRead();
+    return super.relationsIsLoading;
+  }
+
+  @override
+  set relationsIsLoading(bool value) {
+    _$relationsIsLoadingAtom.reportWrite(value, super.relationsIsLoading, () {
+      super.relationsIsLoading = value;
+    });
+  }
+
+  late final _$relationsQueryTimeoutAtom =
+      Atom(name: '_InfoController.relationsQueryTimeout', context: context);
+
+  @override
+  bool get relationsQueryTimeout {
+    _$relationsQueryTimeoutAtom.reportRead();
+    return super.relationsQueryTimeout;
+  }
+
+  @override
+  set relationsQueryTimeout(bool value) {
+    _$relationsQueryTimeoutAtom.reportWrite(value, super.relationsQueryTimeout,
+        () {
+      super.relationsQueryTimeout = value;
+    });
+  }
+
+  late final _$relationsHasLoadedAtom =
+      Atom(name: '_InfoController.relationsHasLoaded', context: context);
+
+  @override
+  bool get relationsHasLoaded {
+    _$relationsHasLoadedAtom.reportRead();
+    return super.relationsHasLoaded;
+  }
+
+  @override
+  set relationsHasLoaded(bool value) {
+    _$relationsHasLoadedAtom.reportWrite(value, super.relationsHasLoaded, () {
+      super.relationsHasLoaded = value;
+    });
+  }
+
+  late final _$queryBangumiRelationsByIDAsyncAction = AsyncAction(
+      '_InfoController.queryBangumiRelationsByID',
+      context: context);
+
+  @override
+  Future<void> queryBangumiRelationsByID(int id) {
+    return _$queryBangumiRelationsByIDAsyncAction
+        .run(() => super.queryBangumiRelationsByID(id));
+  }
+
+  late final _$_InfoControllerActionController =
+      ActionController(name: '_InfoController', context: context);
+
+  @override
+  void clearRelations() {
+    final _$actionInfo = _$_InfoControllerActionController.startAction(
+        name: '_InfoController.clearRelations');
+    try {
+      return super.clearRelations();
+    } finally {
+      _$_InfoControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
   @override
   String toString() {
     return '''
@@ -114,7 +203,11 @@ pluginSearchResponseList: ${pluginSearchResponseList},
 pluginSearchStatus: ${pluginSearchStatus},
 commentsList: ${commentsList},
 characterList: ${characterList},
-staffList: ${staffList}
+staffList: ${staffList},
+relationList: ${relationList},
+relationsIsLoading: ${relationsIsLoading},
+relationsQueryTimeout: ${relationsQueryTimeout},
+relationsHasLoaded: ${relationsHasLoaded}
     ''';
   }
 }

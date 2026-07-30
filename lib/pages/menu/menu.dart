@@ -3,6 +3,8 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/navigation.dart';
+import 'package:kazumi/pages/menu/route_visibility.dart';
 import 'package:kazumi/pages/router.dart';
 
 class ScaffoldMenu extends StatefulWidget {
@@ -12,9 +14,41 @@ class ScaffoldMenu extends StatefulWidget {
   State<ScaffoldMenu> createState() => _ScaffoldMenu();
 }
 
-class _ScaffoldMenu extends State<ScaffoldMenu> {
+class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   final _outletKey = GlobalKey<RouterOutletState>();
   DateTime? _lastExitPromptAt;
+
+  /// The shell sits at the bottom of the root stack and stays mounted while
+  /// other pages cover it, so it publishes that state for its subtree.
+  bool _isCovered = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<void>) {
+      rootRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    rootRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() => _setCovered(true);
+
+  @override
+  void didPopNext() => _setCovered(false);
+
+  void _setCovered(bool value) {
+    if (!mounted || _isCovered == value) {
+      return;
+    }
+    setState(() => _isCovered = value);
+  }
 
   void _selectDestination(int index) {
     _lastExitPromptAt = null;
@@ -55,19 +89,22 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = menu.indexForPath(context.routeState().uri.path);
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          _handleSystemBack(context);
-        }
-      },
-      child: OrientationBuilder(
-        builder: (context, orientation) {
-          return orientation == Orientation.portrait
-              ? _bottomMenu(context, selectedIndex)
-              : _sideMenu(context, selectedIndex);
+    return RouteVisibility(
+      isCovered: _isCovered,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) {
+            _handleSystemBack(context);
+          }
         },
+        child: OrientationBuilder(
+          builder: (context, orientation) {
+            return orientation == Orientation.portrait
+                ? _bottomMenu(context, selectedIndex)
+                : _sideMenu(context, selectedIndex);
+          },
+        ),
       ),
     );
   }

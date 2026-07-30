@@ -13,6 +13,7 @@ import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_module.dart';
 import 'package:kazumi/pages/settings/renderer_settings.dart';
+import 'package:kazumi/pages/settings/settings_page.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
@@ -21,6 +22,7 @@ final settingsModule = createModule(
   path: '/settings',
   register: (c) {
     c
+      ..route('/', child: (context, state) => const SettingsPage())
       ..route('/theme', child: (context, state) => const ThemeSettingsPage())
       ..route(
         '/theme/display',

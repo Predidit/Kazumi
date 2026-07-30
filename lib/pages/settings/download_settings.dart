@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/platform/secure_bookmark_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/file_system.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:file_picker/file_picker.dart';
 
 class DownloadSettingsPage extends StatefulWidget {
@@ -108,74 +108,55 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
-    return Scaffold(
-      appBar: const SysAppBar(title: Text('下载设置')),
+    return SettingsDetailScaffold(
+      title: const Text('下载设置'),
       body: SettingsList(
-        maxWidth: 1000,
         sections: [
           SettingsSection(
-            title: Text('并发设置', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('并发设置'),
             tiles: [
-              SettingsTile(
-                title: Text('同时下载集数', style: TextStyle(fontFamily: fontFamily)),
-                description: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '同时下载 $parallelEpisodes 集',
-                      style: TextStyle(fontFamily: fontFamily),
-                    ),
-                    Slider(
-                      value: parallelEpisodes.toDouble(),
-                      min: 1,
-                      max: 5,
-                      divisions: 4,
-                      label: '$parallelEpisodes',
-                      onChanged: (value) {
-                        setState(() => parallelEpisodes = value.toInt());
-                        GStorage.putSetting(
-                          SettingsKeys.downloadParallelEpisodes,
-                          parallelEpisodes,
-                        );
-                      },
-                    ),
-                  ],
-                ),
+              SettingsSliderTile(
+                leading: Icons.video_library_rounded,
+                title: Text('同时下载集数'),
+                description: Text('并行下载的剧集数量'),
+                value: parallelEpisodes.toDouble(),
+                min: 1,
+                max: 5,
+                divisions: 4,
+                valueLabel: '$parallelEpisodes 集',
+                onChanged: (value) {
+                  setState(() => parallelEpisodes = value.toInt());
+                  GStorage.putSetting(
+                    SettingsKeys.downloadParallelEpisodes,
+                    parallelEpisodes,
+                  );
+                },
               ),
-              SettingsTile(
-                title: Text('分片并发数', style: TextStyle(fontFamily: fontFamily)),
-                description: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '每集同时下载 $parallelSegments 个分片',
-                      style: TextStyle(fontFamily: fontFamily),
-                    ),
-                    Slider(
-                      value: parallelSegments.toDouble(),
-                      min: 1,
-                      max: 10,
-                      divisions: 9,
-                      label: '$parallelSegments',
-                      onChanged: (value) {
-                        setState(() => parallelSegments = value.toInt());
-                        GStorage.putSetting(
-                          SettingsKeys.downloadParallelSegments,
-                          parallelSegments,
-                        );
-                      },
-                    ),
-                  ],
-                ),
+              SettingsSliderTile(
+                leading: Icons.call_split_rounded,
+                title: Text('分片并发数'),
+                description: Text('每集同时下载的分片数量'),
+                value: parallelSegments.toDouble(),
+                min: 1,
+                max: 10,
+                divisions: 9,
+                valueLabel: '$parallelSegments 个',
+                onChanged: (value) {
+                  setState(() => parallelSegments = value.toInt());
+                  GStorage.putSetting(
+                    SettingsKeys.downloadParallelSegments,
+                    parallelSegments,
+                  );
+                },
               ),
             ],
           ),
           SettingsSection(
-            title: Text('缓存设置', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('缓存设置'),
             tiles: [
               SettingsTile(
-                title: Text('下载位置', style: TextStyle(fontFamily: fontFamily)),
+                leading: Icons.folder_rounded,
+                title: Text('下载位置'),
                 description: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -183,7 +164,6 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                       _effectiveDownloadDirectory.isEmpty
                           ? '正在读取默认位置...'
                           : _effectiveDownloadDirectory,
-                      style: TextStyle(fontFamily: fontFamily),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -192,7 +172,6 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                           : '当前使用默认下载位置，修改后仅对新下载生效',
                       style: TextStyle(
                         color: Theme.of(context).textTheme.bodySmall?.color,
-                        fontFamily: fontFamily,
                       ),
                     ),
                   ],
@@ -213,31 +192,31 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                 onPressed: (_) => _selectDownloadDirectory(),
               ),
               SettingsTile.switchTile(
+                leading: Icons.subtitles_rounded,
                 onToggle: (value) {
                   setState(() => downloadDanmaku = value ?? !downloadDanmaku);
                   GStorage.putSetting(
                       SettingsKeys.downloadDanmaku, downloadDanmaku);
                 },
-                title: Text('缓存弹幕', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('缓存弹幕'),
                 description: Text(
                   '下载视频时同时缓存弹幕数据',
-                  style: TextStyle(fontFamily: fontFamily),
                 ),
                 initialValue: downloadDanmaku,
               ),
             ],
           ),
           SettingsSection(
-            title: Text('说明', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('说明'),
             tiles: [
               SettingsTile(
-                title: Text('关于并发设置', style: TextStyle(fontFamily: fontFamily)),
+                leading: Icons.info_outline_rounded,
+                title: Text('关于并发设置'),
                 description: Text(
                   '• 集数并发：同时下载多少集视频\n'
                   '• 分片并发：每集内同时下载多少个视频片段\n'
                   '• 较高的并发可提升速度，但可能被服务器限制\n'
                   '• 修改后对新开始的下载生效',
-                  style: TextStyle(fontFamily: fontFamily),
                 ),
               ),
             ],

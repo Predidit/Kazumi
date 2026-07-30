@@ -11,6 +11,7 @@ import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/repositories/search_history_repository.dart';
 import 'package:kazumi/services/download/download_manager.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
+import 'package:kazumi/services/player/history_playback_service.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 
 /// Root-owned application data and cross-feature coordinators.
@@ -30,6 +31,7 @@ final coreModule = createModule(
       // Service layer.
       ..addSingleton<IDownloadManager>(DownloadManager.new)
       ..addSingleton<AudioController>(AudioController.new)
+      ..addSingleton<HistoryPlaybackService>(HistoryPlaybackService.new)
       ..addSingleton<ShaderAssetService>(ShaderAssetService.new)
       // Cross-feature state and coordinators.
       ..addSingleton<PluginsController>(PluginsController.new)

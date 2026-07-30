@@ -87,6 +87,38 @@ class RuleEngine {
     }
   }
 
+  /// Parses HTML harvested from the captcha webview as a search result,
+  /// skipping one network round trip after verification. Returns null when
+  /// not applicable (API/POST rules) or when the page does not parse into
+  /// results (still a challenge page, redirect page, or empty list) — the
+  /// caller then falls back to a regular re-search.
+  PluginSearchResponse? tryParseHarvestedSearch(
+    RuleExecutionConfig config,
+    String raw,
+  ) {
+    if (raw.trim().isEmpty) return null;
+    // The webview loads the search URL with GET; API-mode and POST-mode
+    // rules may render a different page than the real search response.
+    if (config.searchMode == RuleMode.api || config.usePost) return null;
+    try {
+      final parsed = _xpathStrategy.parseSearch(raw, config);
+      if (parsed.items.isEmpty) return null;
+      _logDiagnostics(config, 'harvested search', parsed.diagnostics);
+      return PluginSearchResponse(
+        pluginName: config.pluginName,
+        data: parsed.items,
+      );
+    } catch (error) {
+      if (_logFailures) {
+        KazumiLogger().i(
+          'Plugin: ${config.pluginName} harvested page not parseable, '
+          'falling back to re-search ($error)',
+        );
+      }
+      return null;
+    }
+  }
+
   Future<RuleChapterTrace> queryChapters(
     RuleExecutionConfig config,
     String source, {
@@ -205,19 +237,29 @@ class _DefaultRuleRequestExecutor implements RuleRequestExecutor {
     final cookieHeader = request.includeCookies
         ? await _cookieHeaderFor(config.pluginName, request.url)
         : '';
+    final verifiedUserAgent = cookieHeader.isNotEmpty
+        ? PluginCookieManager.instance.userAgentFor(config.pluginName)
+        : null;
+    // Header names are lowercased so a rule-supplied 'User-Agent' collides
+    // with ours instead of being sent as a second, conflicting header.
     final headers = <String, dynamic>{
       'referer': '${config.baseUrl}/',
-      if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
-      ...request.headers,
+      if (cookieHeader.isNotEmpty) 'cookie': cookieHeader,
+      for (final entry in request.headers.entries)
+        entry.key.toLowerCase(): entry.value,
+      // Clearance cookies are bound to the User-Agent they were issued to,
+      // so the verified UA overrides the rule's own; sending a different one
+      // would make the site serve the challenge page again.
+      if (verifiedUserAgent != null) 'user-agent': verifiedUserAgent,
     };
     if (request.method == 'POST') {
       switch (request.bodyType) {
         case ApiBodyType.json:
-          headers.putIfAbsent('Content-Type', () => 'application/json');
+          headers.putIfAbsent('content-type', () => 'application/json');
           break;
         case ApiBodyType.form:
           headers.putIfAbsent(
-            'Content-Type',
+            'content-type',
             () => 'application/x-www-form-urlencoded',
           );
           break;

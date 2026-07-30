@@ -3,6 +3,10 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
 abstract class IDownloadRepository {
+  /// Emits when a record or an episode status is persisted. Progress ticks stay
+  /// in memory, so they do not emit.
+  Stream<void> get changes;
+
   List<DownloadRecord> getAllRecords();
   DownloadRecord? getRecord(String key);
   Future<void> putRecord(DownloadRecord record);
@@ -45,6 +49,9 @@ abstract class IDownloadRepository {
 
 class DownloadRepository implements IDownloadRepository {
   final _downloadsBox = GStorage.downloads;
+
+  @override
+  Stream<void> get changes => _downloadsBox.watch();
 
   @override
   List<DownloadRecord> getAllRecords() {

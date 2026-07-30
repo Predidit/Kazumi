@@ -222,6 +222,13 @@ class Plugin {
     );
   }
 
+  /// Parses HTML harvested from the captcha webview as a search result;
+  /// returns null when not applicable, letting callers fall back to
+  /// [queryBangumi].
+  PluginSearchResponse? parseHarvestedSearch(String html) {
+    return _ruleEngine.tryParseHarvestedSearch(_executionConfig, html);
+  }
+
   Future<PluginSearchResponse> queryBangumi(
     String keyword, {
     bool shouldRethrow = false,

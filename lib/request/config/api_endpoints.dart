@@ -1,6 +1,6 @@
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.2.4';
+  static const String version = '2.2.5';
 
   /// 规则API级别
   static const int apiLevel = 8;

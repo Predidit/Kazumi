@@ -86,7 +86,7 @@
 
 ### MacOS
 
-可以通过 [Homebrew](https://brew.sh/) 和 Kazumi 提供自托管的 Homebrew Tap 以在 Intel/Apple Silicon 的 Mac 安装。
+可以[Releases页面](https://github.com/Predidit/Kazumi/releases/latest)下载，也通过 [Homebrew](https://brew.sh/) 和 Kazumi 提供自托管的 Homebrew Tap 以在 Intel/Apple Silicon 的 Mac 安装。
 
 ```bash
 brew tap Predidit/Kazumi

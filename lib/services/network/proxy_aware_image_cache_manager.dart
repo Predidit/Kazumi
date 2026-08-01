@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/network/bangumi_image_url_rewriter.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -15,29 +16,12 @@ class ProxyAwareImageCacheManager extends CacheManager with ImageCacheManager {
       : super(
           Config(
             DefaultCacheManager.key,
-            fileService: ProxyAwareImageFileService(),
+            fileService: _ProxyAwareImageFileService(),
           ),
         );
 }
 
-class ProxyAwareImageFileService extends FileService {
-  static String rewriteBangumiMirrorImageUrl(
-    String url, {
-    required bool enableBangumiProxy,
-  }) {
-    if (!enableBangumiProxy) return url;
-
-    final uri = Uri.tryParse(url);
-    if (uri == null || uri.host != 'lain.bgm.tv') return url;
-    if (uri.scheme != 'http' && uri.scheme != 'https') return url;
-
-    final sourceUrl =
-        uri.host + uri.path + (uri.hasQuery ? '?${uri.query}' : '');
-    final animationParameter =
-        uri.path.toLowerCase().endsWith('.gif') ? '&n=-1' : '';
-    return 'https://wsrv.nl/?url=$sourceUrl$animationParameter';
-  }
-
+class _ProxyAwareImageFileService extends FileService {
   @override
   Future<FileServiceResponse> get(
     String url, {
@@ -46,9 +30,9 @@ class ProxyAwareImageFileService extends FileService {
     final client = _createHttpClient();
     try {
       final request = await client.getUrl(Uri.parse(
-        rewriteBangumiMirrorImageUrl(
+        BangumiImageUrlRewriter.rewrite(
           url,
-          enableBangumiProxy: _bangumiMirrorEnabled(),
+          enabled: _bangumiMirrorEnabled(),
         ),
       ));
       headers?.forEach(request.headers.set);

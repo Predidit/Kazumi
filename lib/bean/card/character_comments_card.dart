@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bbcode/bbcode_widget.dart';
+import 'package:kazumi/bean/widget/bangumi_avatar.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/date_time.dart';
 
@@ -104,9 +105,9 @@ class _CommentAuthor extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        CircleAvatar(
+        BangumiAvatar(
           radius: avatarRadius,
-          backgroundImage: NetworkImage(comment.user.avatar.large),
+          imageUrl: comment.user.avatar.large,
         ),
         const SizedBox(width: 12),
         Expanded(

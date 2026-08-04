@@ -28,6 +28,7 @@ class BangumiSearchPage {
 
 class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
+  static const int _animationProductionPositionId = 67;
 
   static Future<List<List<BangumiItem>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
@@ -487,12 +488,29 @@ class BangumiApi {
   }
 
   static Future<StaffResponse> getBangumiStaffByID(int id) async {
-    final jsonData = await _client.get(
-      ApiEndpoints.formatUrl(
-          ApiEndpoints.bangumiAPINextDomain + ApiEndpoints.bangumiStaffByIDNext,
-          [id]),
+    final url = ApiEndpoints.formatUrl(
+      ApiEndpoints.bangumiAPINextDomain + ApiEndpoints.bangumiStaffByIDNext,
+      [id],
     );
-    return StaffResponse.fromJson(jsonData);
+    final responses = await Future.wait([
+      _client.get(url),
+      _client.get(
+        url,
+        queryParameters: const {
+          'position': _animationProductionPositionId,
+        },
+      ),
+    ]);
+    final response = StaffResponse.fromJson(responses[0]);
+    final studios = StaffResponse.fromJson(responses[1])
+        .data
+        .where((staff) => staff.positions.any(
+            (position) => position.type.id == _animationProductionPositionId))
+        .toList();
+    final studioIds = studios.map((studio) => studio.staff.id).toSet();
+    response.data.removeWhere((staff) => studioIds.contains(staff.staff.id));
+    response.data.insertAll(0, studios);
+    return response;
   }
 
   static Future<CharactersResponse> getCharatersByBangumiID(int id) async {

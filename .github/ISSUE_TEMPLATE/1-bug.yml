@@ -47,11 +47,11 @@ body:
     validations:
       required: true
 
-  - type: input
+  - type: textarea
     id: hardware
     attributes:
       label: 硬件信息
-      description: '如果你使用独立显卡或核显，请提供显卡、 CPU 型号、显卡驱动版本等信息。手机设备无需提供。例如 “NVIDIA RTX 2070 Super 驱动版本 610.47”, “Apple M4”, “AMD RX 6500 XT”'
+      description: 如果你使用独立显卡或核显，请提供显卡、 CPU 型号、显卡驱动版本等信息。手机设备无需提供。例如 “NVIDIA RTX 2070 Super 驱动版本 610.47”, “Apple M4”, “AMD RX 6500 XT”
     validations:
       required: false
 
@@ -73,7 +73,7 @@ body:
     attributes:
       label: 日志信息
       description: |
-        请进入 我的-设置-关于 页面，找到错误日志，复制并粘贴在下方。
+        请进入 我的-设置-关于 页面，找到错误日志，复制并粘贴在上方。
         如果日志过多，可以放在文本文档中以压缩包形式发送。
       value: |
         <details open><summary>Log</summary>

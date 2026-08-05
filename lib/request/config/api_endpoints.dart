@@ -61,6 +61,9 @@ class ApiEndpoints {
   /// 从条目ID获取角色信息
   static const String bangumiCharacterByID = '/v0/subjects/{0}/characters';
 
+  /// 从条目ID获取工作人员信息
+  static const String bangumiStaffByID = '/v0/subjects/{0}/persons';
+
   /// 从条目ID获取剧集ID
   static const String bangumiEpisodeByID = '/v0/episodes';
 
@@ -109,9 +112,6 @@ class ApiEndpoints {
   /// 番剧角色评论
   static const String bangumiCharacterCommentsByIDNext =
       '/p1/characters/{0}/comments';
-
-  /// 番剧工作人员信息
-  static const String bangumiStaffByIDNext = '/p1/subjects/{0}/staffs/persons';
 
   /// DanDanPlay API Domain
   static const String dandanAPIDomain = 'https://api.dandanplay.net';

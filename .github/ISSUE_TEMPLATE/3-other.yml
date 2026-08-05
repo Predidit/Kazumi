@@ -1,0 +1,27 @@
+name: 我有其它内容
+description: 上面的模板我都用不到！
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请填写以下内容，以方便我们了解你的目的。
+        填写前，请先查看 [Issues 列表](https://github.com/Predidit/Kazumi/issues) 查看是否已经有和你主题重复的 Issue。重复 Issue 会被关闭。
+        如果你的 Kazumi 版本不为最新版，请先更新。旧版本的 Issue 可能不会被处理，因为新版可能已经解决了你的一些目的。 
+
+  - type: textarea
+    id: content
+    attributes:
+      label: 填写内容
+      description: 你想说些什么呢？
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: validations
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已经查看了 [Issues 列表](https://github.com/Predidit/Kazumi/issues) ，没有发现重复问题。
+          required: true
+        - label: 我正在使用最新版本的 Kazumi 应用，我还是需要这个 Issue。
+          required: true

@@ -36,7 +36,7 @@ AI 辅助模型:
 ## 提交前检查
 
 - [ ] 我已经填写了 PR 模板中的所有内容
-- [ ] 我已经阅读了 [贡献指引](https://github.com/Predidit/Kazumi/static/doc/CONTRIBUTING.md) ，并遵守指引进行开发
+- [ ] 我已经阅读了 [贡献指引](static/doc/CONTRIBUTING.md) ，并遵守指引进行开发
 - [ ] 这个 PR 的功能已经经过我的测试，并且我完全理解我（或 AI）做出的改动
 
 ## 附注

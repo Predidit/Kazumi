@@ -160,42 +160,6 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 
 ## 开发
 
-### 前置需求
-
-- [Flutter SDK](https://flutter.cn/)
-- 良好的网络环境
-  - 建议至少保证 Google, Github, SourceForge, MavenCentral, pub.dev 的可访问性。
-  - 某些资源访问质量不佳时, 可能需要通过设置镜像地址或其他方式解决。
-
-### 基本配置
-
-```bash
-# 克隆仓库
-git clone https://github.com/Predidit/Kazumi.git
-cd Kazumi
-
-# 检查 Flutter SDK 状态并下载相关包
-flutter doctor -v
-flutter pub get
-
-# 进行检查
-flutter test
-flutter analyze --no-fatal-infos --fatal-warnings
-
-# 进行调试
-flutter run
-# flutter run --profile
-# flutter run --release
-
-# 为生产环境编译
-flutter build apk --release
-# flutter build windows --release
-# flutter build macos --release
-# ...
-```
-
-### 做出贡献
-
 欢迎您提交 PR！在开始之前, 请阅读 [贡献指引](static/doc/CONTRIBUTING.md) 以了解我们对 PR 和 AI 参与辅助开发的规定。
 
 ## 美术资源

@@ -8,11 +8,11 @@
 
 ### 前置需求
 
-- [Flutter SDK](https://flutter.cn/) - 本项目的开发框架。
+- [Flutter SDK](https://flutter.dev/) - 本项目的开发框架。
 - 良好的网络环境
     - 建议至少保证 Google, Github, SourceForge, MavenCentral, pub.dev 的可访问性。
     - 某些资源访问质量不佳时, 可能需要通过设置镜像地址或其他方式解决。
-- 开发侧所需的 SDK, 如 [Android SDK](https://developer.android.google.cn) 等。在配置 Flutter 时, 也会要求下载安装开发侧 SDK.
+- 开发侧所需的 SDK, 如 [Android SDK](https://developer.android.com/) 等。在配置 Flutter 时, 也会要求下载安装开发侧 SDK.
 
 ### 基本配置
 

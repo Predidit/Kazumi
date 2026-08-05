@@ -1,21 +1,19 @@
 <div align=center>
 
-  <h1>Kazumi</h1>
+<h1>Kazumi</h1>
 
-  <img src="assets/images/logo/logo_rounded.png" width=200></img>
+<img src="assets/images/logo/logo_rounded.png" width=200></img>
 
-  <a href="https://t.me/kazumi_app"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"></img></a>
+<a href="https://t.me/kazumi_app"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"></img></a>
 
-  <img src="https://img.shields.io/badge/Flutter-03A9F4?style=for-the-badge&logo=flutter&logoColor=white"></img>
-  <img src="https://img.shields.io/badge/Dart-00B4AB?style=for-the-badge&logo=Dart&logoColor=white"></img>
+<img src="https://img.shields.io/badge/Flutter-03A9F4?style=for-the-badge&logo=flutter&logoColor=white"></img>
+<img src="https://img.shields.io/badge/Dart-00B4AB?style=for-the-badge&logo=Dart&logoColor=white"></img>
 
-  <a href="https://trendshift.io/repositories/11432"><img src="https://trendshift.io/api/badge/trendshift/repositories/11432/yearly?language=Dart"></img></a>
-  <a href="https://hellogithub.com/repository/Predidit/Kazumi" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=68d824ea55ee4b07aba6fe1dd61ac939&claim_uid=J9Qu6aDd8LT1nU0"/></img></a>
-  
-  <p>使用 Flutter 开发的基于自定义规则的番剧采集与在线观看程序。使用最多五行基于 <code>Xpath</code> 语法的选择器构建自己的规则。支持规则导入与规则分享。支持基于 <code>Anime4K</code> 的实时超分辨率。绝赞开发中 (～￣▽￣)～</p>
+<a href="https://trendshift.io/repositories/11432"><img src="https://trendshift.io/api/badge/trendshift/repositories/11432/yearly?language=Dart"></img></a>
+<a href="https://hellogithub.com/repository/Predidit/Kazumi" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=68d824ea55ee4b07aba6fe1dd61ac939&claim_uid=J9Qu6aDd8LT1nU0"/></img></a>
+
+<p>使用 Flutter 开发的基于自定义规则的番剧采集与在线观看程序。使用最多五行基于 <code>Xpath</code> 语法的选择器构建自己的规则。支持规则导入与规则分享。支持基于 <code>Anime4K</code> 的实时超分辨率。绝赞开发中 (～￣▽￣)～</p>
 </div>
-
-
 
 ## 支持平台
 
@@ -26,7 +24,7 @@
 - iOS 13 及以上 (需要 [侧载](https://kazumi.app/docs/misc/how-to-install-in-ios))
 - HarmonyOS 5.0 及以上 (位于 [分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要 [侧载](https://kazumi.app/docs/misc/how-to-install-in-ohos))
 
-## 屏幕截图 
+## 屏幕截图
 
 <table>
   <tr>
@@ -43,31 +41,31 @@
 
 ## 功能 / 开发计划
 
-- [x] 规则编辑器
-- [x] 番剧目录
-- [x] 番剧搜索
-- [x] 番剧时间表
-- [x] 番剧字幕
-- [x] 分集播放
-- [x] 视频播放器
-- [x] 多视频源支持
-- [x] 规则分享
-- [x] 硬件加速
-- [x] 高刷适配
-- [x] 追番列表
-- [x] 番剧弹幕
-- [x] 在线更新
-- [x] 历史记录
-- [x] 倍速播放
-- [x] 配色方案 
-- [x] 跨设备同步
-- [x] 无线投屏 (DLNA)
-- [x] 外部播放器播放
-- [x] 超分辨率
-- [x] 一起看
-- [x] 番剧下载
-- [ ] 番剧更新提醒
-- [ ] 还有更多 (/・ω・＼) 
+- [X]  规则编辑器
+- [X]  番剧目录
+- [X]  番剧搜索
+- [X]  番剧时间表
+- [X]  番剧字幕
+- [X]  分集播放
+- [X]  视频播放器
+- [X]  多视频源支持
+- [X]  规则分享
+- [X]  硬件加速
+- [X]  高刷适配
+- [X]  追番列表
+- [X]  番剧弹幕
+- [X]  在线更新
+- [X]  历史记录
+- [X]  倍速播放
+- [X]  配色方案
+- [X]  跨设备同步
+- [X]  无线投屏 (DLNA)
+- [X]  外部播放器播放
+- [X]  超分辨率
+- [X]  一起看
+- [X]  番剧下载
+- [ ]  番剧更新提醒
+- [ ]  还有更多 (/・ω・＼)
 
 ## 下载
 
@@ -160,6 +158,10 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 
 </details>
 
+## 开发
+
+欢迎您提交 PR！在开始之前, 请阅读 [贡献指引](static/doc/CONTRIBUTING.md) 以了解我们对 PR 和 AI 参与辅助开发的规定。
+
 ## 美术资源
 
 本项目图标来自 [Yuquanaaa](https://www.pixiv.net/users/66219277) 发表在 [Pixiv](https://www.pixiv.net/artworks/116666979) 上的作品。
@@ -179,15 +181,17 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 我们不收集任何用户数据, 不使用任何遥测组件。
 
 ## 代码签名策略
+
 提交者: [贡献者](https://github.com/Predidit/Kazumi/graphs/contributors)
 审阅者: [所有者](https://github.com/Predidit)
 
 ## 赞助
 
-| ![signpath](https://signpath.org/assets/favicon-50x50.png) | Free code signing on Windows provided by [SignPath.io](https://about.signpath.io/), certficate by [SignPath Foundation](https://signpath.org/) |
-|------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| <img src="https://kilo.ai/favicon/favicon.svg" width="50"> | **Automatic PR review provided by [Kilo Code](https://kilo.ai/), sponsored by the [Kilo OSS Program](https://kilo.ai/oss)** |
-| <a href="https://m.do.co/c/0062035db3e4"><img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_icon_blue.svg" width="50" height="50"></a> | **Cloud infrastructure is supported by [DigitalOcean](https://m.do.co/c/0062035db3e4)** |
+
+| ![signpath](https://signpath.org/assets/favicon-50x50.png)                                                                                                                      | Free code signing on Windows provided by[SignPath.io](https://about.signpath.io/), certficate by [SignPath Foundation](https://signpath.org/) |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://kilo.ai/favicon/favicon.svg" width="50">                                                                                                                      | **Automatic PR review provided by [Kilo Code](https://kilo.ai/), sponsored by the [Kilo OSS Program](https://kilo.ai/oss)**                   |
+| <a href="https://m.do.co/c/0062035db3e4"><img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_icon_blue.svg" width="50" height="50"></a> | **Cloud infrastructure is supported by [DigitalOcean](https://m.do.co/c/0062035db3e4)**                                                       |
 
 ## 致谢
 
@@ -210,5 +214,3 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 感谢 [avbuild](https://github.com/wang-bin/avbuild) 本项目使用了来自 avbuild 的树外补丁实现非标准视频流播放。
 
 感谢 [hive](https://github.com/isar/hive) 本项目持久化储存能力来自 hive。
-
-

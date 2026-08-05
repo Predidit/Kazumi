@@ -1,0 +1,47 @@
+name: 期待新功能
+description: 希望 Kazumi 能添加一个新功能。
+title: '[feat]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请填写以下内容，以方便我们讨论该功能的用途。
+        填写前，请先查看 [Issues 列表](https://github.com/Predidit/Kazumi/issues) 查看是否已经有和你主题重复的 Issue。重复 Issue 会被关闭。
+        如果你的 Kazumi 版本不为最新版，请先更新再查看该功能是否已被添加。旧版本的 Issue 可能不会被处理，因为新版可能已经添加了功能。 
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: 提出原因
+      description: 为什么你想添加一个新功能？现在的哪个功能你不满意，还是这个功能目前并不存在？
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你的想法
+      description: 你需要什么样的新功能？它有什么作用？它应该是如何工作的？
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 可供参考的内容
+      description: |
+        有没有某个应用已经实现了你想要的功能？那看起来是什么样的？
+        提供截图可以更好地展示功能。
+
+  - type: checkboxes
+    id: validations
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已经查看了 [Issues 列表](https://github.com/Predidit/Kazumi/issues) ，没有发现重复问题。
+          required: true
+        - label: 我知道一个新功能需要进行讨论并考虑是否添加，并不是一定会被接受。
+          required: true
+        - label: 我正在使用最新版本的 Kazumi 应用，功能还没有添加。
+          required: true

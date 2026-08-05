@@ -1,0 +1,107 @@
+name: Bug 反馈
+description: 提交一个问题反馈。
+title: '[BUG]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请填写以下内容，以方便我们进行问题定位和修复。
+        填写前，请先查看 [Issues 列表](https://github.com/Predidit/Kazumi/issues) 查看是否已经有和你主题重复的 Issue。重复 Issue 会被关闭。
+        如果你的 Kazumi 版本不为最新版，请先更新再重试查看问题是否仍然存在。旧版本的 Issue 可能不会被处理，因为新版可能已经修复了问题。 
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 描述
+      description: 简要描述发生了什么问题，你的预期行为是什么。
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Kazumi 版本
+      description: '你所使用的 Kazumi 版本。版本号可以在 我的-设置-关于 页面底部找到。'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 你所使用的平台
+      options:
+        - macOS
+        - Android
+        - Windows
+        - Linux
+        - iOS
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: 系统版本
+      description: '所使用的系统版本，例如 “Windows 11 25H2”, “Android 15”, “iOS 26.5”'
+    validations:
+      required: true
+
+  - type: textarea
+    id: hardware
+    attributes:
+      label: 硬件信息
+      description: 如果你使用独立显卡或核显，请提供显卡、 CPU 型号、显卡驱动版本等信息。手机设备无需提供。例如 “NVIDIA RTX 2070 Super 驱动版本 610.47”, “Apple M4”, “AMD RX 6500 XT”
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 简要说明这个问题是如何复现的。
+      placeholder: |
+        第一步...
+        第二步...
+        第三步...
+        最后错误出现：...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志信息
+      description: |
+        请进入 我的-设置-关于 页面，找到错误日志，复制并粘贴在上方。
+        如果日志过多，可以放在文本文档中以压缩包形式发送。
+      value: |
+        <details open><summary>Log</summary>
+
+        ```shell
+        [在此处粘贴你的日志]
+        ```
+
+        </details>
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图
+      description: 如果可以，请附上出现错误时的截图。
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: validations
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已经查看了 [Issues 列表](https://github.com/Predidit/Kazumi/issues) ，没有发现重复问题。
+          required: true
+        - label: 我已经提交了日志信息，并说明了问题和复现步骤。
+          required: true
+        - label: 我正在使用最新版本的 Kazumi 应用，问题没有被修复。
+          required: true

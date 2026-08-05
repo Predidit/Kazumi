@@ -75,6 +75,7 @@ body:
       description: |
         请进入 我的-设置-关于 页面，找到错误日志，复制并粘贴在下方。
         如果日志过多，可以放在文本文档中以压缩包形式发送。
+      value: |
         <details open><summary>Log</summary>
 
         ```shell

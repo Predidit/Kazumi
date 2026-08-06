@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/card/episode_comments_card.dart';
+import 'package:kazumi/bean/card/user_comments_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -108,7 +108,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       ),
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           sliver: Observer(builder: (context) {
             if (commentsQueryTimeout) {
               return SliverFillRemaining(
@@ -141,9 +141,8 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                     keepAlive: true,
                     child: IndexedSemantics(
                       index: index,
-                      child: EpisodeCommentsCard(
-                        commentItem:
-                            videoPageController.episodeCommentsList[index],
+                      child: UserCommentsCard.episode(
+                        videoPageController.episodeCommentsList[index],
                       ),
                     ),
                   );

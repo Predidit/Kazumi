@@ -4,7 +4,7 @@ import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/card/character_comments_card.dart';
+import 'package:kazumi/bean/card/user_comments_card.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
@@ -264,7 +264,7 @@ class _CharacterPageState extends State<CharacterPage> {
       ),
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           sliver: Builder(builder: (context) {
             if (loadingComments) {
               return const SliverFillRemaining(
@@ -304,9 +304,7 @@ class _CharacterPageState extends State<CharacterPage> {
                     keepAlive: true,
                     child: IndexedSemantics(
                       index: index,
-                      child: CharacterCommentsCard(
-                        commentItem: commentsList[index],
-                      ),
+                      child: UserCommentsCard.character(commentsList[index]),
                     ),
                   );
                 },

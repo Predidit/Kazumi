@@ -353,7 +353,7 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
         }
       }
       KazumiLogger().i('BackupSettings: restore from a backup');
-      await _toast('恢复完成', dismissFirst: true);
+      await _toast('恢复完成，部分数据需要重启生效', dismissFirst: true);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'BackupSettings: restore failed',

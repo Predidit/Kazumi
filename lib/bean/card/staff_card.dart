@@ -24,8 +24,8 @@ class StaffCard extends StatelessWidget {
       subtitle: staffFullItem.staff.nameCN.isNotEmpty
           ? Text(staffFullItem.staff.nameCN)
           : null,
-      trailing: Text(staffFullItem.positions.isNotEmpty
-          ? (staffFullItem.positions[0].type.cn)
+      trailing: Text(staffFullItem.relations.isNotEmpty
+          ? staffFullItem.relations.first
           : ''),
     );
   }

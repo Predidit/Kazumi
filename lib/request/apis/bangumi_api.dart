@@ -491,7 +491,7 @@ class BangumiApi {
       ApiEndpoints.formatUrl(
           ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiStaffByID, [id]),
     );
-    return StaffResponse.fromV0Persons(jsonData as List<dynamic>);
+    return StaffResponse.fromJson(jsonData as List<dynamic>);
   }
 
   static Future<CharactersResponse> getCharatersByBangumiID(int id) async {

@@ -9,37 +9,24 @@ class StaffResponse {
     required this.total,
   });
 
-  factory StaffResponse.fromJson(Map<String, dynamic> json) {
-    return StaffResponse(
-      data: (json['data'] as List<dynamic>? ?? [])
-          .map((item) => StaffFullItem.fromJson(item as Map<String, dynamic>))
-          .toList(),
-      total: json['total'] is int ? json['total'] as int : 0,
-    );
-  }
-
-  factory StaffResponse.fromTemplate() {
-    return StaffResponse(
-      data: [],
-      total: 0,
-    );
-  }
-
-  /// 解析 api.bgm.tv `/v0/subjects/{id}/persons` 的完整返回。
+  /// Parses the full response of `GET /v0/subjects/{id}/persons`.
   ///
-  /// v0 接口按 (人物 × 关系) 返回扁平数组,这里按人物 ID 合并为
-  /// [StaffFullItem],并按 [_staffRelationPriority] 把重要职位
-  /// (动画制作、原作、导演、脚本等)前置,未收录的职位保持 v0
-  /// 原始顺序排在后面;每个条目内的职位也按同一优先级排列,
-  /// 保证行首职位与排序依据一致。
-  factory StaffResponse.fromV0Persons(List<dynamic> persons) {
+  /// The v0 API returns a flat (person × relation) list, so entries are
+  /// merged by person id and prioritized roles are sorted to the front
+  /// via [_staffRelationPriority].
+  factory StaffResponse.fromJson(List<dynamic> persons) {
     final positionsById = <int, List<Position>>{};
     final staffById = <int, Staff>{};
     for (final raw in persons) {
-      final json = raw as Map<String, dynamic>;
-      final id = json['id'] as int? ?? 0;
-      positionsById.putIfAbsent(id, () => []).add(_positionFrom(json));
-      staffById.putIfAbsent(id, () => Staff.fromJson(json));
+      try {
+        final json = raw as Map<String, dynamic>;
+        final id = int.tryParse('${json['id']}');
+        if (id == null) continue;
+        positionsById.putIfAbsent(id, () => []).add(_positionFrom(json));
+        staffById.putIfAbsent(id, () => Staff.fromJson(json));
+      } catch (_) {
+        // Skip malformed entries instead of failing the whole list.
+      }
     }
 
     final items = <({StaffFullItem item, int priority})>[];
@@ -58,7 +45,13 @@ class StaffResponse {
     );
   }
 
-  /// v0 人物行 → [Position],职位名取自 `relation`。
+  factory StaffResponse.fromTemplate() {
+    return StaffResponse(
+      data: [],
+      total: 0,
+    );
+  }
+
   static Position _positionFrom(Map<String, dynamic> json) {
     return Position(
       type: PositionType(
@@ -68,15 +61,13 @@ class StaffResponse {
         jp: '',
       ),
       summary: '',
-      appearEps: json['eps'] as String? ?? '',
+      appearEps: json['eps']?.toString() ?? '',
     );
   }
 
-  /// 职位名 → 优先级,越小越靠前;未收录的职位返回最大值,排在最后。
   static int _relationPriority(String cn) =>
       _staffRelationPriority[cn] ?? 0x7fffffff;
 
-  /// 职位按优先级稳定排序(同优先级保持原顺序)。
   static List<Position> _sortedByPriority(List<Position> positions) {
     return _stableSortedBy(
       positions,
@@ -85,9 +76,8 @@ class StaffResponse {
     );
   }
 
-  /// Dart 的 [List.sort] 不稳定,这里用原序号兜底实现稳定排序。
-  static List<T> _stableSortedBy<T>(
-      List<T> list, int Function(T, T) compare) {
+  // [List.sort] is not stable, so keep the original index as a tie-breaker.
+  static List<T> _stableSortedBy<T>(List<T> list, int Function(T, T) compare) {
     final indexed = list.asMap().entries.toList()
       ..sort((a, b) {
         final byCompare = compare(a.value, b.value);
@@ -96,7 +86,7 @@ class StaffResponse {
     return [for (final entry in indexed) entry.value];
   }
 
-  /// 职位 → 排序优先级,越小越靠前;未收录的职位为普通级别。
+  // Lower value sorts first; unlisted roles keep their original order.
   static const Map<String, int> _staffRelationPriority = {
     '动画制作': 0,
     '原作': 10,

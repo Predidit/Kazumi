@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:path_provider/path_provider.dart';
@@ -258,6 +259,48 @@ class GStorage {
       await collectibles.put(tempBoxItem.key, tempBoxItem.value);
     }
     await tempBox.close();
+  }
+
+  static Future<void> flushAll() async {
+    await favorites.flush();
+    await collectibles.flush();
+    await histories.flush();
+    await _setting.flush();
+    await collectChanges.flush();
+    await shieldList.flush();
+    await searchHistory.flush();
+    await downloads.flush();
+  }
+
+  static Future<void> restoreBoxFromBytes(
+    String boxName,
+    Box<dynamic> targetBox,
+    Uint8List backupContent,
+  ) async {
+    final tempBox =
+        await Hive.openBox('restoreTemp_$boxName', bytes: backupContent);
+    try {
+      await targetBox.clear();
+      for (final entry in tempBox.toMap().entries) {
+        await targetBox.put(entry.key, entry.value);
+      }
+      await targetBox.flush();
+    } finally {
+      await tempBox.close();
+    }
+  }
+
+  static Future<void> restoreSettingsFromBytes(Uint8List backupContent) {
+    return restoreBoxFromBytes('setting', _setting, backupContent);
+  }
+
+  static int get settingsCount => _setting.length;
+
+  static Future<void> restoreCollectChangesFromBytes(
+      Uint8List backupContent) async {
+    await restoreBoxFromBytes('collectchanges', collectChanges, backupContent);
+    _collectChangeIdInitialized = false;
+    _initializeNextCollectChangeIdLocked();
   }
 
   static Future<List<CollectedBangumi>> getCollectiblesFromFile(

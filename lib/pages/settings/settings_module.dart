@@ -17,6 +17,7 @@ import 'package:kazumi/pages/settings/settings_page.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
+import 'package:kazumi/pages/settings/backup_settings.dart';
 
 final settingsModule = createModule(
   path: '/settings',
@@ -59,6 +60,10 @@ final settingsModule = createModule(
       ..route(
         '/download-settings',
         child: (context, state) => const DownloadSettingsPage(),
+      )
+      ..route(
+        '/backup-and-restore',
+        child: (context, state) => const BackupSettingsPage(),
       )
       ..module(bangumiModule);
   },

@@ -489,8 +489,7 @@ class BangumiApi {
   static Future<StaffResponse> getBangumiStaffByID(int id) async {
     final jsonData = await _client.get(
       ApiEndpoints.formatUrl(
-          ApiEndpoints.bangumiAPINextDomain + ApiEndpoints.bangumiStaffByIDNext,
-          [id]),
+          ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiStaffByID, [id]),
     );
     return StaffResponse.fromJson(jsonData);
   }

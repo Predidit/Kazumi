@@ -10,6 +10,7 @@ class BangumiTimelineCard extends StatelessWidget {
     super.key,
     required this.bangumiItem,
     required this.showRating,
+    this.airingTime,
     this.onTap,
     this.cardHeight = 120,
     this.cardWidth,
@@ -18,6 +19,7 @@ class BangumiTimelineCard extends StatelessWidget {
 
   final BangumiItem bangumiItem;
   final bool showRating;
+  final DateTime? airingTime;
   final VoidCallback? onTap;
   final bool enableHero;
   final double cardHeight;
@@ -201,8 +203,22 @@ class BangumiTimelineCard extends StatelessWidget {
             label: votesText,
             textStyle: metricStyle,
           ),
+        if (airingTime != null)
+          buildMetric(
+            context,
+            icon: Icons.schedule_outlined,
+            iconColor: colorScheme.tertiary,
+            label: _formatAiringTime(airingTime!),
+            textStyle: metricStyle,
+          ),
       ],
     );
+  }
+
+  String _formatAiringTime(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   Widget buildMetric(

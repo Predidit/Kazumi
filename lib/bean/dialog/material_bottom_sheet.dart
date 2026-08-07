@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/widget/scrollable_wrapper.dart';
 
 const double materialBottomSheetRadius = 24;
 const EdgeInsets materialBottomSheetContentPadding =
@@ -80,99 +79,156 @@ class MaterialBottomSheetHeader extends StatelessWidget {
   }
 }
 
-class MaterialBottomSheetTabBar extends StatefulWidget {
-  const MaterialBottomSheetTabBar({
+// Verbatim ConnectedButtonGroupSmallTokens: ContainerHeight, BetweenSpace,
+// InnerCornerCornerSize, PressedInnerCornerCornerSize. Rounding these to the
+// app's usual radius vocabulary breaks the group's proportions.
+
+const double _connectedGroupHeight = 40;
+const double _connectedGroupGap = 2;
+const double _connectedInnerCorner = 8;
+const double _connectedPressedInnerCorner = 4;
+
+/// Material 3 Expressive connected button group driving a [TabBarView].
+///
+/// Outer edges stay `CornerFull`; only the corners facing a sibling move,
+/// opening out on selection and tightening under a press. Driven off the
+/// [TabController] animation so a drag carries the shape and colour with it.
+class MaterialBottomSheetSegmentedTabs extends StatelessWidget {
+  const MaterialBottomSheetSegmentedTabs({
     super.key,
-    required this.tabs,
+    required this.labels,
     this.controller,
-    this.trailing,
-    this.isScrollable = false,
-    this.tabAlignment,
+    this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 12),
   });
 
-  final List<Widget> tabs;
+  final List<String> labels;
+
+  /// Falls back to the enclosing [DefaultTabController].
   final TabController? controller;
-  final Widget? trailing;
-  final bool isScrollable;
-  final TabAlignment? tabAlignment;
 
-  @override
-  State<MaterialBottomSheetTabBar> createState() =>
-      _MaterialBottomSheetTabBarState();
-}
-
-class _MaterialBottomSheetTabBarState extends State<MaterialBottomSheetTabBar> {
-  TabBarScrollController? _scrollController;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.isScrollable) {
-      _scrollController = TabBarScrollController();
-    }
-  }
-
-  @override
-  void didUpdateWidget(MaterialBottomSheetTabBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isScrollable != oldWidget.isScrollable) {
-      _scrollController?.dispose();
-      _scrollController = widget.isScrollable ? TabBarScrollController() : null;
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController?.dispose();
-    super.dispose();
-  }
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    Widget tabBar = TabBar(
-      controller: widget.controller,
-      isScrollable: widget.isScrollable,
-      scrollController: _scrollController,
-      tabAlignment: widget.tabAlignment,
-      dividerColor: Colors.transparent,
-      indicatorSize: TabBarIndicatorSize.tab,
-      splashBorderRadius: BorderRadius.circular(20),
-      indicator: BoxDecoration(
-        color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      labelColor: colorScheme.onSecondaryContainer,
-      unselectedLabelColor: colorScheme.onSurfaceVariant,
-      tabs: widget.tabs,
-    );
-    if (_scrollController != null) {
-      tabBar = ScrollableWrapper(
-        scrollController: _scrollController!,
-        child: tabBar,
-      );
-    }
+    final tabController = controller ?? DefaultTabController.of(context);
 
-    return Container(
-      height: 48,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: widget.trailing == null
-          ? tabBar
-          : Row(
+    return Padding(
+      padding: padding,
+      child: SizedBox(
+        height: _connectedGroupHeight,
+        child: AnimatedBuilder(
+          animation: tabController.animation!,
+          builder: (context, _) {
+            final position = tabController.animation!.value;
+            return Row(
               children: [
-                Expanded(child: tabBar),
-                SizedBox.square(
-                  dimension: 40,
-                  child: widget.trailing!,
-                ),
+                for (var index = 0; index < labels.length; index++) ...[
+                  if (index != 0) const SizedBox(width: _connectedGroupGap),
+                  Expanded(
+                    child: _ConnectedSegment(
+                      label: labels[index],
+                      selection: (1 - (position - index).abs()).clamp(0.0, 1.0),
+                      isLeading: index == 0,
+                      isTrailing: index == labels.length - 1,
+                      onTap: () => tabController.animateTo(index),
+                    ),
+                  ),
+                ],
               ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ConnectedSegment extends StatefulWidget {
+  const _ConnectedSegment({
+    required this.label,
+    required this.selection,
+    required this.isLeading,
+    required this.isTrailing,
+    required this.onTap,
+  });
+
+  final String label;
+  final double selection;
+  final bool isLeading;
+  final bool isTrailing;
+  final VoidCallback onTap;
+
+  @override
+  State<_ConnectedSegment> createState() => _ConnectedSegmentState();
+}
+
+class _ConnectedSegmentState extends State<_ConnectedSegment> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final selection = widget.selection;
+    const outerCorner = _connectedGroupHeight / 2;
+    const outerRadius = Radius.circular(outerCorner);
+
+    return Semantics(
+      button: true,
+      inMutuallyExclusiveGroup: true,
+      selected: selection > 0.5,
+      // Only the press is tweened. Selection already tracks the tab
+      // controller, and tweening it too would lag a drag.
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: _pressed ? 1 : 0),
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        builder: (context, press, child) {
+          // A press only bites on a segment that is not already selected.
+          var inner = _connectedInnerCorner +
+              (outerCorner - _connectedInnerCorner) * selection;
+          inner += (_connectedPressedInnerCorner - inner) *
+              press *
+              (1 - selection);
+          final animated = Radius.circular(inner);
+          return Material(
+            // ToggleButtonDefaults fills the selected segment with `primary`,
+            // too heavy for a sheet this only navigates. `secondaryContainer`
+            // is the navigation active-indicator role.
+            color: Color.lerp(
+              colorScheme.surfaceContainer,
+              colorScheme.secondaryContainer,
+              selection,
             ),
+            borderRadius: BorderRadiusDirectional.only(
+              topStart: widget.isLeading ? outerRadius : animated,
+              bottomStart: widget.isLeading ? outerRadius : animated,
+              topEnd: widget.isTrailing ? outerRadius : animated,
+              bottomEnd: widget.isTrailing ? outerRadius : animated,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: child,
+          );
+        },
+        child: InkWell(
+          onTap: widget.onTap,
+          onHighlightChanged: (value) => setState(() => _pressed = value),
+          child: Center(
+            child: Text(
+              widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: Color.lerp(
+                  colorScheme.onSurfaceVariant,
+                  colorScheme.onSecondaryContainer,
+                  selection,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -90,13 +90,9 @@ class _CharacterPageState extends State<CharacterPage> {
               description: _headerDescription,
               onClose: () => Navigator.of(context).pop(),
             ),
-            const MaterialBottomSheetTabBar(
-              tabs: [
-                Tab(text: '资料'),
-                Tab(text: '吐槽'),
-              ],
+            const MaterialBottomSheetSegmentedTabs(
+              labels: ['资料', '吐槽'],
             ),
-            const SizedBox(height: 8),
             Expanded(
               child: TabBarView(
                 children: [characterInfoBody, characterCommentsBody],

@@ -126,14 +126,10 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                   children: _buildHeaderActions(context),
                 ),
               ),
-              MaterialBottomSheetTabBar(
+              MaterialBottomSheetSegmentedTabs(
                 controller: _tabController,
-                tabs: const [
-                  Tab(text: '状态'),
-                  Tab(text: '日志'),
-                ],
+                labels: const ['状态', '日志'],
               ),
-              const SizedBox(height: 4),
             ],
             Expanded(
               child: TabBarView(
@@ -172,30 +168,10 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 300),
-                child: Container(
-                  height: 40,
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: TabBar(
-                    controller: _tabController,
-                    dividerColor: Colors.transparent,
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    splashBorderRadius: BorderRadius.circular(17),
-                    indicator: BoxDecoration(
-                      color: colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(17),
-                    ),
-                    labelColor: colorScheme.onSecondaryContainer,
-                    unselectedLabelColor: colorScheme.onSurfaceVariant,
-                    tabs: const [
-                      Tab(text: '状态', height: 34),
-                      Tab(text: '日志', height: 34),
-                    ],
-                  ),
+                child: MaterialBottomSheetSegmentedTabs(
+                  controller: _tabController,
+                  labels: const ['状态', '日志'],
+                  padding: EdgeInsets.zero,
                 ),
               ),
             ),

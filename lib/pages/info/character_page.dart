@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
@@ -8,39 +9,89 @@ import 'package:kazumi/bean/card/user_comments_card.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+
+/// Concentric radii: the panel takes the sheet's 24 and insets by this, so the
+/// portrait lands on the image token's 12 and both sets of corners stay parallel.
+const double _panelPadding = 12;
+
+/// The portrait is a full-body shot, so it spans the panel at roughly a third
+/// of its width. On short layouts that third would square the box off and
+/// `BoxFit.cover` would crop the head and feet away, hence the ratio ceiling.
+const double _portraitMaxAspectRatio = 0.5;
+const double _portraitMinWidth = 104;
+const double _portraitMaxWidth = 176;
+
+/// Short facts become pills; a key column would spend a whole row on a
+/// one-character value in a column this narrow. Longer ones read as paragraphs.
+const int _pillMaxValueLength = 12;
+const double _pillRadius = 8;
+const double _pillGap = 8;
+const double _blockGap = 20;
+const double _blockLabelGap = 6;
+
+const Set<String> _hiddenInfoKeys = {'引用来源'};
+
+const Widget _detailsBone = Skeletonizer.zone(
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Wrap(
+        spacing: _pillGap,
+        runSpacing: _pillGap,
+        children: [
+          Bone.button(uniRadius: _pillRadius, height: 30, width: 76),
+          Bone.button(uniRadius: _pillRadius, height: 30, width: 60),
+          Bone.button(uniRadius: _pillRadius, height: 30, width: 92),
+          Bone.button(uniRadius: _pillRadius, height: 30, width: 68),
+        ],
+      ),
+      SizedBox(height: _blockGap),
+      Bone.text(width: 48),
+      SizedBox(height: _blockLabelGap),
+      Bone.multiText(lines: 8),
+    ],
+  ),
+);
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({
     super.key,
     required this.characterID,
     required this.characterName,
+    required this.characterRelation,
   });
 
   final int characterID;
+
+  /// Both header lines come from the tapped list row, never from the request.
+  /// Whether a header assembled from loaded data has a second line is unknown
+  /// until the response lands, so it changes line count on arrival and shoves
+  /// the sheet down a notch; deciding it synchronously is the only shape that
+  /// cannot shift. The localized name still rides along in the infobox below.
   final String characterName;
+  final String characterRelation;
 
   @override
   State<CharacterPage> createState() => _CharacterPageState();
 }
 
 class _CharacterPageState extends State<CharacterPage> {
-  late CharacterFullItem characterFullItem;
-  bool loadingCharacter = true;
+  CharacterFullItem? characterFullItem;
   List<CharacterCommentItem> commentsList = [];
   bool loadingComments = true;
   bool commentsError = false;
 
   Future<void> loadCharacter() async {
     setState(() {
-      loadingCharacter = true;
+      characterFullItem = null;
     });
-    await BangumiApi.getCharacterByCharacterID(widget.characterID)
-        .then((character) {
-      characterFullItem = character;
-    });
+    final character =
+        await BangumiApi.getCharacterByCharacterID(widget.characterID);
     if (mounted) {
       setState(() {
-        loadingCharacter = false;
+        characterFullItem = character;
       });
     }
   }
@@ -105,35 +156,19 @@ class _CharacterPageState extends State<CharacterPage> {
   }
 
   String get _headerTitle {
-    if (loadingCharacter) {
-      final initialName = widget.characterName.trim();
-      return initialName.isEmpty ? '正在加载…' : initialName;
-    }
-
-    final localizedName = characterFullItem.nameCN.trim();
-    if (localizedName.isNotEmpty) return localizedName;
-    final originalName = characterFullItem.name.trim();
-    if (originalName.isNotEmpty) return originalName;
-    return '人物';
+    final name = widget.characterName.trim();
+    return name.isEmpty ? '人物' : name;
   }
 
   String? get _headerDescription {
-    if (loadingCharacter) return null;
-    if (characterFullItem.id == 0) return '未能加载人物资料';
-
-    final localizedName = characterFullItem.nameCN.trim();
-    final originalName = characterFullItem.name.trim();
-    if (originalName.isNotEmpty && originalName != localizedName) {
-      return originalName;
-    }
-    return null;
+    final relation = widget.characterRelation.trim();
+    if (relation.isEmpty || relation == '未知') return null;
+    return relation;
   }
 
   Widget get characterInfoBody {
-    if (loadingCharacter) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (characterFullItem.id == 0) {
+    final character = characterFullItem;
+    if (character != null && character.id == 0) {
       return GeneralErrorWidget(
         errMsg: '什么都没有找到 (´;ω;`)',
         actions: [
@@ -147,49 +182,70 @@ class _CharacterPageState extends State<CharacterPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final portraitWidth =
-            (constraints.maxWidth * 0.3).clamp(104.0, 176.0).toDouble();
-        final contentHeight =
-            constraints.maxHeight - materialBottomSheetContentPadding.vertical;
-        final details = Column(
-          children: [
-            _buildInfoSection(
-              context,
-              title: '基本信息',
-              icon: Icons.badge_outlined,
-              content: characterFullItem.info,
-              emptyText: '暂无基本信息',
-            ),
-            const SizedBox(height: 12),
-            _buildInfoSection(
-              context,
-              title: '角色简介',
-              icon: Icons.auto_stories_outlined,
-              content: characterFullItem.summary,
-              emptyText: '暂无角色简介',
-            ),
-          ],
+        final portraitHeight = math.max(
+          0.0,
+          constraints.maxHeight -
+              materialBottomSheetContentPadding.vertical -
+              _panelPadding * 2,
+        );
+        final panelWidth =
+            constraints.maxWidth - materialBottomSheetContentPadding.horizontal;
+        final portraitWidth = math.min(
+          (panelWidth * 0.3)
+              .clamp(_portraitMinWidth, _portraitMaxWidth)
+              .toDouble(),
+          portraitHeight * _portraitMaxAspectRatio,
         );
 
         return Padding(
           padding: materialBottomSheetContentPadding,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildPortrait(context, portraitWidth, contentHeight),
-              const SizedBox(width: 16),
-              Expanded(
-                child: SingleChildScrollView(child: details),
+          child: Material(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(materialBottomSheetRadius),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.all(_panelPadding),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  character == null
+                      ? Skeletonizer.zone(
+                          child: Bone(
+                            width: portraitWidth,
+                            height: portraitHeight,
+                            uniRadius: StyleString.imgRadius.x,
+                          ),
+                        )
+                      : _buildPortrait(
+                          context,
+                          character,
+                          portraitWidth,
+                          portraitHeight,
+                        ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: character == null
+                          ? _detailsBone
+                          : _buildDetails(context, character),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildPortrait(BuildContext context, double width, double height) {
-    final heroTag = ImageViewer.heroTagFor(characterFullItem.image, 0);
+  Widget _buildPortrait(
+    BuildContext context,
+    CharacterFullItem character,
+    double width,
+    double height,
+  ) {
+    final heroTag = ImageViewer.heroTagFor(character.image, 0);
 
     return Semantics(
       button: true,
@@ -198,12 +254,12 @@ class _CharacterPageState extends State<CharacterPage> {
         message: '查看原图',
         child: Material(
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(materialBottomSheetRadius),
+          borderRadius: const BorderRadius.all(StyleString.imgRadius),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () => ImageViewer.show(
               context,
-              imageUrls: [characterFullItem.image],
+              imageUrls: [character.image],
               heroTag: heroTag,
             ),
             child: Hero(
@@ -211,7 +267,7 @@ class _CharacterPageState extends State<CharacterPage> {
               child: NetworkImgLayer(
                 width: width,
                 height: height,
-                src: characterFullItem.image,
+                src: character.image,
               ),
             ),
           ),
@@ -220,30 +276,118 @@ class _CharacterPageState extends State<CharacterPage> {
     );
   }
 
-  Widget _buildInfoSection(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required String content,
-    required String emptyText,
-  }) {
-    final text = content.trim();
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildDetails(BuildContext context, CharacterFullItem character) {
+    final pills = <CharacterInfoField>[];
+    final blocks = <CharacterInfoField>[];
 
-    return MaterialBottomSheetSection(
-      title: title,
-      icon: icon,
-      child: SelectionArea(
-        child: Text(
-          text.isEmpty ? emptyText : text,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: text.isEmpty
-                    ? colorScheme.onSurfaceVariant
-                    : colorScheme.onSurface,
-                height: 1.55,
-              ),
+    for (final field in character.infobox) {
+      if (_hiddenInfoKeys.contains(field.key)) continue;
+      if (field.value.length <= _pillMaxValueLength &&
+          !field.value.contains(' / ')) {
+        pills.add(field);
+      } else {
+        blocks.add(field);
+      }
+    }
+    if (character.summary.trim().isNotEmpty) {
+      blocks.add(
+        CharacterInfoField(key: '简介', value: character.summary.trim()),
+      );
+    }
+
+    if (pills.isEmpty && blocks.isEmpty) {
+      final theme = Theme.of(context);
+      return Text(
+        '暂无人物资料',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
         ),
+      );
+    }
+
+    final sections = <Widget>[
+      if (pills.isNotEmpty)
+        Wrap(
+          spacing: _pillGap,
+          runSpacing: _pillGap,
+          children: [
+            for (final field in pills) _buildFactPill(context, field),
+          ],
+        ),
+      for (final block in blocks) _buildBlock(context, block),
+    ];
+
+    return SelectionArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var index = 0; index < sections.length; index++) ...[
+            if (index != 0) const SizedBox(height: _blockGap),
+            sections[index],
+          ],
+        ],
       ),
+    );
+  }
+
+  Widget _buildFactPill(BuildContext context, CharacterInfoField field) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(_pillRadius),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            field.key,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Wrap bounds its children, so an oversized pill wraps rather than
+          // overflowing.
+          Flexible(
+            child: Text(
+              field.value,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBlock(BuildContext context, CharacterInfoField field) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          field.key,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: _blockLabelGap),
+        Text(
+          field.value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface,
+            height: 1.6,
+          ),
+        ),
+      ],
     );
   }
 
@@ -263,10 +407,9 @@ class _CharacterPageState extends State<CharacterPage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           sliver: Builder(builder: (context) {
             if (loadingComments) {
-              return const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
+              return SliverList.builder(
+                itemCount: 3,
+                itemBuilder: (context, _) => const UserCommentsCardBone(),
               );
             }
             if (commentsError) {

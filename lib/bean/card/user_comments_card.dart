@@ -3,6 +3,7 @@ import 'package:kazumi/bbcode/bbcode_widget.dart';
 import 'package:kazumi/bean/widget/bangumi_avatar.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/date_time.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 // 16 and 12 are M3 `large` and a 4dp-grid step; the replies block nested inside
 // takes the concentric radius `outer - padding` so both sets of corners stay
@@ -63,6 +64,49 @@ class UserCommentsCard extends StatelessWidget {
                 _RepliesContainer(replies: _replies),
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Loading placeholder for [UserCommentsCard], sharing its chrome and metrics.
+class UserCommentsCardBone extends StatelessWidget {
+  const UserCommentsCardBone({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(_cardRadius),
+        clipBehavior: Clip.antiAlias,
+        child: const Padding(
+          padding: EdgeInsets.all(_cardPadding),
+          child: Skeletonizer.zone(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Bone.circle(size: 40),
+                    SizedBox(width: _avatarGap),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Bone.text(width: 96),
+                        SizedBox(height: 6),
+                        Bone.text(width: 64, fontSize: 11),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12),
+                Bone.multiText(lines: 2),
+              ],
+            ),
           ),
         ),
       ),

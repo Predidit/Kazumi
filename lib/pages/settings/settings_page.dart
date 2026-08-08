@@ -16,6 +16,7 @@ import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_setting.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/pages/settings/backup_settings.dart';
 
 class _SettingsCategory {
   const _SettingsCategory({
@@ -122,6 +123,13 @@ final List<_SettingsGroup> _settingsGroups = [
   _SettingsGroup(
     title: '其他',
     categories: [
+      _SettingsCategory(
+        id: 'backup',
+        label: '备份与还原',
+        description: '备份或还原各种数据',
+        icon: Icons.settings_backup_restore_rounded,
+        builder: (_) => const BackupSettingsPage(),
+      ),
       _SettingsCategory(
         id: 'about',
         label: '关于',

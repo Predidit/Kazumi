@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
@@ -10,26 +13,79 @@ import 'package:kazumi/repositories/search_history_repository.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/request/apis/trace_api.dart';
 import 'package:kazumi/utils/search_parser.dart';
+import 'package:kazumi/pages/search/search_result_buffer.dart';
 
 part 'search_controller.g.dart';
 
-class SearchPageController = _SearchPageController with _$SearchPageController;
+typedef SearchPageRequestLoader = Future<BangumiSearchPage?> Function(
+  String keyword,
+  SearchFilterState filterState,
+  int offset,
+);
 
-abstract class _SearchPageController with Store {
+class SearchPageController extends _SearchPageController
+    with _$SearchPageController {
+  SearchPageController(
+    super.collectRepository,
+    super.searchHistoryRepository,
+  );
+
+  @visibleForTesting
+  SearchPageController.withPageLoader(
+    super.collectRepository,
+    super.searchHistoryRepository,
+    SearchPageRequestLoader pageLoader,
+  ) : super(pageLoader: pageLoader);
+}
+
+abstract class _SearchPageController with Store implements Disposable {
   static const int _searchPageSize = 20;
-  static const int _maxPagesPerSearch = 3;
+  static const Duration _collectionRefreshDebounce = Duration(milliseconds: 50);
 
   _SearchPageController(
-    this._collectRepository,
-    this._searchHistoryRepository,
-  );
+    ICollectRepository collectRepository,
+    ISearchHistoryRepository searchHistoryRepository, {
+    SearchPageRequestLoader? pageLoader,
+  })  : _collectRepository = collectRepository,
+        _searchHistoryRepository = searchHistoryRepository,
+        _pageLoader = pageLoader ?? _defaultPageLoader {
+    _collectiblesSubscription =
+        _collectRepository.onCollectiblesChanged.listen((_) {
+      _scheduleResultProjectionRefresh();
+    });
+  }
 
   final ICollectRepository _collectRepository;
   final ISearchHistoryRepository _searchHistoryRepository;
+  final SearchPageRequestLoader _pageLoader;
+  late final StreamSubscription<void> _collectiblesSubscription;
+  Timer? _collectiblesRefreshTimer;
 
-  int _searchOffset = 0;
+  static Future<BangumiSearchPage?> _defaultPageLoader(
+    String keyword,
+    SearchFilterState filterState,
+    int offset,
+  ) {
+    return BangumiApi.bangumiSearch(
+      keyword,
+      tags: filterState.tags,
+      limit: _searchPageSize,
+      offset: offset,
+      sort: filterState.sort,
+      dateRange: filterState.effectiveDateRange,
+      rankRange: filterState.rankRange,
+      scoreRange: filterState.scoreRange,
+      weekdays: filterState.weekdays,
+    );
+  }
 
-  bool hasMoreSearchResults = true;
+  SearchResultBuffer? _resultBuffer;
+  int _queryGeneration = 0;
+  String _activeInput = '';
+  bool _disposed = false;
+
+  @observable
+  bool hasMoreSearchResults = false;
 
   @observable
   bool isLoading = false;
@@ -38,13 +94,13 @@ abstract class _SearchPageController with Store {
   bool isTimeOut = false;
 
   @observable
-  bool notShowWatchedBangumis = false;
-
-  @observable
   bool notShowAbandonedBangumis = false;
 
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
+
+  @observable
+  SearchViewMode selectedViewMode = SearchViewMode.all;
 
   @observable
   ObservableList<SearchHistory> searchHistories = ObservableList.of([]);
@@ -67,75 +123,128 @@ abstract class _SearchPageController with Store {
 
   @action
   Future<void> searchBangumi(String input, {String type = 'add'}) async {
-    if (type != 'add') {
-      bangumiList.clear();
-      _searchOffset = 0;
-      hasMoreSearchResults = true;
-      bool privateMode = _collectRepository.getPrivateMode();
-      if (!privateMode) {
-        // 检查是否已满，删除最旧的记录
-        if (_searchHistoryRepository.isHistoryFull(10)) {
-          await _searchHistoryRepository.deleteOldest();
-        }
-        // 删除重复的历史记录
-        await _searchHistoryRepository.deleteDuplicates(input);
-        // 保存新的搜索历史
-        await _searchHistoryRepository.saveHistory(input);
-        // 重新加载历史记录
-        loadSearchHistories();
-      }
+    if (_disposed) return;
+    final filterState = SearchParser(input).toFilterState();
+    final normalizedInput = SearchParser.fromFilterState(filterState);
+    final isNewQuery = type != 'add' ||
+        _resultBuffer == null ||
+        _activeInput != normalizedInput;
+
+    if (!isNewQuery) {
+      await _loadMoreSearchResults();
+      return;
     }
+
+    final requestedMode = selectedViewMode;
+    final generation = ++_queryGeneration;
+    _activeInput = normalizedInput;
+    _resultBuffer = null;
+    hasMoreSearchResults = true;
+    bangumiList.clear();
     isLoading = true;
     isTimeOut = false;
-    SearchParser parser = SearchParser(input);
-    final filterState = parser.toFilterState();
-    String? idString = filterState.id.isEmpty ? null : filterState.id;
+
+    if (!_collectRepository.getPrivateMode()) {
+      if (_searchHistoryRepository.isHistoryFull(10)) {
+        await _searchHistoryRepository.deleteOldest();
+      }
+      await _searchHistoryRepository.deleteDuplicates(input);
+      await _searchHistoryRepository.saveHistory(input);
+      loadSearchHistories();
+    }
+    if (generation != _queryGeneration) return;
+
+    final idString = filterState.id.isEmpty ? null : filterState.id;
     if (idString != null) {
       final id = int.tryParse(idString);
       if (id != null) {
-        final BangumiItem? item = await BangumiApi.getBangumiInfoByID(id);
-        if (item != null) {
-          bangumiList.add(item);
-        }
-        hasMoreSearchResults = false;
+        final item = await BangumiApi.getBangumiInfoByID(id);
+        if (generation != _queryGeneration) return;
+        late final SearchResultBuffer buffer;
+        buffer = SearchResultBuffer(
+          pageLoader: (offset) async => offset == 0 && item != null
+              ? BangumiSearchPage(items: [item], rawCount: 1)
+              : const BangumiSearchPage(items: [], rawCount: 0),
+          watchedIds: loadWatchedBangumiIds,
+          abandonedIds: loadAbandonedBangumiIds,
+          hideAbandoned: notShowAbandonedBangumis,
+          shouldContinue: () =>
+              generation == _queryGeneration &&
+              identical(_resultBuffer, buffer),
+        );
+        _resultBuffer = buffer;
+        await buffer.loadNextPage();
+        if (generation != _queryGeneration) return;
+        _publishMode(requestedMode);
         isLoading = false;
-        isTimeOut = bangumiList.isEmpty;
+        isTimeOut =
+            bangumiList.isEmpty && (buffer.error != null || buffer.isExhausted);
         return;
       }
     }
-    var addedVisibleItems = false;
-    var fetchedAnyPage = false;
-    var pagesFetched = 0;
-    do {
-      final page = await BangumiApi.bangumiSearch(filterState.keyword,
-          tags: filterState.tags,
-          limit: _searchPageSize,
-          offset: _searchOffset,
-          sort: filterState.sort,
-          dateRange: filterState.effectiveDateRange,
-          rankRange: filterState.rankRange,
-          scoreRange: filterState.scoreRange,
-          weekdays: filterState.weekdays);
-      if (page == null) {
-        break;
-      }
-      fetchedAnyPage = true;
-      pagesFetched++;
-      _searchOffset += page.rawCount;
-      hasMoreSearchResults = page.rawCount == _searchPageSize;
-      final existingIds = bangumiList.map((item) => item.id).toSet();
-      final newItems =
-          page.items.where((item) => existingIds.add(item.id)).toList();
-      if (newItems.isNotEmpty) {
-        bangumiList.addAll(newItems);
-        addedVisibleItems = true;
-      }
-    } while (!addedVisibleItems &&
-        hasMoreSearchResults &&
-        pagesFetched < _maxPagesPerSearch);
+
+    late final SearchResultBuffer buffer;
+    buffer = SearchResultBuffer(
+      pageLoader: (offset) =>
+          _pageLoader(filterState.keyword, filterState, offset),
+      watchedIds: loadWatchedBangumiIds,
+      abandonedIds: loadAbandonedBangumiIds,
+      hideAbandoned: notShowAbandonedBangumis,
+      shouldContinue: () =>
+          generation == _queryGeneration && identical(_resultBuffer, buffer),
+    );
+    _resultBuffer = buffer;
+    await buffer.loadNextPage();
+    if (generation != _queryGeneration) return;
+    _publishMode(requestedMode);
     isLoading = false;
     isTimeOut =
-        bangumiList.isEmpty && (!fetchedAnyPage || !hasMoreSearchResults);
+        bangumiList.isEmpty && (buffer.error != null || buffer.isExhausted);
+  }
+
+  @action
+  Future<void> requestViewMode(SearchViewMode mode) async {
+    final buffer = _resultBuffer;
+    if (buffer == null) return;
+    if (mode == selectedViewMode) return;
+    _publishMode(mode);
+  }
+
+  @action
+  Future<void> loadMoreSearchResults() async {
+    if (_disposed || isLoading) return;
+    await _loadMoreSearchResults();
+  }
+
+  Future<void> _loadMoreSearchResults() async {
+    final buffer = _resultBuffer;
+    if (buffer == null) return;
+    final generation = _queryGeneration;
+    isLoading = true;
+    await buffer.loadNextPage();
+    if (generation != _queryGeneration) return;
+    _publishMode(selectedViewMode);
+    isLoading = false;
+  }
+
+  void _publishMode(SearchViewMode mode) {
+    final buffer = _resultBuffer;
+    if (buffer == null) return;
+    final items =
+        mode == SearchViewMode.all ? buffer.allItems : buffer.hideWatchedItems;
+    bangumiList = ObservableList.of(items);
+    selectedViewMode = mode;
+    isTimeOut = false;
+    _updateHasMoreSearchResults();
+  }
+
+  void _updateHasMoreSearchResults() {
+    final buffer = _resultBuffer;
+    if (buffer == null) {
+      hasMoreSearchResults = false;
+      return;
+    }
+    hasMoreSearchResults = !buffer.isExhausted;
   }
 
   @action
@@ -198,13 +307,42 @@ abstract class _SearchPageController with Store {
   }
 
   @action
-  Future<void> setNotShowWatchedBangumis(bool value) async {
-    notShowWatchedBangumis = value;
+  Future<void> setNotShowAbandonedBangumis(bool value) async {
+    notShowAbandonedBangumis = value;
+    final buffer = _resultBuffer;
+    if (buffer == null) return;
+
+    buffer.setHideAbandoned(value);
+    _publishMode(selectedViewMode);
   }
 
   @action
-  Future<void> setNotShowAbandonedBangumis(bool value) async {
-    notShowAbandonedBangumis = value;
+  void refreshResultProjection() {
+    if (_disposed) return;
+    final buffer = _resultBuffer;
+    if (buffer == null) return;
+    _publishMode(selectedViewMode);
+  }
+
+  void _scheduleResultProjectionRefresh() {
+    if (_disposed) return;
+    _collectiblesRefreshTimer?.cancel();
+    _collectiblesRefreshTimer = Timer(_collectionRefreshDebounce, () {
+      _collectiblesRefreshTimer = null;
+      refreshResultProjection();
+    });
+  }
+
+  @override
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _queryGeneration++;
+    _resultBuffer = null;
+    _collectiblesRefreshTimer?.cancel();
+    _collectiblesRefreshTimer = null;
+    bangumiList.clear();
+    _collectiblesSubscription.cancel();
   }
 
   Set<int> loadWatchedBangumiIds() {

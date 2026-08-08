@@ -9,6 +9,23 @@ part of 'search_controller.dart';
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
 mixin _$SearchPageController on _SearchPageController, Store {
+  late final _$hasMoreSearchResultsAtom = Atom(
+      name: '_SearchPageController.hasMoreSearchResults', context: context);
+
+  @override
+  bool get hasMoreSearchResults {
+    _$hasMoreSearchResultsAtom.reportRead();
+    return super.hasMoreSearchResults;
+  }
+
+  @override
+  set hasMoreSearchResults(bool value) {
+    _$hasMoreSearchResultsAtom.reportWrite(value, super.hasMoreSearchResults,
+        () {
+      super.hasMoreSearchResults = value;
+    });
+  }
+
   late final _$isLoadingAtom =
       Atom(name: '_SearchPageController.isLoading', context: context);
 
@@ -38,23 +55,6 @@ mixin _$SearchPageController on _SearchPageController, Store {
   set isTimeOut(bool value) {
     _$isTimeOutAtom.reportWrite(value, super.isTimeOut, () {
       super.isTimeOut = value;
-    });
-  }
-
-  late final _$notShowWatchedBangumisAtom = Atom(
-      name: '_SearchPageController.notShowWatchedBangumis', context: context);
-
-  @override
-  bool get notShowWatchedBangumis {
-    _$notShowWatchedBangumisAtom.reportRead();
-    return super.notShowWatchedBangumis;
-  }
-
-  @override
-  set notShowWatchedBangumis(bool value) {
-    _$notShowWatchedBangumisAtom
-        .reportWrite(value, super.notShowWatchedBangumis, () {
-      super.notShowWatchedBangumis = value;
     });
   }
 
@@ -88,6 +88,22 @@ mixin _$SearchPageController on _SearchPageController, Store {
   set bangumiList(ObservableList<BangumiItem> value) {
     _$bangumiListAtom.reportWrite(value, super.bangumiList, () {
       super.bangumiList = value;
+    });
+  }
+
+  late final _$selectedViewModeAtom =
+      Atom(name: '_SearchPageController.selectedViewMode', context: context);
+
+  @override
+  SearchViewMode get selectedViewMode {
+    _$selectedViewModeAtom.reportRead();
+    return super.selectedViewMode;
+  }
+
+  @override
+  set selectedViewMode(SearchViewMode value) {
+    _$selectedViewModeAtom.reportWrite(value, super.selectedViewMode, () {
+      super.selectedViewMode = value;
     });
   }
 
@@ -164,6 +180,24 @@ mixin _$SearchPageController on _SearchPageController, Store {
         .run(() => super.searchBangumi(input, type: type));
   }
 
+  late final _$requestViewModeAsyncAction =
+      AsyncAction('_SearchPageController.requestViewMode', context: context);
+
+  @override
+  Future<void> requestViewMode(SearchViewMode mode) {
+    return _$requestViewModeAsyncAction.run(() => super.requestViewMode(mode));
+  }
+
+  late final _$loadMoreSearchResultsAsyncAction = AsyncAction(
+      '_SearchPageController.loadMoreSearchResults',
+      context: context);
+
+  @override
+  Future<void> loadMoreSearchResults() {
+    return _$loadMoreSearchResultsAsyncAction
+        .run(() => super.loadMoreSearchResults());
+  }
+
   late final _$deleteSearchHistoryAsyncAction = AsyncAction(
       '_SearchPageController.deleteSearchHistory',
       context: context);
@@ -199,16 +233,6 @@ mixin _$SearchPageController on _SearchPageController, Store {
   Future<void> searchImageByUrl(String imageUrl) {
     return _$searchImageByUrlAsyncAction
         .run(() => super.searchImageByUrl(imageUrl));
-  }
-
-  late final _$setNotShowWatchedBangumisAsyncAction = AsyncAction(
-      '_SearchPageController.setNotShowWatchedBangumis',
-      context: context);
-
-  @override
-  Future<void> setNotShowWatchedBangumis(bool value) {
-    return _$setNotShowWatchedBangumisAsyncAction
-        .run(() => super.setNotShowWatchedBangumis(value));
   }
 
   late final _$setNotShowAbandonedBangumisAsyncAction = AsyncAction(
@@ -247,13 +271,25 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   @override
+  void refreshResultProjection() {
+    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
+        name: '_SearchPageController.refreshResultProjection');
+    try {
+      return super.refreshResultProjection();
+    } finally {
+      _$_SearchPageControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
+hasMoreSearchResults: ${hasMoreSearchResults},
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
-notShowWatchedBangumis: ${notShowWatchedBangumis},
 notShowAbandonedBangumis: ${notShowAbandonedBangumis},
 bangumiList: ${bangumiList},
+selectedViewMode: ${selectedViewMode},
 searchHistories: ${searchHistories},
 isImageSearching: ${isImageSearching},
 imageSearchError: ${imageSearchError},

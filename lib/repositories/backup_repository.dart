@@ -13,7 +13,7 @@ abstract interface class IBackupRepository {
   Future<Map<String, int>> getCurrentCounts();
   Future<Uint8List?> createArchive(Set<String> fileNames);
   Future<Map<String, int?>> inspectArchive(Uint8List bytes);
-  Future<void> restoreArchive(Uint8List bytes, Set<String> fileNames);
+  Future<Set<String>> restoreArchive(Uint8List bytes, Set<String> fileNames);
 }
 
 class BackupRepository implements IBackupRepository {
@@ -105,8 +105,12 @@ class BackupRepository implements IBackupRepository {
   }
 
   @override
-  Future<void> restoreArchive(Uint8List bytes, Set<String> fileNames) async {
+  Future<Set<String>> restoreArchive(
+    Uint8List bytes,
+    Set<String> fileNames,
+  ) async {
     final archive = ZipDecoder().decodeBytes(bytes);
+    final restoredFiles = <String>{};
     for (final fileName in fileNames) {
       final content = archive.findFile(fileName)?.readBytes();
       if (content == null) continue;
@@ -125,6 +129,8 @@ class BackupRepository implements IBackupRepository {
         case _settings:
           await GStorage.restoreSettingsFromBytes(content);
       }
+      restoredFiles.add(fileName);
     }
+    return restoredFiles;
   }
 }

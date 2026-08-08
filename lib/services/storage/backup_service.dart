@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:kazumi/repositories/backup_repository.dart';
+import 'package:kazumi/services/plugin/plugin_reloader.dart';
 
 enum BackupDataType {
   collect(label: '我的追番', fileNames: ['collectibles.hive', 'collectchanges.hive']),
@@ -35,9 +36,10 @@ abstract interface class IBackupService {
 }
 
 class BackupService implements IBackupService {
-  BackupService(this._repository);
+  BackupService(this._repository, this._pluginReloader);
 
   final IBackupRepository _repository;
+  final IPluginReloader _pluginReloader;
 
   @override
   Future<Map<BackupDataType, int>> getCurrentCounts() async {
@@ -67,10 +69,13 @@ class BackupService implements IBackupService {
   }
 
   @override
-  Future<void> restore(Uint8List bytes, Set<BackupDataType> types) {
-    return _repository.restoreArchive(
+  Future<void> restore(Uint8List bytes, Set<BackupDataType> types) async {
+    final restoredFiles = await _repository.restoreArchive(
       bytes,
       types.expand((type) => type.fileNames).toSet(),
     );
+    if (restoredFiles.contains(BackupDataType.rules.primaryFileName)) {
+      await _pluginReloader.reload();
+    }
   }
 }

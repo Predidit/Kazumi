@@ -7,6 +7,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/backup_repository.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
+import 'package:kazumi/services/plugin/plugin_reloader.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/repositories/search_history_repository.dart';
@@ -37,6 +38,7 @@ final coreModule = createModule(
       ..addSingleton<ShaderAssetService>(ShaderAssetService.new)
       // Cross-feature state and coordinators.
       ..addSingleton<PluginsController>(PluginsController.new)
+      ..addSingleton<IPluginReloader>(PluginReloader.new)
       ..addSingleton<IBackupRepository>(BackupRepository.new)
       ..addSingleton<IBackupService>(BackupService.new)
       ..addSingleton<CollectController>(CollectController.new)

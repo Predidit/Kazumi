@@ -4,6 +4,7 @@ import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/repositories/backup_repository.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/repositories/download_repository.dart';
@@ -13,6 +14,7 @@ import 'package:kazumi/services/download/download_manager.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
 import 'package:kazumi/services/player/history_playback_service.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
+import 'package:kazumi/services/storage/backup_service.dart';
 
 /// Root-owned application data and cross-feature coordinators.
 ///
@@ -35,6 +37,8 @@ final coreModule = createModule(
       ..addSingleton<ShaderAssetService>(ShaderAssetService.new)
       // Cross-feature state and coordinators.
       ..addSingleton<PluginsController>(PluginsController.new)
+      ..addSingleton<IBackupRepository>(BackupRepository.new)
+      ..addSingleton<IBackupService>(BackupService.new)
       ..addSingleton<CollectController>(CollectController.new)
       ..addSingleton<HistoryController>(HistoryController.new)
       ..addSingleton<MyController>(MyController.new)

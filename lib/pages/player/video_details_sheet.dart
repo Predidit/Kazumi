@@ -4,6 +4,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -18,6 +19,10 @@ void showVideoDetailsSheet(
     builder: (context) => VideoDetailsSheet(playerController: playerController),
   );
 }
+
+/// Matches the default [SettingsList.maxWidth] so the log card lines up with
+/// the status sections on a wide sheet.
+const double _contentMaxWidth = 1000;
 
 class _LogEntry {
   const _LogEntry({
@@ -91,9 +96,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
     }
   }
 
-  /// [context] must sit below the sheet's own ScaffoldMessenger so the toast
-  /// lands only there; the root messenger would broadcast it to both this
-  /// sheet's Scaffold and the underlying page's, showing it twice.
+  /// [context] must sit below this sheet's ScaffoldMessenger.
   void _copyToClipboard(BuildContext context, String value) {
     Clipboard.setData(ClipboardData(text: value));
     KazumiDialog.showToast(message: '已复制到剪贴板', context: context);
@@ -105,11 +108,9 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
     final compact =
         size.width > size.height && !isDesktop() && size.shortestSide < 600;
 
-    // The sheet needs its own ScaffoldMessenger + Scaffold pair: the Scaffold
-    // hosts toasts inside the modal sheet (the underlying page's Scaffold is
-    // covered by the sheet and its scrim), while the messenger isolates it
-    // from the root messenger, which broadcasts every SnackBar to all
-    // top-level Scaffolds and would show the toast twice.
+    // Own ScaffoldMessenger + Scaffold: the Scaffold hosts toasts inside the
+    // modal, and the messenger keeps them off the root one, which broadcasts
+    // every SnackBar to all top-level Scaffolds and would show them twice.
     return ScaffoldMessenger(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -146,8 +147,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
     );
   }
 
-  /// Compact landscape header: merges the title, segmented tab bar and
-  /// actions into a single row so most of the sheet height goes to content.
+  /// Folds title, tabs and actions into one row so content keeps the height.
   Widget _buildCompactHeader(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -183,10 +183,8 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
     );
   }
 
-  /// Header actions shared by both header variants: a copy-all button that is
-  /// only relevant on the log tab, followed by the close button. The copy
-  /// button keeps its slot on both tabs so the header never reflows when it
-  /// appears; it only fades in and out.
+  /// The copy-all button only applies to the log tab, but holds its slot on
+  /// both and fades, so the header never reflows.
   List<Widget> _buildHeaderActions(BuildContext context) {
     final showCopy = _tabController.index == 1;
     return [
@@ -231,76 +229,37 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
           ? '${debug.playerWidth} × ${debug.playerHeight}'
           : '';
 
-      return ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-        children: [
-          _buildStatusSection(
-            context,
-            title: '播放源',
-            items: [
-              (
-                icon: Icons.link_rounded,
-                label: '媒体地址',
-                value: playerController.videoUrl,
-              ),
+      return SettingsList(
+        sections: [
+          SettingsSection(
+            title: const Text('播放源'),
+            tiles: [
+              _statusTile(
+                  Icons.link_rounded, '媒体地址', playerController.videoUrl),
+              _statusTile(
+                  Icons.playlist_play_rounded, '播放列表', debug.playerPlaylist),
             ],
           ),
-          _buildStatusSection(
-            context,
-            title: '视频',
-            items: [
-              (
-                icon: Icons.aspect_ratio_rounded,
-                label: '分辨率',
-                value: resolution,
-              ),
-              (
-                icon: Icons.tune_rounded,
-                label: '视频参数',
-                value: debug.playerVideoParams,
-              ),
-              (
-                icon: Icons.video_file_rounded,
-                label: '视频轨道',
-                value: debug.playerVideoTracks,
-              ),
-              (
-                icon: Icons.speed_rounded,
-                label: '视频码率',
-                value: debug.playerVideoBitrate,
-              ),
+          SettingsSection(
+            title: const Text('视频'),
+            tiles: [
+              _statusTile(Icons.aspect_ratio_rounded, '分辨率', resolution),
+              _statusTile(Icons.tune_rounded, '视频参数', debug.playerVideoParams),
+              _statusTile(
+                  Icons.video_file_rounded, '视频轨道', debug.playerVideoTracks),
+              _statusTile(
+                  Icons.speed_rounded, '视频码率', debug.playerVideoBitrate),
             ],
           ),
-          _buildStatusSection(
-            context,
-            title: '音频',
-            items: [
-              (
-                icon: Icons.graphic_eq_rounded,
-                label: '音频参数',
-                value: debug.playerAudioParams,
-              ),
-              (
-                icon: Icons.audio_file_rounded,
-                label: '音频轨道',
-                value: debug.playerAudioTracks,
-              ),
-              (
-                icon: Icons.speed_rounded,
-                label: '音频码率',
-                value: debug.playerAudioBitrate,
-              ),
-            ],
-          ),
-          _buildStatusSection(
-            context,
-            title: '媒体',
-            items: [
-              (
-                icon: Icons.playlist_play_rounded,
-                label: '播放列表',
-                value: debug.playerPlaylist,
-              ),
+          SettingsSection(
+            title: const Text('音频'),
+            tiles: [
+              _statusTile(
+                  Icons.graphic_eq_rounded, '音频参数', debug.playerAudioParams),
+              _statusTile(
+                  Icons.audio_file_rounded, '音频轨道', debug.playerAudioTracks),
+              _statusTile(
+                  Icons.speed_rounded, '音频码率', debug.playerAudioBitrate),
             ],
           ),
         ],
@@ -308,67 +267,20 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
     });
   }
 
-  Widget _buildStatusSection(
-    BuildContext context, {
-    required String title,
-    required List<({IconData icon, String label, String value})> items,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: MaterialBottomSheetGroup(
-        title: title,
-        children: [
-          for (final item in items)
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  item.icon,
-                  color: colorScheme.onSecondaryContainer,
-                  size: 22,
-                ),
-              ),
-              title: Text(
-                item.label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  item.value.isEmpty ? '暂无数据' : item.value,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: item.value.isEmpty
-                        ? colorScheme.outline
-                        : colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              onTap: item.value.isEmpty
-                  ? null
-                  : () => _copyToClipboard(context, item.value),
-            ),
-        ],
-      ),
+  /// A field the player has not reported yet holds its place as a disabled
+  /// row, so the list never reflows as the streams fill in.
+  Widget _statusTile(IconData icon, String label, String value) {
+    return SettingsTile(
+      leading: icon,
+      title: Text(label),
+      description: Text(value.isEmpty ? '暂无数据' : value),
+      enabled: value.isNotEmpty,
+      onPressed: (context) => _copyToClipboard(context, value),
     );
   }
 
-  /// Jumps to the latest log when the log list first appears; afterwards
-  /// follows new logs only while pinned near the bottom, so scrolling up to
-  /// read history is never interrupted.
+  /// Jumps to the newest log on first build, then follows new ones only while
+  /// pinned near the bottom, so reading back through history is never yanked.
   void _scheduleLogAutoScroll(int logCount) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_logScrollController.hasClients) {
@@ -397,23 +309,29 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
       final logs = playerController.debug.playerLog;
       _scheduleLogAutoScroll(logs.length);
 
-      return Padding(
-        padding: EdgeInsets.fromLTRB(16, compact ? 0 : 4, 16, 16),
-        child: Material(
-          color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          clipBehavior: Clip.antiAlias,
-          child: logs.isEmpty
-              ? _buildLogEmptyState(context)
-              : ListView.builder(
-                  // Preserves the reading position across tab switches.
-                  key: const PageStorageKey('videoDetailsLogList'),
-                  controller: _logScrollController,
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  itemCount: logs.length,
-                  itemBuilder: (context, index) =>
-                      _buildLogRow(context, _LogEntry.parse(logs[index])),
-                ),
+      // One card rather than a split group: a console is a continuous surface.
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, compact ? 4 : 12, 16, 16),
+            child: Material(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(materialBottomSheetRadius),
+              clipBehavior: Clip.antiAlias,
+              child: logs.isEmpty
+                  ? _buildLogEmptyState(context)
+                  : ListView.builder(
+                      // Preserves the reading position across tab switches.
+                      key: const PageStorageKey('videoDetailsLogList'),
+                      controller: _logScrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: logs.length,
+                      itemBuilder: (context, index) =>
+                          _buildLogRow(context, _LogEntry.parse(logs[index])),
+                    ),
+            ),
+          ),
         ),
       );
     });
@@ -465,7 +383,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
     return InkWell(
       onTap: () => _copyToClipboard(context, entry.raw),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         child: Text.rich(
           TextSpan(
             children: [

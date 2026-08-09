@@ -272,6 +272,26 @@ class GStorage {
     await downloads.flush();
   }
 
+  static Future<void> restoreCollectDataFromBytes({
+    required Uint8List collectiblesContent,
+    required Uint8List collectChangesContent,
+  }) {
+    return _runCollectChangesWriteExclusive(() async {
+      await restoreBoxFromBytes(
+        'collectibles',
+        collectibles,
+        collectiblesContent,
+      );
+      await restoreBoxFromBytes(
+        'collectchanges',
+        collectChanges,
+        collectChangesContent,
+      );
+      _collectChangeIdInitialized = false;
+      _initializeNextCollectChangeIdLocked();
+    });
+  }
+
   static Future<void> restoreBoxFromBytes(
     String boxName,
     Box<dynamic> targetBox,
@@ -297,14 +317,6 @@ class GStorage {
   }
 
   static int get settingsCount => _setting.length;
-
-  static Future<void> restoreCollectChangesFromBytes(Uint8List backupContent) {
-    return _runCollectChangesWriteExclusive(() async {
-      await restoreBoxFromBytes('collectchanges', collectChanges, backupContent);
-      _collectChangeIdInitialized = false;
-      _initializeNextCollectChangeIdLocked();
-    });
-  }
 
   static Future<List<CollectedBangumi>> getCollectiblesFromFile(
       String backupFilePath) async {

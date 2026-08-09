@@ -111,7 +111,27 @@ class BackupRepository implements IBackupRepository {
   ) async {
     final archive = ZipDecoder().decodeBytes(bytes);
     final restoredFiles = <String>{};
+    final shouldRestoreCollectData =
+        fileNames.contains(_collectibles) && fileNames.contains(_collectChanges);
+    if (shouldRestoreCollectData) {
+      final collectiblesContent = archive.findFile(_collectibles)?.readBytes();
+      final collectChangesContent = archive.findFile(_collectChanges)?.readBytes();
+      if (collectiblesContent != null && collectChangesContent != null) {
+        await GStorage.restoreCollectDataFromBytes(
+          collectiblesContent: collectiblesContent,
+          collectChangesContent: collectChangesContent,
+        );
+        restoredFiles
+          ..add(_collectibles)
+          ..add(_collectChanges);
+      }
+    }
+
     for (final fileName in fileNames) {
+      if (shouldRestoreCollectData &&
+          (fileName == _collectibles || fileName == _collectChanges)) {
+        continue;
+      }
       final content = archive.findFile(fileName)?.readBytes();
       if (content == null) continue;
       switch (fileName) {
@@ -120,10 +140,6 @@ class BackupRepository implements IBackupRepository {
           final targetDir = Directory(p.join(supportDir.path, 'plugins', 'v2'));
           await targetDir.create(recursive: true);
           await File(p.join(targetDir.path, fileName)).writeAsBytes(content);
-        case _collectibles:
-          await GStorage.restoreBoxFromBytes(_collectibles, GStorage.collectibles, content);
-        case _collectChanges:
-          await GStorage.restoreCollectChangesFromBytes(content);
         case _histories:
           await GStorage.restoreBoxFromBytes(_histories, GStorage.histories, content);
         case _settings:

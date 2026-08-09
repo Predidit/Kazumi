@@ -169,7 +169,7 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
       }
 
       final types = await _pickTypes(
-        title: '选择要还原的数据（${picked!.files.single.name}）',
+        title: '选择要恢复的数据（${picked!.files.single.name}）',
         labelFor: (type) => inspection.counts[type] == null
             ? '${type.label}（无备份数据）'
             : '${type.label}（${inspection.counts[type]} 条）',

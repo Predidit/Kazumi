@@ -100,7 +100,11 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
       final bytes = await _backupService.createBackup(types);
       KazumiDialog.dismiss();
       if (bytes == null) {
-        KazumiDialog.showToast(message: '没有可备份的数据');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            KazumiDialog.showToast(message: '没有可备份的数据');
+          }
+        });
         return;
       }
       final String backupName = 'KazumiData-${_timestamp(DateTime.now())}.zip';
@@ -122,7 +126,11 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
         error: error,
         stackTrace: stackTrace,
       );
-      KazumiDialog.showToast(message: '备份失败: $error');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          KazumiDialog.showToast(message: '备份失败: $error');
+        }
+      });
     } finally {
       if (mounted) setState(() => _busy = false);
     }

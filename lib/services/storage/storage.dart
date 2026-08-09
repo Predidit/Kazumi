@@ -272,6 +272,16 @@ class GStorage {
     await downloads.flush();
   }
 
+  static Future<void> restoreCollectiblesFromBytes(Uint8List backupContent) {
+    return _runCollectChangesWriteExclusive(() {
+      return restoreBoxFromBytes(
+        'collectibles',
+        collectibles,
+        backupContent,
+      );
+    });
+  }
+
   static Future<void> restoreBoxFromBytes(
     String boxName,
     Box<dynamic> targetBox,

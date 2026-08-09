@@ -121,7 +121,7 @@ class BackupRepository implements IBackupRepository {
           await targetDir.create(recursive: true);
           await File(p.join(targetDir.path, fileName)).writeAsBytes(content);
         case _collectibles:
-          await GStorage.restoreBoxFromBytes(_collectibles, GStorage.collectibles, content);
+          await GStorage.restoreCollectiblesFromBytes(content);
         case _collectChanges:
           await GStorage.restoreCollectChangesFromBytes(content);
         case _histories:

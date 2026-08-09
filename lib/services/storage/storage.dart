@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:path_provider/path_provider.dart';
@@ -339,6 +340,135 @@ class GStorage {
 
   static Future<void> putSetting<T>(SettingKey<T> key, T value) async {
     await _setting.put(key.name, value);
+  }
+
+  /// Flushes the application data that is included in a backup.
+  static Future<void> flushBackupData() async {
+    await _runCollectChangesWriteExclusive(() async {
+      await collectibles.flush();
+    });
+    await HistoryStorageCoordinator().run(() async {
+      await histories.flush();
+    });
+    await _setting.flush();
+  }
+
+  static Future<Uint8List> readBackupBoxBytes(String boxName) async {
+    await flushBackupData();
+    final hivePath = _hivePath;
+    if (hivePath == null) {
+      throw StateError('GStorage has not been initialized');
+    }
+    final file = File('$hivePath/$boxName.hive');
+    if (!await file.exists()) {
+      throw FileSystemException('Hive box file does not exist', file.path);
+    }
+    return file.readAsBytes();
+  }
+
+  static int backupBoxLength(String boxName) {
+    switch (boxName) {
+      case 'collectibles':
+        return collectibles.length;
+      case 'histories':
+        return histories.length;
+      case 'setting':
+        return _setting.length;
+      default:
+        throw ArgumentError('Unsupported backup box: $boxName');
+    }
+  }
+
+  static Future<void> replaceBackupBoxBytes(
+    String boxName,
+    Uint8List bytes,
+  ) async {
+    switch (boxName) {
+      case 'collectibles':
+        final box = await _openBackupBox<CollectedBangumi>(boxName, bytes);
+        try {
+          await _runCollectChangesWriteExclusive(() async {
+            await collectibles.clear();
+            await collectibles.putAll(box.toMap());
+            await collectibles.flush();
+          });
+        } finally {
+          await box.close();
+        }
+      case 'histories':
+        final box = await _openBackupBox<History>(boxName, bytes);
+        try {
+          await HistoryStorageCoordinator().run(() async {
+            await histories.clear();
+            await histories.putAll(box.toMap());
+            await histories.flush();
+          });
+        } finally {
+          await box.close();
+        }
+      case 'setting':
+        final box = await _openBackupBox<dynamic>(boxName, bytes);
+        try {
+          await _setting.clear();
+          await _setting.putAll(box.toMap());
+          await _setting.flush();
+        } finally {
+          await box.close();
+        }
+      default:
+        throw ArgumentError('Unsupported backup box: $boxName');
+    }
+  }
+
+  static Future<Box<T>> _openBackupBox<T>(
+    String boxName,
+    Uint8List bytes,
+  ) {
+    final name =
+        'backupRestore_${boxName}_${DateTime.now().microsecondsSinceEpoch}';
+    return Hive.openBox<T>(name, bytes: bytes);
+  }
+
+  /// Validates a serialized box against the adapters and value type of the
+  /// target box without mutating the live box.
+  static Future<void> validateBackupBoxBytes({
+    required String boxName,
+    required Uint8List bytes,
+  }) async {
+    final validationName =
+        'backupValidation_${boxName}_${DateTime.now().microsecondsSinceEpoch}';
+    final validationBox = await Hive.openBox<dynamic>(
+      validationName,
+      bytes: bytes,
+    );
+    try {
+      switch (boxName) {
+        case 'collectibles':
+          for (final value in validationBox.values) {
+            if (value is! CollectedBangumi) {
+              throw FormatException(
+                'Backup value type mismatch for $boxName: '
+                '${value.runtimeType}',
+              );
+            }
+          }
+        case 'histories':
+          for (final value in validationBox.values) {
+            if (value is! History) {
+              throw FormatException(
+                'Backup value type mismatch for $boxName: '
+                '${value.runtimeType}',
+              );
+            }
+          }
+        case 'setting':
+          break;
+        default:
+          throw ArgumentError('Unsupported backup box: $boxName');
+      }
+    } finally {
+      await validationBox.close();
+    }
   }
 
   static List<String> getStringListSettingByName(

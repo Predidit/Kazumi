@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/backup_repository.dart';
 import 'package:kazumi/services/plugin/plugin_reloader.dart';
 
@@ -36,10 +37,15 @@ abstract interface class IBackupService {
 }
 
 class BackupService implements IBackupService {
-  BackupService(this._repository, this._pluginReloader);
+  BackupService(
+    this._repository,
+    this._pluginReloader,
+    this._pluginsController,
+  );
 
   final IBackupRepository _repository;
   final IPluginReloader _pluginReloader;
+  final PluginsController _pluginsController;
 
   @override
   Future<Map<BackupDataType, int>> getCurrentCounts() async {
@@ -69,13 +75,15 @@ class BackupService implements IBackupService {
   }
 
   @override
-  Future<void> restore(Uint8List bytes, Set<BackupDataType> types) async {
-    final restoredFiles = await _repository.restoreArchive(
-      bytes,
-      types.expand((type) => type.fileNames).toSet(),
-    );
-    if (restoredFiles.contains(BackupDataType.rules.primaryFileName)) {
-      await _pluginReloader.reload();
-    }
+  Future<void> restore(Uint8List bytes, Set<BackupDataType> types) {
+    return _pluginsController.runSerializedPluginOperation(() async {
+      final restoredFiles = await _repository.restoreArchive(
+        bytes,
+        types.expand((type) => type.fileNames).toSet(),
+      );
+      if (restoredFiles.contains(BackupDataType.rules.primaryFileName)) {
+        await _pluginReloader.reload();
+      }
+    });
   }
 }

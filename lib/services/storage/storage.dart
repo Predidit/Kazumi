@@ -276,18 +276,20 @@ class GStorage {
     String boxName,
     Box<dynamic> targetBox,
     Uint8List backupContent,
-  ) async {
-    final tempBox =
-        await Hive.openBox('restoreTemp_$boxName', bytes: backupContent);
-    try {
-      await targetBox.clear();
-      for (final entry in tempBox.toMap().entries) {
-        await targetBox.put(entry.key, entry.value);
+  ) {
+    return HistoryStorageCoordinator().run(() async {
+      final tempBox =
+          await Hive.openBox('restoreTemp_$boxName', bytes: backupContent);
+      try {
+        await targetBox.clear();
+        for (final entry in tempBox.toMap().entries) {
+          await targetBox.put(entry.key, entry.value);
+        }
+        await targetBox.flush();
+      } finally {
+        await tempBox.close();
       }
-      await targetBox.flush();
-    } finally {
-      await tempBox.close();
-    }
+    });
   }
 
   static Future<void> restoreSettingsFromBytes(Uint8List backupContent) {
@@ -296,11 +298,12 @@ class GStorage {
 
   static int get settingsCount => _setting.length;
 
-  static Future<void> restoreCollectChangesFromBytes(
-      Uint8List backupContent) async {
-    await restoreBoxFromBytes('collectchanges', collectChanges, backupContent);
-    _collectChangeIdInitialized = false;
-    _initializeNextCollectChangeIdLocked();
+  static Future<void> restoreCollectChangesFromBytes(Uint8List backupContent) {
+    return _runCollectChangesWriteExclusive(() async {
+      await restoreBoxFromBytes('collectchanges', collectChanges, backupContent);
+      _collectChangeIdInitialized = false;
+      _initializeNextCollectChangeIdLocked();
+    });
   }
 
   static Future<List<CollectedBangumi>> getCollectiblesFromFile(

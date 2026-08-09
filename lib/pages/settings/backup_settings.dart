@@ -74,11 +74,6 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
     return result ?? <BackupDataType>{};
   }
 
-  void _showMessage(String message) {
-    if (!mounted) return;
-    KazumiDialog.showToast(message: message);
-  }
-
   Future<void> _startBackup() async {
     if (_busy) return;
     setState(() => _busy = true);
@@ -92,7 +87,7 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
           error: error,
           stackTrace: stackTrace,
         );
-        _showMessage('读取备份数据失败: $error');
+        KazumiDialog.showToast(message: '读取备份数据失败: $error');
         return;
       }
       final types = await _pickTypes(
@@ -105,7 +100,7 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
       final bytes = await _backupService.createBackup(types);
       KazumiDialog.dismiss();
       if (bytes == null) {
-        _showMessage('没有可备份的数据');
+        KazumiDialog.showToast(message: '没有可备份的数据');
         return;
       }
       final String backupName = 'KazumiData-${_timestamp(DateTime.now())}.zip';
@@ -119,7 +114,7 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
         return;
       }
       KazumiLogger().i('BackupSettings: created a backup');
-      _showMessage('备份完成: $backupName');
+      KazumiDialog.showToast(message: '备份完成: $backupName');
     } catch (error, stackTrace) {
       KazumiDialog.dismiss();
       KazumiLogger().e(
@@ -127,7 +122,7 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
         error: error,
         stackTrace: stackTrace,
       );
-      _showMessage('备份失败: $error');
+      KazumiDialog.showToast(message: '备份失败: $error');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -147,12 +142,12 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
         );
       } catch (error) {
         KazumiLogger().w('BackupSettings: pick backup file failed', error: error);
-        _showMessage('选择备份文件失败');
+        KazumiDialog.showToast(message: '选择备份文件失败');
         return;
       }
       final bytes = picked?.files.single.bytes;
       if (bytes == null) {
-        if (picked != null) _showMessage('读取备份文件失败');
+        if (picked != null) KazumiDialog.showToast(message: '读取备份文件失败');
         return;
       }
 
@@ -161,11 +156,11 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
         inspection = await _backupService.inspect(bytes);
       } catch (error) {
         KazumiLogger().w('BackupSettings: invalid backup file', error: error);
-        _showMessage('该文件不是有效的备份');
+        KazumiDialog.showToast(message: '该文件不是有效的备份');
         return;
       }
       if (inspection.unavailable.length == BackupDataType.values.length) {
-        _showMessage('该备份无效或没有可恢复的数据');
+        KazumiDialog.showToast(message: '该备份无效或没有可恢复的数据');
         return;
       }
 
@@ -201,10 +196,12 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
       KazumiDialog.showLoading(msg: '正在恢复');
       await _backupService.restore(bytes, types);
       KazumiDialog.dismiss();
-      await Future<void>.delayed(const Duration(milliseconds: 250));
-      if (!mounted) return;
       KazumiLogger().i('BackupSettings: restore from a backup');
-      _showMessage('恢复完成，部分数据需要重启生效');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          KazumiDialog.showToast(message: '恢复完成，部分数据需要重启生效');
+        }
+      });
     } catch (error, stackTrace) {
       KazumiDialog.dismiss();
       KazumiLogger().e(
@@ -212,7 +209,11 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
         error: error,
         stackTrace: stackTrace,
       );
-      _showMessage('恢复失败: $error');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          KazumiDialog.showToast(message: '恢复失败: $error');
+        }
+      });
     } finally {
       if (mounted) setState(() => _busy = false);
     }

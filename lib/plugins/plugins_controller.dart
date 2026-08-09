@@ -226,6 +226,12 @@ abstract class _PluginsController with Store {
       pluginList.add(plugin);
     }
   }
+  
+  Future<T> runSerializedPluginOperation<T>(
+    Future<T> Function() action,
+  ) {
+    return _mutations.run(action);
+  }
 
   Future<T> _mutateAndPersist<T>(
     T Function() mutate, {

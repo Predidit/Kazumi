@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:kazumi/services/video_source/video_source_format.dart';
+
 /// 视频源类型
 enum VideoSourceType {
   /// 在线解析（WebView）
@@ -20,14 +22,19 @@ class VideoSource {
   /// 视频源类型
   final VideoSourceType type;
 
+  /// 解析视频源时确认的媒体格式提示
+  final VideoSourceFormat format;
+
   const VideoSource({
     required this.url,
     required this.offset,
     required this.type,
+    this.format = VideoSourceFormat.auto,
   });
 
   @override
-  String toString() => 'VideoSource(url: $url, offset: $offset, type: $type)';
+  String toString() =>
+      'VideoSource(url: $url, offset: $offset, type: $type, format: $format)';
 }
 
 /// 视频源未找到异常

@@ -15,6 +15,7 @@ import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/player/playback_cache_policy.dart';
 import 'package:kazumi/services/player/player_screenshot_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/video_source/video_source_format.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:mobx/mobx.dart';
@@ -234,6 +235,7 @@ abstract class _PlayerPlaybackController with Store {
     bool adBlockerEnabled, {
     required bool Function() canInstall,
     int offset = 0,
+    VideoSourceFormat videoSourceFormat = VideoSourceFormat.auto,
   }) async {
     startOffset = offset;
     superResolutionMode = SuperResolutionMode.fromStorageValue(
@@ -405,6 +407,13 @@ abstract class _PlayerPlaybackController with Store {
 
       if (superResolutionMode != SuperResolutionMode.off) {
         await setShader(superResolutionMode, player: player);
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(candidate);
+        }
+      }
+
+      if (videoSourceFormat == VideoSourceFormat.hls) {
+        await pp.setProperty('demuxer-lavf-format', 'hls');
         if (!isCurrentPlayer(player)) {
           return await _discardIfNotCurrent(candidate);
         }

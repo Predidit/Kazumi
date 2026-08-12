@@ -1,12 +1,20 @@
 import 'dart:io';
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:kazumi/webview/video/impl/video_webview_android_impl.dart';
 import 'package:kazumi/webview/video/impl/video_webview_impl.dart';
 import 'package:kazumi/webview/video/impl/video_webview_windows_impl.dart';
 import 'package:kazumi/webview/video/impl/video_webview_linux_impl.dart';
 import 'package:kazumi/webview/video/impl/video_webview_apple_impl.dart';
 import 'package:kazumi/services/platform/webview_feature_service.dart';
+import 'package:kazumi/services/video_source/video_source_format.dart';
+
+typedef VideoParserEvent = ({
+  String url,
+  int offset,
+  VideoSourceFormat format,
+});
 
 abstract class VideoWebviewController<T> {
   // WebView controller.
@@ -40,13 +48,25 @@ abstract class VideoWebviewController<T> {
   // Stream to notify when the video source is loaded
   Stream<bool> get onVideoLoading => videoLoadingEventController.stream;
 
-  // Stream to notify video source URL when the video source is loaded
-  // The first parameter is the video source URL and the second parameter is the video offset (start position)
-  final StreamController<(String, int)> videoParserEventController =
-      StreamController<(String, int)>.broadcast();
+  // Stream to notify when a video source URL is resolved, including its
+  // playback offset and any format information confirmed by the parser.
+  final StreamController<VideoParserEvent> _videoParserEventController =
+      StreamController<VideoParserEvent>.broadcast();
 
-  Stream<(String, int)> get onVideoURLParser =>
-      videoParserEventController.stream;
+  Stream<VideoParserEvent> get onVideoURLParser =>
+      _videoParserEventController.stream;
+
+  @protected
+  void notifyVideoSourceResolved(
+    String url, {
+    VideoSourceFormat format = VideoSourceFormat.auto,
+  }) {
+    _videoParserEventController.add((
+      url: url,
+      offset: offset,
+      format: format,
+    ));
+  }
 
   void disposeEventControllers() {
     if (!initEventController.isClosed) {
@@ -58,8 +78,8 @@ abstract class VideoWebviewController<T> {
     if (!videoLoadingEventController.isClosed) {
       videoLoadingEventController.close();
     }
-    if (!videoParserEventController.isClosed) {
-      videoParserEventController.close();
+    if (!_videoParserEventController.isClosed) {
+      _videoParserEventController.close();
     }
   }
 

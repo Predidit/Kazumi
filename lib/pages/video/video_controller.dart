@@ -624,6 +624,7 @@ abstract class _VideoPageController with Store implements Disposable {
         videoUrl: source.url,
         offset: source.offset,
         isLocalPlayback: false,
+        videoSourceFormat: source.format,
         bangumiId: bangumiItem.id,
         pluginName: currentPlugin.name,
         episode: resolvedEpisode.listIndex,

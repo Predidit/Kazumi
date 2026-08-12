@@ -108,8 +108,8 @@ class VideoWebviewLinuxImpl extends VideoWebviewController<Webview> {
             logEventController
                 .add('Loading video source ${decodeVideoSource(messageItem)}');
             unloadPage();
-            videoParserEventController
-                .add((decodeVideoSource(messageItem), offset));
+            final videoUrl = decodeVideoSource(messageItem);
+            notifyVideoSourceResolved(videoUrl);
           }
         }
       }
@@ -125,7 +125,7 @@ class VideoWebviewLinuxImpl extends VideoWebviewController<Webview> {
           isVideoSourceLoaded = true;
           videoLoadingEventController.add(false);
           unloadPage();
-          videoParserEventController.add((videoUrl, offset));
+          notifyVideoSourceResolved(videoUrl);
         }
       }
     });

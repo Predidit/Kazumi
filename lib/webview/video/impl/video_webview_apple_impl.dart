@@ -177,8 +177,8 @@ class VideoWebviewAppleImpl
                 logEventController.add(
                     'Loading video source ${decodeVideoSource(encodedUrl)}');
                 unloadPage();
-                videoParserEventController
-                    .add((decodeVideoSource(encodedUrl), offset));
+                final videoUrl = decodeVideoSource(encodedUrl);
+                notifyVideoSourceResolved(videoUrl);
               }
             }
           });
@@ -195,7 +195,7 @@ class VideoWebviewAppleImpl
               isVideoSourceLoaded = true;
               videoLoadingEventController.add(false);
               unloadPage();
-              videoParserEventController.add((message, offset));
+              notifyVideoSourceResolved(message);
             }
           });
     }

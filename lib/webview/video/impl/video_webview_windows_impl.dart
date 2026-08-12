@@ -4,6 +4,7 @@ import 'package:kazumi/webview/video/video_webview_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/video_source/video_source_format.dart';
 
 class VideoWebviewWindowsImpl
     extends VideoWebviewController<WebviewController> {
@@ -62,7 +63,10 @@ class VideoWebviewWindowsImpl
       isVideoSourceLoaded = true;
       videoLoadingEventController.add(false);
       logEventController.add('Loading m3u8 source: $url');
-      videoParserEventController.add((url, offset));
+      notifyVideoSourceResolved(
+        url,
+        format: VideoSourceFormat.hls,
+      );
     }));
     subscriptions.add(headlessWebview!.onVideoSourceLoaded.listen((data) {
       if (headlessWebview == null) return;
@@ -75,7 +79,7 @@ class VideoWebviewWindowsImpl
       isVideoSourceLoaded = true;
       videoLoadingEventController.add(false);
       logEventController.add('Loading video source: $url');
-      videoParserEventController.add((url, offset));
+      notifyVideoSourceResolved(url);
     }));
     await headlessWebview!.loadUrl(url);
   }

@@ -90,7 +90,7 @@ class WebViewVideoSourceService implements IVideoSourceService {
           throw VideoSourceTimeoutException(timeout);
         },
       );
-      final cancelFuture = request.cancelled.then<(String, int)>((_) {
+      final cancelFuture = request.cancelled.then<VideoParserEvent>((_) {
         throw const VideoSourceCancelledException();
       });
       final event = await Future.any([parserFuture, cancelFuture]);
@@ -98,9 +98,10 @@ class WebViewVideoSourceService implements IVideoSourceService {
       request.throwIfNotCurrent(_activeRequest);
 
       return VideoSource(
-        url: event.$1,
-        offset: event.$2,
+        url: event.url,
+        offset: event.offset,
         type: VideoSourceType.online,
+        format: event.format,
       );
     } catch (e) {
       if (e is VideoSourceCancelledException) {

@@ -1,7 +1,10 @@
+import 'package:kazumi/services/video_source/video_source_format.dart';
+
 class PlaybackInitParams {
   final String videoUrl;
   final int offset;
   final bool isLocalPlayback;
+  final VideoSourceFormat videoSourceFormat;
   final int bangumiId;
   final String pluginName;
   final int episode;
@@ -31,6 +34,7 @@ class PlaybackInitParams {
     required this.episodeTitle,
     required this.referer,
     required this.currentRoad,
+    this.videoSourceFormat = VideoSourceFormat.auto,
     this.pageUrl = '',
     this.sortNumber,
     this.coverUrl,

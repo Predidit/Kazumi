@@ -49,7 +49,7 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
     FlutterDisplayMode.setPreferredMode(preferred!);
   }
 
-  Future<DisplayMode> getDisplayModeType(modes) async {
+  Future<DisplayMode> getDisplayModeType(List<DisplayMode> modes) async {
     var value = GStorage.getSetting(SettingsKeys.displayMode);
     DisplayMode f = DisplayMode.auto;
     if (value != null) {

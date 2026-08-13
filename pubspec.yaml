@@ -20,7 +20,7 @@ version: 2.2.7+20207
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.44.9
+  flutter: 3.47.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -69,7 +69,7 @@ dependencies:
       url: https://github.com/Predidit/audio_service_win.git
       ref: 8ad650c6eb487208b9861d44755c8e58db061c88
   audio_session: ^0.2.2
-  dynamic_color: ^1.8.1
+  dynamic_color: ^1.9.0
   flutter_displaymode: ^0.6.0
 
   url_launcher: ^6.3.0

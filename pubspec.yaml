@@ -40,7 +40,7 @@ dependencies:
   flutter_modular: ^7.1.0
   mobx: ^2.6.0
   flutter_mobx: ^2.3.0
-  dio: ^5.0.0
+  dio: ^5.11.0
   cookie_jar: ^4.0.9
   crypto: ^3.0.6
   connectivity_plus: ^6.0.5

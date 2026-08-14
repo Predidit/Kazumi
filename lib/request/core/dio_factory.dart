@@ -79,7 +79,6 @@ class DioFactory {
       ),
     );
     dio.httpClientAdapter = config.createAdapter();
-    dio.transformer = BackgroundTransformer();
     dio.interceptors.addAll(interceptors);
     if (config.enableLog) {
       dio.interceptors.add(DioLoggerInterceptor());

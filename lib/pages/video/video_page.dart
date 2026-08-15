@@ -177,7 +177,7 @@ class _VideoPageState extends State<VideoPage>
 
   void _initOnlineMode(PlayerController playerController) {
     videoPageController.historyOffset = 0;
-    _showTabBodyImmediately(locateEpisode: false);
+    _showTabBodyImmediately();
 
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
@@ -299,14 +299,19 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void menuJumpToCurrentEpisode() {
-    Future.delayed(const Duration(milliseconds: 20), () async {
-      if (!mounted) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // GridViewObserver binds its sliver context in its own post-frame callback.
+      // Wait until the current frame's callbacks have all completed first.
+      await Future<void>.delayed(Duration.zero);
+      if (!mounted || !scrollController.hasClients) {
         return;
       }
       await observerController.jumpTo(
-          index: videoPageController.selectedEpisode.episode > 1
-              ? videoPageController.selectedEpisode.episode - 1
-              : videoPageController.selectedEpisode.episode);
+        index: videoPageController.selectedEpisode.episode > 1
+            ? videoPageController.selectedEpisode.episode - 1
+            : videoPageController.selectedEpisode.episode,
+        isFixedHeight: true,
+      );
     });
   }
 

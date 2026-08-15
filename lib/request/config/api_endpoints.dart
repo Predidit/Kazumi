@@ -1,6 +1,8 @@
+import 'package:flutter/services.dart' show appBuildName;
+
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.2.7';
+  static const String version = appBuildName ?? '0.0.0';
 
   /// 规则API级别
   static const int apiLevel = 8;

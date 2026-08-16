@@ -154,12 +154,12 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void _initOfflineMode(PlayerController playerController) {
-    _showTabBodyImmediately(locateEpisode: false);
     final identity = videoPageController.currentHistoryIdentity;
     videoPageController.historyOffset = identity == null
         ? 0
         : videoPageController.getHistoryOffsetFor(identity);
     visibleRoad = videoPageController.selectedEpisode.road;
+    _showTabBodyImmediately();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future.delayed(_offlinePlayerInitDelay);
@@ -177,7 +177,6 @@ class _VideoPageState extends State<VideoPage>
 
   void _initOnlineMode(PlayerController playerController) {
     videoPageController.historyOffset = 0;
-    _showTabBodyImmediately();
 
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
@@ -197,6 +196,7 @@ class _VideoPageState extends State<VideoPage>
       }
     }
     visibleRoad = videoPageController.selectedEpisode.road;
+    _showTabBodyImmediately();
 
     _logSubscription = videoPageController.logStream.listen((log) {
       if (mounted) {
@@ -306,10 +306,9 @@ class _VideoPageState extends State<VideoPage>
       if (!mounted || !scrollController.hasClients) {
         return;
       }
+      final int index = videoPageController.selectedEpisode.episode - 1;
       await observerController.jumpTo(
-        index: videoPageController.selectedEpisode.episode > 1
-            ? videoPageController.selectedEpisode.episode - 1
-            : videoPageController.selectedEpisode.episode,
+        index: index < 0 ? 0 : index,
         isFixedHeight: true,
       );
     });
@@ -339,11 +338,9 @@ class _VideoPageState extends State<VideoPage>
     }
   }
 
-  void _showTabBodyImmediately({bool locateEpisode = true}) {
+  void _showTabBodyImmediately() {
     _setTabBodyVisible(true, animated: false);
-    if (locateEpisode) {
-      menuJumpToCurrentEpisode();
-    }
+    menuJumpToCurrentEpisode();
   }
 
   void _hideTabBodyImmediately() {
@@ -660,17 +657,17 @@ class _VideoPageState extends State<VideoPage>
               : MediaQuery.sizeOf(context).width / 3),
       child: Container(
         color: Theme.of(context).canvasColor,
-        child: GridViewObserver(
-          controller: observerController,
-          child: (isDesktop() || isTablet())
-              ? tabBody
-              : Column(
+        child: (isDesktop() || isTablet())
+            ? tabBody
+            : GridViewObserver(
+                controller: observerController,
+                child: Column(
                   children: [
                     menuBar,
                     menuBody,
                   ],
                 ),
-        ),
+              ),
       ),
     );
   }

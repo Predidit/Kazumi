@@ -6,10 +6,10 @@ import window_manager
 // This view lets AppKit activate the window without forwarding that event.
 private final class InactiveMouseBlockerView: NSView {
   override func hitTest(_ point: NSPoint) -> NSView? {
-    guard window?.isKeyWindow == false, bounds.contains(point) else {
+    guard window?.isKeyWindow == false else {
       return nil
     }
-    return self
+    return super.hitTest(point)
   }
 
   override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
@@ -28,14 +28,12 @@ class MainFlutterWindow: NSWindow {
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 
-    if let contentView = self.contentView,
-      let contentContainer = contentView.superview
-    {
+    if let contentView = self.contentView {
       inactiveMouseBlocker.translatesAutoresizingMaskIntoConstraints = false
-      contentContainer.addSubview(
+      contentView.addSubview(
         inactiveMouseBlocker,
         positioned: .above,
-        relativeTo: contentView
+        relativeTo: nil
       )
       NSLayoutConstraint.activate([
         inactiveMouseBlocker.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),

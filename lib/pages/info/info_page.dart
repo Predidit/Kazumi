@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
@@ -72,7 +73,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool get _isShowingBangumiInfoSkeleton =>
       infoController.isLoading || _showBangumiInfoSkeleton;
 
-  bool _needsBangumiInfoRefresh(BangumiItem bangumiItem) {
+  bool _needsBangumiInfoSkeleton(BangumiItem bangumiItem) {
     final votesCount = bangumiItem.votesCount;
     final missingVoteDistribution =
         votesCount.isEmpty || bangumiItem.votes <= 0 || votesCount.length < 10;
@@ -215,15 +216,20 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.staffList.clear();
     infoController.clearRelations();
     infoController.pluginSearchResponseList.clear();
-    // Search results can miss rating distribution or summaries, so fill those
-    // fields without replacing image URLs that are already rendered.
-    if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
+    // Refresh only the detail page the user opened. Incomplete search results
+    // keep the loading skeleton, while complete cached entries stay visible
+    // until their current rating and vote count arrive.
+    if (_needsBangumiInfoSkeleton(infoController.bangumiItem)) {
       _showBangumiInfoSkeleton = true;
-      queryBangumiInfoByID(
-        infoController.bangumiItem.id,
-        type: 'attach',
-        enforceMinimumLoadingDuration: true,
+      unawaited(
+        queryBangumiInfoByID(
+          infoController.bangumiItem.id,
+          type: 'attach',
+          enforceMinimumLoadingDuration: true,
+        ),
       );
+    } else {
+      unawaited(_refreshBangumiInfoSilently(infoController.bangumiItem.id));
     }
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
     _fabTabIndex = infoTabController.index;
@@ -325,6 +331,20 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
           _showBangumiInfoSkeleton = false;
         });
       }
+    }
+  }
+
+  Future<void> _refreshBangumiInfoSilently(int id) async {
+    try {
+      await infoController.refreshBangumiInfoByID(id);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      KazumiLogger().e(
+        'InfoPage: failed to refresh cached bangumi info',
+        error: e,
+      );
     }
   }
 

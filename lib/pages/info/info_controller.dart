@@ -16,10 +16,15 @@ part 'info_controller.g.dart';
 
 class InfoController = _InfoController with _$InfoController;
 
+typedef BangumiInfoLoader = Future<BangumiItem?> Function(int id);
+
 abstract class _InfoController with Store {
-  _InfoController(this.collectController);
+  _InfoController(this.collectController, {BangumiInfoLoader? bangumiInfoLoader})
+      : _bangumiInfoLoader =
+            bangumiInfoLoader ?? BangumiApi.getBangumiInfoByID;
 
   final CollectController collectController;
+  final BangumiInfoLoader _bangumiInfoLoader;
   late BangumiItem bangumiItem;
 
   @observable
@@ -111,8 +116,8 @@ abstract class _InfoController with Store {
   }
 
   Future<void> _updateBangumiInfoByID(int id, {required String type}) async {
-    final value = await BangumiApi.getBangumiInfoByID(id);
-    if (value == null) {
+    final value = await _bangumiInfoLoader(id);
+    if (value == null || bangumiItem.id != id) {
       return;
     }
     if (type == "init") {

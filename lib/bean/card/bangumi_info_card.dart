@@ -25,9 +25,10 @@ class BangumiInfoCardV extends StatefulWidget {
 }
 
 class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
-  static const double _extendedActionHeight = 40;
-  // Reserve the Material tap target and inter-widget layout beyond text paint.
-  static const double _materialControlMargin = 32;
+  static const double _compactInfoMaxHeight = 230;
+  static const double _compactInfoMaxWidth = 160;
+  static const double _compactDateMinHeight = 150;
+  static const double _compactScoreMinHeight = 190;
   int touchedIndex = -1;
 
   Widget get voteBarChart {
@@ -191,55 +192,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
     );
   }
 
-  double _textHeight(String text, TextStyle style, double maxWidth) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textScaler: MediaQuery.textScalerOf(context),
-      textDirection: Directionality.of(context),
-    )..layout(maxWidth: maxWidth);
-    return painter.height;
-  }
-
-  double _requiredInfoHeight(double maxWidth) {
-    final defaultStyle = DefaultTextStyle.of(context).style;
-    final valueStyle = TextStyle(
-      fontSize: 20,
-      fontWeight: FontWeight.bold,
-      color: Theme.of(context).colorScheme.primary,
-    );
-    final scoreStyle = valueStyle.copyWith(fontSize: 16);
-    final date = widget.bangumiItem.airDate == ''
-        ? '2000-11-11'
-        : widget.bangumiItem.airDate;
-    final ratingLabel =
-        widget.showRating ? '${widget.bangumiItem.votes} 人评分:' : '*** 人评分:';
-    final rank = widget.showRating ? '#${widget.bangumiItem.rank}' : '***';
-    final score = widget.showRating ? '${widget.bangumiItem.ratingScore}' : '***';
-
-    final scorePainter = TextPainter(
-      text: TextSpan(text: score, style: scoreStyle),
-      textScaler: MediaQuery.textScalerOf(context),
-      textDirection: Directionality.of(context),
-    )..layout();
-    final ratingHeight = scorePainter.width + 8 + 100 <= maxWidth
-        ? scorePainter.height.clamp(20, double.infinity)
-        : scorePainter.height + 4 + 20;
-
-    return _textHeight('放送开始:', defaultStyle, maxWidth) +
-        _textHeight(date, valueStyle, maxWidth) +
-        8 +
-        _textHeight(ratingLabel, defaultStyle, maxWidth) +
-        (widget.isLoading
-            ? _textHeight('10.0 ********', valueStyle, maxWidth)
-            : ratingHeight) +
-        8 +
-        _textHeight('Bangumi Ranked:', defaultStyle, maxWidth) +
-        _textHeight(rank, valueStyle, maxWidth) +
-        _extendedActionHeight +
-        _materialControlMargin;
-  }
-
-  Widget _buildCompactInfo(double maxWidth, double maxHeight) {
+  Widget _buildCompactInfo(double maxHeight) {
     final date = widget.bangumiItem.airDate == ''
         ? '2000-11-11'
         : widget.bangumiItem.airDate;
@@ -252,12 +205,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
       color: Theme.of(context).colorScheme.primary,
     );
     final scoreStyle = dateStyle.copyWith(fontSize: 16);
-    final showScore = !widget.isLoading &&
-        48 +
-                4 +
-                _textHeight(date, dateStyle, maxWidth) +
-                _textHeight(score, scoreStyle, maxWidth) <=
-            maxHeight;
+    final showDate = maxHeight >= _compactDateMinHeight;
+    final showScore =
+        showDate && !widget.isLoading && maxHeight >= _compactScoreMinHeight;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -265,14 +215,15 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
           bangumiItem: widget.bangumiItem,
           color: Theme.of(context).colorScheme.primary,
         ),
-        SizedBox(height: 4),
-        Text(
-          date,
-          key: const ValueKey('bangumi-info-date'),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: dateStyle,
-        ),
+        if (showDate) SizedBox(height: 4),
+        if (showDate)
+          Text(
+            date,
+            key: const ValueKey('bangumi-info-date'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: dateStyle,
+          ),
         if (showScore)
           Text(
             score,
@@ -333,13 +284,12 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final useCompactLayout =
-                          _requiredInfoHeight(constraints.maxWidth) >
-                              constraints.maxHeight;
+                          constraints.maxHeight < _compactInfoMaxHeight ||
+                              constraints.maxWidth < _compactInfoMaxWidth;
                       return Skeletonizer(
                         enabled: widget.isLoading,
                         child: useCompactLayout
                             ? _buildCompactInfo(
-                                constraints.maxWidth,
                                 constraints.maxHeight,
                               )
                             : Column(

@@ -175,6 +175,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     final appBarRect = tester.getRect(find.byType(AppBar));
+    expect(appBarRect.height, closeTo(kToolbarHeight * 1.34, 1));
     final appBarTitleRect = tester.getRect(
       find.descendant(
         of: find.byType(AppBar),

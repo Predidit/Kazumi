@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+const double _appBarTitleMaxScaleFactor = 1.34;
+
 double adaptiveInfoToolbarHeight(
   BuildContext context, {
   double nativeControlOffset = 0,
 }) {
-  return MediaQuery.textScalerOf(context).scale(kToolbarHeight) +
-      nativeControlOffset;
+  final toolbarTextScaler = MediaQuery.textScalerOf(context).clamp(
+    maxScaleFactor: _appBarTitleMaxScaleFactor,
+  );
+  return toolbarTextScaler.scale(kToolbarHeight) + nativeControlOffset;
 }
 
 List<Widget> buildInfoHeaderSlivers({

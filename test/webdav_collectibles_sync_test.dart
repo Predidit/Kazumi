@@ -181,11 +181,88 @@ void main() {
     );
     expect(collectiblesBox.keys, [1]);
 
-    await webDavSync.updateCollectibles();
+    await webDavSync.repairCollectiblesFromLocal();
 
     expect(fakeClient.files, contains('/kazumiSync/collectibles.tmp'));
     expect(fakeClient.files, contains('/kazumiSync/collectchanges.tmp'));
     await webDavSync.syncCollectibles();
+    expect(collectiblesBox.keys, [1]);
+  });
+
+  test('repair is blocked when the local collectible baseline is empty',
+      () async {
+    fakeClient.files['/kazumiSync/collectchanges.tmp'] =
+        await buildRemoteBox<CollectedBangumiChange>({
+      101: _change(101, 1, 3),
+    });
+
+    await expectLater(
+      webDavSync.syncCollectibles(),
+      throwsA(isA<IncompleteWebDavCollectiblesBackupException>()),
+    );
+    await expectLater(
+      webDavSync.repairCollectiblesFromLocal(),
+      throwsA(isA<EmptyLocalCollectiblesRepairException>()),
+    );
+
+    expect(fakeClient.files, isNot(contains('/kazumiSync/collectibles.tmp')));
+    expect(fakeClient.uploadCount, 0);
+  });
+
+  test('repair overwrites an orphaned change log even when local log is empty',
+      () async {
+    await putLocalCollectible();
+    fakeClient.files['/kazumiSync/collectchanges.tmp'] =
+        await buildRemoteBox<CollectedBangumiChange>({
+      101: _change(101, 1, 3),
+      102: _change(102, 2, 1),
+    });
+
+    await expectLater(
+      webDavSync.syncCollectibles(),
+      throwsA(isA<IncompleteWebDavCollectiblesBackupException>()),
+    );
+    await webDavSync.repairCollectiblesFromLocal();
+
+    expect(fakeClient.uploadedPaths, [
+      '/kazumiSync/collectchanges.tmp.cache',
+      '/kazumiSync/collectibles.tmp.cache',
+    ]);
+
+    final repairedChangesFile =
+        File('${webDavTempDirectory.path}/repaired-collectchanges.tmp');
+    await fakeClient.read2File(
+      '/kazumiSync/collectchanges.tmp',
+      repairedChangesFile.path,
+    );
+    expect(
+      await GStorage.getCollectChangesFromFile(repairedChangesFile.path),
+      isEmpty,
+    );
+
+    await webDavSync.syncCollectibles();
+    expect(collectiblesBox.keys, [1]);
+    expect(collectiblesBox.containsKey(2), isFalse);
+  });
+
+  test('interrupted repair keeps the missing-snapshot guard active', () async {
+    await putLocalCollectible();
+    fakeClient.files['/kazumiSync/collectchanges.tmp'] =
+        await buildRemoteBox<CollectedBangumiChange>({
+      101: _change(101, 1, 3),
+    });
+    fakeClient.failUploads.add('/kazumiSync/collectibles.tmp.cache');
+
+    await expectLater(
+      webDavSync.repairCollectiblesFromLocal(),
+      throwsA(anything),
+    );
+    expect(collectiblesBox.keys, [1]);
+    expect(fakeClient.files, isNot(contains('/kazumiSync/collectibles.tmp')));
+    await expectLater(
+      webDavSync.syncCollectibles(),
+      throwsA(isA<IncompleteWebDavCollectiblesBackupException>()),
+    );
     expect(collectiblesBox.keys, [1]);
   });
 
@@ -230,6 +307,8 @@ class _FakeWebDavClient extends webdav.Client {
   final Map<String, List<int>> files = {};
   final Map<String, List<int>> filesOnSecondSyncRootRead = {};
   final Set<String> failDownloads = {};
+  final Set<String> failUploads = {};
+  final List<String> uploadedPaths = [];
   int uploadCount = 0;
   int syncRootReadCount = 0;
 
@@ -237,6 +316,8 @@ class _FakeWebDavClient extends webdav.Client {
     files.clear();
     filesOnSecondSyncRootRead.clear();
     failDownloads.clear();
+    failUploads.clear();
+    uploadedPaths.clear();
     uploadCount = 0;
     syncRootReadCount = 0;
   }
@@ -285,7 +366,11 @@ class _FakeWebDavClient extends webdav.Client {
     void Function(int count, int total)? onProgress,
     dynamic cancelToken,
   }) async {
+    if (failUploads.contains(path)) {
+      throw const FileSystemException('injected upload interruption');
+    }
     uploadCount++;
+    uploadedPaths.add(path);
     files[path] = await File(localFilePath).readAsBytes();
   }
 

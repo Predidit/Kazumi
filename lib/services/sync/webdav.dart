@@ -18,6 +18,13 @@ class IncompleteWebDavCollectiblesBackupException implements Exception {
   String toString() => '远端收藏备份不完整，本地收藏未修改';
 }
 
+class EmptyLocalCollectiblesRepairException implements Exception {
+  const EmptyLocalCollectiblesRepairException();
+
+  @override
+  String toString() => '当前设备没有可用于修复的本地收藏';
+}
+
 class WebDav {
   static const String _syncRootPath = '/kazumiSync';
   static const String _historyRootPath = '$_syncRootPath/history';
@@ -118,6 +125,25 @@ class WebDav {
       });
     } catch (e) {
       KazumiLogger().e('WebDav: update collectibles failed', error: e);
+      rethrow;
+    }
+  }
+
+  Future<void> repairCollectiblesFromLocal() async {
+    try {
+      await _runWebDavExclusive(() async {
+        if (GStorage.collectibles.isEmpty) {
+          throw const EmptyLocalCollectiblesRepairException();
+        }
+        // Repair establishes one consistent local baseline. Always replace the
+        // orphaned remote log, including when the local log is intentionally
+        // empty, before publishing the snapshot. If publishing is interrupted,
+        // the missing-snapshot guard remains active until repair is retried.
+        await _updateBox('collectchanges');
+        await _updateBox('collectibles');
+      });
+    } catch (e) {
+      KazumiLogger().e('WebDav: repair collectibles failed', error: e);
       rethrow;
     }
   }

@@ -250,6 +250,13 @@ abstract class _CollectController with Store {
         KazumiDialog.showToast(message: 'WebDav同步完成');
       }
     } on IncompleteWebDavCollectiblesBackupException {
+      if (GStorage.collectibles.isEmpty) {
+        KazumiDialog.showToast(
+          message: '远端收藏备份不完整，当前设备没有本地收藏，无法安全修复',
+          duration: const Duration(seconds: 5),
+        );
+        return false;
+      }
       return _offerWebDavCollectiblesRepair(
         showSuccessToast: showSuccessToast,
       );
@@ -264,14 +271,16 @@ abstract class _CollectController with Store {
   Future<bool> _offerWebDavCollectiblesRepair({
     required bool showSuccessToast,
   }) async {
+    final localCollectiblesCount = GStorage.collectibles.length;
     final shouldRepair = await KazumiDialog.show<bool>(
       clickMaskDismiss: false,
       builder: (context) => AlertDialog(
         title: const Text('WebDav 收藏备份不完整'),
-        content: const Text(
+        content: Text(
           '远端变更记录存在，但完整收藏快照缺失。'
           '为避免清空本地数据，本次同步已停止。\n\n'
-          '如果当前设备的收藏是完整的，可以用它重建远端备份。'
+          '当前设备有 $localCollectiblesCount 条本地收藏。'
+          '如果这些收藏是完整的，可以用它们重建远端备份。'
           '这会覆盖其他设备尚未同步的收藏变更。',
         ),
         actions: [
@@ -289,9 +298,16 @@ abstract class _CollectController with Store {
     if (shouldRepair != true) {
       return false;
     }
-    return uploadCollectiblesToWebDav(
-      showSuccessToast: showSuccessToast,
-    );
+    try {
+      await WebDav().repairCollectiblesFromLocal();
+      if (showSuccessToast) {
+        KazumiDialog.showToast(message: 'WebDav 收藏备份已使用本地数据修复');
+      }
+      return true;
+    } catch (e) {
+      KazumiDialog.showToast(message: 'WebDav 收藏备份修复失败 $e');
+      return false;
+    }
   }
 
   /// Only upload local collectibles and change logs to WebDAV, without downloading and merging.

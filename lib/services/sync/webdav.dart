@@ -134,6 +134,12 @@ class WebDav {
         files.any((file) => file.name == 'collectibles.tmp');
     final changesExists =
         files.any((file) => file.name == 'collectchanges.tmp');
+    if (changesExists && !collectiblesExists) {
+      KazumiLogger().w(
+        'WebDav: collectibles snapshot missing while change log exists',
+      );
+      throw StateError('WebDav: incomplete collectibles backup');
+    }
     if (!collectiblesExists && !changesExists) {
       await _updateBox('collectibles');
       if (GStorage.collectChanges.isNotEmpty) {

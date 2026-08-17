@@ -270,36 +270,35 @@ class _PlayerItemState extends State<PlayerItem>
     if (videoPageController.loading) return;
     final selection = videoPageController.selectedEpisode;
     final currentRoad = selection.road;
-    final episodes = videoPageController.roadList[currentRoad].data;
-    int targetEpisode;
-    if (direction == 'next') {
-      targetEpisode = selection.episode + 1;
-    } else if (direction == 'prev') {
-      targetEpisode = selection.episode - 1;
-    } else {
+    final next = switch (direction) {
+      'next' => true,
+      'prev' => false,
+      _ => null,
+    };
+    if (next == null) {
       return;
     }
-
-    if (targetEpisode > episodes.length) {
-      KazumiDialog.showToast(message: '已经是最新一集');
-      return;
-    }
-    if (targetEpisode <= 0) {
-      KazumiDialog.showToast(message: '已经是第一集');
-      return;
-    }
-
-    final targetSelection = VideoEpisodeSelection(
-      episode: targetEpisode,
-      road: currentRoad,
+    final adjacentSelections = adjacentEpisodeSelections(
+      road: videoPageController.roadList[currentRoad],
+      current: selection,
     );
+    final targetSelection =
+        next ? adjacentSelections.next : adjacentSelections.previous;
+    if (targetSelection == null) {
+      KazumiDialog.showToast(message: next ? '已经是最新一集' : '已经是第一集');
+      return;
+    }
+
     // Resolution failures surface through the controller's failed state;
     // the toast here is progress feedback only.
     final targetRef = videoPageController.resolveEpisode(targetSelection);
     if (targetRef != null) {
       KazumiDialog.showToast(message: '正在加载${targetRef.displayTitle}');
     }
-    widget.changeEpisode(targetEpisode, currentRoad: currentRoad);
+    widget.changeEpisode(
+      targetSelection.episode,
+      currentRoad: targetSelection.road,
+    );
   }
 
   Future<void> handleShortcutRewind() async {
@@ -516,8 +515,12 @@ class _PlayerItemState extends State<PlayerItem>
 
       if (playerController.playback.duration <= Duration.zero) return;
 
-      final canSkipToPrevious = currentEpisode > 1;
-      final canSkipToNext = currentEpisode < currentRoadData.data.length;
+      final adjacentSelections = adjacentEpisodeSelections(
+        road: currentRoadData,
+        current: selection,
+      );
+      final canSkipToPrevious = adjacentSelections.previous != null;
+      final canSkipToNext = adjacentSelections.next != null;
       final bangumiTitle = videoPageController.bangumiItem.nameCn.isNotEmpty
           ? videoPageController.bangumiItem.nameCn
           : videoPageController.bangumiItem.name;
@@ -1023,23 +1026,28 @@ class _PlayerItemState extends State<PlayerItem>
           // Completion of a stale near-end resume is not a real watch;
           // replay from the beginning instead of advancing.
           unawaited(playerController.playback.restartFromBeginning());
-        } else if (playingSelection.episode < playingRoadData.data.length &&
-            autoPlayNext) {
-          final nextSelection = VideoEpisodeSelection(
-            episode: playingSelection.episode + 1,
-            road: playingSelection.road,
-          );
-          // Resolution failures surface through the controller's failed state
-          // instead of silently retrying here every second.
-          final nextRef = videoPageController.resolveEpisode(nextSelection);
-          if (nextRef != null) {
-            KazumiDialog.showToast(message: '正在加载${nextRef.displayTitle}');
+        } else if (autoPlayNext) {
+          final nextSelection = adjacentEpisodeSelections(
+            road: playingRoadData,
+            current: playingSelection,
+          ).next;
+          if (nextSelection != null) {
+            // Resolution failures surface through the controller's failed
+            // state instead of silently retrying here every second.
+            final nextRef = videoPageController.resolveEpisode(nextSelection);
+            if (nextRef != null) {
+              KazumiDialog.showToast(
+                message: '正在加载${nextRef.displayTitle}',
+              );
+            }
+            try {
+              playerTimer!.cancel();
+            } catch (_) {}
+            widget.changeEpisode(
+              nextSelection.episode,
+              currentRoad: nextSelection.road,
+            );
           }
-          try {
-            playerTimer!.cancel();
-          } catch (_) {}
-          widget.changeEpisode(playingSelection.episode + 1,
-              currentRoad: playingSelection.road);
         }
       }
       playerController.setSyncPlayCurrentPosition();

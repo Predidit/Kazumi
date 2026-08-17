@@ -56,6 +56,62 @@ class VideoEpisodeSelection {
   }
 }
 
+typedef AdjacentEpisodeSelections = ({
+  VideoEpisodeSelection? previous,
+  VideoEpisodeSelection? next,
+});
+
+/// Finds the chronological previous and next episodes in a source-provided
+/// road.
+///
+/// Numbered identifiers reveal whether the source is ordered ascending or
+/// descending. Unnumbered or ambiguous lists keep their original order.
+AdjacentEpisodeSelections adjacentEpisodeSelections({
+  required Road road,
+  required VideoEpisodeSelection current,
+}) {
+  final episodeCount = road.data.length < road.identifier.length
+      ? road.data.length
+      : road.identifier.length;
+  if (current.episode <= 0 || current.episode > episodeCount) {
+    return (previous: null, next: null);
+  }
+
+  var ascendingPairs = 0;
+  var descendingPairs = 0;
+  int? previousNumber;
+  for (final identifier in road.identifier) {
+    final number = extractEpisodeNumber(identifier);
+    if (number <= 0) {
+      continue;
+    }
+    if (previousNumber != null) {
+      if (number > previousNumber) {
+        ascendingPairs++;
+      } else if (number < previousNumber) {
+        descendingPairs++;
+      }
+    }
+    previousNumber = number;
+  }
+
+  final forwardStep = descendingPairs > ascendingPairs ? -1 : 1;
+  VideoEpisodeSelection? selectionAt(int episode) {
+    if (episode <= 0 || episode > episodeCount) {
+      return null;
+    }
+    return VideoEpisodeSelection(
+      episode: episode,
+      road: current.road,
+    );
+  }
+
+  return (
+    previous: selectionAt(current.episode - forwardStep),
+    next: selectionAt(current.episode + forwardStep),
+  );
+}
+
 abstract class _VideoPageController with Store implements Disposable {
   _VideoPageController(
     this.historyController,

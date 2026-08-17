@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 
@@ -55,6 +56,88 @@ void main() {
     });
   });
 
+  group('adjacentEpisodeSelections', () {
+    test('follows ascending episode numbers', () {
+      final road = _road(['第1话', '第2话', '第3话']);
+      const current = VideoEpisodeSelection(episode: 2, road: 0);
+      final adjacent = adjacentEpisodeSelections(
+        road: road,
+        current: current,
+      );
+
+      expect(
+        adjacent.next,
+        const VideoEpisodeSelection(episode: 3, road: 0),
+      );
+      expect(
+        adjacent.previous,
+        const VideoEpisodeSelection(episode: 1, road: 0),
+      );
+    });
+
+    test('reverses list traversal for descending episode numbers', () {
+      final road = _road(['第3话', '第2话', '第1话']);
+      const current = VideoEpisodeSelection(episode: 2, road: 1);
+      final adjacent = adjacentEpisodeSelections(
+        road: road,
+        current: current,
+      );
+
+      expect(
+        adjacent.next,
+        const VideoEpisodeSelection(episode: 1, road: 1),
+      );
+      expect(
+        adjacent.previous,
+        const VideoEpisodeSelection(episode: 3, road: 1),
+      );
+    });
+
+    test('ignores unnumbered entries when detecting descending order', () {
+      final road = _road(['先导片', '第12话', '第11话']);
+
+      expect(
+        adjacentEpisodeSelections(
+          road: road,
+          current: const VideoEpisodeSelection(episode: 3, road: 0),
+        ).next,
+        const VideoEpisodeSelection(episode: 2, road: 0),
+      );
+    });
+
+    test('keeps source order when episode numbers cannot be inferred', () {
+      final road = _road(['OVA 上篇', 'OVA 下篇']);
+
+      expect(
+        adjacentEpisodeSelections(
+          road: road,
+          current: const VideoEpisodeSelection(episode: 1, road: 0),
+        ).next,
+        const VideoEpisodeSelection(episode: 2, road: 0),
+      );
+    });
+
+    test('returns null at chronological boundaries', () {
+      final ascending = _road(['第1话', '第2话', '第3话']);
+      final descending = _road(['第3话', '第2话', '第1话']);
+
+      expect(
+        adjacentEpisodeSelections(
+          road: ascending,
+          current: const VideoEpisodeSelection(episode: 3, road: 0),
+        ).next,
+        isNull,
+      );
+      expect(
+        adjacentEpisodeSelections(
+          road: descending,
+          current: const VideoEpisodeSelection(episode: 1, road: 0),
+        ).next,
+        isNull,
+      );
+    });
+  });
+
   test('PlaybackInitParams carries danmaku episode independently', () {
     const params = PlaybackInitParams(
       videoUrl: 'file:///tmp/video.mp4',
@@ -94,6 +177,14 @@ void main() {
       expect(snapshot.originalRoadToDisplayRoad, {0: 0, 2: 1});
     });
   });
+}
+
+Road _road(List<String> identifiers) {
+  return Road(
+    name: '播放列表',
+    data: List.generate(identifiers.length, (index) => '/episode/$index'),
+    identifier: identifiers,
+  );
 }
 
 DownloadEpisode _episode(int episodeNumber, String name, int road) {

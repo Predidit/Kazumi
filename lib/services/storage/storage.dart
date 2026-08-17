@@ -165,16 +165,7 @@ class GStorage {
   static Future<Box<T>> _openBoxSafe<T>(String boxName) async {
     try {
       return await Hive.openBox<T>(boxName);
-    } on FileSystemException catch (e) {
-      // A second process or a filesystem permission issue can prevent Hive
-      // from acquiring its lock. Preserve the box instead of treating an
-      // access failure as corruption and deleting user data.
-      KazumiLogger().e(
-        'GStorage: Failed to access box "$boxName"; data preserved',
-        error: e,
-      );
-      rethrow;
-    } on HiveError catch (e) {
+    } catch (e) {
       KazumiLogger().e(
           'GStorage: Box "$boxName" corrupted, attempting recovery',
           error: e);

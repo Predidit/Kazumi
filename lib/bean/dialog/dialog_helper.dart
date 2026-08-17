@@ -365,9 +365,7 @@ class KazumiDialogObserver extends NavigatorObserver {
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPop(route, previousRoute);
-    if (!_isKazumiDialogRoute(route)) {
-      _scheduleSnackBarClear();
-    }
+    _scheduleSnackBarClear();
     if (_isKazumiDialogRoute(route)) {
       _kazumiDialogRoutes.remove(route);
     }

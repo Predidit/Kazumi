@@ -5,15 +5,13 @@ Future<void> updateAllPluginsWithFeedback(
   PluginsController controller, {
   required bool ensureCatalog,
 }) async {
-  KazumiDialog.showLoading(msg: '更新中');
+  KazumiDialog.showToast(message: '更新中');
   try {
     final result = await controller.tryUpdateAllPlugin(
       ensureCatalog: ensureCatalog,
     );
-    KazumiDialog.dismiss();
     KazumiDialog.showToast(message: _batchUpdateMessage(result));
   } catch (_) {
-    KazumiDialog.dismiss();
     KazumiDialog.showToast(message: '更新规则失败');
   }
 }

@@ -7,6 +7,30 @@ import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/menu/route_visibility.dart';
 import 'package:kazumi/pages/router.dart';
 
+@visibleForTesting
+const bottomMenuDestinations = <NavigationDestination>[
+  NavigationDestination(
+    selectedIcon: Icon(Icons.home),
+    icon: Icon(Icons.home_outlined),
+    label: '推荐',
+  ),
+  NavigationDestination(
+    selectedIcon: Icon(Icons.timeline),
+    icon: Icon(Icons.timeline_outlined),
+    label: '时间表',
+  ),
+  NavigationDestination(
+    selectedIcon: Icon(Icons.favorite),
+    icon: Icon(Icons.favorite_outlined),
+    label: '追番',
+  ),
+  NavigationDestination(
+    selectedIcon: Icon(Icons.settings),
+    icon: Icon(Icons.settings_outlined),
+    label: '我的',
+  ),
+];
+
 class ScaffoldMenu extends StatefulWidget {
   const ScaffoldMenu({super.key});
 
@@ -131,28 +155,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
     return Scaffold(
       body: _outlet(context),
       bottomNavigationBar: NavigationBar(
-        destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: '推荐',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.timeline),
-            icon: Icon(Icons.timeline_outlined),
-            label: '时间表',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.favorite),
-            icon: Icon(Icons.favorite_outlined),
-            label: '追番',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings),
-            label: '我的',
-          ),
-        ],
+        destinations: bottomMenuDestinations,
         selectedIndex: selectedIndex,
         onDestinationSelected: _selectDestination,
       ),

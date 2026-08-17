@@ -24,7 +24,8 @@ void main() {
         expect(tester.takeException(), isNull);
 
         final cardRect = tester.getRect(find.byType(BangumiInfoCardV));
-        final buttonFinder = find.widgetWithText(FilledButton, '未追');
+        final buttonFinder =
+            find.widgetWithIcon(IconButton, Icons.favorite_border);
         expect(buttonFinder, findsOneWidget);
         final buttonRect = tester.getRect(buttonFinder);
         expect(cardRect.contains(buttonRect.topLeft), isTrue);
@@ -51,6 +52,32 @@ void main() {
 
     expect(find.widgetWithText(FilledButton, '未追'), findsOneWidget);
     expect(find.text('  评分透视:'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('preserves large text and menu scaling in the compact layout',
+      (tester) async {
+    _bootstrapCollectController();
+    await tester.pumpWidget(_testApp(textScale: 1));
+    await tester.pumpAndSettle();
+    final normalDateHeight =
+        tester.getSize(find.byKey(const ValueKey('bangumi-info-date'))).height;
+
+    await tester.pumpWidget(_testApp(textScale: 2));
+    await tester.pumpAndSettle();
+    final largeDateHeight =
+        tester.getSize(find.byKey(const ValueKey('bangumi-info-date'))).height;
+    expect(largeDateHeight, greaterThan(normalDateHeight));
+
+    await tester.tap(
+      find.widgetWithIcon(IconButton, Icons.favorite_border),
+    );
+    await tester.pumpAndSettle();
+    final menuContext = tester.element(find.text(' 在看'));
+    expect(
+      MediaQuery.textScalerOf(menuContext).scale(16),
+      closeTo(32, 0.01),
+    );
     expect(tester.takeException(), isNull);
   });
 

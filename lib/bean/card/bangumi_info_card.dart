@@ -25,10 +25,9 @@ class BangumiInfoCardV extends StatefulWidget {
 }
 
 class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
-  static const double _compactInfoMaxHeight = 230;
-  static const double _compactInfoMaxWidth = 160;
-  static const double _compactDateMinHeight = 150;
-  static const double _compactScoreMinHeight = 190;
+  static const double _fullInfoMinCharacters = 10;
+  static const double _fullInfoLineBudget = 8;
+  static const double _fullInfoActionHeight = 40;
   int touchedIndex = -1;
 
   Widget get voteBarChart {
@@ -151,6 +150,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
           widget.bangumiItem.airDate == ''
               ? '2000-11-11' // Skeleton Loader 占位符
               : widget.bangumiItem.airDate,
+          key: const ValueKey('bangumi-info-date'),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -192,46 +192,45 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
     );
   }
 
-  Widget _buildCompactInfo(double maxHeight) {
+  Widget _buildCompactInfo() {
     final date = widget.bangumiItem.airDate == ''
         ? '2000-11-11'
         : widget.bangumiItem.airDate;
     final score = widget.showRating
         ? '${widget.bangumiItem.ratingScore} 分'
         : '*** 分';
-    final dateStyle = TextStyle(
-      fontSize: 20,
+    final compactStyle = TextStyle(
+      fontSize: 16,
       fontWeight: FontWeight.bold,
       color: Theme.of(context).colorScheme.primary,
     );
-    final scoreStyle = dateStyle.copyWith(fontSize: 16);
-    final showDate = maxHeight >= _compactDateMinHeight;
-    final showScore =
-        showDate && !widget.isLoading && maxHeight >= _compactScoreMinHeight;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CollectButton(
-          bangumiItem: widget.bangumiItem,
-          color: Theme.of(context).colorScheme.primary,
+        Row(
+          children: [
+            CollectButton(
+              bangumiItem: widget.bangumiItem,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            Expanded(
+              child: Text(
+                score,
+                key: const ValueKey('bangumi-info-score'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: compactStyle,
+              ),
+            ),
+          ],
         ),
-        if (showDate) SizedBox(height: 4),
-        if (showDate)
-          Text(
-            date,
-            key: const ValueKey('bangumi-info-date'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: dateStyle,
-          ),
-        if (showScore)
-          Text(
-            score,
-            key: const ValueKey('bangumi-info-score'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: scoreStyle,
-          ),
+        Text(
+          date,
+          key: const ValueKey('bangumi-info-date'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: compactStyle,
+        ),
       ],
     );
   }
@@ -283,15 +282,17 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                 Flexible(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final useCompactLayout =
-                          constraints.maxHeight < _compactInfoMaxHeight ||
-                              constraints.maxWidth < _compactInfoMaxWidth;
+                      final scaledInfoValue =
+                          MediaQuery.textScalerOf(context).scale(20);
+                      final useCompactLayout = constraints.maxWidth <
+                              scaledInfoValue * _fullInfoMinCharacters ||
+                          constraints.maxHeight <
+                              scaledInfoValue * _fullInfoLineBudget +
+                                  _fullInfoActionHeight;
                       return Skeletonizer(
                         enabled: widget.isLoading,
                         child: useCompactLayout
-                            ? _buildCompactInfo(
-                                constraints.maxHeight,
-                              )
+                            ? _buildCompactInfo()
                             : Column(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,

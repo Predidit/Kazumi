@@ -13,7 +13,7 @@ import 'package:kazumi/repositories/collect_repository.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  for (final scale in <double>[1, 1.5, 2]) {
+  for (final scale in <double>[1, 1.3, 1.5, 1.7, 2]) {
     testWidgets(
       'keeps the collect button visible and tappable at ${scale}x text',
       (tester) async {
@@ -31,6 +31,16 @@ void main() {
         expect(cardRect.contains(buttonRect.topLeft), isTrue);
         expect(buttonRect.right, lessThanOrEqualTo(cardRect.right));
         expect(buttonRect.bottom, lessThanOrEqualTo(cardRect.bottom));
+        for (final key in const [
+          ValueKey('bangumi-info-date'),
+          ValueKey('bangumi-info-score'),
+        ]) {
+          final infoFinder = find.byKey(key);
+          expect(infoFinder, findsOneWidget);
+          final infoRect = tester.getRect(infoFinder);
+          expect(infoRect.top, greaterThanOrEqualTo(cardRect.top));
+          expect(infoRect.bottom, lessThanOrEqualTo(cardRect.bottom));
+        }
 
         await tester.tap(buttonFinder);
         await tester.pumpAndSettle();

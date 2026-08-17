@@ -181,7 +181,10 @@ void main() {
     );
     expect(collectiblesBox.keys, [1]);
 
-    await webDavSync.repairCollectiblesFromLocal();
+    expect(
+      await webDavSync.repairCollectiblesFromLocal(),
+      WebDavCollectiblesRepairResult.repaired,
+    );
 
     expect(fakeClient.files, contains('/kazumiSync/collectibles.tmp'));
     expect(fakeClient.files, contains('/kazumiSync/collectchanges.tmp'));
@@ -222,7 +225,10 @@ void main() {
       webDavSync.syncCollectibles(),
       throwsA(isA<IncompleteWebDavCollectiblesBackupException>()),
     );
-    await webDavSync.repairCollectiblesFromLocal();
+    expect(
+      await webDavSync.repairCollectiblesFromLocal(),
+      WebDavCollectiblesRepairResult.repaired,
+    );
 
     expect(fakeClient.uploadedPaths, [
       '/kazumiSync/collectchanges.tmp.cache',
@@ -243,6 +249,32 @@ void main() {
     await webDavSync.syncCollectibles();
     expect(collectiblesBox.keys, [1]);
     expect(collectiblesBox.containsKey(2), isFalse);
+  });
+
+  test('repair rechecks a snapshot that appeared during confirmation',
+      () async {
+    await putLocalCollectible(withAddChange: true);
+    fakeClient.files['/kazumiSync/collectchanges.tmp'] =
+        await buildRemoteBox<CollectedBangumiChange>({
+      99: _change(99, 2, 1),
+    });
+
+    await expectLater(
+      webDavSync.syncCollectibles(),
+      throwsA(isA<IncompleteWebDavCollectiblesBackupException>()),
+    );
+    fakeClient.files['/kazumiSync/collectibles.tmp'] =
+        await buildRemoteBox<CollectedBangumi>({2: _collect(2)});
+    final uploadCountBeforeRepair = fakeClient.uploadCount;
+
+    expect(
+      await webDavSync.repairCollectiblesFromLocal(),
+      WebDavCollectiblesRepairResult.remoteStateChanged,
+    );
+    expect(fakeClient.uploadCount, uploadCountBeforeRepair);
+
+    await webDavSync.syncCollectibles();
+    expect(collectiblesBox.keys.toSet(), {1, 2});
   });
 
   test('interrupted repair keeps the missing-snapshot guard active', () async {

@@ -299,7 +299,15 @@ abstract class _CollectController with Store {
       return false;
     }
     try {
-      await WebDav().repairCollectiblesFromLocal();
+      final result = await WebDav().repairCollectiblesFromLocal();
+      if (result == WebDavCollectiblesRepairResult.remoteStateChanged) {
+        await WebDav().syncCollectibles();
+        loadCollectibles();
+        if (showSuccessToast) {
+          KazumiDialog.showToast(message: '远端收藏备份已恢复，已重新同步');
+        }
+        return true;
+      }
       if (showSuccessToast) {
         KazumiDialog.showToast(message: 'WebDav 收藏备份已使用本地数据修复');
       }

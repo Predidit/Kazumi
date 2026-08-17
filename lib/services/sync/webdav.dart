@@ -25,6 +25,11 @@ class EmptyLocalCollectiblesRepairException implements Exception {
   String toString() => '当前设备没有可用于修复的本地收藏';
 }
 
+enum WebDavCollectiblesRepairResult {
+  repaired,
+  remoteStateChanged,
+}
+
 class WebDav {
   static const String _syncRootPath = '/kazumiSync';
   static const String _historyRootPath = '$_syncRootPath/history';
@@ -129,9 +134,19 @@ class WebDav {
     }
   }
 
-  Future<void> repairCollectiblesFromLocal() async {
+  Future<WebDavCollectiblesRepairResult> repairCollectiblesFromLocal() async {
     try {
-      await _runWebDavExclusive(() async {
+      return await _runWebDavExclusive(() async {
+        // The confirmation dialog can stay open indefinitely. Check the
+        // remote state again under the operation queue before overwriting it.
+        final files = await _readCollectiblesRemoteFiles();
+        final collectiblesExists =
+            files.any((file) => file.name == 'collectibles.tmp');
+        final changesExists =
+            files.any((file) => file.name == 'collectchanges.tmp');
+        if (collectiblesExists || !changesExists) {
+          return WebDavCollectiblesRepairResult.remoteStateChanged;
+        }
         if (GStorage.collectibles.isEmpty) {
           throw const EmptyLocalCollectiblesRepairException();
         }
@@ -141,6 +156,7 @@ class WebDav {
         // the missing-snapshot guard remains active until repair is retried.
         await _updateBox('collectchanges');
         await _updateBox('collectibles');
+        return WebDavCollectiblesRepairResult.repaired;
       });
     } catch (e) {
       KazumiLogger().e('WebDav: repair collectibles failed', error: e);

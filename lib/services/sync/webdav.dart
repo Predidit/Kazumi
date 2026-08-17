@@ -11,11 +11,21 @@ import 'package:kazumi/services/sync/webdav_remote_file_commit.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:kazumi/utils/async_single_flight.dart';
 
+class IncompleteWebDavCollectiblesBackupException implements Exception {
+  const IncompleteWebDavCollectiblesBackupException();
+
+  @override
+  String toString() => '远端收藏备份不完整，本地收藏未修改';
+}
+
 class WebDav {
   static const String _syncRootPath = '/kazumiSync';
   static const String _historyRootPath = '$_syncRootPath/history';
   static const String _historyChangesPath = '$_historyRootPath/changes';
   static const String _historySnapshotPath = '$_historyRootPath/snapshot.json';
+  static const int _collectiblesRemoteStateReadAttempts = 3;
+  static const Duration _collectiblesRemoteStateRetryDelay =
+      Duration(milliseconds: 250);
 
   late String webDavURL;
   late String webDavUsername;
@@ -129,7 +139,7 @@ class WebDav {
     List<CollectedBangumi> remoteCollectibles = [];
     List<CollectedBangumiChange> remoteChanges = [];
 
-    final files = await client.readDir(_syncRootPath);
+    final files = await _readCollectiblesRemoteFiles();
     final collectiblesExists =
         files.any((file) => file.name == 'collectibles.tmp');
     final changesExists =
@@ -138,7 +148,7 @@ class WebDav {
       KazumiLogger().w(
         'WebDav: collectibles snapshot missing while change log exists',
       );
-      throw StateError('WebDav: incomplete collectibles backup');
+      throw const IncompleteWebDavCollectiblesBackupException();
     }
     if (!collectiblesExists && !changesExists) {
       await _updateBox('collectibles');
@@ -184,6 +194,26 @@ class WebDav {
     if (GStorage.collectChanges.isNotEmpty) {
       await _updateBox('collectchanges');
     }
+  }
+
+  Future<List<webdav.File>> _readCollectiblesRemoteFiles() async {
+    late List<webdav.File> files;
+    for (var attempt = 0;
+        attempt < _collectiblesRemoteStateReadAttempts;
+        attempt++) {
+      files = await client.readDir(_syncRootPath);
+      final collectiblesExists =
+          files.any((file) => file.name == 'collectibles.tmp');
+      final changesExists =
+          files.any((file) => file.name == 'collectchanges.tmp');
+      if (!changesExists || collectiblesExists) {
+        return files;
+      }
+      if (attempt < _collectiblesRemoteStateReadAttempts - 1) {
+        await Future<void>.delayed(_collectiblesRemoteStateRetryDelay);
+      }
+    }
+    return files;
   }
 
   Future<void> _syncHistory() async {

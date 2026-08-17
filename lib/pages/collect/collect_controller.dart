@@ -249,12 +249,49 @@ abstract class _CollectController with Store {
       if (showSuccessToast) {
         KazumiDialog.showToast(message: 'WebDav同步完成');
       }
+    } on IncompleteWebDavCollectiblesBackupException {
+      return _offerWebDavCollectiblesRepair(
+        showSuccessToast: showSuccessToast,
+      );
     } catch (e) {
       KazumiDialog.showToast(message: 'WebDav同步失败 $e');
       return false;
     }
     loadCollectibles();
     return true;
+  }
+
+  Future<bool> _offerWebDavCollectiblesRepair({
+    required bool showSuccessToast,
+  }) async {
+    final shouldRepair = await KazumiDialog.show<bool>(
+      clickMaskDismiss: false,
+      builder: (context) => AlertDialog(
+        title: const Text('WebDav 收藏备份不完整'),
+        content: const Text(
+          '远端变更记录存在，但完整收藏快照缺失。'
+          '为避免清空本地数据，本次同步已停止。\n\n'
+          '如果当前设备的收藏是完整的，可以用它重建远端备份。'
+          '这会覆盖其他设备尚未同步的收藏变更。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('使用本地收藏修复'),
+          ),
+        ],
+      ),
+    );
+    if (shouldRepair != true) {
+      return false;
+    }
+    return uploadCollectiblesToWebDav(
+      showSuccessToast: showSuccessToast,
+    );
   }
 
   /// Only upload local collectibles and change logs to WebDAV, without downloading and merging.

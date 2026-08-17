@@ -145,11 +145,48 @@ void main() {
 
     await expectLater(
       webDavSync.syncCollectibles(),
-      throwsA(isA<StateError>()),
+      throwsA(isA<IncompleteWebDavCollectiblesBackupException>()),
     );
 
     expect(collectiblesBox.keys, [1]);
     expect(fakeClient.uploadCount, 0);
+  });
+
+  test('transient missing snapshot is retried before failing closed', () async {
+    await putLocalCollectible(withAddChange: true);
+    fakeClient.files['/kazumiSync/collectchanges.tmp'] =
+        await buildRemoteBox<CollectedBangumiChange>({
+      99: _change(99, 2, 1),
+    });
+    fakeClient.filesOnSecondSyncRootRead['/kazumiSync/collectibles.tmp'] =
+        await buildRemoteBox<CollectedBangumi>({2: _collect(2)});
+
+    await webDavSync.syncCollectibles();
+
+    expect(collectiblesBox.keys.toSet(), {1, 2});
+    expect(fakeClient.syncRootReadCount, 2);
+  });
+
+  test('persistent orphan can be repaired explicitly from local backup',
+      () async {
+    await putLocalCollectible(withAddChange: true);
+    fakeClient.files['/kazumiSync/collectchanges.tmp'] =
+        await buildRemoteBox<CollectedBangumiChange>({
+      101: _change(101, 1, 3),
+    });
+
+    await expectLater(
+      webDavSync.syncCollectibles(),
+      throwsA(isA<IncompleteWebDavCollectiblesBackupException>()),
+    );
+    expect(collectiblesBox.keys, [1]);
+
+    await webDavSync.updateCollectibles();
+
+    expect(fakeClient.files, contains('/kazumiSync/collectibles.tmp'));
+    expect(fakeClient.files, contains('/kazumiSync/collectchanges.tmp'));
+    await webDavSync.syncCollectibles();
+    expect(collectiblesBox.keys, [1]);
   });
 
   test('download interruption fails without changing local collectibles',
@@ -191,17 +228,28 @@ class _FakeWebDavClient extends webdav.Client {
         );
 
   final Map<String, List<int>> files = {};
+  final Map<String, List<int>> filesOnSecondSyncRootRead = {};
   final Set<String> failDownloads = {};
   int uploadCount = 0;
+  int syncRootReadCount = 0;
 
   void reset() {
     files.clear();
+    filesOnSecondSyncRootRead.clear();
     failDownloads.clear();
     uploadCount = 0;
+    syncRootReadCount = 0;
   }
 
   @override
   Future<List<webdav.File>> readDir(String path, [dynamic cancelToken]) async {
+    if (path == '/kazumiSync') {
+      syncRootReadCount++;
+      if (syncRootReadCount == 2) {
+        files.addAll(filesOnSecondSyncRootRead);
+        filesOnSecondSyncRootRead.clear();
+      }
+    }
     final prefix = path == '/' ? '/' : '$path/';
     return files.keys
         .where((filePath) => filePath.startsWith(prefix))

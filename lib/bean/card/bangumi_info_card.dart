@@ -119,7 +119,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 300,
       constraints: BoxConstraints(maxWidth: 950),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,10 +132,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           SizedBox(height: 16),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 Flexible(
                   child: AspectRatio(
                     aspectRatio: 0.65,
@@ -164,7 +162,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                   child: Skeletonizer(
                     enabled: widget.isLoading,
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Column(
@@ -200,7 +198,10 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                 ),
                               ),
                             if (!widget.isLoading)
-                              Row(
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   Text(
                                     widget.showRating
@@ -213,7 +214,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                           Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
                                   RatingBarIndicator(
                                     itemCount: 5,
                                     rating: widget.showRating
@@ -246,11 +246,14 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             ),
                           ],
                         ),
-                        SizedBox(
-                          width: 120,
-                          height: 40,
-                          child: CollectButton.extend(
-                            bangumiItem: widget.bangumiItem,
+                        SizedBox(height: 12),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(minWidth: 120),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: CollectButton.extend(
+                              bangumiItem: widget.bangumiItem,
+                            ),
                           ),
                         ),
                       ],
@@ -262,8 +265,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         LayoutBreakpoint.compact['width']! &&
                     !widget.isLoading)
                   voteBarChart,
-              ],
-            ),
+            ],
           ),
         ],
       ),

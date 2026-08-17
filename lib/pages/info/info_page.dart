@@ -9,6 +9,7 @@ import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/pages/info/info_header_slivers.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -65,6 +66,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool staffQueryTimeout = false;
   bool staffIsEmpty = false;
   bool _showBangumiInfoSkeleton = false;
+  bool _showAppBarCollect = false;
   int _fabTabIndex = 0;
 
   BangumiItem get inputBangumiIten => widget.inputBangumiItem;
@@ -273,6 +275,16 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     });
   }
 
+  void _syncAppBarCollectVisibility(bool visible) {
+    if (_showAppBarCollect == visible) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _showAppBarCollect == visible) return;
+      setState(() {
+        _showAppBarCollect = visible;
+      });
+    });
+  }
+
   Future<void> onCommentsTabSelected() async {
     final interest = infoController.bangumiItem.interest;
     final token =
@@ -342,134 +354,116 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     final bool showWindowButton =
         GStorage.getSetting(SettingsKeys.showWindowButton);
     final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
+    final toolbarHeight = (Platform.isMacOS && showWindowButton)
+        ? kToolbarHeight + 22
+        : kToolbarHeight;
     return PopScope(
       canPop: true,
       child: DefaultTabController(
         length: _infoTabs.length,
         child: Scaffold(
-          body: NestedScrollView(
-            headerSliverBuilder:
-                (BuildContext context, bool innerBoxIsScrolled) {
-              return <Widget>[
-                SliverOverlapAbsorber(
-                  handle:
-                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                  sliver: SliverAppBar.medium(
-                    title: EmbeddedNativeControlArea(
-                      child: dtb.DragToMoveArea(
-                        child: Container(
-                          width: double.infinity,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            infoController.bangumiItem.nameCn == ''
-                                ? infoController.bangumiItem.name
-                                : infoController.bangumiItem.nameCn,
-                          ),
-                        ),
-                      ),
-                    ),
-                    automaticallyImplyLeading: false,
-                    scrolledUnderElevation: 0.0,
-                    leading: EmbeddedNativeControlArea(
-                      child: IconButton(
-                        onPressed: () {
-                          context.maybePop();
-                        },
-                        icon: Icon(Icons.arrow_back),
-                      ),
-                    ),
-                    actions: [
-                      if (innerBoxIsScrolled)
-                        EmbeddedNativeControlArea(
-                          child: CollectButton(
-                            bangumiItem: infoController.bangumiItem,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      EmbeddedNativeControlArea(
-                        child: IconButton(
-                          onPressed: () {
-                            launchUrl(
-                              Uri.parse(
-                                  'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
-                              mode: LaunchMode.externalApplication,
-                            );
-                          },
-                          icon: const Icon(Icons.open_in_browser_rounded),
-                        ),
-                      ),
-                      if (!showWindowButton && isDesktop())
-                        CloseButton(onPressed: () => windowManager.close()),
-                      SizedBox(width: 8),
-                    ],
-                    toolbarHeight: (Platform.isMacOS && showWindowButton)
-                        ? kToolbarHeight + 22
-                        : kToolbarHeight,
-                    stretch: true,
-                    centerTitle: false,
-                    expandedHeight: (Platform.isMacOS && showWindowButton)
-                        ? 308 + kTextTabBarHeight + kToolbarHeight + 22
-                        : 308 + kTextTabBarHeight + kToolbarHeight,
-                    collapsedHeight: (Platform.isMacOS && showWindowButton)
-                        ? kTextTabBarHeight +
-                            kToolbarHeight +
-                            MediaQuery.paddingOf(context).top +
-                            22
-                        : kTextTabBarHeight +
-                            kToolbarHeight +
-                            MediaQuery.paddingOf(context).top,
-                    flexibleSpace: FlexibleSpaceBar(
-                      collapseMode: CollapseMode.pin,
-                      background: Observer(builder: (context) {
-                        final showBangumiInfoSkeleton =
-                            _isShowingBangumiInfoSkeleton;
-                        return Stack(
-                          children: [
-                            // No background image when loading to make loading looks better
-                            if (!showBangumiInfoSkeleton)
-                              Positioned.fill(
-                                bottom: kTextTabBarHeight,
-                                child: IgnorePointer(
-                                  child: _InfoHeaderBackground(
-                                    imageUrl: infoController
-                                            .bangumiItem.images['large'] ??
-                                        '',
-                                  ),
-                                ),
-                              ),
-                            SafeArea(
-                              bottom: false,
-                              child: EmbeddedNativeControlArea(
-                                child: Align(
-                                  alignment: Alignment.topCenter,
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        16, kToolbarHeight, 16, 0),
-                                    child: BangumiInfoCardV(
-                                      bangumiItem: infoController.bangumiItem,
-                                      isLoading: showBangumiInfoSkeleton,
-                                      showRating: showRating,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }),
-                    ),
-                    forceElevated: innerBoxIsScrolled,
-                    bottom: TabBar(
-                      controller: infoTabController,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.center,
-                      dividerHeight: 0,
-                      tabs: _infoTabs.map((name) => Tab(text: name)).toList(),
+          appBar: PreferredSize(
+            preferredSize: Size.fromHeight(toolbarHeight),
+            child: AppBar(
+              title: EmbeddedNativeControlArea(
+                child: dtb.DragToMoveArea(
+                  child: Container(
+                    width: double.infinity,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      infoController.bangumiItem.nameCn == ''
+                          ? infoController.bangumiItem.name
+                          : infoController.bangumiItem.nameCn,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
-              ];
+              ),
+              automaticallyImplyLeading: false,
+              scrolledUnderElevation: 0.0,
+              leading: EmbeddedNativeControlArea(
+                child: IconButton(
+                  onPressed: () {
+                    context.maybePop();
+                  },
+                  icon: Icon(Icons.arrow_back),
+                ),
+              ),
+              actions: [
+                if (_showAppBarCollect)
+                  EmbeddedNativeControlArea(
+                    child: CollectButton(
+                      bangumiItem: infoController.bangumiItem,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                EmbeddedNativeControlArea(
+                  child: IconButton(
+                    onPressed: () {
+                      launchUrl(
+                        Uri.parse(
+                            'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                    icon: const Icon(Icons.open_in_browser_rounded),
+                  ),
+                ),
+                if (!showWindowButton && isDesktop())
+                  CloseButton(onPressed: () => windowManager.close()),
+                SizedBox(width: 8),
+              ],
+              toolbarHeight: toolbarHeight,
+              centerTitle: false,
+            ),
+          ),
+          body: NestedScrollView(
+            headerSliverBuilder:
+                (BuildContext context, bool innerBoxIsScrolled) {
+              _syncAppBarCollectVisibility(innerBoxIsScrolled);
+              return buildInfoHeaderSlivers(
+                context: context,
+                tabBarColor: Theme.of(context).scaffoldBackgroundColor,
+                tabBar: TabBar(
+                  controller: infoTabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.center,
+                  dividerHeight: 0,
+                  tabs: _infoTabs.map((name) => Tab(text: name)).toList(),
+                ),
+                header: Observer(builder: (context) {
+                  final showBangumiInfoSkeleton =
+                      _isShowingBangumiInfoSkeleton;
+                  return Stack(
+                    children: [
+                      if (!showBangumiInfoSkeleton)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: _InfoHeaderBackground(
+                              imageUrl: infoController
+                                      .bangumiItem.images['large'] ??
+                                  '',
+                            ),
+                          ),
+                        ),
+                      EmbeddedNativeControlArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: BangumiInfoCardV(
+                              bangumiItem: infoController.bangumiItem,
+                              isLoading: showBangumiInfoSkeleton,
+                              showRating: showRating,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              );
             },
             body: Observer(builder: (context) {
               final showBangumiInfoSkeleton = _isShowingBangumiInfoSkeleton;

@@ -93,6 +93,34 @@ void main() {
       );
     });
 
+    test('prefers marked episode numbers over leading quality values', () {
+      final road = _road([
+        '1080P 第1集',
+        '720P 第2集',
+        '480P 第3集',
+      ]);
+
+      expect(
+        adjacentEpisodeSelections(
+          road: road,
+          current: const VideoEpisodeSelection(episode: 2, road: 0),
+        ).next,
+        const VideoEpisodeSelection(episode: 3, road: 0),
+      );
+    });
+
+    test('keeps source order when numbered identifiers are not monotonic', () {
+      final road = _road(['第4话', '第3话', '第2话', '第5话']);
+
+      expect(
+        adjacentEpisodeSelections(
+          road: road,
+          current: const VideoEpisodeSelection(episode: 2, road: 0),
+        ).next,
+        const VideoEpisodeSelection(episode: 3, road: 0),
+      );
+    });
+
     test('ignores unnumbered entries when detecting descending order', () {
       final road = _road(['先导片', '第12话', '第11话']);
 

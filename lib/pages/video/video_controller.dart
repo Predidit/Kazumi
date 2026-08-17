@@ -81,7 +81,7 @@ AdjacentEpisodeSelections adjacentEpisodeSelections({
   var descendingPairs = 0;
   int? previousNumber;
   for (final identifier in road.identifier) {
-    final number = extractEpisodeNumber(identifier);
+    final number = _episodeNumberForOrdering(identifier);
     if (number <= 0) {
       continue;
     }
@@ -95,7 +95,7 @@ AdjacentEpisodeSelections adjacentEpisodeSelections({
     previousNumber = number;
   }
 
-  final forwardStep = descendingPairs > ascendingPairs ? -1 : 1;
+  final forwardStep = descendingPairs > 0 && ascendingPairs == 0 ? -1 : 1;
   VideoEpisodeSelection? selectionAt(int episode) {
     if (episode <= 0 || episode > episodeCount) {
       return null;
@@ -110,6 +110,26 @@ AdjacentEpisodeSelections adjacentEpisodeSelections({
     previous: selectionAt(current.episode - forwardStep),
     next: selectionAt(current.episode + forwardStep),
   );
+}
+
+int _episodeNumberForOrdering(String identifier) {
+  final episodeMatch = RegExp(
+    r'(?:第\s*)?(\d+)\s*[话集]',
+    caseSensitive: false,
+  ).firstMatch(identifier);
+  if (episodeMatch != null) {
+    return int.tryParse(episodeMatch.group(1)!) ?? 0;
+  }
+
+  final abbreviatedMatch = RegExp(
+    r'\b(?:EP?|E)\s*0*(\d+)\b',
+    caseSensitive: false,
+  ).firstMatch(identifier);
+  if (abbreviatedMatch != null) {
+    return int.tryParse(abbreviatedMatch.group(1)!) ?? 0;
+  }
+
+  return extractEpisodeNumber(identifier);
 }
 
 abstract class _VideoPageController with Store implements Disposable {

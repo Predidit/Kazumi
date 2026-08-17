@@ -91,7 +91,8 @@ void main() {
     await box.putAll(values);
     await box.flush();
     await box.close();
-    return File('${hiveDirectory.path}/$name.hive').readAsBytes();
+    return File('${hiveDirectory.path}/${name.toLowerCase()}.hive')
+        .readAsBytes();
   }
 
   Future<void> putLocalCollectible({bool withAddChange = false}) async {

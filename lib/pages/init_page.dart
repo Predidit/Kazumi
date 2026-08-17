@@ -314,7 +314,7 @@ class _InitPageState extends State<InitPage> {
         message: '检测到 $count 条规则可以更新',
         showActionButton: true,
         actionLabel: '全部更新',
-        onActionPressed: () => updateAllPluginsWithFeedback(
+        onActionPressed: () => scheduleAllPluginsUpdateWithFeedback(
           pluginsController,
           ensureCatalog: false,
         ),

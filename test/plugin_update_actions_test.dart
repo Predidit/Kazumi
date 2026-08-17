@@ -64,6 +64,40 @@ void main() {
     expect(find.text('更新中'), findsNothing);
     expect(find.text('更新规则失败'), findsOneWidget);
   });
+
+  testWidgets('snackbar action keeps the scheduled progress toast visible',
+      (tester) async {
+    final catalogGate = Completer<void>();
+    final controller = PluginsController(
+      catalogLoader: () async {
+        await catalogGate.future;
+        return const [];
+      },
+    );
+    await tester.pumpWidget(_buildTestApp());
+
+    KazumiDialog.showToast(
+      message: '检测到 1 条规则可以更新',
+      showActionButton: true,
+      actionLabel: '全部更新',
+      onActionPressed: () => scheduleAllPluginsUpdateWithFeedback(
+        controller,
+        ensureCatalog: true,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text('全部更新'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('检测到 1 条规则可以更新'), findsNothing);
+    expect(find.text('更新中'), findsOneWidget);
+
+    catalogGate.complete();
+    await tester.pumpAndSettle();
+  });
 }
 
 Widget _buildTestApp() {

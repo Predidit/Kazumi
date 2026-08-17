@@ -1,5 +1,22 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+
+void scheduleAllPluginsUpdateWithFeedback(
+  PluginsController controller, {
+  required bool ensureCatalog,
+}) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(
+      updateAllPluginsWithFeedback(
+        controller,
+        ensureCatalog: ensureCatalog,
+      ),
+    );
+  });
+}
 
 Future<void> updateAllPluginsWithFeedback(
   PluginsController controller, {

@@ -135,7 +135,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Flexible(
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 230),
                   child: AspectRatio(
                     aspectRatio: 0.65,
                     child: LayoutBuilder(builder: (context, boxConstraints) {
@@ -157,114 +159,115 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                     }),
                   ),
                 ),
-                SizedBox(width: 16),
-                Flexible(
-                  child: Skeletonizer(
-                    enabled: widget.isLoading,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '放送开始:',
-                            ),
-                            Text(
-                              widget.bangumiItem.airDate == ''
-                                  ? '2000-11-11' // Skeleton Loader 占位符
-                                  : widget.bangumiItem.airDate,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              widget.showRating
-                                  ? '${widget.bangumiItem.votes} 人评分:'
-                                  : '*** 人评分:',
-                            ),
-                            if (widget.isLoading)
-                              // Skeleton Loader 占位符
-                              Text(
-                                '10.0 ********',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            if (!widget.isLoading)
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Text(
-                                    widget.showRating
-                                        ? '${widget.bangumiItem.ratingScore}'
-                                        : '***',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
-                                  ),
-                                  RatingBarIndicator(
-                                    itemCount: 5,
-                                    rating: widget.showRating
-                                        ? widget.bangumiItem.ratingScore
-                                                .toDouble() /
-                                            2
-                                        : 0,
-                                    itemBuilder: (context, index) => Icon(
-                                      Icons.star_rounded,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
-                                    itemSize: 20.0,
-                                  ),
-                                ],
-                              ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Bangumi Ranked:',
-                            ),
-                            Text(
-                              widget.showRating
-                                  ? '#${widget.bangumiItem.rank}'
-                                  : '***',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 12),
-                        ConstrainedBox(
-                          constraints: BoxConstraints(minWidth: 120),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: CollectButton.extend(
-                              bangumiItem: widget.bangumiItem,
+              ),
+              SizedBox(width: 16),
+              Flexible(
+                child: Skeletonizer(
+                  enabled: widget.isLoading,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '放送开始:',
+                          ),
+                          Text(
+                            widget.bangumiItem.airDate == ''
+                                ? '2000-11-11' // Skeleton Loader 占位符
+                                : widget.bangumiItem.airDate,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
+                          SizedBox(height: 8),
+                          Text(
+                            widget.showRating
+                                ? '${widget.bangumiItem.votes} 人评分:'
+                                : '*** 人评分:',
+                          ),
+                          if (widget.isLoading)
+                            // Skeleton Loader 占位符
+                            Text(
+                              '10.0 ********',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          if (!widget.isLoading)
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  widget.showRating
+                                      ? '${widget.bangumiItem.ratingScore}'
+                                      : '***',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                RatingBarIndicator(
+                                  itemCount: 5,
+                                  rating: widget.showRating
+                                      ? widget.bangumiItem.ratingScore
+                                              .toDouble() /
+                                          2
+                                      : 0,
+                                  itemBuilder: (context, index) => Icon(
+                                    Icons.star_rounded,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                  itemSize: 20.0,
+                                ),
+                              ],
+                            ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Bangumi Ranked:',
+                          ),
+                          Text(
+                            widget.showRating
+                                ? '#${widget.bangumiItem.rank}'
+                                : '***',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(minWidth: 120),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: CollectButton.extend(
+                            bangumiItem: widget.bangumiItem,
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-                if (widget.showRating &&
-                    MediaQuery.sizeOf(context).width >=
-                        LayoutBreakpoint.compact['width']! &&
-                    !widget.isLoading)
-                  voteBarChart,
+              ),
+              if (widget.showRating &&
+                  MediaQuery.sizeOf(context).width >=
+                      LayoutBreakpoint.compact['width']! &&
+                  !widget.isLoading)
+                voteBarChart,
             ],
           ),
         ],

@@ -354,9 +354,10 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     final bool showWindowButton =
         GStorage.getSetting(SettingsKeys.showWindowButton);
     final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
-    final toolbarHeight = (Platform.isMacOS && showWindowButton)
-        ? kToolbarHeight + 22
-        : kToolbarHeight;
+    final toolbarHeight = adaptiveInfoToolbarHeight(
+      context,
+      nativeControlOffset: Platform.isMacOS && showWindowButton ? 22 : 0,
+    );
     return PopScope(
       canPop: true,
       child: DefaultTabController(
@@ -448,6 +449,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                           ),
                         ),
                       EmbeddedNativeControlArea(
+                        requireOffset: false,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Align(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
+import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
@@ -50,9 +51,10 @@ void main() {
           }
           if (width == 1200 && scale == 1) {
             expect(find.text('  评分透视:'), findsOneWidget);
-          }
-          if (width == 1200 && scale == 1) {
-            expect(find.text('  评分透视:'), findsOneWidget);
+            expect(
+              tester.getSize(find.byType(NetworkImgLayer)).height,
+              lessThanOrEqualTo(230),
+            );
           }
 
           await tester.ensureVisible(buttonFinder);
@@ -121,40 +123,49 @@ void main() {
           ),
           child: DefaultTabController(
             length: 2,
-            child: Scaffold(
-              appBar: AppBar(
-                title: const Text(
-                  _longTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              body: NestedScrollView(
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  return buildInfoHeaderSlivers(
-                    context: context,
-                    tabBarColor: Theme.of(context).scaffoldBackgroundColor,
-                    header: Container(
-                      key: headerKey,
-                      padding: const EdgeInsets.all(16),
-                      child: BangumiInfoCardV(
-                        bangumiItem: _bangumiItem(),
-                        isLoading: false,
-                        showRating: true,
+            child: Builder(
+              builder: (context) {
+                final toolbarHeight = adaptiveInfoToolbarHeight(context);
+                return Scaffold(
+                  appBar: PreferredSize(
+                    preferredSize: Size.fromHeight(toolbarHeight),
+                    child: AppBar(
+                      toolbarHeight: toolbarHeight,
+                      title: const Text(
+                        _longTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    tabBar: const TabBar(
-                      tabs: [Tab(text: '概览'), Tab(text: '评论')],
+                  ),
+                  body: NestedScrollView(
+                    headerSliverBuilder: (context, innerBoxIsScrolled) {
+                      return buildInfoHeaderSlivers(
+                        context: context,
+                        tabBarColor: Theme.of(context).scaffoldBackgroundColor,
+                        header: Container(
+                          key: headerKey,
+                          padding: const EdgeInsets.all(16),
+                          child: BangumiInfoCardV(
+                            bangumiItem: _bangumiItem(),
+                            isLoading: false,
+                            showRating: true,
+                          ),
+                        ),
+                        tabBar: const TabBar(
+                          tabs: [Tab(text: '概览'), Tab(text: '评论')],
+                        ),
+                      );
+                    },
+                    body: TabBarView(
+                      children: [
+                        _tabBody(const ValueKey('overview-body')),
+                        _tabBody(const ValueKey('comments-body')),
+                      ],
                     ),
-                  );
-                },
-                body: TabBarView(
-                  children: [
-                    _tabBody(const ValueKey('overview-body')),
-                    _tabBody(const ValueKey('comments-body')),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -163,6 +174,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+    final appBarRect = tester.getRect(find.byType(AppBar));
+    final appBarTitleRect = tester.getRect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text(_longTitle),
+      ),
+    );
+    expect(appBarTitleRect.top, greaterThanOrEqualTo(appBarRect.top));
+    expect(appBarTitleRect.bottom, lessThanOrEqualTo(appBarRect.bottom));
     expect(find.byKey(headerKey), findsOneWidget);
     await tester.flingFrom(
       const Offset(180, 800),
@@ -172,8 +192,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(headerKey), findsNothing);
-    expect(
-        tester.getTopLeft(find.byType(TabBar)).dy, closeTo(kToolbarHeight, 1));
+    expect(tester.getTopLeft(find.byType(TabBar)).dy,
+        closeTo(appBarRect.bottom, 1));
     await tester.tap(find.text('评论'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('comments-body')), findsOneWidget);

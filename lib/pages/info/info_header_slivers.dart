@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 
+double adaptiveInfoToolbarHeight(
+  BuildContext context, {
+  double nativeControlOffset = 0,
+}) {
+  return MediaQuery.textScalerOf(context).scale(kToolbarHeight) +
+      nativeControlOffset;
+}
+
 List<Widget> buildInfoHeaderSlivers({
   required BuildContext context,
   required Widget header,

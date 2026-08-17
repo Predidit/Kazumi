@@ -9,6 +9,13 @@ import 'package:kazumi/utils/string_similarity.dart';
 class DanmakuApi {
   static final DanmakuClient _client = DanmakuClient.instance;
 
+  static Map<String, String> buildAnimeSearchQuery(String title) {
+    return {
+      'keyword': title,
+      'v2': 'true',
+    };
+  }
+
   // 从BgmBangumiID获取DanDanBangumiID
   static Future<int> getDanDanBangumiIDByBgmBangumiID(int bgmBangumiID) async {
     var path = ApiEndpoints.formatUrl(
@@ -80,9 +87,7 @@ class DanmakuApi {
       String title) async {
     var path = ApiEndpoints.dandanAPISearch;
     var endPoint = ApiEndpoints.dandanAPIDomain + path;
-    Map<String, String> keywordMap = {
-      'keyword': title,
-    };
+    final keywordMap = buildAnimeSearchQuery(title);
 
     final jsonData = await _client.get(endPoint, queryParameters: keywordMap);
     DanmakuSearchResponse danmakuSearchResponse =

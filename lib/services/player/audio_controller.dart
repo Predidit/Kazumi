@@ -51,6 +51,7 @@ class AudioController {
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'io.github.Predidit.Kazumi.channel.audio',
         androidNotificationChannelName: 'Kazumi Playback',
+        androidNotificationIcon: 'drawable/ic_media_notification',
         androidNotificationOngoing: true,
       ),
     );

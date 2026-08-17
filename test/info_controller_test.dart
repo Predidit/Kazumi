@@ -104,7 +104,7 @@ void main() {
     );
 
     test(
-      'preserves a local review when a silent response omits interest',
+      'preserves a local review when an anonymous response omits interest',
       () async {
         final cached = _bangumiItem(
           ratingScore: 7.1,
@@ -147,6 +147,45 @@ void main() {
         expect(
           crudRepository.getCollectible(cached.id)!.bangumiItem.interest?.rate,
           8,
+        );
+      },
+    );
+
+    test(
+      'clears a local review when an authenticated response omits interest',
+      () async {
+        final cached = _bangumiItem(
+          ratingScore: 7.1,
+          votes: 120,
+          interest: BangumiInterest(
+            id: 1,
+            rate: 8,
+            type: 1,
+            comment: '已在远端删除的评价',
+            tags: const ['推荐'],
+            epStatus: 0,
+            volStatus: 0,
+            updatedAt: 1,
+          ),
+        );
+        final current = _bangumiItem(ratingScore: 8.3, votes: 1250);
+        final crudRepository = _FakeCollectCrudRepository(cached);
+        final collectController = CollectController(
+          crudRepository,
+          _FakeCollectRepository(),
+        );
+        final controller = InfoController(
+          collectController,
+          bangumiInfoLoader: (_) async => current,
+        )..bangumiItem = cached;
+
+        await controller.refreshBangumiInfoByID(cached.id);
+
+        expect(controller.bangumiItem.ratingScore, 8.3);
+        expect(controller.bangumiItem.interest, isNull);
+        expect(
+          crudRepository.getCollectible(cached.id)!.bangumiItem.interest,
+          isNull,
         );
       },
     );

@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
+import 'package:kazumi/request/clients/bangumi_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
@@ -338,7 +339,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     try {
       await infoController.refreshBangumiInfoByID(
         id,
-        preserveInterestWhenMissing: true,
+        preserveInterestWhenMissing:
+            !BangumiClient.requestWillIncludeAuthorization(),
       );
       if (mounted) {
         setState(() {});

@@ -13,6 +13,13 @@ class BangumiClient {
 
   static final BangumiClient instance = BangumiClient._();
 
+  static bool requestWillIncludeAuthorization({bool requiresAuth = false}) {
+    final bangumiSyncEnable =
+        GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+    final token = GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
+    return (requiresAuth || bangumiSyncEnable) && token.isNotEmpty;
+  }
+
   Future<dynamic> get(
     String url, {
     Map<String, dynamic>? queryParameters,
@@ -73,10 +80,8 @@ class BangumiClient {
     Object? data,
   }) {
     final headers = <String, dynamic>{...bangumiHTTPHeader};
-    final bangumiSyncEnable =
-        GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     final token = GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
-    if ((requiresAuth || bangumiSyncEnable) && token.isNotEmpty) {
+    if (requestWillIncludeAuthorization(requiresAuth: requiresAuth)) {
       headers['Authorization'] = 'Bearer $token';
     }
     if (_shouldSignProtectedMirrorRequest(url, method)) {

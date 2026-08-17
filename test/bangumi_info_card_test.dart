@@ -24,12 +24,12 @@ void main() {
         expect(tester.takeException(), isNull);
 
         final cardRect = tester.getRect(find.byType(BangumiInfoCardV));
-        final buttonFinder =
-            find.widgetWithIcon(IconButton, Icons.favorite_border);
+        final buttonFinder = find.widgetWithText(FilledButton, '未追');
         expect(buttonFinder, findsOneWidget);
         final buttonRect = tester.getRect(buttonFinder);
         expect(cardRect.contains(buttonRect.topLeft), isTrue);
-        expect(cardRect.contains(buttonRect.bottomRight), isTrue);
+        expect(buttonRect.right, lessThanOrEqualTo(cardRect.right));
+        expect(buttonRect.bottom, lessThanOrEqualTo(cardRect.bottom));
 
         await tester.tap(buttonFinder);
         await tester.pumpAndSettle();
@@ -42,11 +42,77 @@ void main() {
 
   testWidgets('keeps the extended collect button on wide normal text',
       (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     _bootstrapCollectController();
     await tester.pumpWidget(_testApp(textScale: 1, width: 1200));
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(FilledButton, '未追'), findsOneWidget);
+    expect(find.text('  评分透视:'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('does not consume the outer header drag', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    _bootstrapCollectController();
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(360, 800),
+            textScaler: TextScaler.linear(2),
+          ),
+          child: Scaffold(
+            body: NestedScrollView(
+              controller: scrollController,
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverAppBar(
+                  expandedHeight: 340,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Padding(
+                      padding: const EdgeInsets.only(top: kToolbarHeight),
+                      child: BangumiInfoCardV(
+                        bangumiItem: _longTitleBangumi(),
+                        isLoading: false,
+                        showRating: true,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              body: ListView(
+                children: const [SizedBox(height: 1200)],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(BangumiInfoCardV),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              (widget.axisDirection == AxisDirection.up ||
+                  widget.axisDirection == AxisDirection.down),
+        ),
+      ),
+      findsNothing,
+    );
+    await tester.dragFrom(const Offset(270, 240), const Offset(0, -160));
+    await tester.pumpAndSettle();
+
+    expect(scrollController.offset, greaterThan(0));
     expect(tester.takeException(), isNull);
   });
 }

@@ -116,7 +116,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
     );
   }
 
-  Widget _buildInfoDetails({required bool wrapRating}) {
+  Widget _buildInfoDetails() {
     final ratingWidgets = <Widget>[
       Text(
         widget.showRating ? '${widget.bangumiItem.ratingScore}' : '***',
@@ -167,20 +167,12 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
-        if (!widget.isLoading && wrapRating)
+        if (!widget.isLoading)
           Wrap(
             spacing: 8,
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: ratingWidgets,
-          ),
-        if (!widget.isLoading && !wrapRating)
-          Row(
-            children: [
-              ratingWidgets.first,
-              const SizedBox(width: 8),
-              ratingWidgets.last,
-            ],
           ),
         SizedBox(height: 8),
         Text('Bangumi Ranked:'),
@@ -198,10 +190,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
 
   @override
   Widget build(BuildContext context) {
-    final useCompactLayout = MediaQuery.sizeOf(context).width <
-            LayoutBreakpoint.compact['width']! ||
-        MediaQuery.textScalerOf(context).scale(1) > 1;
-
     return Container(
       height: 300,
       constraints: BoxConstraints(maxWidth: 950),
@@ -247,35 +235,36 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                 Flexible(
                   child: Skeletonizer(
                     enabled: widget.isLoading,
-                    child: useCompactLayout
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CollectButton(
-                                bangumiItem: widget.bangumiItem,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  child: _buildInfoDetails(wrapRating: true),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.topLeft,
+                                child: SizedBox(
+                                  width: constraints.maxWidth,
+                                  child: _buildInfoDetails(),
                                 ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildInfoDetails(wrapRating: false),
-                              SizedBox(
-                                width: 120,
-                                height: 40,
-                                child: CollectButton.extend(
-                                  bangumiItem: widget.bangumiItem,
-                                ),
-                              ),
-                            ],
+                              );
+                            },
                           ),
+                        ),
+                        SizedBox(
+                          width: 120,
+                          height: 40,
+                          child: MediaQuery.withClampedTextScaling(
+                            maxScaleFactor: 1,
+                            child: CollectButton.extend(
+                              bangumiItem: widget.bangumiItem,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 if (widget.showRating &&

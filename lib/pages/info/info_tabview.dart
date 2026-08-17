@@ -1,6 +1,6 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/expandable_selectable_text.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
@@ -72,7 +72,6 @@ class InfoTabView extends StatefulWidget {
 class _InfoTabViewState extends State<InfoTabView>
     with SingleTickerProviderStateMixin {
   final maxWidth = 950.0;
-  bool fullIntro = false;
   bool fullTag = false;
 
   @override
@@ -109,53 +108,7 @@ class _InfoTabViewState extends State<InfoTabView>
             children: [
               Text('简介', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 8),
-              // https://stackoverflow.com/questions/54091055/flutter-how-to-get-the-number-of-text-lines
-              // only show expand button when line > 7
-              LayoutBuilder(builder: (context, constraints) {
-                final span = TextSpan(text: widget.bangumiItem.summary);
-                final tp =
-                    TextPainter(text: span, textDirection: TextDirection.ltr);
-                tp.layout(maxWidth: constraints.maxWidth);
-                final numLines = tp.computeLineMetrics().length;
-                if (numLines > 7) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      SizedBox(
-                        // make intro expandable
-                        height: fullIntro ? null : 120,
-                        width: MediaQuery.sizeOf(context).width > maxWidth
-                            ? maxWidth
-                            : MediaQuery.sizeOf(context).width - 32,
-                        child: SelectableText(
-                          widget.bangumiItem.summary,
-                          textAlign: TextAlign.start,
-                          scrollBehavior: const ScrollBehavior().copyWith(
-                            scrollbars: false,
-                          ),
-                          scrollPhysics: NeverScrollableScrollPhysics(),
-                          selectionHeightStyle: ui.BoxHeightStyle.max,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            fullIntro = !fullIntro;
-                          });
-                        },
-                        child: Text(fullIntro ? '加载更少' : '加载更多'),
-                      ),
-                    ],
-                  );
-                } else {
-                  return SelectableText(
-                    widget.bangumiItem.summary,
-                    textAlign: TextAlign.start,
-                    scrollPhysics: NeverScrollableScrollPhysics(),
-                    selectionHeightStyle: ui.BoxHeightStyle.max,
-                  );
-                }
-              }),
+              ExpandableSelectableText(text: widget.bangumiItem.summary),
               const SizedBox(height: 16),
               Text('标签', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 8),

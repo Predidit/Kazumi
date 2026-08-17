@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
@@ -10,6 +12,26 @@ import 'package:kazumi/repositories/collect_repository.dart';
 
 void main() {
   group('InfoController rating refresh', () {
+    test('constructs through modular DI with the optional test loader omitted',
+        () {
+      final cached = _bangumiItem();
+      final collectController = CollectController(
+        _FakeCollectCrudRepository(cached),
+        _FakeCollectRepository(),
+      );
+      final module = createModule(
+        register: (context) {
+          context
+            ..addInstance<CollectController>(collectController)
+            ..add<InfoController>(InfoController.new);
+        },
+      );
+
+      final controller = bootstrapModule(module).injector.get<InfoController>();
+
+      expect(controller.collectController, same(collectController));
+    });
+
     test(
       'refreshes complete cached ratings and persists the collectible',
       () async {
@@ -82,6 +104,54 @@ void main() {
     );
 
     test(
+      'preserves a local review when a silent response omits interest',
+      () async {
+        final cached = _bangumiItem(
+          ratingScore: 7.1,
+          votes: 120,
+          votesCount: List<int>.filled(10, 12),
+          interest: BangumiInterest(
+            id: 1,
+            rate: 8,
+            type: 1,
+            comment: '我的评价',
+            tags: const ['推荐'],
+            epStatus: 0,
+            volStatus: 0,
+            updatedAt: 1,
+          ),
+        );
+        final current = _bangumiItem(
+          ratingScore: 8.3,
+          votes: 1250,
+          votesCount: List<int>.generate(10, (index) => index + 20),
+        );
+        final crudRepository = _FakeCollectCrudRepository(cached);
+        final collectController = CollectController(
+          crudRepository,
+          _FakeCollectRepository(),
+        );
+        final controller = InfoController(
+          collectController,
+          bangumiInfoLoader: (_) async => current,
+        )..bangumiItem = cached;
+
+        await controller.refreshBangumiInfoByID(
+          cached.id,
+          preserveInterestWhenMissing: true,
+        );
+
+        expect(controller.bangumiItem.ratingScore, 8.3);
+        expect(controller.bangumiItem.interest?.rate, 8);
+        expect(controller.bangumiItem.interest?.comment, '我的评价');
+        expect(
+          crudRepository.getCollectible(cached.id)!.bangumiItem.interest?.rate,
+          8,
+        );
+      },
+    );
+
+    test(
       'ignores a response for a detail page that is no longer active',
       () async {
         final first = _bangumiItem(id: 1872, ratingScore: 7.1, votes: 120);
@@ -113,6 +183,7 @@ BangumiItem _bangumiItem({
   double ratingScore = 7.0,
   int votes = 100,
   List<int>? votesCount,
+  BangumiInterest? interest,
 }) {
   return BangumiItem(
     id: id,
@@ -130,6 +201,7 @@ BangumiItem _bangumiItem({
     votes: votes,
     votesCount: votesCount ?? List<int>.filled(10, 10),
     info: '',
+    interest: interest,
   );
 }
 

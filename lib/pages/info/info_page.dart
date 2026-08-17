@@ -336,7 +336,10 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   Future<void> _refreshBangumiInfoSilently(int id) async {
     try {
-      await infoController.refreshBangumiInfoByID(id);
+      await infoController.refreshBangumiInfoByID(
+        id,
+        preserveInterestWhenMissing: true,
+      );
       if (mounted) {
         setState(() {});
       }

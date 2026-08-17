@@ -111,11 +111,22 @@ abstract class _InfoController with Store {
     }
   }
 
-  Future<void> refreshBangumiInfoByID(int id) async {
-    await _updateBangumiInfoByID(id, type: "update");
+  Future<void> refreshBangumiInfoByID(
+    int id, {
+    bool preserveInterestWhenMissing = false,
+  }) async {
+    await _updateBangumiInfoByID(
+      id,
+      type: "update",
+      preserveInterestWhenMissing: preserveInterestWhenMissing,
+    );
   }
 
-  Future<void> _updateBangumiInfoByID(int id, {required String type}) async {
+  Future<void> _updateBangumiInfoByID(
+    int id, {
+    required String type,
+    bool preserveInterestWhenMissing = false,
+  }) async {
     final value = await _bangumiInfoLoader(id);
     if (value == null || bangumiItem.id != id) {
       return;
@@ -135,7 +146,9 @@ abstract class _InfoController with Store {
       final incomingInterest = value.interest;
       final previousInterest = bangumiItem.interest;
       if (incomingInterest == null) {
-        bangumiItem.interest = null;
+        if (!preserveInterestWhenMissing) {
+          bangumiItem.interest = null;
+        }
       } else if (previousInterest == null || !previousInterest.hasUserProfile) {
         bangumiItem.interest = incomingInterest;
       } else {

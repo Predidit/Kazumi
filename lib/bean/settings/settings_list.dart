@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
 
 enum _TileKind { plain, toggle, radio }
-
-const double _outerRadius = 24;
-const double _innerRadius = 4;
-const double _rowGap = 4;
 
 class SettingsList extends StatelessWidget {
   const SettingsList({super.key, required this.sections, this.maxWidth = 1000});
@@ -84,7 +81,7 @@ class SettingsSplitGroup extends StatelessWidget {
   const SettingsSplitGroup({
     super.key,
     required this.children,
-    this.outerRadius = _outerRadius,
+    this.outerRadius = splitListOuterRadius,
   });
 
   final List<Widget> children;
@@ -94,85 +91,24 @@ class SettingsSplitGroup extends StatelessWidget {
   /// smaller scale passes theirs so the group sits level with them.
   final double outerRadius;
 
-  /// Hand to a row's [InkWell.onHighlightChanged] to drive the morph. Null
-  /// outside a group, which leaves the row's shape static.
-  static ValueChanged<bool>? pressReporterOf(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<_SplitRowScope>()
-        ?.onPressChanged;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (int i = 0; i < children.length; i++) ...[
-          if (i > 0) const SizedBox(height: _rowGap),
-          _SplitRow(
-            first: i == 0,
-            last: i == children.length - 1,
-            outerRadius: outerRadius,
+          if (i > 0) const SizedBox(height: splitListRowGap),
+          SplitListRow(
+            topRadius: i == 0 ? outerRadius : splitListInnerRadius,
+            bottomRadius:
+                i == children.length - 1 ? outerRadius : splitListInnerRadius,
+            pressedRadius: outerRadius,
             child: children[i],
           ),
         ],
       ],
     );
   }
-}
-
-class _SplitRow extends StatefulWidget {
-  const _SplitRow({
-    required this.first,
-    required this.last,
-    required this.outerRadius,
-    required this.child,
-  });
-
-  final bool first;
-  final bool last;
-  final double outerRadius;
-  final Widget child;
-
-  @override
-  State<_SplitRow> createState() => _SplitRowState();
-}
-
-class _SplitRowState extends State<_SplitRow> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final outer = widget.outerRadius;
-    final top = widget.first || _pressed ? outer : _innerRadius;
-    final bottom = widget.last || _pressed ? outer : _innerRadius;
-    return Material(
-      // Material animates its own shape, so the morph needs no controller.
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(top),
-          bottom: Radius.circular(bottom),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: _SplitRowScope(
-        onPressChanged: (pressed) => setState(() => _pressed = pressed),
-        child: widget.child,
-      ),
-    );
-  }
-}
-
-class _SplitRowScope extends InheritedWidget {
-  const _SplitRowScope({required this.onPressChanged, required super.child});
-
-  final ValueChanged<bool> onPressChanged;
-
-  // The callback always reaches the same state, so a rebuilt scope never
-  // obsoletes the one a row already holds.
-  @override
-  bool updateShouldNotify(_SplitRowScope oldWidget) => false;
 }
 
 /// A [SettingsSection] whose tiles form a single radio group, so arrow keys
@@ -279,7 +215,7 @@ class SettingsCategoryTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     return InkWell(
       onTap: onTap,
-      onHighlightChanged: SettingsSplitGroup.pressReporterOf(context),
+      onHighlightChanged: SplitListRow.pressReporterOf(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -493,7 +429,7 @@ class SettingsTile<T> extends StatelessWidget {
 
     return InkWell(
       onTap: _tapHandler(context),
-      onHighlightChanged: SettingsSplitGroup.pressReporterOf(context),
+      onHighlightChanged: SplitListRow.pressReporterOf(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: ConstrainedBox(

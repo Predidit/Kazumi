@@ -115,7 +115,7 @@ class PluginImportParser {
       try {
         final decoded = json.decode(kazumiBase64ToJson('$scheme$candidate'));
         if (decoded is Map) return '$scheme$candidate';
-      } on FormatException {
+      } catch (_) {
         // Try a shorter prefix in case prose follows the rule link.
       }
     }

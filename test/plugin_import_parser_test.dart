@@ -101,6 +101,15 @@ void main() {
       expect(result.failureCount, 1);
     });
 
+    test('keeps valid links after malformed percent encoding', () {
+      final result = PluginImportParser.parse(
+        'kazumi://%zz\n${linkFor(plugin('valid'))}',
+      );
+
+      expect(result.plugins.single.name, 'valid');
+      expect(result.failureCount, 1);
+    });
+
     test('keeps the last duplicate rule', () {
       final first = plugin('same')..version = '1.0';
       final second = plugin('SAME')..version = '2.0';

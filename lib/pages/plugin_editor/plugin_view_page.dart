@@ -149,7 +149,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: const ['json', 'txt'],
+        allowedExtensions: const ['json'],
         withData: true,
       );
       if (result == null) return;

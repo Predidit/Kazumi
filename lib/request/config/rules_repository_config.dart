@@ -23,29 +23,29 @@ class RulesRepositoryConfig {
       throw const FormatException('规则仓库地址不能包含查询参数或片段');
     }
 
-    var path = uri.path;
     final pathSegments =
         uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
     final lastSegment = pathSegments.isEmpty ? null : pathSegments.last;
+    late final List<String> directorySegments;
     if (lastSegment?.toLowerCase() == 'index.json') {
-      path = path.substring(0, path.length - 'index.json'.length);
+      directorySegments = pathSegments.sublist(0, pathSegments.length - 1);
     } else {
-      if (lastSegment != null && lastSegment.contains('.')) {
+      if (lastSegment != null &&
+          lastSegment.contains('.') &&
+          !uri.path.endsWith('/')) {
         throw const FormatException('规则仓库地址必须是目录或以 index.json 结尾');
       }
       if (uri.host.toLowerCase() == 'github.com') {
         throw const FormatException('请使用 raw 文件地址，不要使用 GitHub 仓库网页地址');
       }
-      if (!path.endsWith('/')) {
-        path = '$path/';
-      }
+      directorySegments = pathSegments;
     }
 
     return Uri(
       scheme: uri.scheme,
       host: uri.host,
       port: uri.hasPort ? uri.port : null,
-      path: path,
+      pathSegments: [...directorySegments, ''],
     );
   }
 

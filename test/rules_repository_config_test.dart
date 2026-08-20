@@ -27,6 +27,37 @@ void main() {
       );
     });
 
+    test('normalizes trailing and encoded index URL variants', () {
+      expect(
+        RulesRepositoryConfig.normalizeForStorage(
+          'https://example.com/rules/index.json/',
+        ),
+        'https://example.com/rules/',
+      );
+      expect(
+        RulesRepositoryConfig.normalizeForStorage(
+          'https://example.com/rules/%69ndex.json',
+        ),
+        'https://example.com/rules/',
+      );
+    });
+
+    test('accepts explicit directory URLs whose last segment contains dots',
+        () {
+      expect(
+        RulesRepositoryConfig.normalizeForStorage(
+          'https://example.com/rules/v1.2/',
+        ),
+        'https://example.com/rules/v1.2/',
+      );
+      expect(
+        RulesRepositoryConfig.normalizeForStorage(
+          'https://example.com/rules.d/',
+        ),
+        'https://example.com/rules.d/',
+      );
+    });
+
     test('normalizes official repository URLs back to the default setting', () {
       expect(
         RulesRepositoryConfig.normalizeForStorage(ApiEndpoints.pluginShop),

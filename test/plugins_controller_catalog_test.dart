@@ -31,6 +31,8 @@ void main() {
 
     controller.invalidatePluginCatalog();
     final repositoryRefresh = controller.refreshPluginCatalog();
+    expect(loadCount, 2);
+
     firstLoad.complete([catalogItem('old')]);
     await Future<void>.delayed(Duration.zero);
 

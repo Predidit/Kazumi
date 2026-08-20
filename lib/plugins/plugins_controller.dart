@@ -10,7 +10,6 @@ import 'package:kazumi/request/apis/plugin_catalog_api.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
-import 'package:kazumi/utils/async_single_flight.dart';
 import 'package:kazumi/utils/version.dart';
 
 part 'plugins_controller.g.dart';
@@ -77,8 +76,7 @@ abstract class _PluginsController with Store {
   final PluginLoader _pluginLoader;
   final PluginJsonWriter? _pluginJsonWriter;
   final PluginErrorReporter _errorReporter;
-  final AsyncSingleFlight<List<PluginHTTPItem>> _catalogRefreshSingleFlight =
-      AsyncSingleFlight<List<PluginHTTPItem>>();
+  Future<List<PluginHTTPItem>>? _pluginCatalogRefresh;
   final AsyncSerialQueue _mutations = AsyncSerialQueue();
   Map<String, PluginHTTPItem> _pluginCatalogByName = const {};
   DateTime? _pluginCatalogRefreshedAt;
@@ -216,6 +214,7 @@ abstract class _PluginsController with Store {
 
   void invalidatePluginCatalog() {
     _pluginCatalogGeneration++;
+    _pluginCatalogRefresh = null;
     _pluginCatalogRefreshedAt = null;
     _pluginCatalogByName = const {};
     pluginHTTPList.clear();
@@ -314,31 +313,52 @@ abstract class _PluginsController with Store {
   }
 
   Future<List<PluginHTTPItem>> refreshPluginCatalog() {
-    return _catalogRefreshSingleFlight.run(() async {
-      while (true) {
-        final generation = _pluginCatalogGeneration;
-        try {
-          final catalog = await _catalogLoader();
-          if (generation != _pluginCatalogGeneration) continue;
-          _pluginCatalogByName = {
-            for (final item in catalog) _catalogKey(item.name): item,
-          };
-          pluginHTTPList
-            ..clear()
-            ..addAll(catalog);
-          _pluginCatalogRefreshedAt = DateTime.now();
-          return List<PluginHTTPItem>.unmodifiable(catalog);
-        } catch (error, stackTrace) {
-          if (generation != _pluginCatalogGeneration) continue;
-          _errorReporter(
-            'Plugin: failed to refresh rule catalog',
-            error,
-            stackTrace,
-          );
-          rethrow;
-        }
+    final active = _pluginCatalogRefresh;
+    if (active != null) return active;
+
+    final refresh = _loadPluginCatalogGeneration(_pluginCatalogGeneration);
+    _pluginCatalogRefresh = refresh;
+    refresh.then<void>(
+      (_) => _clearPluginCatalogRefresh(refresh),
+      onError: (Object _, StackTrace __) => _clearPluginCatalogRefresh(refresh),
+    );
+    return refresh;
+  }
+
+  Future<List<PluginHTTPItem>> _loadPluginCatalogGeneration(
+    int generation,
+  ) async {
+    late final List<PluginHTTPItem> catalog;
+    try {
+      catalog = await _catalogLoader();
+    } catch (error, stackTrace) {
+      if (generation != _pluginCatalogGeneration) {
+        return refreshPluginCatalog();
       }
-    });
+      _errorReporter(
+        'Plugin: failed to refresh rule catalog',
+        error,
+        stackTrace,
+      );
+      rethrow;
+    }
+    if (generation != _pluginCatalogGeneration) {
+      return refreshPluginCatalog();
+    }
+    _pluginCatalogByName = {
+      for (final item in catalog) _catalogKey(item.name): item,
+    };
+    pluginHTTPList
+      ..clear()
+      ..addAll(catalog);
+    _pluginCatalogRefreshedAt = DateTime.now();
+    return List<PluginHTTPItem>.unmodifiable(catalog);
+  }
+
+  void _clearPluginCatalogRefresh(Future<List<PluginHTTPItem>> refresh) {
+    if (identical(_pluginCatalogRefresh, refresh)) {
+      _pluginCatalogRefresh = null;
+    }
   }
 
   Future<List<PluginHTTPItem>> ensurePluginCatalog() {

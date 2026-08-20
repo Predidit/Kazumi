@@ -31,6 +31,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.setPlaybackSpeed,
     required this.showDanmakuSwitch,
     required this.handleFullscreen,
+    required this.enterAndroidPictureInPicture,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarSeek,
     required this.handleSuperResolutionChange,
@@ -53,6 +54,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() handleDanmaku;
   final void Function() skipOP;
   final void Function() handleFullscreen;
+  final Future<void> Function() enterAndroidPictureInPicture;
   final VoidCallback handleProgressBarDragStart;
   final Future<void> Function(Duration duration) handleProgressBarSeek;
   final Future<void> Function(SuperResolutionMode mode)
@@ -496,24 +498,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     videoPageController.isPip = !videoPageController.isPip;
                     return;
                   }
-                  final bool supported = await PipUtils.isAndroidPIPSupported();
-                  if (!supported) {
-                    KazumiDialog.showToast(message: '当前设备不支持画中画');
-                    return;
-                  }
-                  await PipUtils.updateAndroidPIPActions(
-                    playing: playerController.playback.playing,
-                    danmakuEnabled: playerController.danmaku.danmakuOn,
-                    width: playerController.debug.playerWidth,
-                    height: playerController.debug.playerHeight,
-                  );
-                  final bool entered = await PipUtils.enterAndroidPIPWindow(
-                    width: playerController.debug.playerWidth,
-                    height: playerController.debug.playerHeight,
-                  );
-                  if (!entered) {
-                    KazumiDialog.showToast(message: '进入画中画失败');
-                  }
+                  await widget.enterAndroidPictureInPicture();
                 },
                 tooltip: '画中画',
                 icon:

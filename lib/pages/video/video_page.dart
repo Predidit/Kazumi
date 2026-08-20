@@ -27,6 +27,7 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
+import 'package:mobx/mobx.dart' as mobx;
 
 class VideoPage extends StatefulWidget {
   const VideoPage({
@@ -77,6 +78,7 @@ class _VideoPageState extends State<VideoPage>
   late final bool disableAnimations;
 
   StreamSubscription<SyncPlayChatMessage>? _syncChatSubscription;
+  late final mobx.ReactionDisposer _pipModeListener;
 
   static const Duration _offlinePlayerInitDelay = Duration(milliseconds: 400);
   static const Duration _sideTabAnimationDuration = Duration(milliseconds: 120);
@@ -112,6 +114,32 @@ class _VideoPageState extends State<VideoPage>
     playResume = GStorage.getSetting(SettingsKeys.playResume);
     disableAnimations =
         GStorage.getSetting(SettingsKeys.playerDisableAnimations);
+    _pipModeListener = mobx.reaction<bool>(
+      (_) => videoPageController.isPip,
+      (_) => _syncFullscreenWithWindowShape(),
+    );
+  }
+
+  bool get _windowIsLandscape {
+    final Size window = MediaQuery.sizeOf(context);
+    return window.width > window.height;
+  }
+
+  /// The fullscreen switch has two inputs, the window shape and the picture in
+  /// picture state, and they arrive over different channels in either order, so
+  /// it settles on both. A picture in picture window is not an orientation.
+  void _syncFullscreenWithWindowShape() {
+    if (isDesktop() || videoPageController.isPip) {
+      return;
+    }
+    final bool landscape = _windowIsLandscape;
+    if (landscape && !videoPageController.isFullscreen) {
+      _hideTabBodyImmediately();
+      videoPageController.enterFullScreen();
+    } else if (!landscape && videoPageController.isFullscreen) {
+      videoPageController.exitFullScreen();
+      _showTabBodyImmediately();
+    }
   }
 
   @override
@@ -236,6 +264,7 @@ class _VideoPageState extends State<VideoPage>
     try {
       _logSubscription?.cancel();
     } catch (_) {}
+    _pipModeListener();
     // Cancellation and log-stream teardown happen in VideoPageController's
     // own dispose when Modular releases the route scope.
     if (!isDesktop()) {
@@ -314,8 +343,7 @@ class _VideoPageState extends State<VideoPage>
     });
   }
 
-  bool get _isSideTabLayout =>
-      MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
+  bool get _isSideTabLayout => _windowIsLandscape;
 
   bool get _canAnimateSideTab =>
       mounted && _isSideTabLayout && !disableAnimations;
@@ -564,8 +592,8 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   Widget build(BuildContext context) {
-    final bool isLandscape =
-        MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
+    final bool isLandscape = _windowIsLandscape;
+    _syncFullscreenWithWindowShape();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -580,69 +608,60 @@ class _VideoPageState extends State<VideoPage>
         }
         onBackPressed(context);
       },
-      child: OrientationBuilder(builder: (context, orientation) {
-        if (!isDesktop()) {
-          if (orientation == Orientation.landscape &&
-              !videoPageController.isFullscreen) {
-            _hideTabBodyImmediately();
-            videoPageController.enterFullScreen();
-          } else if (orientation == Orientation.portrait &&
-              videoPageController.isFullscreen) {
-            videoPageController.exitFullScreen();
-            _showTabBodyImmediately();
-          }
-        }
-        return Observer(builder: (context) {
-          return Scaffold(
-            appBar: null,
-            body: SafeArea(
-                top: !videoPageController.isFullscreen,
-                // set iOS and Android navigation bar to immersive
-                bottom: false,
-                left: !videoPageController.isFullscreen,
-                right: !videoPageController.isFullscreen,
-                child: Stack(
-                  alignment: Alignment.centerRight,
-                  children: [
-                    Column(
-                      children: [
-                        Flexible(
-                          flex: isLandscape ? 1 : 0,
-                          child: Container(
-                            color: Colors.black,
-                            height: isLandscape
-                                ? MediaQuery.sizeOf(context).height
-                                : MediaQuery.sizeOf(context).width * 9 / 16,
-                            width: MediaQuery.sizeOf(context).width,
-                            child: Focus(
-                              focusNode: keyboardFocus,
-                              autofocus: true,
-                              child: playerBody,
-                            ),
+      child: Observer(builder: (context) {
+        final bool isPip = videoPageController.isPip;
+        final bool videoFillsWindow = isLandscape || isPip;
+        return Scaffold(
+          appBar: null,
+          body: SafeArea(
+              top: !videoPageController.isFullscreen && !isPip,
+              // set iOS and Android navigation bar to immersive
+              bottom: false,
+              left: !videoPageController.isFullscreen && !isPip,
+              right: !videoPageController.isFullscreen && !isPip,
+              child: Stack(
+                alignment: Alignment.centerRight,
+                children: [
+                  Column(
+                    children: [
+                      Flexible(
+                        flex: videoFillsWindow ? 1 : 0,
+                        child: Container(
+                          color: Colors.black,
+                          height: videoFillsWindow
+                              ? MediaQuery.sizeOf(context).height
+                              : MediaQuery.sizeOf(context).width * 9 / 16,
+                          width: MediaQuery.sizeOf(context).width,
+                          child: Focus(
+                            focusNode: keyboardFocus,
+                            autofocus: true,
+                            child: playerBody,
                           ),
                         ),
-                        if (!isLandscape) Expanded(child: tabBody),
-                      ],
-                    ),
-                    if (isLandscape && videoPageController.showTabBody) ...[
-                      if (disableAnimations) ...[
-                        sideTabMask,
-                        sideTabBody,
-                      ] else ...[
-                        FadeTransition(
-                          opacity: _maskOpacityAnimation,
-                          child: sideTabMask,
-                        ),
-                        SlideTransition(
-                          position: _rightOffsetAnimation,
-                          child: sideTabBody,
-                        ),
-                      ],
+                      ),
+                      if (!videoFillsWindow) Expanded(child: tabBody),
+                    ],
+                  ),
+                  if (isLandscape &&
+                      videoPageController.showTabBody &&
+                      !isPip) ...[
+                    if (disableAnimations) ...[
+                      sideTabMask,
+                      sideTabBody,
+                    ] else ...[
+                      FadeTransition(
+                        opacity: _maskOpacityAnimation,
+                        child: sideTabMask,
+                      ),
+                      SlideTransition(
+                        position: _rightOffsetAnimation,
+                        child: sideTabBody,
+                      ),
                     ],
                   ],
-                )),
-          );
-        });
+                ],
+              )),
+        );
       }),
     );
   }

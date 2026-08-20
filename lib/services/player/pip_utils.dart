@@ -57,6 +57,7 @@ class PipUtils {
     required bool danmakuEnabled,
     int width = 16,
     int height = 9,
+    Rect? sourceRect,
   }) async {
     if (!Platform.isAndroid) {
       return;
@@ -69,6 +70,12 @@ class PipUtils {
         'danmakuEnabled': danmakuEnabled,
         'width': aspectSize.width.toInt(),
         'height': aspectSize.height.toInt(),
+        if (sourceRect != null) ...{
+          'sourceLeft': sourceRect.left.round(),
+          'sourceTop': sourceRect.top.round(),
+          'sourceRight': sourceRect.right.round(),
+          'sourceBottom': sourceRect.bottom.round(),
+        },
       });
     } on PlatformException catch (e) {
       KazumiLogger().e("Failed to update Android PIP actions: '${e.message}'.");
@@ -127,21 +134,31 @@ class PipUtils {
 
   static void initPipHandler({
     required Future<void> Function(String action) onAction,
+    required void Function(bool inPipMode) onModeChanged,
   }) {
     const MethodChannel pipChannel = MethodChannel('com.predidit.kazumi/pip');
     if (androidPIPInited) return;
     androidPIPInited = true;
 
     pipChannel.setMethodCallHandler((call) async {
-      if (!Platform.isAndroid || call.method != 'onAction') {
+      if (!Platform.isAndroid) {
         return;
       }
 
-      final args = call.arguments;
-      final String? action = (args is Map) ? args['action'] as String? : null;
+      final Object? args = call.arguments;
+      final Map? arguments = (args is Map) ? args : null;
 
-      if (action != null) {
-        await onAction(action);
+      switch (call.method) {
+        case 'onModeChanged':
+          final bool? inPipMode = arguments?['isInPipMode'] as bool?;
+          if (inPipMode != null) {
+            onModeChanged(inPipMode);
+          }
+        case 'onAction':
+          final String? action = arguments?['action'] as String?;
+          if (action != null) {
+            await onAction(action);
+          }
       }
     });
   }

@@ -35,6 +35,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showDanmakuSwitch,
     required this.changeEpisode,
     required this.handleFullscreen,
+    required this.enterAndroidPictureInPicture,
     required this.handleScreenShot,
     required this.handlePreNextEpisode,
     required this.handleProgressBarDragStart,
@@ -63,6 +64,7 @@ class PlayerItemPanel extends StatefulWidget {
   final Future<void> Function(int, {int currentRoad, int offset}) changeEpisode;
   final void Function() toggleMenu;
   final void Function() handleFullscreen;
+  final Future<void> Function() enterAndroidPictureInPicture;
   final void Function() handleScreenShot;
   final VoidCallback handleProgressBarDragStart;
   final Future<void> Function(Duration duration) handleProgressBarSeek;
@@ -1010,25 +1012,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       videoPageController.isPip = !videoPageController.isPip;
                       return;
                     }
-                    final bool supported =
-                        await PipUtils.isAndroidPIPSupported();
-                    if (!supported) {
-                      KazumiDialog.showToast(message: '当前设备不支持画中画');
-                      return;
-                    }
-                    await PipUtils.updateAndroidPIPActions(
-                      playing: playerController.playback.playing,
-                      danmakuEnabled: playerController.danmaku.danmakuOn,
-                      width: playerController.debug.playerWidth,
-                      height: playerController.debug.playerHeight,
-                    );
-                    final bool entered = await PipUtils.enterAndroidPIPWindow(
-                      width: playerController.debug.playerWidth,
-                      height: playerController.debug.playerHeight,
-                    );
-                    if (!entered) {
-                      KazumiDialog.showToast(message: '进入画中画失败');
-                    }
+                    await widget.enterAndroidPictureInPicture();
                   },
                   tooltip: '画中画',
                   icon: const Icon(

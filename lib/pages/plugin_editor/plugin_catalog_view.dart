@@ -163,15 +163,20 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _buildLoadError() {
     final enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
+    final customRepository = GStorage.getSetting(
+      SettingsKeys.ruleRepositoryUrl,
+    ).isNotEmpty;
     return Center(
       child: GeneralErrorWidget(
-        errMsg:
-            '${widget.errorMessage}\n${enableGitProxy ? '规则仓库镜像已启用' : '规则仓库镜像已禁用'}',
+        errMsg: customRepository
+            ? '${widget.errorMessage}\n当前使用自定义规则仓库'
+            : '${widget.errorMessage}\n${enableGitProxy ? '规则仓库镜像已启用' : '规则仓库镜像已禁用'}',
         actions: [
-          GeneralErrorButton(
-            onPressed: () => unawaited(_toggleGitProxyAndRefresh()),
-            text: enableGitProxy ? '禁用规则镜像' : '启用规则镜像',
-          ),
+          if (!customRepository)
+            GeneralErrorButton(
+              onPressed: () => unawaited(_toggleGitProxyAndRefresh()),
+              text: enableGitProxy ? '禁用规则镜像' : '启用规则镜像',
+            ),
           GeneralErrorButton(onPressed: refresh, text: '刷新'),
         ],
       ),

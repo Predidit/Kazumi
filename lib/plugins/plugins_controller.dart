@@ -264,6 +264,17 @@ abstract class _PluginsController with Store {
     );
   }
 
+  Future<void> updatePlugins(Iterable<Plugin> plugins) {
+    return _mutateAndPersist(
+      () {
+        for (final plugin in plugins) {
+          _replacePlugin(plugin);
+        }
+      },
+      errorMessage: 'Plugin: failed to persist imported rules',
+    );
+  }
+
   Future<void> onReorder(int oldIndex, int newIndex) {
     final previous = List<Plugin>.from(pluginList);
     final plugin = pluginList.removeAt(oldIndex);

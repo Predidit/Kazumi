@@ -24,6 +24,9 @@ class PluginImportParser {
     r'kazumi:(?://)?',
     caseSensitive: false,
   );
+  static final RegExp _ruleLinkPayloadPrefixPattern = RegExp(
+    r'^[A-Za-z0-9+/_=%\-\s]+',
+  );
 
   static PluginImportParseResult parse(String input) {
     final value = input.trim();
@@ -64,7 +67,7 @@ class PluginImportParser {
               ? matches[index + 1].start
               : value.length;
           _parseEntry(
-            value.substring(matches[index].start, end).trim(),
+            _extractRuleLink(value, matches[index], end),
             index + 1,
             parsed,
             failures,
@@ -88,6 +91,35 @@ class PluginImportParser {
       failures: List.unmodifiable(failures),
       duplicateCount: duplicateCount,
     );
+  }
+
+  static String _extractRuleLink(String input, Match schemeMatch, int end) {
+    final scheme = schemeMatch.group(0)!;
+    final rawPayload = input.substring(schemeMatch.end, end);
+    final payload = _ruleLinkPayloadPrefixPattern
+        .firstMatch(rawPayload)
+        ?.group(0)
+        ?.trimRight();
+    if (payload == null || payload.isEmpty) return scheme;
+
+    final candidates = <String>[payload];
+    final whitespaceMatches = RegExp(r'\s+').allMatches(payload).toList();
+    for (final whitespaceMatch in whitespaceMatches.reversed) {
+      final candidate = payload.substring(0, whitespaceMatch.start).trimRight();
+      if (candidate.isNotEmpty && candidate != candidates.last) {
+        candidates.add(candidate);
+      }
+    }
+
+    for (final candidate in candidates) {
+      try {
+        final decoded = json.decode(kazumiBase64ToJson('$scheme$candidate'));
+        if (decoded is Map) return '$scheme$candidate';
+      } on FormatException {
+        // Try a shorter prefix in case prose follows the rule link.
+      }
+    }
+    return '$scheme$payload';
   }
 
   static void _parseEntry(

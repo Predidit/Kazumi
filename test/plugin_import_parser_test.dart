@@ -62,6 +62,27 @@ void main() {
       expect(result.failureCount, 0);
     });
 
+    test('ignores prose after a rule link', () {
+      final link = linkFor(plugin('shared'));
+
+      final chineseResult = PluginImportParser.parse('$link 谢谢分享');
+      final englishResult = PluginImportParser.parse('$link thanks');
+
+      expect(chineseResult.plugins.single.name, 'shared');
+      expect(chineseResult.failureCount, 0);
+      expect(englishResult.plugins.single.name, 'shared');
+      expect(englishResult.failureCount, 0);
+    });
+
+    test('imports links separated by punctuation', () {
+      final result = PluginImportParser.parse(
+        '${linkFor(plugin('one'))}、${linkFor(plugin('two'))}',
+      );
+
+      expect(result.plugins.map((item) => item.name), ['one', 'two']);
+      expect(result.failureCount, 0);
+    });
+
     test('imports a JSON array of rules', () {
       final result = PluginImportParser.parse(
         jsonEncode([plugin('one').toJson(), plugin('two').toJson()]),

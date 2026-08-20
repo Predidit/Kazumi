@@ -31,61 +31,25 @@ class _PluginShopPageState extends State<PluginShopPage> {
 
   Future<void> _configureRepository() async {
     final currentUrl = GStorage.getSetting(SettingsKeys.ruleRepositoryUrl);
-    final textController = TextEditingController(text: currentUrl);
     final result = await KazumiDialog.show<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('设置规则仓库'),
-        content: SizedBox(
-          width: 520,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('仅添加你信任的仓库。第三方规则会访问其声明的网站和接口。'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: textController,
-                autofocus: true,
-                keyboardType: TextInputType.url,
-                decoration: InputDecoration(
-                  labelText: '仓库地址',
-                  hintText: ApiEndpoints.pluginShop,
-                  helperText: '填写包含 index.json 的目录，或直接粘贴 index.json URL',
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(''),
-            child: const Text('恢复官方仓库'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(textController.text),
-            child: const Text('保存'),
-          ),
-        ],
+      builder: (_) => _RepositoryDialog(
+        initialUrl: currentUrl,
       ),
     );
-    textController.dispose();
     if (result == null) return;
 
     try {
       final normalized = RulesRepositoryConfig.normalizeForStorage(result);
       await GStorage.putSetting(SettingsKeys.ruleRepositoryUrl, normalized);
-      catalogKey.currentState?.refresh();
+      widget.controller.invalidatePluginCatalog();
+      final refreshed = await catalogKey.currentState?.refresh() ?? false;
       if (!mounted) return;
       KazumiDialog.showToast(
         context: context,
-        message: normalized.isEmpty ? '已恢复官方规则仓库' : '已切换规则仓库',
+        message: refreshed
+            ? (normalized.isEmpty ? '已恢复官方规则仓库' : '已切换规则仓库')
+            : '仓库地址已保存，但目录加载失败',
       );
     } on FormatException catch (error) {
       if (!mounted) return;
@@ -121,6 +85,74 @@ class _PluginShopPageState extends State<PluginShopPage> {
             sortByName ? PluginCatalogSort.name : PluginCatalogSort.lastUpdate,
         errorMessage: '啊咧（⊙.⊙） 无法访问规则仓库',
       ),
+    );
+  }
+}
+
+class _RepositoryDialog extends StatefulWidget {
+  const _RepositoryDialog({required this.initialUrl});
+
+  final String initialUrl;
+
+  @override
+  State<_RepositoryDialog> createState() => _RepositoryDialogState();
+}
+
+class _RepositoryDialogState extends State<_RepositoryDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialUrl);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('设置规则仓库'),
+      content: SizedBox(
+        width: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('仅添加你信任的仓库。第三方规则会访问其声明的网站和接口。'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              keyboardType: TextInputType.url,
+              decoration: const InputDecoration(
+                labelText: '仓库地址',
+                hintText: ApiEndpoints.pluginShop,
+                helperText: '填写包含 index.json 的目录，或直接粘贴 index.json URL',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(''),
+          child: const Text('恢复官方仓库'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('保存'),
+        ),
+      ],
     );
   }
 }

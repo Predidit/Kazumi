@@ -82,6 +82,7 @@ abstract class _PluginsController with Store {
   final AsyncSerialQueue _mutations = AsyncSerialQueue();
   Map<String, PluginHTTPItem> _pluginCatalogByName = const {};
   DateTime? _pluginCatalogRefreshedAt;
+  int _pluginCatalogGeneration = 0;
   int _optimisticReorderRevision = 0;
 
   // Reuse a recent catalog across startup, the rule list, and the rule shop.
@@ -213,6 +214,13 @@ abstract class _PluginsController with Store {
         DateTime.now().difference(refreshedAt) < _pluginCatalogMaxAge;
   }
 
+  void invalidatePluginCatalog() {
+    _pluginCatalogGeneration++;
+    _pluginCatalogRefreshedAt = null;
+    _pluginCatalogByName = const {};
+    pluginHTTPList.clear();
+  }
+
   void _replacePlugin(Plugin plugin) {
     bool flag = false;
     for (int i = 0; i < pluginList.length; ++i) {
@@ -307,23 +315,28 @@ abstract class _PluginsController with Store {
 
   Future<List<PluginHTTPItem>> refreshPluginCatalog() {
     return _catalogRefreshSingleFlight.run(() async {
-      try {
-        final catalog = await _catalogLoader();
-        _pluginCatalogByName = {
-          for (final item in catalog) _catalogKey(item.name): item,
-        };
-        pluginHTTPList
-          ..clear()
-          ..addAll(catalog);
-        _pluginCatalogRefreshedAt = DateTime.now();
-        return List<PluginHTTPItem>.unmodifiable(catalog);
-      } catch (error, stackTrace) {
-        _errorReporter(
-          'Plugin: failed to refresh rule catalog',
-          error,
-          stackTrace,
-        );
-        rethrow;
+      while (true) {
+        final generation = _pluginCatalogGeneration;
+        try {
+          final catalog = await _catalogLoader();
+          if (generation != _pluginCatalogGeneration) continue;
+          _pluginCatalogByName = {
+            for (final item in catalog) _catalogKey(item.name): item,
+          };
+          pluginHTTPList
+            ..clear()
+            ..addAll(catalog);
+          _pluginCatalogRefreshedAt = DateTime.now();
+          return List<PluginHTTPItem>.unmodifiable(catalog);
+        } catch (error, stackTrace) {
+          if (generation != _pluginCatalogGeneration) continue;
+          _errorReporter(
+            'Plugin: failed to refresh rule catalog',
+            error,
+            stackTrace,
+          );
+          rethrow;
+        }
       }
     });
   }

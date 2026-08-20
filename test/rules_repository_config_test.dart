@@ -18,12 +18,35 @@ void main() {
       );
     });
 
-    test('accepts a direct index URL and removes query and fragment', () {
+    test('accepts a case-insensitive direct index URL', () {
       expect(
         RulesRepositoryConfig.normalizeForStorage(
-          'https://example.com/rules/index.json?cache=1#catalog',
+          'https://example.com/rules/INDEX.JSON',
         ),
         'https://example.com/rules/',
+      );
+    });
+
+    test('normalizes official repository URLs back to the default setting', () {
+      expect(
+        RulesRepositoryConfig.normalizeForStorage(ApiEndpoints.pluginShop),
+        isEmpty,
+      );
+      expect(
+        RulesRepositoryConfig.normalizeForStorage(
+          '${ApiEndpoints.pluginShop}index.json',
+        ),
+        isEmpty,
+      );
+      expect(
+        RulesRepositoryConfig.isCustomRepository(ApiEndpoints.pluginShop),
+        isFalse,
+      );
+      expect(
+        RulesRepositoryConfig.isCustomRepository(
+          'https://example.com/rules/',
+        ),
+        isTrue,
       );
     });
 
@@ -46,6 +69,42 @@ void main() {
       );
       expect(
         () => RulesRepositoryConfig.baseUri('example.com/rules'),
+        throwsFormatException,
+      );
+    });
+
+    test('rejects URLs with credentials, query parameters or fragments', () {
+      expect(
+        () => RulesRepositoryConfig.baseUri(
+          'https://user:pass@example.com/rules/',
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => RulesRepositoryConfig.baseUri(
+          'https://example.com/rules/index.json?cache=1',
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => RulesRepositoryConfig.baseUri(
+          'https://example.com/rules/#catalog',
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('rejects file URLs and GitHub repository pages', () {
+      expect(
+        () => RulesRepositoryConfig.baseUri(
+          'https://example.com/rules/catalog.json',
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => RulesRepositoryConfig.baseUri(
+          'https://github.com/example/rules',
+        ),
         throwsFormatException,
       );
     });

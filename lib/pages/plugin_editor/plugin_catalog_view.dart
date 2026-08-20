@@ -7,6 +7,7 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/request/config/rules_repository_config.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 enum PluginCatalogSort { lastUpdate, name }
@@ -49,41 +50,42 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
     }
   }
 
-  Future<void> _loadPluginCatalog({bool forceRefresh = false}) async {
+  Future<bool> _loadPluginCatalog({bool forceRefresh = false}) async {
     try {
       if (forceRefresh) {
         await _controller.refreshPluginCatalog();
       } else {
         await _controller.ensurePluginCatalog();
       }
-      if (!mounted) return;
+      if (!mounted) return true;
       setState(() {
         _loading = false;
         _loadFailed = false;
       });
+      return true;
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() {
         _loading = false;
         _loadFailed = true;
       });
+      return false;
     }
   }
 
-  void refresh() {
-    if (_loading) return;
+  Future<bool> refresh() {
     setState(() {
       _loading = true;
       _loadFailed = false;
     });
-    unawaited(_loadPluginCatalog(forceRefresh: true));
+    return _loadPluginCatalog(forceRefresh: true);
   }
 
   Future<void> _toggleGitProxyAndRefresh() async {
     final enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
     await GStorage.putSetting(SettingsKeys.enableGitProxy, !enableGitProxy);
     if (!mounted) return;
-    refresh();
+    await refresh();
   }
 
   List<PluginHTTPItem> _sortedItems() {
@@ -163,9 +165,9 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _buildLoadError() {
     final enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
-    final customRepository = GStorage.getSetting(
-      SettingsKeys.ruleRepositoryUrl,
-    ).isNotEmpty;
+    final customRepository = RulesRepositoryConfig.isCustomRepository(
+      GStorage.getSetting(SettingsKeys.ruleRepositoryUrl),
+    );
     return Center(
       child: GeneralErrorWidget(
         errMsg: customRepository
@@ -177,7 +179,10 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
               onPressed: () => unawaited(_toggleGitProxyAndRefresh()),
               text: enableGitProxy ? '禁用规则镜像' : '启用规则镜像',
             ),
-          GeneralErrorButton(onPressed: refresh, text: '刷新'),
+          GeneralErrorButton(
+            onPressed: () => unawaited(refresh()),
+            text: '刷新',
+          ),
         ],
       ),
     );
@@ -207,7 +212,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             IconButton(
-              onPressed: refresh,
+              onPressed: () => unawaited(refresh()),
               tooltip: '刷新规则列表',
               icon: const Icon(Icons.refresh_rounded),
             ),

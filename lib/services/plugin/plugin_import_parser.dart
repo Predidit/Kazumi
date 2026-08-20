@@ -20,8 +20,8 @@ class PluginImportParseResult {
 class PluginImportParser {
   const PluginImportParser._();
 
-  static final RegExp _ruleLinkPattern = RegExp(
-    r'kazumi:(?://)?[A-Za-z0-9+/_=%-]+',
+  static final RegExp _ruleLinkSchemePattern = RegExp(
+    r'kazumi:(?://)?',
     caseSensitive: false,
   );
 
@@ -55,12 +55,20 @@ class PluginImportParser {
         _parseEntry(jsonValue, 1, parsed, failures);
       }
     } else {
-      final matches = _ruleLinkPattern.allMatches(value).toList();
+      final matches = _ruleLinkSchemePattern.allMatches(value).toList();
       if (matches.isEmpty) {
         failures.add('未找到有效的 JSON 或 kazumi:// 规则链接');
       } else {
         for (var index = 0; index < matches.length; index++) {
-          _parseEntry(matches[index].group(0), index + 1, parsed, failures);
+          final end = index + 1 < matches.length
+              ? matches[index + 1].start
+              : value.length;
+          _parseEntry(
+            value.substring(matches[index].start, end).trim(),
+            index + 1,
+            parsed,
+            failures,
+          );
         }
       }
     }

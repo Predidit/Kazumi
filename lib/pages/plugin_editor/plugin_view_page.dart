@@ -183,9 +183,9 @@ class _PluginViewPageState extends State<PluginViewPage> {
       return;
     }
 
+    if (dismissDialog) KazumiDialog.dismiss();
     try {
       await pluginsController.updatePlugins(result.plugins);
-      if (dismissDialog) KazumiDialog.dismiss();
       if (mounted) setState(() {});
       KazumiDialog.showToast(
         message: '导入完成：成功 ${result.plugins.length} 条，'
@@ -197,7 +197,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
         error: error,
         stackTrace: stackTrace,
       );
-      if (dismissDialog) KazumiDialog.dismiss();
       KazumiDialog.showToast(message: '保存导入规则失败：$error');
     }
   }

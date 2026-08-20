@@ -35,6 +35,33 @@ void main() {
       expect(result.duplicateCount, 0);
     });
 
+    test('imports a rule link wrapped across lines', () {
+      final link = linkFor(plugin('wrapped'));
+      final splitAt = link.length ~/ 2;
+      final wrapped = '${link.substring(0, splitAt)}\n'
+          '  ${link.substring(splitAt)}';
+
+      final result = PluginImportParser.parse(wrapped);
+
+      expect(result.plugins.single.name, 'wrapped');
+      expect(result.failureCount, 0);
+    });
+
+    test('does not merge adjacent wrapped rule links', () {
+      String wrap(String link) {
+        final splitAt = link.length ~/ 2;
+        return '${link.substring(0, splitAt)}\n${link.substring(splitAt)}';
+      }
+
+      final result = PluginImportParser.parse(
+        '${wrap(linkFor(plugin('one')))}\n'
+        '${wrap(linkFor(plugin('two')))}',
+      );
+
+      expect(result.plugins.map((item) => item.name), ['one', 'two']);
+      expect(result.failureCount, 0);
+    });
+
     test('imports a JSON array of rules', () {
       final result = PluginImportParser.parse(
         jsonEncode([plugin('one').toJson(), plugin('two').toJson()]),

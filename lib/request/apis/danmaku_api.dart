@@ -82,6 +82,7 @@ class DanmakuApi {
     var endPoint = ApiEndpoints.dandanAPIDomain + path;
     Map<String, String> keywordMap = {
       'keyword': title,
+      'v2': 'true',
     };
 
     final jsonData = await _client.get(endPoint, queryParameters: keywordMap);

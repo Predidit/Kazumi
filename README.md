@@ -90,19 +90,13 @@
 
 #### Arch Linux
 
-可以从 [AUR](http://aur.archlinux.org) 或 [archlinuxcn](https://github.com/archlinuxcn/repo) 安装。
+可以从 [AUR](http://aur.archlinux.org) 安装。
 
 ##### AUR
 
 ```bash
 [yay/paru] -S kazumi # 从源码构建
 [yay/paru] -S kazumi-bin # 二进制包
-```
-
-##### archlinuxcn
-
-```bash
-sudo pacman -S kazumi
 ```
 
 ## 贡献

@@ -13,6 +13,11 @@ import 'package:kazumi/services/download/download_manager.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
 import 'package:kazumi/services/player/history_playback_service.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
+import 'package:kazumi/services/backup/backup_controller.dart';
+import 'package:kazumi/services/backup/backup_service.dart';
+import 'package:kazumi/services/backup/backup_ports.dart';
+import 'package:kazumi/repositories/backup_data_repository.dart';
+import 'package:kazumi/plugins/plugins_backup_repository.dart';
 
 /// Root-owned application data and cross-feature coordinators.
 ///
@@ -28,16 +33,22 @@ final coreModule = createModule(
       ..addSingleton<ICollectCrudRepository>(CollectCrudRepository.new)
       ..addSingleton<IHistoryRepository>(HistoryRepository.new)
       ..addSingleton<IDownloadRepository>(DownloadRepository.new)
+      ..addSingleton<PluginsController>(PluginsController.new)
+      ..addSingleton<CollectiblesBackupPort>(CollectiblesBackupRepository.new)
+      ..addSingleton<HistoriesBackupPort>(HistoriesBackupRepository.new)
+      ..addSingleton<SettingsBackupPort>(SettingsBackupRepository.new)
+      ..addSingleton<PluginsBackupPort>(PluginsBackupRepository.new)
       // Service layer.
       ..addSingleton<IDownloadManager>(DownloadManager.new)
       ..addSingleton<AudioController>(AudioController.new)
       ..addSingleton<HistoryPlaybackService>(HistoryPlaybackService.new)
       ..addSingleton<ShaderAssetService>(ShaderAssetService.new)
+      ..addSingleton<BackupService>(BackupService.new)
       // Cross-feature state and coordinators.
-      ..addSingleton<PluginsController>(PluginsController.new)
       ..addSingleton<CollectController>(CollectController.new)
       ..addSingleton<HistoryController>(HistoryController.new)
       ..addSingleton<MyController>(MyController.new)
-      ..addSingleton<DownloadController>(DownloadController.new);
+      ..addSingleton<DownloadController>(DownloadController.new)
+      ..addSingleton<BackupController>(BackupController.new);
   },
 );

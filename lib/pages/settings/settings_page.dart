@@ -13,6 +13,7 @@ import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_settings_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
+import 'package:kazumi/pages/settings/backup_settings_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_setting.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -122,6 +123,13 @@ final List<_SettingsGroup> _settingsGroups = [
   _SettingsGroup(
     title: '其他',
     categories: [
+      _SettingsCategory(
+        id: 'backup',
+        label: '备份与恢复',
+        description: '导入或导出应用数据',
+        icon: Icons.backup_rounded,
+        builder: (_) => const BackupSettingsPage(),
+      ),
       _SettingsCategory(
         id: 'about',
         label: '关于',

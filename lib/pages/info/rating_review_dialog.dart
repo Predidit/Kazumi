@@ -651,11 +651,10 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                         ? '最多 $_maxSelectedTags 个标签'
                         : null,
                     errorText: _tagErrorText,
-                    filled: true,
-                    fillColor: colorScheme.surfaceContainerLow,
+                    // Outlined, not filled: this field floats a label, and
+                    // only the outline can notch around it.
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),

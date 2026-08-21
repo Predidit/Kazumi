@@ -56,36 +56,28 @@ Future<T?> _showStep<T>(BuildContext context, WidgetBuilder builder) {
 String _readEndPoint() =>
     GStorage.getSetting<String>(SettingsKeys.syncPlayEndPoint);
 
-/// Filled and borderless on the same tonal surface as the sheet's cards; a
-/// default outlined field reads as a cut-out against them.
-InputDecoration _sheetInputDecoration(
-  BuildContext context, {
+/// M3 outlined field on the sheet's tonal cards, carrying the cards' radius
+/// instead of the 4dp baseline.
+///
+/// Outlined rather than filled: these fields float a label, and only the
+/// outline can notch around it. A fill would slice the label along the
+/// container's top edge.
+InputDecoration _sheetInputDecoration({
   required String labelText,
   required IconData icon,
   String? hintText,
   String? helperText,
   String? errorText,
 }) {
-  final ColorScheme colorScheme = Theme.of(context).colorScheme;
-  OutlineInputBorder border(BorderSide side) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: side,
-      );
-
   return InputDecoration(
     labelText: labelText,
     hintText: hintText,
     helperText: helperText,
     errorText: errorText,
     prefixIcon: Icon(icon),
-    filled: true,
-    fillColor: colorScheme.surfaceContainerLow,
-    hoverColor: colorScheme.surfaceContainer,
-    border: border(BorderSide.none),
-    enabledBorder: border(BorderSide.none),
-    focusedBorder: border(BorderSide(color: colorScheme.primary, width: 2)),
-    errorBorder: border(BorderSide(color: colorScheme.error)),
-    focusedErrorBorder: border(BorderSide(color: colorScheme.error, width: 2)),
+    // Radius only: InputDecorator recolors this border per state from the M3
+    // defaults, covering hover and disabled as well.
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
   );
 }
 
@@ -670,7 +662,6 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: _sheetInputDecoration(
-        context,
         labelText: '房间号',
         hintText: '6-10 位数字',
         icon: Icons.meeting_room_outlined,
@@ -694,7 +685,6 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
       textInputAction: TextInputAction.done,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: _sheetInputDecoration(
-        context,
         labelText: '昵称',
         icon: Icons.person_outline_rounded,
         helperText: compact ? null : '4-12 位英文字母，房间内可见',
@@ -812,7 +802,6 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
                 keyboardType: TextInputType.url,
                 autocorrect: false,
                 decoration: _sheetInputDecoration(
-                  context,
                   labelText: '服务器地址',
                   hintText: 'example.com:8996',
                   errorText: _customEndPointError,

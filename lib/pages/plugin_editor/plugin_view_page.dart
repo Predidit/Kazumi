@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -87,6 +88,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   KazumiDialog.dismiss();
                   final clipboard =
                       await Clipboard.getData(Clipboard.kTextPlain);
+                  if (!mounted) return;
                   _showInputDialog(initialValue: clipboard?.text ?? '');
                 },
               ),
@@ -106,16 +108,16 @@ class _PluginViewPageState extends State<PluginViewPage> {
   }
 
   void _showInputDialog({String initialValue = ''}) {
-    final textController = TextEditingController(text: initialValue);
+    var pluginText = initialValue;
     KazumiDialog.show(
-      onDismiss: textController.dispose,
       builder: (context) {
         return AlertDialog(
           title: const Text('从剪贴板导入规则'),
           content: SizedBox(
             width: 520,
-            child: TextField(
-              controller: textController,
+            child: TextFormField(
+              initialValue: initialValue,
+              onChanged: (value) => pluginText = value,
               minLines: 4,
               maxLines: 10,
               decoration: const InputDecoration(
@@ -134,7 +136,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
             ),
             TextButton(
               onPressed: () => _importFromText(
-                textController.text,
+                pluginText,
                 dismissDialog: true,
               ),
               child: const Text('导入'),
@@ -186,7 +188,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
     if (dismissDialog) KazumiDialog.dismiss();
     try {
       await pluginsController.updatePlugins(result.plugins);
-      if (mounted) setState(() {});
       KazumiDialog.showToast(
         message: '导入完成：成功 ${result.plugins.length} 条，'
             '跳过重复 ${result.duplicateCount} 条，失败 ${result.failureCount} 条',

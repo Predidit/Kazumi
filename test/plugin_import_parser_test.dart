@@ -127,7 +127,9 @@ void main() {
       expect(result.plugins, isEmpty);
       expect(result.failureCount, 2);
     });
+  });
 
+  group('PluginsController.updatePlugins', () {
     test('imports all parsed rules with one persistence write', () async {
       var writeCount = 0;
       late String persistedJson;
@@ -147,6 +149,37 @@ void main() {
             .map((item) => (item as Map<String, dynamic>)['name']),
         ['one', 'two'],
       );
+    });
+
+    test('batch update replaces an installed rule case-insensitively',
+        () async {
+      var writeCount = 0;
+      final controller = PluginsController(
+        pluginJsonWriter: (_) async => writeCount++,
+      );
+      controller.pluginList.add(plugin('same')..version = '1.0');
+
+      await controller.updatePlugins([plugin('SAME')..version = '2.0']);
+
+      expect(writeCount, 1);
+      expect(controller.pluginList, hasLength(1));
+      expect(controller.pluginList.single.name, 'SAME');
+      expect(controller.pluginList.single.version, '2.0');
+    });
+
+    test('batch update rolls back all rules when persistence fails', () async {
+      final controller = PluginsController(
+        pluginJsonWriter: (_) async => throw StateError('write failed'),
+        errorReporter: (_, __, ___) {},
+      );
+      controller.pluginList.add(plugin('installed'));
+
+      await expectLater(
+        controller.updatePlugins([plugin('one'), plugin('two')]),
+        throwsStateError,
+      );
+
+      expect(controller.pluginList.map((item) => item.name), ['installed']);
     });
   });
 }

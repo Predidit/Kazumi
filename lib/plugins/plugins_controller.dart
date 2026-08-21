@@ -356,7 +356,7 @@ abstract class _PluginsController with Store {
     return _updatablePluginNames().length;
   }
 
-  String _catalogKey(String name) => name.toLowerCase();
+  String _catalogKey(String name) => pluginNameKey(name);
 
   bool _remoteIsNewer(String localVersion, String remoteVersion) {
     try {

@@ -79,7 +79,7 @@ class PluginImportParser {
     final uniquePlugins = <String, Plugin>{};
     var duplicateCount = 0;
     for (final plugin in parsed) {
-      final key = plugin.name.toLowerCase();
+      final key = pluginNameKey(plugin.name);
       if (uniquePlugins.containsKey(key)) {
         duplicateCount++;
       }

@@ -149,19 +149,28 @@ class _PlayerItemState extends State<PlayerItem>
     _scheduleAndroidPIPSourceRectSync();
   }
 
-  /// Pauses playback when the app is backgrounded on Android/iOS, unless
-  /// background playback is enabled.
+  /// Pauses playback and suspends demuxer prefetch when the app is
+  /// backgrounded on Android/iOS, unless background playback is enabled.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused &&
-        !backgroundPlayback &&
-        playerController.playback.mediaPlayer != null &&
-        playerController.playback.playerPlaying) {
-      try {
-        await playerController.pause(enableSync: false);
-      } catch (_) {}
+    if (state == AppLifecycleState.paused && !backgroundPlayback) {
+      // Requested before any await so the suspend intent is recorded in
+      // lifecycle dispatch order; a later resumed callback then wins even
+      // if this callback is still awaiting pause(). The demuxer keeps
+      // prefetching while paused, so suspend regardless of playing state.
+      final suspend = playerController.playback.setPrefetchSuspended(true);
+      if (playerController.playback.mediaPlayer != null &&
+          playerController.playback.playerPlaying) {
+        try {
+          await playerController.pause(enableSync: false);
+        } catch (_) {}
+      }
+      await suspend;
       return;
+    }
+    if (state == AppLifecycleState.resumed) {
+      await playerController.playback.setPrefetchSuspended(false);
     }
     try {
       if (playerController.playback.playerPlaying) {

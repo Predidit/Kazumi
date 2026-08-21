@@ -16,6 +16,7 @@ import 'package:kazumi/services/player/playback_cache_policy.dart';
 import 'package:kazumi/services/player/player_screenshot_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/video_source/video_source_format.dart';
+import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:mobx/mobx.dart';
@@ -76,6 +77,9 @@ abstract class _PlayerPlaybackController with Store {
   _OwnedPlayer? _ownedPlayer;
   Player? get mediaPlayer => _ownedPlayer?.player;
   VideoController? videoController;
+
+  final AsyncSerialQueue _prefetchWrites = AsyncSerialQueue();
+  bool _prefetchSuspendWanted = false;
 
   bool hAenable = true;
   late String hardwareDecoder;
@@ -228,6 +232,40 @@ abstract class _PlayerPlaybackController with Store {
     } catch (_) {
       return duration;
     }
+  }
+
+  /// Android blocks network access for backgrounded apps; a prefetching
+  /// demuxer then burns through ffmpeg's reconnect/segment retries and marks
+  /// the stream EOF, leaving playback permanently stuck once foregrounded.
+  /// Suspending zeroes the readahead window so no new requests are issued
+  /// while buffered data stays available; restore values are mpv defaults,
+  /// which media_kit leaves untouched. Writes are serialized and apply the
+  /// latest requested state, so rapid lifecycle flips cannot reorder.
+  Future<void> setPrefetchSuspended(bool suspended) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    _prefetchSuspendWanted = suspended;
+    await _prefetchWrites.run(() async {
+      final wanted = _prefetchSuspendWanted;
+      final player = mediaPlayer;
+      if (player == null) {
+        return;
+      }
+      try {
+        final pp = player.platform as NativePlayer;
+        await pp.setProperty('cache-secs', wanted ? '0' : '36000');
+        if (!isCurrentPlayer(player)) {
+          return;
+        }
+        await pp.setProperty('demuxer-readahead-secs', wanted ? '0' : '1');
+      } catch (e) {
+        KazumiLogger().w(
+          'PlayerController: failed to ${wanted ? 'suspend' : 'resume'} demuxer prefetch',
+          error: e,
+        );
+      }
+    });
   }
 
   Future<Player?> createVideoController(

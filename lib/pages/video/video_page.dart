@@ -27,6 +27,7 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
+import 'package:kazumi/bean/widget/android_caption_bar_padding.dart';
 import 'package:mobx/mobx.dart' as mobx;
 
 class VideoPage extends StatefulWidget {
@@ -676,17 +677,7 @@ class _VideoPageState extends State<VideoPage>
               : MediaQuery.sizeOf(context).width / 3),
       child: Container(
         color: Theme.of(context).canvasColor,
-        child: (isDesktop() || isTablet())
-            ? tabBody
-            : GridViewObserver(
-                controller: observerController,
-                child: Column(
-                  children: [
-                    menuBar,
-                    menuBody,
-                  ],
-                ),
-              ),
+        child: tabBody,
       ),
     );
   }
@@ -793,54 +784,58 @@ class _VideoPageState extends State<VideoPage>
                     top: 0,
                     left: 0,
                     right: 0,
-                    child: EmbeddedNativeControlArea(
-                      requireOffset: !videoPageController.isFullscreen,
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.white),
-                            onPressed: () => onBackPressed(context),
-                          ),
-                          const Expanded(
-                              child: dtb.DragToMoveArea(
-                                  child: SizedBox(height: 40))),
-                          IconButton(
-                            icon: const Icon(Icons.refresh_outlined,
-                                color: Colors.white),
-                            onPressed: () {
-                              changeEpisode(
-                                  videoPageController.selectedEpisode.episode,
-                                  currentRoad:
-                                      videoPageController.selectedEpisode.road);
-                            },
-                          ),
-                          Visibility(
-                            visible: MediaQuery.sizeOf(context).width >
-                                MediaQuery.sizeOf(context).height,
-                            child: IconButton(
+                    child: AndroidCaptionBarTopPadding(
+                      enabled: videoPageController.isFullscreen &&
+                          !videoPageController.isPip,
+                      child: EmbeddedNativeControlArea(
+                        requireOffset: !videoPageController.isFullscreen,
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back,
+                                  color: Colors.white),
+                              onPressed: () => onBackPressed(context),
+                            ),
+                            const Expanded(
+                                child: dtb.DragToMoveArea(
+                                    child: SizedBox(height: 40))),
+                            IconButton(
+                              icon: const Icon(Icons.refresh_outlined,
+                                  color: Colors.white),
                               onPressed: () {
-                                _toggleTabBodyAnimated();
+                                changeEpisode(
+                                    videoPageController.selectedEpisode.episode,
+                                    currentRoad: videoPageController
+                                        .selectedEpisode.road);
                               },
-                              icon: Icon(
-                                _tabBodyTargetVisible
-                                    ? Icons.menu_open
-                                    : Icons.menu_open_outlined,
-                                color: Colors.white,
+                            ),
+                            Visibility(
+                              visible: MediaQuery.sizeOf(context).width >
+                                  MediaQuery.sizeOf(context).height,
+                              child: IconButton(
+                                onPressed: () {
+                                  _toggleTabBodyAnimated();
+                                },
+                                icon: Icon(
+                                  _tabBodyTargetVisible
+                                      ? Icons.menu_open
+                                      : Icons.menu_open_outlined,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                                showDebugLog
-                                    ? Icons.bug_report
-                                    : Icons.bug_report_outlined,
-                                color: Colors.white),
-                            onPressed: () {
-                              switchDebugConsole();
-                            },
-                          ),
-                        ],
+                            IconButton(
+                              icon: Icon(
+                                  showDebugLog
+                                      ? Icons.bug_report
+                                      : Icons.bug_report_outlined,
+                                  color: Colors.white),
+                              onPressed: () {
+                                switchDebugConsole();
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

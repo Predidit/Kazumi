@@ -19,6 +19,7 @@ import android.app.PictureInPictureParams
 import android.graphics.drawable.Icon
 import android.util.Rational
 import android.view.View
+import android.view.WindowInsets
 import androidx.annotation.NonNull
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
@@ -33,8 +34,10 @@ class MainActivity: AudioServiceActivity() {
     private val CHANNEL = "com.predidit.kazumi/intent"
     private val STORAGE_CHANNEL = "com.predidit.kazumi/storage"
     private val PIP_CHANNEL = "com.predidit.kazumi/pip"
+    private val CAPTION_BAR_CHANNEL = "com.predidit.kazumi/caption_bar"
     private var intentChannel: MethodChannel? = null
     private var pipChannel: MethodChannel? = null
+    private var captionBarChannel: MethodChannel? = null
 
     private var pipIsPlaying = false
     private var pipDanmakuEnabled = false
@@ -69,6 +72,7 @@ class MainActivity: AudioServiceActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyTransparentCaptionBar()
         registerPipActionReceiverIfNeeded()
     }
 
@@ -82,10 +86,15 @@ class MainActivity: AudioServiceActivity() {
         if (hasFocus && androidFullscreen) {
             applySystemBarsState()
         }
+        if (hasFocus) {
+            notifyCaptionBarTopInset()
+        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        applyTransparentCaptionBar()
+        notifyCaptionBarTopInset()
         syncPictureInPictureMode()
     }
 
@@ -168,6 +177,18 @@ class MainActivity: AudioServiceActivity() {
                 result.notImplemented()
             }
         }
+
+        captionBarChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CAPTION_BAR_CHANNEL)
+        captionBarChannel?.setMethodCallHandler { call, result ->
+            if (call.method == "getCaptionBarTopInset") {
+                result.success(getCaptionBarTopInset())
+            } else {
+                result.notImplemented()
+            }
+        }
+        window.decorView.post {
+            notifyCaptionBarTopInset()
+        }
     }
 
     private fun openWithMime(url: String, mimeType: String) {
@@ -213,6 +234,40 @@ class MainActivity: AudioServiceActivity() {
         } else {
             controller.show(WindowInsetsCompat.Type.systemBars())
         }
+        applyTransparentCaptionBar()
+        notifyCaptionBarTopInset()
+    }
+
+    private fun applyTransparentCaptionBar() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            return
+        }
+
+        val transparentCaptionBarBackground = 128
+        val lightCaptionBars = 256
+        val lightSystemBars =
+            resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK !=
+                Configuration.UI_MODE_NIGHT_YES
+        val appearance = transparentCaptionBarBackground or
+            (if (lightSystemBars) lightCaptionBars else 0)
+        val mask = transparentCaptionBarBackground or lightCaptionBars
+        window.insetsController?.setSystemBarsAppearance(appearance, mask)
+    }
+
+    private fun getCaptionBarTopInset(): Int {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            return 0
+        }
+        return window.decorView.rootWindowInsets
+            ?.getInsets(WindowInsets.Type.captionBar())
+            ?.top ?: 0
+    }
+
+    private fun notifyCaptionBarTopInset() {
+        captionBarChannel?.invokeMethod(
+            "onCaptionBarTopInsetChanged",
+            mapOf("topInset" to getCaptionBarTopInset())
+        )
     }
 
     // Single entry point: the mode callback and the configuration change both

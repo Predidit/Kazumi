@@ -6,6 +6,9 @@ import 'package:kazumi/services/logging/logger.dart';
 ///
 /// 提供收藏相关的数据访问抽象，解耦业务逻辑与数据存储
 abstract class ICollectRepository {
+  /// 收藏数据发生变化时发出通知，供依赖收藏状态的页面刷新投影。
+  Stream<void> get onCollectiblesChanged;
+
   /// 根据收藏类型获取番剧ID集合
   ///
   /// [type] 收藏类型
@@ -59,6 +62,10 @@ abstract class ICollectRepository {
 /// 基于Hive实现的收藏数据访问层
 class CollectRepository implements ICollectRepository {
   final _collectiblesBox = GStorage.collectibles;
+
+  @override
+  Stream<void> get onCollectiblesChanged =>
+      _collectiblesBox.watch().map<void>((_) {});
 
   @override
   Set<int> getBangumiIdsByType(CollectType type) {

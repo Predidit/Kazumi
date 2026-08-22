@@ -55,6 +55,8 @@ class BangumiCollectiblesMergePlan {
 }
 
 class CollectSyncMerger {
+  static const int _maxHiveChangeId = 4294967295;
+
   static CollectiblesMergeResult mergeWebDav({
     required List<CollectedBangumi> localCollectibles,
     required List<CollectedBangumiChange> localChanges,
@@ -63,11 +65,46 @@ class CollectSyncMerger {
   }) {
     final mergedCollectibles =
         remoteCollectibles.map(_copyCollectible).toList();
-    final newLocalChanges = localChanges.where((localChange) {
-      return !remoteChanges
-          .any((remoteChange) => remoteChange.id == localChange.id);
-    }).toList()
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final changesById = <int, CollectedBangumiChange>{
+      for (final change in remoteChanges) change.id: change,
+    };
+    var nextChangeId = [
+          ...remoteChanges,
+          ...localChanges,
+        ].fold<int>(
+          0,
+          (maximum, change) => change.id > maximum ? change.id : maximum,
+        ) +
+        1;
+    final newLocalChanges = <CollectedBangumiChange>[];
+    for (final localChange in localChanges) {
+      final existing = changesById[localChange.id];
+      if (existing == null) {
+        changesById[localChange.id] = localChange;
+        newLocalChanges.add(localChange);
+        continue;
+      }
+      if (_sameChange(existing, localChange)) {
+        continue;
+      }
+
+      while (changesById.containsKey(nextChangeId)) {
+        nextChangeId++;
+      }
+      if (nextChangeId > _maxHiveChangeId) {
+        throw StateError('WebDav collect change ID space exhausted');
+      }
+      final rekeyedChange = CollectedBangumiChange(
+        nextChangeId++,
+        localChange.bangumiID,
+        localChange.action,
+        localChange.type,
+        localChange.timestamp,
+      );
+      changesById[rekeyedChange.id] = rekeyedChange;
+      newLocalChanges.add(rekeyedChange);
+    }
+    newLocalChanges.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
     for (final change in newLocalChanges) {
       if (change.action == 3) {
@@ -104,10 +141,8 @@ class CollectSyncMerger {
       }
     }
 
-    final mergedChanges = <int, CollectedBangumiChange>{
-      for (final change in remoteChanges) change.id: change,
-      for (final change in newLocalChanges) change.id: change,
-    }.values.toList();
+    final mergedChanges = changesById.values.toList()
+      ..sort((a, b) => a.id.compareTo(b.id));
 
     return CollectiblesMergeResult(
       collectibles: mergedCollectibles,
@@ -220,6 +255,17 @@ class CollectSyncMerger {
       collectible.time,
       collectible.type,
     );
+  }
+
+  static bool _sameChange(
+    CollectedBangumiChange first,
+    CollectedBangumiChange second,
+  ) {
+    return first.id == second.id &&
+        first.bangumiID == second.bangumiID &&
+        first.action == second.action &&
+        first.type == second.type &&
+        first.timestamp == second.timestamp;
   }
 
   CollectSyncMerger._();

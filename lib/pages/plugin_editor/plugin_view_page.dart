@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -11,6 +14,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/plugin/plugin_import_parser.dart';
 import 'package:kazumi/utils/encoding.dart';
 
 class PluginViewPage extends StatefulWidget {
@@ -80,9 +84,20 @@ class _PluginViewPageState extends State<PluginViewPage> {
               const SizedBox(height: 10),
               ListTile(
                 title: const Text('从剪贴板导入'),
+                onTap: () async {
+                  KazumiDialog.dismiss();
+                  final clipboard =
+                      await Clipboard.getData(Clipboard.kTextPlain);
+                  if (!mounted) return;
+                  _showInputDialog(initialValue: clipboard?.text ?? '');
+                },
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                title: const Text('从文件导入'),
                 onTap: () {
                   KazumiDialog.dismiss();
-                  _showInputDialog();
+                  _importFromFile();
                 },
               ),
             ],
@@ -92,18 +107,25 @@ class _PluginViewPageState extends State<PluginViewPage> {
     });
   }
 
-  void _showInputDialog() {
-    String pluginText = '';
+  void _showInputDialog({String initialValue = ''}) {
+    var pluginText = initialValue;
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
-          title: const Text('导入规则'),
-          content: StatefulBuilder(
-              builder: (BuildContext context, StateSetter setState) {
-            return TextField(
+          title: const Text('从剪贴板导入规则'),
+          content: SizedBox(
+            width: 520,
+            child: TextFormField(
+              initialValue: initialValue,
               onChanged: (value) => pluginText = value,
-            );
-          }),
+              minLines: 4,
+              maxLines: 10,
+              decoration: const InputDecoration(
+                hintText: '可粘贴多条 kazumi:// 链接或 JSON 数组',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => KazumiDialog.dismiss(),
@@ -112,41 +134,72 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-              return TextButton(
-                onPressed: () async {
-                  try {
-                    final plugin = Plugin.fromJson(
-                      json.decode(kazumiBase64ToJson(pluginText)),
-                    );
-                    if (plugin.requiresNewerClient) {
-                      KazumiDialog.dismiss();
-                      KazumiDialog.showToast(
-                        message: '规则需要更高版本客户端',
-                      );
-                      return;
-                    }
-                    await pluginsController.updatePlugin(plugin);
-                    KazumiDialog.dismiss();
-                    KazumiDialog.showToast(message: '导入成功');
-                  } catch (e, stackTrace) {
-                    KazumiLogger().e(
-                      'Plugin: failed to import rule link',
-                      error: e,
-                      stackTrace: stackTrace,
-                    );
-                    KazumiDialog.dismiss();
-                    KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
-                  }
-                },
-                child: const Text('导入'),
-              );
-            })
+            TextButton(
+              onPressed: () => _importFromText(
+                pluginText,
+                dismissDialog: true,
+              ),
+              child: const Text('导入'),
+            ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _importFromFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+        withData: true,
+      );
+      if (result == null) return;
+      final file = result.files.single;
+      final bytes = file.bytes ??
+          (file.path == null ? null : await File(file.path!).readAsBytes());
+      if (bytes == null) {
+        throw const FileSystemException('无法读取所选文件');
+      }
+      await _importFromText(utf8.decode(bytes));
+    } catch (error, stackTrace) {
+      KazumiLogger().e(
+        'Plugin: failed to import rules from file',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      KazumiDialog.showToast(message: '读取规则文件失败：$error');
+    }
+  }
+
+  Future<void> _importFromText(
+    String text, {
+    bool dismissDialog = false,
+  }) async {
+    final result = PluginImportParser.parse(text);
+    if (result.plugins.isEmpty) {
+      if (dismissDialog) KazumiDialog.dismiss();
+      KazumiDialog.showToast(
+        message: result.failures.isEmpty ? '没有可导入的规则' : result.failures.first,
+      );
+      return;
+    }
+
+    if (dismissDialog) KazumiDialog.dismiss();
+    try {
+      await pluginsController.updatePlugins(result.plugins);
+      KazumiDialog.showToast(
+        message: '导入完成：成功 ${result.plugins.length} 条，'
+            '跳过重复 ${result.duplicateCount} 条，失败 ${result.failureCount} 条',
+      );
+    } catch (error, stackTrace) {
+      KazumiLogger().e(
+        'Plugin: failed to persist imported rules',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      KazumiDialog.showToast(message: '保存导入规则失败：$error');
+    }
   }
 
   void onBackPressed(BuildContext context) {

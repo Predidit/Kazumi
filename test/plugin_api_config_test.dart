@@ -204,6 +204,10 @@ void main() {
       () => kazumiBase64ToJson('kazumi://not-base64!'),
       throwsA(isA<FormatException>()),
     );
+    expect(
+      () => kazumiBase64ToJson('kazumi://%zz'),
+      throwsA(isA<FormatException>()),
+    );
   });
 }
 

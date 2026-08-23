@@ -201,7 +201,8 @@ abstract class _PluginsController with Store {
   Future<void> removePlugin(Plugin plugin) {
     return _mutateAndPersist(
       () => pluginList.removeWhere(
-        (candidate) => _catalogKey(candidate.name) == _catalogKey(plugin.name),
+        (candidate) =>
+            pluginNameKey(candidate.name) == pluginNameKey(plugin.name),
       ),
       errorMessage: 'Plugin: failed to persist rule removal',
     );
@@ -216,7 +217,7 @@ abstract class _PluginsController with Store {
   void _replacePlugin(Plugin plugin) {
     bool flag = false;
     for (int i = 0; i < pluginList.length; ++i) {
-      if (_catalogKey(pluginList[i].name) == _catalogKey(plugin.name)) {
+      if (pluginNameKey(pluginList[i].name) == pluginNameKey(plugin.name)) {
         pluginList.replaceRange(i, i + 1, [plugin]);
         flag = true;
         break;
@@ -261,6 +262,17 @@ abstract class _PluginsController with Store {
     return _mutateAndPersist(
       () => _replacePlugin(plugin),
       errorMessage: 'Plugin: failed to persist rule update',
+    );
+  }
+
+  Future<void> updatePlugins(Iterable<Plugin> plugins) {
+    return _mutateAndPersist(
+      () {
+        for (final plugin in plugins) {
+          _replacePlugin(plugin);
+        }
+      },
+      errorMessage: 'Plugin: failed to persist imported rules',
     );
   }
 
@@ -310,7 +322,7 @@ abstract class _PluginsController with Store {
       try {
         final catalog = await _catalogLoader();
         _pluginCatalogByName = {
-          for (final item in catalog) _catalogKey(item.name): item,
+          for (final item in catalog) pluginNameKey(item.name): item,
         };
         pluginHTTPList
           ..clear()
@@ -345,8 +357,6 @@ abstract class _PluginsController with Store {
     return _updatablePluginNames().length;
   }
 
-  String _catalogKey(String name) => name.toLowerCase();
-
   bool _remoteIsNewer(String localVersion, String remoteVersion) {
     try {
       return needUpdate(localVersion, remoteVersion);
@@ -358,7 +368,7 @@ abstract class _PluginsController with Store {
   PluginCatalogItemStatus pluginStatus(PluginHTTPItem pluginHTTPItem) {
     var pluginStatus = PluginCatalogItemStatus.install;
     for (Plugin plugin in pluginList) {
-      if (_catalogKey(pluginHTTPItem.name) == _catalogKey(plugin.name)) {
+      if (pluginNameKey(pluginHTTPItem.name) == pluginNameKey(plugin.name)) {
         if (_remoteIsNewer(plugin.version, pluginHTTPItem.version)) {
           pluginStatus = PluginCatalogItemStatus.update;
         } else {
@@ -374,7 +384,7 @@ abstract class _PluginsController with Store {
     if (_pluginCatalogRefreshedAt == null) {
       return PluginUpdateAvailability.unknown;
     }
-    final remote = _pluginCatalogByName[_catalogKey(plugin.name)];
+    final remote = _pluginCatalogByName[pluginNameKey(plugin.name)];
     if (remote == null) {
       return PluginUpdateAvailability.notInCatalog;
     }
@@ -387,13 +397,14 @@ abstract class _PluginsController with Store {
     return [
       for (final plugin in pluginList)
         if (pluginUpdateStatus(plugin) == PluginUpdateAvailability.updatable)
-          _pluginCatalogByName[_catalogKey(plugin.name)]!.name,
+          _pluginCatalogByName[pluginNameKey(plugin.name)]!.name,
     ];
   }
 
   Future<PluginUpdateResult> tryUpdatePluginByName(String name) {
     return _mutations.run(() async {
-      final catalogName = _pluginCatalogByName[_catalogKey(name)]?.name ?? name;
+      final catalogName =
+          _pluginCatalogByName[pluginNameKey(name)]?.name ?? name;
       final attempt = await _preparePluginUpdate(catalogName);
       if (attempt.result == PluginUpdateResult.updated) {
         await _mutateAndPersistNow(
@@ -421,7 +432,7 @@ abstract class _PluginsController with Store {
     // Validate at the injected loader boundary so production and test/custom
     // loaders follow the same integrity rule. Preserve the catalog spelling.
     if (remotePlugin.name.isEmpty ||
-        _catalogKey(remotePlugin.name) != _catalogKey(name)) {
+        pluginNameKey(remotePlugin.name) != pluginNameKey(name)) {
       final error = FormatException(
         'Downloaded rule name ${remotePlugin.name} does not match $name',
       );
@@ -450,7 +461,7 @@ abstract class _PluginsController with Store {
     }
     Plugin? local;
     for (final plugin in pluginList) {
-      if (_catalogKey(plugin.name) == _catalogKey(name)) {
+      if (pluginNameKey(plugin.name) == pluginNameKey(name)) {
         local = plugin;
         break;
       }

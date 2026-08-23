@@ -27,6 +27,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import com.ryanheise.audioservice.AudioService
 import com.ryanheise.audioservice.AudioServiceActivity
 
 class MainActivity: AudioServiceActivity() {
@@ -74,6 +75,9 @@ class MainActivity: AudioServiceActivity() {
 
     override fun onDestroy() {
         unregisterPipActionReceiverIfNeeded()
+        // audio_service stays bound for the whole activity lifetime, so its
+        // own stopSelf() never destroys a service started for playback.
+        stopService(Intent(this, AudioService::class.java))
         super.onDestroy()
     }
 

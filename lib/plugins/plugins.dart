@@ -14,6 +14,8 @@ export 'package:kazumi/services/plugin/rule_engine_models.dart'
         SearchErrorException,
         ChapterErrorException;
 
+String pluginNameKey(String name) => name.toLowerCase();
+
 class Plugin {
   static final RuleEngine _ruleEngine = RuleEngine();
 

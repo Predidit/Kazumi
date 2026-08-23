@@ -135,8 +135,12 @@ class EditorExpandableSectionCard extends StatelessWidget {
   }
 }
 
-/// Filled text field used inside [EditorSectionCard]: tonal fill, rounded
-/// corners without an outline, and a primary stroke when focused.
+/// M3 outlined text field used inside [EditorSectionCard], carrying the card's
+/// radius instead of the 4dp baseline.
+///
+/// Outlined rather than filled: these fields float a label, and only the
+/// outline can notch around it. A fill would slice the label along the
+/// container's top edge.
 class EditorTextField extends StatelessWidget {
   const EditorTextField({
     super.key,
@@ -155,7 +159,6 @@ class EditorTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -165,16 +168,9 @@ class EditorTextField extends StatelessWidget {
         helperText: helper,
         helperMaxLines: 3,
         alignLabelWithHint: maxLines > 1,
-        filled: true,
-        fillColor: colorScheme.surfaceContainerHighest,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
-        ),
+        // Radius only: InputDecorator recolors this border per state from the
+        // M3 defaults, covering hover and disabled as well.
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

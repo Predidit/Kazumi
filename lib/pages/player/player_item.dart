@@ -149,19 +149,28 @@ class _PlayerItemState extends State<PlayerItem>
     _scheduleAndroidPIPSourceRectSync();
   }
 
-  /// Pauses playback when the app is backgrounded on Android/iOS, unless
-  /// background playback is enabled.
+  /// Pauses playback and suspends demuxer prefetch when the app is
+  /// backgrounded on Android/iOS, unless background playback is enabled.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused &&
-        !backgroundPlayback &&
-        playerController.playback.mediaPlayer != null &&
-        playerController.playback.playerPlaying) {
-      try {
-        await playerController.pause(enableSync: false);
-      } catch (_) {}
+    if (state == AppLifecycleState.paused && !backgroundPlayback) {
+      // Requested before any await so the suspend intent is recorded in
+      // lifecycle dispatch order; a later resumed callback then wins even
+      // if this callback is still awaiting pause(). The demuxer keeps
+      // prefetching while paused, so suspend regardless of playing state.
+      final suspend = playerController.playback.setPrefetchSuspended(true);
+      if (playerController.playback.mediaPlayer != null &&
+          playerController.playback.playerPlaying) {
+        try {
+          await playerController.pause(enableSync: false);
+        } catch (_) {}
+      }
+      await suspend;
       return;
+    }
+    if (state == AppLifecycleState.resumed) {
+      await playerController.playback.setPrefetchSuspended(false);
     }
     try {
       if (playerController.playback.playerPlaying) {
@@ -610,6 +619,7 @@ class _PlayerItemState extends State<PlayerItem>
         onSkipToNext: () => handlePreNextEpisode('next'),
         onSkipToPrevious: () => handlePreNextEpisode('prev'),
         onSeek: (position) => playerController.seek(position),
+        artworkUrl: videoPageController.bangumiItem.images['large'],
       );
       _syncAudioServiceState();
     } catch (e) {
@@ -640,10 +650,6 @@ class _PlayerItemState extends State<PlayerItem>
       final bangumiTitle = videoPageController.bangumiItem.nameCn.isNotEmpty
           ? videoPageController.bangumiItem.nameCn
           : videoPageController.bangumiItem.name;
-      final artworkUrl = videoPageController.bangumiItem.images['large'];
-      final artworkUri = (artworkUrl == null || artworkUrl.isEmpty)
-          ? null
-          : Uri.tryParse(artworkUrl);
 
       unawaited(
         _audioController.updateSession(
@@ -654,7 +660,6 @@ class _PlayerItemState extends State<PlayerItem>
               ? videoPageController.offlinePluginName
               : videoPageController.currentPlugin.name,
           artist: episodeRef.displayTitle,
-          artUri: artworkUri,
           duration: playerController.playback.duration,
           playing: playerController.playback.playing,
           loading: playerController.playback.loading,

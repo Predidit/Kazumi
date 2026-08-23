@@ -35,6 +35,16 @@ void main() {
       expect(result.duplicateCount, 0);
     });
 
+    test('imports a link with an uppercase scheme', () {
+      final link = linkFor(plugin('uppercase'))
+          .replaceFirst('kazumi://', 'KAZUMI://');
+
+      final result = PluginImportParser.parse(link);
+
+      expect(result.plugins.single.name, 'uppercase');
+      expect(result.failureCount, 0);
+    });
+
     test('imports a rule link wrapped across lines', () {
       final link = linkFor(plugin('wrapped'));
       final splitAt = link.length ~/ 2;
@@ -74,6 +84,25 @@ void main() {
       expect(englishResult.failureCount, 0);
     });
 
+    test('imports a percent-encoded link followed by prose', () {
+      final link = linkFor(plugin('encoded'));
+      final payload = link.substring('kazumi://'.length);
+      final firstByte = payload.codeUnitAt(0)
+          .toRadixString(16)
+          .padLeft(2, '0')
+          .toUpperCase();
+      final encodedPayload = '%$firstByte${payload.substring(1)}';
+
+      expect(encodedPayload, isNot(payload));
+
+      final result = PluginImportParser.parse(
+        'kazumi:$encodedPayload thanks',
+      );
+
+      expect(result.plugins.single.name, 'encoded');
+      expect(result.failureCount, 0);
+    });
+
     test('imports links separated by punctuation', () {
       final result = PluginImportParser.parse(
         '${linkFor(plugin('one'))}、${linkFor(plugin('two'))}',
@@ -95,6 +124,16 @@ void main() {
     test('keeps valid links when another link is invalid', () {
       final result = PluginImportParser.parse(
         '${linkFor(plugin('valid'))}\nkazumi://not-base64!',
+      );
+
+      expect(result.plugins.single.name, 'valid');
+      expect(result.failureCount, 1);
+    });
+
+    test('keeps valid links when a decoded link is not an object', () {
+      final result = PluginImportParser.parse(
+        '${jsonToKazumiBase64(jsonEncode([42]))}\n'
+        '${linkFor(plugin('valid'))}',
       );
 
       expect(result.plugins.single.name, 'valid');

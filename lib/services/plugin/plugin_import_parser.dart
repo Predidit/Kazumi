@@ -20,13 +20,10 @@ class PluginImportParseResult {
 class PluginImportParser {
   const PluginImportParser._();
 
-  static final RegExp _ruleLinkSchemePattern = RegExp(
-    r'kazumi:(?://)?',
-    caseSensitive: false,
-  );
   static final RegExp _ruleLinkPayloadPrefixPattern = RegExp(
     r'^[A-Za-z0-9+/_=%\-\s]+',
   );
+  static final RegExp _whitespacePattern = RegExp(r'\s+');
 
   static PluginImportParseResult parse(String input) {
     final value = input.trim();
@@ -58,16 +55,15 @@ class PluginImportParser {
         _parseEntry(jsonValue, 1, parsed, failures);
       }
     } else {
-      final matches = _ruleLinkSchemePattern.allMatches(value).toList();
-      if (matches.isEmpty) {
+      final segments = findKazumiRuleLinkSegments(value).toList();
+      if (segments.isEmpty) {
         failures.add('未找到有效的 JSON 或 kazumi:// 规则链接');
       } else {
-        for (var index = 0; index < matches.length; index++) {
-          final end = index + 1 < matches.length
-              ? matches[index + 1].start
-              : value.length;
-          _parseEntry(
-            _extractRuleLink(value, matches[index], end),
+        for (var index = 0; index < segments.length; index++) {
+          final segment = segments[index];
+          _parseRuleLinkSegment(
+            segment.scheme,
+            segment.rawPayload,
             index + 1,
             parsed,
             failures,
@@ -93,17 +89,35 @@ class PluginImportParser {
     );
   }
 
-  static String _extractRuleLink(String input, Match schemeMatch, int end) {
-    final scheme = schemeMatch.group(0)!;
-    final rawPayload = input.substring(schemeMatch.end, end);
+  static void _parseRuleLinkSegment(
+    String scheme,
+    String rawPayload,
+    int index,
+    List<Plugin> plugins,
+    List<String> failures,
+  ) {
+    try {
+      final entry = _decodeRuleEntry(scheme, rawPayload);
+      _parseEntry(entry, index, plugins, failures);
+    } catch (error) {
+      failures.add('第 $index 条：$error');
+    }
+  }
+
+  static Map<String, dynamic> _decodeRuleEntry(
+    String scheme,
+    String rawPayload,
+  ) {
     final payload = _ruleLinkPayloadPrefixPattern
         .firstMatch(rawPayload)
         ?.group(0)
         ?.trimRight();
-    if (payload == null || payload.isEmpty) return scheme;
+    if (payload == null || payload.isEmpty) {
+      throw const FormatException('Missing payload in Kazumi rule link');
+    }
 
     final candidates = <String>[payload];
-    final whitespaceMatches = RegExp(r'\s+').allMatches(payload).toList();
+    final whitespaceMatches = _whitespacePattern.allMatches(payload).toList();
     for (final whitespaceMatch in whitespaceMatches.reversed) {
       final candidate = payload.substring(0, whitespaceMatch.start).trimRight();
       if (candidate.isNotEmpty && candidate != candidates.last) {
@@ -111,15 +125,21 @@ class PluginImportParser {
       }
     }
 
+    FormatException? firstError;
     for (final candidate in candidates) {
       try {
         final decoded = json.decode(kazumiBase64ToJson('$scheme$candidate'));
-        if (decoded is Map) return '$scheme$candidate';
-      } catch (_) {
+        if (decoded is Map) {
+          return Map<String, dynamic>.from(decoded);
+        }
+        firstError ??=
+            const FormatException('规则链接内容必须是 JSON object');
+      } on FormatException catch (error) {
+        firstError ??= error;
         // Try a shorter prefix in case prose follows the rule link.
       }
     }
-    return '$scheme$payload';
+    throw firstError ?? const FormatException('Invalid Kazumi rule link');
   }
 
   static void _parseEntry(

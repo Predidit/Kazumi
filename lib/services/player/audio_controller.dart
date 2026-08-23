@@ -4,6 +4,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_mpris/audio_service_mpris.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/network/proxy_aware_image_cache_manager.dart';
 import 'package:kazumi/utils/async_session.dart';
 
 typedef AudioCallback = Future<void> Function();
@@ -24,6 +25,8 @@ class AudioController {
   bool? _lastAudioSessionActive;
   final AsyncSessionOwner _sessions = AsyncSessionOwner();
   AsyncSession? _boundSession;
+  bool _artworkPending = false;
+  Uri? _artworkUri;
 
   Future<void> ensureInitialized() {
     _initFuture ??= _initialize();
@@ -142,9 +145,11 @@ class AudioController {
     required AudioCallback onSkipToNext,
     required AudioCallback onSkipToPrevious,
     required AudioSeekCallback onSeek,
+    required String? artworkUrl,
   }) async {
     final binding = _sessions.begin();
     _boundSession = null;
+    _resetArtwork();
     _clearCallbacks();
     await ensureInitialized();
     if (binding.isStale) {
@@ -160,6 +165,10 @@ class AudioController {
       onSeek: onSeek,
     );
     _boundSession = binding;
+    if (artworkUrl != null && artworkUrl.isNotEmpty) {
+      _artworkPending = true;
+      unawaited(_resolveArtwork(binding, artworkUrl));
+    }
   }
 
   void _clearCallbacks() {
@@ -173,7 +182,6 @@ class AudioController {
     required String title,
     String? album,
     String? artist,
-    Uri? artUri,
     Duration? duration,
     required bool playing,
     required bool loading,
@@ -191,7 +199,7 @@ class AudioController {
     await ensureInitialized();
     if (binding.isStale) return;
     await _setAudioSessionActive(playing);
-    if (binding.isStale) return;
+    if (binding.isStale || _artworkPending) return;
     final handler = _handler;
     if (handler == null) return;
 
@@ -200,7 +208,6 @@ class AudioController {
       title,
       album ?? '',
       artist ?? '',
-      artUri?.toString() ?? '',
       (duration ?? Duration.zero).inMilliseconds.toString(),
     ].join('|');
 
@@ -212,7 +219,7 @@ class AudioController {
           title: title,
           album: album,
           artist: artist,
-          artUri: artUri,
+          artUri: _artworkUri,
           duration: duration,
         ),
       );
@@ -269,9 +276,37 @@ class AudioController {
     );
   }
 
+  void _resetArtwork() {
+    _artworkPending = false;
+    _artworkUri = null;
+  }
+
+  /// Resolves the session artwork to a local file before the media item is
+  /// published, so each item reaches the platform in a single write.
+  ///
+  /// A follow-up write is unsafe at any point in the session: the plugin
+  /// dispatches `setMediaItem` to a detached thread while `setState` runs
+  /// inline, so it can land after [deactivate] and repost the notification
+  /// that the idle state just cancelled.
+  Future<void> _resolveArtwork(AsyncSession binding, String artworkUrl) async {
+    Uri? resolved;
+    try {
+      final file = await ProxyAwareImageCacheManager.instance
+          .getSingleFile(artworkUrl)
+          .timeout(const Duration(seconds: 8));
+      resolved = Uri.file(file.path);
+    } catch (e) {
+      KazumiLogger().w('AudioController: artwork resolution failed', error: e);
+    }
+    if (binding.isStale) return;
+    _artworkUri = resolved;
+    _artworkPending = false;
+  }
+
   Future<void> deactivate() {
     final deactivation = _sessions.begin();
     _boundSession = null;
+    _resetArtwork();
     _clearCallbacks();
     _playInterrupted = false;
     final initialization = _initFuture;
@@ -291,7 +326,20 @@ class AudioController {
     _lastAudioSessionActive = null;
     await _setAudioSessionActive(false);
     if (deactivation.isStale) return;
-    _handler?.updatePlaybackState(
+    final handler = _handler;
+    if (handler == null) return;
+    // The platform only stops on a transition into idle. Retain the current
+    // controls so the intermediate state cannot repaint the notification.
+    final current = handler.playbackState.value;
+    if (current.processingState == AudioProcessingState.idle) {
+      handler.updatePlaybackState(
+        current.copyWith(
+          processingState: AudioProcessingState.completed,
+          playing: false,
+        ),
+      );
+    }
+    handler.updatePlaybackState(
       PlaybackState(
         controls: [],
         systemActions: const {},

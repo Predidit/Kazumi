@@ -619,6 +619,7 @@ class _PlayerItemState extends State<PlayerItem>
         onSkipToNext: () => handlePreNextEpisode('next'),
         onSkipToPrevious: () => handlePreNextEpisode('prev'),
         onSeek: (position) => playerController.seek(position),
+        artworkUrl: videoPageController.bangumiItem.images['large'],
       );
       _syncAudioServiceState();
     } catch (e) {
@@ -649,10 +650,6 @@ class _PlayerItemState extends State<PlayerItem>
       final bangumiTitle = videoPageController.bangumiItem.nameCn.isNotEmpty
           ? videoPageController.bangumiItem.nameCn
           : videoPageController.bangumiItem.name;
-      final artworkUrl = videoPageController.bangumiItem.images['large'];
-      final artworkUri = (artworkUrl == null || artworkUrl.isEmpty)
-          ? null
-          : Uri.tryParse(artworkUrl);
 
       unawaited(
         _audioController.updateSession(
@@ -663,7 +660,6 @@ class _PlayerItemState extends State<PlayerItem>
               ? videoPageController.offlinePluginName
               : videoPageController.currentPlugin.name,
           artist: episodeRef.displayTitle,
-          artUri: artworkUri,
           duration: playerController.playback.duration,
           playing: playerController.playback.playing,
           loading: playerController.playback.loading,

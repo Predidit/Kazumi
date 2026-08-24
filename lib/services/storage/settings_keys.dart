@@ -235,7 +235,7 @@ class SettingsKeys {
   );
   static const showPlayerError = SettingKey<bool>(
     _SettingBoxKey.showPlayerError,
-    true,
+    false,
     group: SettingGroup.player,
   );
   static const oledEnhance = SettingKey<bool>(

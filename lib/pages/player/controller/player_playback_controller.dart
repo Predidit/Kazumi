@@ -425,14 +425,11 @@ abstract class _PlayerPlaybackController with Store {
 
       bool showPlayerError = GStorage.getSetting(SettingsKeys.showPlayerError);
       player.stream.error.listen((event) {
-        if (showPlayerError) {
-          if (!isCurrentPlayer(player)) {
-            return;
-          }
+        if (isCurrentPlayer(player)) {
           if (event.toString().contains('Failed to open') && playerBuffering) {
             KazumiDialog.showToast(
                 message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
-          } else {
+          } else if (showPlayerError) {
             KazumiDialog.showToast(
                 message: '播放器内部错误 ${event.toString()} ${videoUrl()}',
                 duration: const Duration(seconds: 5),

@@ -732,17 +732,11 @@ class _RelatedBangumiCardH extends StatelessWidget {
 
               return Row(
                 children: [
-                  Hero(
-                    transitionOnUserGestures: true,
-                    flightShuttleBuilder:
-                        NetworkImgLayer.heroFlightShuttleBuilder,
-                    tag: bangumiItem.id,
-                    child: NetworkImgLayer(
-                      src: bangumiItem.images['large'] ?? '',
-                      width: imageWidth,
-                      height: imageHeight,
-                      origAspectRatio: posterAspectRatio,
-                    ),
+                  NetworkImgLayer(
+                    src: bangumiItem.images['large'] ?? '',
+                    width: imageWidth,
+                    height: imageHeight,
+                    origAspectRatio: posterAspectRatio,
                   ),
                   SizedBox(width: gap),
                   Expanded(

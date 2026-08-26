@@ -75,16 +75,18 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
           _didJumpToPlayingEpisode = true;
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             await Future<void>.delayed(Duration.zero);
-            if (!mounted || episodeCount == 0 || !scrollController.hasClients) {
+            final playbackEpisode = videoPageController.playbackEpisode;
+            if (!mounted ||
+                playbackEpisode.road != widget.road ||
+                episodeCount == 0 ||
+                !scrollController.hasClients) {
               return;
             }
-            final index = (videoPageController.playbackEpisode.episode - 1)
-                .clamp(0, episodeCount - 1);
+            final index =
+                (playbackEpisode.episode - 1).clamp(0, episodeCount - 1);
             await _observerController.jumpTo(
               index: index,
               isFixedHeight: true,
-              alignment: 0.5,
-              offset: (_) => scrollController.position.viewportDimension * 0.5,
             );
           });
         }

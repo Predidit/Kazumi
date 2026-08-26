@@ -6,6 +6,7 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:scrollview_observer/scrollview_observer.dart';
 
 class DownloadEpisodeSheet extends StatefulWidget {
   final int road;
@@ -24,8 +25,10 @@ class DownloadEpisodeSheet extends StatefulWidget {
 class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
   VideoPageController get videoPageController => widget.videoPageController;
   final DownloadController downloadController = inject<DownloadController>();
+  final GridObserverController _observerController = GridObserverController();
 
   final Set<int> _selectedEpisodes = {};
+  bool _didJumpToPlayingEpisode = false;
 
   Road get currentRoadData => videoPageController.roadList[widget.road];
   int get episodeCount => currentRoadData.data.length;
@@ -67,6 +70,26 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
       maxChildSize: 0.9,
       expand: false,
       builder: (context, scrollController) {
+        _observerController.controller = scrollController;
+        if (!_didJumpToPlayingEpisode) {
+          _didJumpToPlayingEpisode = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            await Future<void>.delayed(Duration.zero);
+            final playbackEpisode = videoPageController.playbackEpisode;
+            if (!mounted ||
+                playbackEpisode.road != widget.road ||
+                episodeCount == 0 ||
+                !scrollController.hasClients) {
+              return;
+            }
+            final index =
+                (playbackEpisode.episode - 1).clamp(0, episodeCount - 1);
+            await _observerController.jumpTo(
+              index: index,
+              isFixedHeight: true,
+            );
+          });
+        }
         return Column(
           children: [
             MaterialBottomSheetHeader(
@@ -77,38 +100,42 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
               onClose: () => Navigator.of(context).pop(),
             ),
             Expanded(
-              child: GridView.builder(
-                controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 160,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  mainAxisExtent: 56,
+              child: GridViewObserver(
+                controller: _observerController,
+                child: GridView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 160,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    mainAxisExtent: 56,
+                  ),
+                  itemCount: episodeCount,
+                  itemBuilder: (context, index) {
+                    final episodeNumber = index + 1;
+                    final episodeUrl = currentRoadData.data[index];
+                    final isDownloaded = downloadedUrls.contains(episodeUrl);
+                    final isSelected =
+                        _selectedEpisodes.contains(episodeNumber);
+                    return _EpisodeTile(
+                      identifier: currentRoadData.identifier[index],
+                      isDownloaded: isDownloaded,
+                      isSelected: isSelected,
+                      onTap: isDownloaded
+                          ? null
+                          : () {
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedEpisodes.remove(episodeNumber);
+                                } else {
+                                  _selectedEpisodes.add(episodeNumber);
+                                }
+                              });
+                            },
+                    );
+                  },
                 ),
-                itemCount: episodeCount,
-                itemBuilder: (context, index) {
-                  final episodeNumber = index + 1;
-                  final episodeUrl = currentRoadData.data[index];
-                  final isDownloaded = downloadedUrls.contains(episodeUrl);
-                  final isSelected = _selectedEpisodes.contains(episodeNumber);
-                  return _EpisodeTile(
-                    identifier: currentRoadData.identifier[index],
-                    isDownloaded: isDownloaded,
-                    isSelected: isSelected,
-                    onTap: isDownloaded
-                        ? null
-                        : () {
-                            setState(() {
-                              if (isSelected) {
-                                _selectedEpisodes.remove(episodeNumber);
-                              } else {
-                                _selectedEpisodes.add(episodeNumber);
-                              }
-                            });
-                          },
-                  );
-                },
               ),
             ),
             Padding(

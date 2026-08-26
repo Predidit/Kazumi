@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -138,7 +140,7 @@ class _CollectPageState extends State<CollectPage>
   void initState() {
     super.initState();
     collectController.loadCollectibles();
-    tabController = TabController(vsync: this, length: tabs.length);
+    tabController = TabController(vsync: this, length: _tabTypes.length);
   }
 
   @override
@@ -147,24 +149,87 @@ class _CollectPageState extends State<CollectPage>
     super.dispose();
   }
 
-  final List<Tab> tabs = const <Tab>[
-    Tab(text: '在看'),
-    Tab(text: '想看'),
-    Tab(text: '搁置'),
-    Tab(text: '看过'),
-    Tab(text: '抛弃'),
-  ];
+  /// Tab order follows [CollectType.value], so a collectible of type `n`
+  /// belongs to tab `n - 1`.
+  static final List<CollectType> _tabTypes =
+      CollectType.values.where((type) => type.isCollected).toList();
+
+  /// Room a counted tab needs before the badge squeezes out the label.
+  static const double _countedTabMinWidth = 104;
+
+  List<int> get _collectibleCounts {
+    final List<int> counts = List<int>.filled(_tabTypes.length, 0);
+    for (CollectedBangumi element in collectController.collectibles) {
+      counts[element.type - 1]++;
+    }
+    return counts;
+  }
+
+  Widget _buildTab(String label, int? count) {
+    if (count == null) {
+      return Tab(text: label);
+    }
+    final ThemeData theme = Theme.of(context);
+    return Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '$count',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bool showAnimeCounter =
+        GStorage.getSetting(SettingsKeys.showAnimeCounter);
     return Scaffold(
       appBar: SysAppBar(
         needTopOffset: false,
         toolbarHeight: 104,
-        bottom: TabBar(
-          controller: tabController,
-          tabs: tabs,
-          indicatorColor: Theme.of(context).colorScheme.primary,
+        // The app bar sits outside the body observer, so the counts need
+        // their own one to track the collectibles store.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(kTextTabBarHeight),
+          child: Observer(builder: (context) {
+            final List<int>? counts =
+                showAnimeCounter ? _collectibleCounts : null;
+            return LayoutBuilder(builder: (context, constraints) {
+              // Splitting the bar evenly leaves no room for label and badge
+              // on a narrow screen, so scroll the tabs instead.
+              final bool scrollable = counts != null &&
+                  constraints.maxWidth <
+                      MediaQuery.textScalerOf(context)
+                              .scale(_countedTabMinWidth) *
+                          _tabTypes.length;
+              return TabBar(
+                controller: tabController,
+                isScrollable: scrollable,
+                tabAlignment:
+                    scrollable ? TabAlignment.start : TabAlignment.fill,
+                tabs: [
+                  for (int i = 0; i < _tabTypes.length; i++)
+                    _buildTab(_tabTypes[i].label, counts?[i]),
+                ],
+                indicatorColor: Theme.of(context).colorScheme.primary,
+              );
+            });
+          }),
         ),
         title: const Text('追番'),
         actions: [
@@ -246,11 +311,9 @@ class _CollectPageState extends State<CollectPage>
   }
 
   List<Widget> contentGrid(List<CollectedBangumi> collectedBangumiList) {
-    final bool showAnimeCounter =
-        GStorage.getSetting(SettingsKeys.showAnimeCounter);
     List<Widget> gridViewList = [];
     List<List<CollectedBangumi>> collectedBangumiRenderItemList =
-        List.generate(tabs.length, (_) => <CollectedBangumi>[]);
+        List.generate(_tabTypes.length, (_) => <CollectedBangumi>[]);
     for (CollectedBangumi element in collectedBangumiList) {
       collectedBangumiRenderItemList[element.type - 1].add(element);
     }
@@ -284,67 +347,42 @@ class _CollectPageState extends State<CollectPage>
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
-                    return collectedBangumiRenderItem.isNotEmpty
-                        ? Stack(
-                            children: [
-                              BangumiCardV(
-                                bangumiItem: collectedBangumiRenderItem[index]
-                                    .bangumiItem,
-                                canTap: !showDelete,
+                    final BangumiItem bangumiItem =
+                        collectedBangumiRenderItem[index].bangumiItem;
+                    return Stack(
+                      children: [
+                        BangumiCardV(
+                          bangumiItem: bangumiItem,
+                          canTap: !showDelete,
+                        ),
+                        if (showDelete)
+                          Positioned(
+                            right: 5,
+                            bottom: 5,
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .secondaryContainer,
+                                shape: BoxShape.circle,
                               ),
-                              Positioned(
-                                right: 5,
-                                bottom: 5,
-                                child: showDelete
-                                    ? Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .secondaryContainer,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: CollectButton(
-                                          bangumiItem:
-                                              collectedBangumiRenderItem[index]
-                                                  .bangumiItem,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSecondaryContainer,
-                                        ),
-                                      )
-                                    : Container(),
+                              child: CollectButton(
+                                bangumiItem: bangumiItem,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSecondaryContainer,
                               ),
-                            ],
-                          )
-                        : null;
+                            ),
+                          ),
+                      ],
+                    );
                   },
-                  childCount: collectedBangumiRenderItem.isNotEmpty
-                      ? collectedBangumiRenderItem.length
-                      : 10,
+                  childCount: collectedBangumiRenderItem.length,
                 ),
               ),
             ),
-            if (collectedBangumiRenderItem.isNotEmpty && showAnimeCounter)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 12),
-                      child: Text(
-                        '总计：${collectedBangumiRenderItem.length}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
           ],
         ),
       );

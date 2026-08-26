@@ -110,7 +110,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
                 setState(() {});
               },
               title: Text('显示追番统计'),
-              description: Text('启用后将在追番页面下方显示追番统计'),
+              description: Text('在追番页面显示统计'),
               initialValue: showAnimeCounter,
             ),
           ]),

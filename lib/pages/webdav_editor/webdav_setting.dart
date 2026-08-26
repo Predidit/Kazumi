@@ -110,7 +110,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     }
                   },
                   title: Text('Bangumi 镜像'),
-                  description: Text('使用本地 Bangumi 缓存后端加载热门与分类榜单'),
+                  description: Text('使用缓存后端加载榜单'),
                   initialValue: enableBangumiProxy,
                 ),
                 SettingsTile.switchTile(
@@ -147,7 +147,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     setState(() {});
                   },
                   title: Text('Bangumi 同步'),
-                  description: Text('允许与Bangumi自动同步收藏/追番状态'),
+                  description: Text('与Bangumi自动同步追番状态'),
                   initialValue: bangumiSyncEnable,
                 ),
                 SettingsTile(

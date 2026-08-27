@@ -1,87 +1,42 @@
-class DanmakuAnime {
-  int animeId;
-  String animeTitle;
-  String type;
-  String typeDescription;
-  String imageUrl;
-  DateTime startDate;
-  int episodeCount;
-  double rating;
-  bool isFavorited;
+/// Response of `/api/v2/search/episodes`.
+///
+/// Entries carry no cover, rating or air date, unlike `/api/v2/search/anime`.
+class DanmakuSearchAnime {
+  final int animeId;
+  final String animeTitle;
+  final String typeDescription;
 
-  DanmakuAnime({
+  const DanmakuSearchAnime({
     required this.animeId,
     required this.animeTitle,
-    required this.type,
     required this.typeDescription,
-    required this.imageUrl,
-    required this.startDate,
-    required this.episodeCount,
-    required this.rating,
-    required this.isFavorited,
   });
 
-  factory DanmakuAnime.fromJson(Map<String, dynamic> json) {
-    return DanmakuAnime(
+  factory DanmakuSearchAnime.fromJson(Map<String, dynamic> json) {
+    return DanmakuSearchAnime(
       animeId: json['animeId'],
       animeTitle: json['animeTitle'],
-      type: json['type'],
-      typeDescription: json['typeDescription'],
-      imageUrl: json['imageUrl'],
-      startDate: DateTime.parse(json['startDate']),
-      episodeCount: json['episodeCount'],
-      rating: json['rating'].toDouble(),
-      isFavorited: json['isFavorited'],
+      typeDescription: json['typeDescription'] ?? '',
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'animeId': animeId,
-      'animeTitle': animeTitle,
-      'type': type,
-      'typeDescription': typeDescription,
-      'imageUrl': imageUrl,
-      'startDate': startDate.toIso8601String(),
-      'episodeCount': episodeCount,
-      'rating': rating,
-      'isFavorited': isFavorited,
-    };
   }
 }
 
 class DanmakuSearchResponse {
-  List<DanmakuAnime> animes;
-  int errorCode;
-  bool success;
-  String errorMessage;
+  final List<DanmakuSearchAnime> animes;
 
-  DanmakuSearchResponse({
+  /// Result set was truncated; the user should narrow the keyword.
+  final bool hasMore;
+
+  const DanmakuSearchResponse({
     required this.animes,
-    required this.errorCode,
-    required this.success,
-    required this.errorMessage,
+    required this.hasMore,
   });
 
   factory DanmakuSearchResponse.fromJson(Map<String, dynamic> json) {
     var list = json['animes'] as List;
-    List<DanmakuAnime> animeList =
-        list.map((i) => DanmakuAnime.fromJson(i)).toList();
-
     return DanmakuSearchResponse(
-      animes: animeList,
-      errorCode: json['errorCode'],
-      success: json['success'],
-      errorMessage: json['errorMessage'],
+      animes: list.map((i) => DanmakuSearchAnime.fromJson(i)).toList(),
+      hasMore: json['hasMore'] ?? false,
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'animes': animes.map((anime) => anime.toJson()).toList(),
-      'errorCode': errorCode,
-      'success': success,
-      'errorMessage': errorMessage,
-    };
   }
 }

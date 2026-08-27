@@ -122,7 +122,7 @@ class ApiEndpoints {
   static const String dandanAPIComment = "/api/v2/comment/";
 
   /// 检索弹弹番剧元数据
-  static const String dandanAPISearch = "/api/v2/search/anime";
+  static const String dandanAPISearchEpisodes = "/api/v2/search/episodes";
 
   /// 获取弹弹番剧元数据
   static const String dandanAPIInfo = "/api/v2/bangumi/";

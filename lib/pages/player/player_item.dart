@@ -1175,10 +1175,8 @@ class _PlayerItemState extends State<PlayerItem>
     KazumiDialog.dismiss();
     KazumiDialog.showLoading(msg: '弹幕检索中');
     DanmakuSearchResponse danmakuSearchResponse;
-    DanmakuEpisodeResponse danmakuEpisodeResponse;
     try {
-      danmakuSearchResponse =
-          await DanmakuApi.getDanmakuSearchResponse(keyword);
+      danmakuSearchResponse = await DanmakuApi.searchAnimes(keyword);
     } catch (e) {
       KazumiDialog.dismiss();
       KazumiDialog.showToast(message: '弹幕检索错误: ${e.toString()}');
@@ -1195,70 +1193,90 @@ class _PlayerItemState extends State<PlayerItem>
           constraints: const BoxConstraints(maxWidth: 560),
           child: ListView(
             shrinkWrap: true,
-            children: danmakuSearchResponse.animes.map((danmakuInfo) {
-              return ListTile(
-                title: Text(danmakuInfo.animeTitle),
-                onTap: () async {
-                  KazumiDialog.dismiss();
-                  KazumiDialog.showLoading(msg: '弹幕检索中');
-                  try {
-                    danmakuEpisodeResponse =
-                        await DanmakuApi.getDanDanEpisodesByDanDanBangumiID(
-                            danmakuInfo.animeId);
-                  } catch (e) {
-                    KazumiDialog.dismiss();
-                    KazumiDialog.showToast(message: '弹幕检索错误: ${e.toString()}');
-                    return;
-                  }
-                  KazumiDialog.dismiss();
-                  if (danmakuEpisodeResponse.episodes.isEmpty) {
-                    KazumiDialog.showToast(message: '未找到匹配结果');
-                    return;
-                  }
-                  KazumiDialog.show(builder: (context) {
-                    return Dialog(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 560),
-                        child: ListView(
-                          shrinkWrap: true,
-                          children:
-                              danmakuEpisodeResponse.episodes.map((episode) {
-                            return ListTile(
-                              title: Text(episode.episodeTitle),
-                              onTap: () async {
-                                KazumiDialog.dismiss();
-                                try {
-                                  videoPageController
-                                      .cancelAutomaticDanmakuLoad();
-                                  final hasDanmakus = await playerController
-                                      .danmaku
-                                      .getDanDanmakuByEpisodeID(
-                                          episode.episodeId);
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  if (hasDanmakus) {
-                                    playerController.danmaku
-                                        .setDanmakuEnabled(true);
-                                    KazumiDialog.showToast(message: '弹幕切换成功');
-                                  } else {
-                                    playerController.danmaku
-                                        .setDanmakuEnabled(false);
-                                    KazumiDialog.showToast(message: '未找到弹幕内容');
-                                  }
-                                } catch (e) {
-                                  KazumiDialog.showToast(message: '弹幕切换失败');
-                                }
-                              },
-                            );
-                          }).toList(),
+            children: [
+              if (danmakuSearchResponse.hasMore)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                  child: Text(
+                    '结果较多，仅显示部分条目，可补充更完整的番剧名缩小范围',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
                         ),
-                      ),
-                    );
-                  });
-                },
-              );
-            }).toList(),
+                  ),
+                ),
+              ...danmakuSearchResponse.animes.map((danmakuInfo) {
+                return ListTile(
+                  title: Text(danmakuInfo.animeTitle),
+                  subtitle: danmakuInfo.typeDescription.isEmpty
+                      ? null
+                      : Text(danmakuInfo.typeDescription),
+                  onTap: () async {
+                    KazumiDialog.dismiss();
+                    KazumiDialog.showLoading(msg: '弹幕检索中');
+                    final DanmakuEpisodeResponse danmakuEpisodeResponse;
+                    try {
+                      danmakuEpisodeResponse =
+                          await DanmakuApi.getDanDanEpisodesByDanDanBangumiID(
+                              danmakuInfo.animeId);
+                    } catch (e) {
+                      KazumiDialog.dismiss();
+                      KazumiDialog.showToast(
+                          message: '弹幕检索错误: ${e.toString()}');
+                      return;
+                    }
+                    KazumiDialog.dismiss();
+                    if (danmakuEpisodeResponse.episodes.isEmpty) {
+                      KazumiDialog.showToast(message: '未找到匹配结果');
+                      return;
+                    }
+                    KazumiDialog.show(builder: (context) {
+                      return Dialog(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 560),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: danmakuEpisodeResponse.episodes.length,
+                            itemBuilder: (context, index) {
+                              final episode =
+                                  danmakuEpisodeResponse.episodes[index];
+                              return ListTile(
+                                title: Text(episode.episodeTitle),
+                                onTap: () async {
+                                  KazumiDialog.dismiss();
+                                  try {
+                                    videoPageController
+                                        .cancelAutomaticDanmakuLoad();
+                                    final hasDanmakus = await playerController
+                                        .danmaku
+                                        .getDanDanmakuByEpisodeID(
+                                            episode.episodeId);
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    if (hasDanmakus) {
+                                      playerController.danmaku
+                                          .setDanmakuEnabled(true);
+                                      KazumiDialog.showToast(message: '弹幕切换成功');
+                                    } else {
+                                      playerController.danmaku
+                                          .setDanmakuEnabled(false);
+                                      KazumiDialog.showToast(
+                                          message: '未找到弹幕内容');
+                                    }
+                                  } catch (e) {
+                                    KazumiDialog.showToast(message: '弹幕切换失败');
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    });
+                  },
+                );
+              }),
+            ],
           ),
         ),
       );

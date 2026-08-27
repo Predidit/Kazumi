@@ -1636,8 +1636,9 @@ class _PlayerItemState extends State<PlayerItem>
                           area: _danmakuArea,
                           opacity: _opacity,
                           fontSize: _fontSize,
-                          duration: _danmakuDuration /
-                              playerController.playback.playerSpeed,
+                          // Playback speed is applied by updateDanmakuSpeed,
+                          // right after the controller is handed over.
+                          duration: _danmakuDuration,
                           lineHeight: _danmakuLineHeight,
                           strokeWidth: _border ? _danmakuBorderSize : 0.0,
                           fontWeight: _danmakuFontWeight,

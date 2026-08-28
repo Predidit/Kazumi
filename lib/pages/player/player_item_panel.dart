@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kazumi/bean/widget/android_caption_bar_padding.dart';
 import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
@@ -959,184 +960,161 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   }
 
   Widget get topControlWidget {
-    return EmbeddedNativeControlArea(
-      requireOffset: !videoPageController.isFullscreen,
-      child: SafeArea(
-        top: false,
-        bottom: false,
-        left: videoPageController.isFullscreen,
-        right: videoPageController.isFullscreen,
-        child: PlayerPanelHoldMouseRegion(
-          acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
-          cursor: (videoPageController.isFullscreen &&
-                  !playerController.panel.showVideoController)
-              ? SystemMouseCursors.none
-              : SystemMouseCursors.basic,
-          child: Row(
-            children: [
-              IconButton(
-                color: Colors.white,
-                icon: const Icon(Icons.arrow_back_rounded),
-                tooltip: '返回',
-                onPressed: () {
-                  widget.onBackPressed(context);
-                },
-              ),
-              Expanded(
-                child: dtb.DragToMoveArea(
-                  child: Text(
-                    ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.selectedEpisode.road].identifier[videoPageController.selectedEpisode.episode - 1]}]',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize:
-                          Theme.of(context).textTheme.titleMedium!.fontSize,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ),
-              forwardIcon(),
-              if ((isDesktop() && !videoPageController.isFullscreen) ||
-                  Platform.isAndroid)
+    return AndroidCaptionBarTopPadding(
+      enabled: videoPageController.isFullscreen && !videoPageController.isPip,
+      child: EmbeddedNativeControlArea(
+        requireOffset: !videoPageController.isFullscreen,
+        child: SafeArea(
+          top: false,
+          bottom: false,
+          left: videoPageController.isFullscreen,
+          right: videoPageController.isFullscreen,
+          child: PlayerPanelHoldMouseRegion(
+            acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+            cursor: (videoPageController.isFullscreen &&
+                    !playerController.panel.showVideoController)
+                ? SystemMouseCursors.none
+                : SystemMouseCursors.basic,
+            child: Row(
+              children: [
                 IconButton(
-                  onPressed: () async {
-                    if (isDesktop()) {
-                      if (videoPageController.isPip) {
-                        await PipUtils.exitDesktopPIPWindow();
-                      } else {
-                        await PipUtils.enterDesktopPIPWindow(
-                          width: playerController.debug.playerWidth,
-                          height: playerController.debug.playerHeight,
-                        );
-                      }
-                      videoPageController.isPip = !videoPageController.isPip;
-                      return;
-                    }
-                    await widget.enterAndroidPictureInPicture();
+                  color: Colors.white,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  tooltip: '返回',
+                  onPressed: () {
+                    widget.onBackPressed(context);
                   },
-                  tooltip: '画中画',
-                  icon: const Icon(
-                    Icons.picture_in_picture,
-                    color: Colors.white,
+                ),
+                Expanded(
+                  child: dtb.DragToMoveArea(
+                    child: Text(
+                      ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.selectedEpisode.road].identifier[videoPageController.selectedEpisode.episode - 1]}]',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize:
+                            Theme.of(context).textTheme.titleMedium!.fontSize,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
                 ),
-              PlayerPanelHoldCollectButton(
-                acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
-                bangumiItem: videoPageController.bangumiItem,
-              ),
-              PlayerPanelHoldMenuAnchor(
-                acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
-                onVisibilityChanged: widget.onMenuVisibilityChanged,
-                consumeOutsideTap: true,
-                builder: (BuildContext context, MenuController controller,
-                    Widget? child) {
-                  return IconButton(
-                    onPressed: () {
-                      if (controller.isOpen) {
-                        controller.close();
-                      } else {
-                        controller.open();
+                forwardIcon(),
+                if ((isDesktop() && !videoPageController.isFullscreen) ||
+                    Platform.isAndroid)
+                  IconButton(
+                    onPressed: () async {
+                      if (isDesktop()) {
+                        if (videoPageController.isPip) {
+                          await PipUtils.exitDesktopPIPWindow();
+                        } else {
+                          await PipUtils.enterDesktopPIPWindow(
+                            width: playerController.debug.playerWidth,
+                            height: playerController.debug.playerHeight,
+                          );
+                        }
+                        videoPageController.isPip = !videoPageController.isPip;
+                        return;
                       }
+                      await widget.enterAndroidPictureInPicture();
                     },
-                    tooltip: '更多选项',
+                    tooltip: '画中画',
                     icon: const Icon(
-                      Icons.more_vert,
+                      Icons.picture_in_picture,
                       color: Colors.white,
                     ),
-                  );
-                },
-                menuChildren: [
-                  MenuItemButton(
-                    onPressed: () {
-                      widget.showDanmakuSwitch();
-                    },
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text("弹幕切换"),
-                      ),
-                    ),
                   ),
-                  MenuItemButton(
-                    onPressed: () {
-                      widget.showVideoInfo();
-                    },
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text("视频详情"),
-                      ),
-                    ),
-                  ),
-                  MenuItemButton(
-                    onPressed: () {
-                      bool needRestart = playerController.playback.playing;
-                      playerController.pause();
-                      RemotePlay()
-                          .castVideo(playerController.videoUrl,
-                              videoPageController.currentPlugin.referer)
-                          .whenComplete(() {
-                        if (mounted && needRestart) {
-                          playerController.play();
+                PlayerPanelHoldCollectButton(
+                  acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+                  bangumiItem: videoPageController.bangumiItem,
+                ),
+                PlayerPanelHoldMenuAnchor(
+                  acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+                  onVisibilityChanged: widget.onMenuVisibilityChanged,
+                  consumeOutsideTap: true,
+                  builder: (BuildContext context, MenuController controller,
+                      Widget? child) {
+                    return IconButton(
+                      onPressed: () {
+                        if (controller.isOpen) {
+                          controller.close();
+                        } else {
+                          controller.open();
                         }
-                      });
-                    },
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text("远程投屏"),
+                      },
+                      tooltip: '更多选项',
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: Colors.white,
                       ),
-                    ),
-                  ),
-                  MenuItemButton(
-                    onPressed: () {
-                      playerController.launchExternalPlayer();
-                    },
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text("外部播放"),
-                      ),
-                    ),
-                  ),
-                  SubmenuButton(
-                    menuChildren: [
-                      MenuItemButton(
-                        onPressed: () {
-                          TimedShutdownService().cancel();
-                        },
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              "不开启",
-                              style: TextStyle(
-                                color: !TimedShutdownService().isActive
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                              ),
-                            ),
-                          ),
+                    );
+                  },
+                  menuChildren: [
+                    MenuItemButton(
+                      onPressed: () {
+                        widget.showDanmakuSwitch();
+                      },
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text("弹幕切换"),
                         ),
                       ),
-                      for (final int minutes in [15, 30, 60])
+                    ),
+                    MenuItemButton(
+                      onPressed: () {
+                        widget.showVideoInfo();
+                      },
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text("视频详情"),
+                        ),
+                      ),
+                    ),
+                    MenuItemButton(
+                      onPressed: () {
+                        bool needRestart = playerController.playback.playing;
+                        playerController.pause();
+                        RemotePlay()
+                            .castVideo(playerController.videoUrl,
+                                videoPageController.currentPlugin.referer)
+                            .whenComplete(() {
+                          if (mounted && needRestart) {
+                            playerController.play();
+                          }
+                        });
+                      },
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text("远程投屏"),
+                        ),
+                      ),
+                    ),
+                    MenuItemButton(
+                      onPressed: () {
+                        playerController.launchExternalPlayer();
+                      },
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text("外部播放"),
+                        ),
+                      ),
+                    ),
+                    SubmenuButton(
+                      menuChildren: [
                         MenuItemButton(
                           onPressed: () {
-                            TimedShutdownService().start(minutes,
-                                onExpired: widget.pauseForTimedShutdown);
-                            KazumiDialog.showToast(
-                                message:
-                                    '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
+                            TimedShutdownService().cancel();
                           },
                           child: Container(
                             height: 48,
@@ -1144,10 +1122,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                "$minutes 分钟",
+                                "不开启",
                                 style: TextStyle(
-                                  color: TimedShutdownService().setMinutes ==
-                                          minutes
+                                  color: !TimedShutdownService().isActive
                                       ? Theme.of(context).colorScheme.primary
                                       : null,
                                 ),
@@ -1155,57 +1132,84 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             ),
                           ),
                         ),
-                      MenuItemButton(
-                        onPressed: () {
-                          TimedShutdownService.showCustomTimerDialog(
-                            onExpired: widget.pauseForTimedShutdown,
-                          );
-                        },
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("自定义"),
+                        for (final int minutes in [15, 30, 60])
+                          MenuItemButton(
+                            onPressed: () {
+                              TimedShutdownService().start(minutes,
+                                  onExpired: widget.pauseForTimedShutdown);
+                              KazumiDialog.showToast(
+                                  message:
+                                      '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
+                            },
+                            child: Container(
+                              height: 48,
+                              constraints: BoxConstraints(minWidth: 112),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  "$minutes 分钟",
+                                  style: TextStyle(
+                                    color: TimedShutdownService().setMinutes ==
+                                            minutes
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        MenuItemButton(
+                          onPressed: () {
+                            TimedShutdownService.showCustomTimerDialog(
+                              onExpired: widget.pauseForTimedShutdown,
+                            );
+                          },
+                          child: Container(
+                            height: 48,
+                            constraints: BoxConstraints(minWidth: 112),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text("自定义"),
+                            ),
+                          ),
+                        ),
+                      ],
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: ValueListenableBuilder<int>(
+                            valueListenable:
+                                TimedShutdownService().remainingSecondsNotifier,
+                            builder: (context, remainingSeconds, child) {
+                              return Text(
+                                remainingSeconds > 0
+                                    ? "定时关闭 (${TimedShutdownService().formatRemainingTime()})"
+                                    : "定时关闭",
+                              );
+                            },
                           ),
                         ),
                       ),
-                    ],
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: ValueListenableBuilder<int>(
-                          valueListenable:
-                              TimedShutdownService().remainingSecondsNotifier,
-                          builder: (context, remainingSeconds, child) {
-                            return Text(
-                              remainingSeconds > 0
-                                  ? "定时关闭 (${TimedShutdownService().formatRemainingTime()})"
-                                  : "定时关闭",
-                            );
-                          },
+                    ),
+                    MenuItemButton(
+                      onPressed: () {
+                        widget.showSyncPlayPanel();
+                      },
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text("一起看"),
                         ),
                       ),
                     ),
-                  ),
-                  MenuItemButton(
-                    onPressed: () {
-                      widget.showSyncPlayPanel();
-                    },
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text("一起看"),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

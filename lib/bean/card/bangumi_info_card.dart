@@ -4,6 +4,7 @@ import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/request/apis/anilist_api.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -26,6 +27,54 @@ class BangumiInfoCardV extends StatefulWidget {
 
 class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
   int touchedIndex = -1;
+  DateTime? airingTime;
+  int? _lookupBangumiId;
+  String _lookupAirDate = '';
+  int _airingTimeRequestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAiringTime();
+  }
+
+  @override
+  void didUpdateWidget(covariant BangumiInfoCardV oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadAiringTime();
+  }
+
+  Future<void> _loadAiringTime() async {
+    final item = widget.bangumiItem;
+    if (_lookupBangumiId == item.id && _lookupAirDate == item.airDate) {
+      return;
+    }
+
+    _lookupBangumiId = item.id;
+    _lookupAirDate = item.airDate;
+    final requestId = ++_airingTimeRequestId;
+    airingTime = null;
+
+    final time = await AniListApi.getAiringTime(item);
+    if (!mounted || requestId != _airingTimeRequestId) return;
+    setState(() => airingTime = time);
+  }
+
+  String get airingTimeText {
+    final time = airingTime!;
+    const weekdays = <String>[
+      '周一',
+      '周二',
+      '周三',
+      '周四',
+      '周五',
+      '周六',
+      '周日',
+    ];
+    return '${weekdays[time.weekday - 1]} '
+        '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
+  }
 
   Widget get voteBarChart {
     return Flexible(
@@ -183,6 +232,18 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
+                            if (airingTime != null && !widget.isLoading) ...[
+                              SizedBox(height: 8),
+                              Text('更新时间:'),
+                              Text(
+                                airingTimeText,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ],
                             SizedBox(height: 8),
                             Text(
                               widget.showRating

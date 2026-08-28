@@ -23,6 +23,11 @@ class PlayerLongPressShortcutActions {
 /// Dialog routes and explicitly blocked overlay interactions keep their normal
 /// key handling. Active long-press shortcuts are always released, even after
 /// focus leaves the player or this widget is disposed.
+///
+/// Long-press shortcuts are driven by timers instead of relying on OS key
+/// auto-repeat ([KeyRepeatEvent]). This keeps hold-to-repeat working with
+/// synthetic key input (e.g. mouse-button remappers that only send a single
+/// key down/up pair) and makes real-keyboard holding more responsive.
 class PlayerKeyboardShortcuts extends StatefulWidget {
   const PlayerKeyboardShortcuts({
     super.key,
@@ -45,10 +50,27 @@ class PlayerKeyboardShortcuts extends StatefulWidget {
 }
 
 class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
+  /// Delay before a held key starts repeating, distinguishing a quick tap
+  /// from a long press.
+  static const Duration _longPressDelay = Duration(milliseconds: 250);
+
+  /// Interval between repeat invocations while the long press is active.
+  static const Duration _longPressRepeatInterval =
+      Duration(milliseconds: 100);
+
   late Map<String, List<String>> _shortcuts;
   final Map<LogicalKeyboardKey, PlayerLongPressShortcutActions>
       _activeLongPressKeys =
       <LogicalKeyboardKey, PlayerLongPressShortcutActions>{};
+
+  /// One-shot timers that arm the long-press repeat after [_longPressDelay].
+  final Map<LogicalKeyboardKey, Timer> _longPressArmTimers =
+      <LogicalKeyboardKey, Timer>{};
+
+  /// Periodic timers driving [PlayerLongPressShortcutActions.onRepeat] while
+  /// a long-press key stays held.
+  final Map<LogicalKeyboardKey, Timer> _longPressRepeatTimers =
+      <LogicalKeyboardKey, Timer>{};
 
   @override
   void initState() {
@@ -86,6 +108,7 @@ class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
     if (event is KeyUpEvent) {
       final longPressActions = _activeLongPressKeys.remove(event.logicalKey);
       if (longPressActions != null) {
+        _cancelLongPressTimers(event.logicalKey);
         _invokeAction(longPressActions.onRelease);
         return KeyEventResult.handled;
       }
@@ -111,6 +134,7 @@ class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
       final longPressActions = widget.longPressActions[actionName];
       if (longPressActions != null) {
         _activeLongPressKeys[event.logicalKey] = longPressActions;
+        _armLongPressRepeat(event.logicalKey, longPressActions);
       }
       _invokeAction(action);
       return KeyEventResult.handled;
@@ -118,14 +142,54 @@ class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
 
     if (event is KeyRepeatEvent) {
       final longPressActions = _activeLongPressKeys[event.logicalKey];
-      if (longPressActions == null) {
+      // Already repeating through the timer, or no long press registered.
+      if (longPressActions == null ||
+          _longPressRepeatTimers.containsKey(event.logicalKey)) {
         return KeyEventResult.ignored;
       }
+      // OS auto-repeat arrived before our arm timer fired: activate now.
+      _activateLongPressRepeat(event.logicalKey, longPressActions);
       _invokeAction(longPressActions.onRepeat);
       return KeyEventResult.handled;
     }
 
     return KeyEventResult.ignored;
+  }
+
+  void _armLongPressRepeat(
+    LogicalKeyboardKey key,
+    PlayerLongPressShortcutActions actions,
+  ) {
+    _longPressArmTimers[key]?.cancel();
+    _longPressArmTimers[key] = Timer(_longPressDelay, () {
+      _longPressArmTimers.remove(key);
+      if (!_longPressRepeatTimers.containsKey(key)) {
+        _activateLongPressRepeat(key, actions);
+      }
+    });
+  }
+
+  void _activateLongPressRepeat(
+    LogicalKeyboardKey key,
+    PlayerLongPressShortcutActions actions,
+  ) {
+    _longPressRepeatTimers[key]?.cancel();
+    _invokeAction(actions.onRepeat);
+    _longPressRepeatTimers[key] = Timer.periodic(
+      _longPressRepeatInterval,
+      (_) {
+        if (!_activeLongPressKeys.containsKey(key)) {
+          _cancelLongPressTimers(key);
+          return;
+        }
+        _invokeAction(actions.onRepeat);
+      },
+    );
+  }
+
+  void _cancelLongPressTimers(LogicalKeyboardKey key) {
+    _longPressArmTimers.remove(key)?.cancel();
+    _longPressRepeatTimers.remove(key)?.cancel();
   }
 
   bool _shouldHandleShortcut() {
@@ -163,6 +227,12 @@ class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
   }
 
   void _releaseAllLongPressShortcuts() {
+    for (final key in _longPressArmTimers.keys.toList()) {
+      _longPressArmTimers.remove(key)?.cancel();
+    }
+    for (final key in _longPressRepeatTimers.keys.toList()) {
+      _longPressRepeatTimers.remove(key)?.cancel();
+    }
     final actions = _activeLongPressKeys.values.toSet();
     _activeLongPressKeys.clear();
     for (final action in actions) {

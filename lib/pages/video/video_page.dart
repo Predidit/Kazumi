@@ -29,6 +29,34 @@ import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
 import 'package:mobx/mobx.dart' as mobx;
 
+int episodeNumberForDisplayIndex(
+  int displayIndex,
+  int episodeCount, {
+  required bool descending,
+}) =>
+    descending ? episodeCount - displayIndex : displayIndex + 1;
+
+int displayIndexForEpisodeNumber(
+  int episodeNumber,
+  int episodeCount, {
+  required bool descending,
+}) =>
+    descending ? episodeCount - episodeNumber : episodeNumber - 1;
+
+List<String> descendingEpisodeSources(
+  Iterable<String> sources,
+  String source, {
+  required bool descending,
+}) {
+  final updated = sources.toSet();
+  if (descending) {
+    updated.add(source);
+  } else {
+    updated.remove(source);
+  }
+  return updated.toList();
+}
+
 class VideoPage extends StatefulWidget {
   const VideoPage({
     super.key,
@@ -72,6 +100,7 @@ class _VideoPageState extends State<VideoPage>
   late TabController tabController;
 
   int visibleRoad = 0;
+  late bool _episodesDescending;
   bool _tabBodyTargetVisible = true;
   int _tabBodyAnimationRun = 0;
 
@@ -82,11 +111,20 @@ class _VideoPageState extends State<VideoPage>
 
   static const Duration _offlinePlayerInitDelay = Duration(milliseconds: 400);
   static const Duration _sideTabAnimationDuration = Duration(milliseconds: 120);
+  static const String _descendingEpisodeSourcesKey = 'descendingEpisodeSources';
+
+  String get _episodeOrderSourceName => switch (widget.args) {
+        OnlineVideoPlaybackArgs(plugin: final plugin) => plugin.name,
+        OfflineVideoPlaybackArgs(pluginName: final pluginName) => pluginName,
+      };
 
   @override
   void initState() {
     super.initState();
     videoPageController.applyPlaybackArgs(widget.args);
+    _episodesDescending = GStorage.getStringListSettingByName(
+      _descendingEpisodeSourcesKey,
+    ).contains(_episodeOrderSourceName);
     windowManager.addListener(this);
     // Window fullscreen can be changed outside this page through system chrome.
     videoPageController.isDesktopFullscreen();
@@ -335,7 +373,15 @@ class _VideoPageState extends State<VideoPage>
       if (!mounted || !scrollController.hasClients) {
         return;
       }
-      final int index = videoPageController.selectedEpisode.episode - 1;
+      final episodeCount =
+          visibleRoad >= 0 && visibleRoad < videoPageController.roadList.length
+              ? videoPageController.roadList[visibleRoad].data.length
+              : 0;
+      final int index = displayIndexForEpisodeNumber(
+        videoPageController.selectedEpisode.episode,
+        episodeCount,
+        descending: _episodesDescending,
+      );
       await observerController.jumpTo(
         index: index < 0 ? 0 : index,
         isFixedHeight: true,
@@ -890,6 +936,20 @@ class _VideoPageState extends State<VideoPage>
             ),
           ),
           const SizedBox(width: 10),
+          IconButton(
+            tooltip: _episodesDescending ? '倒序' : '正序',
+            onPressed: _toggleEpisodeOrder,
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            padding: EdgeInsets.zero,
+            icon: Transform.flip(
+              flipY: _episodesDescending,
+              child: const Icon(Icons.sort),
+            ),
+          ),
+          const SizedBox(width: 6),
           MenuAnchor(
             consumeOutsideTap: true,
             builder: (_, MenuController controller, __) {
@@ -944,6 +1004,22 @@ class _VideoPageState extends State<VideoPage>
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _toggleEpisodeOrder() async {
+    final descending = !_episodesDescending;
+    setState(() {
+      _episodesDescending = descending;
+    });
+    final sources = descendingEpisodeSources(
+      GStorage.getStringListSettingByName(_descendingEpisodeSourcesKey),
+      _episodeOrderSourceName,
+      descending: descending,
+    );
+    await GStorage.putStringListSettingByName(
+      _descendingEpisodeSourcesKey,
+      sources,
     );
   }
 
@@ -1009,9 +1085,15 @@ class _VideoPageState extends State<VideoPage>
         if (visibleRoad >= 0 &&
             visibleRoad < videoPageController.roadList.length) {
           final road = videoPageController.roadList[visibleRoad];
-          int count = 1;
-          for (var urlItem in road.data) {
-            int count0 = count;
+          for (var displayIndex = 0;
+              displayIndex < road.data.length;
+              displayIndex++) {
+            final count0 = episodeNumberForDisplayIndex(
+              displayIndex,
+              road.data.length,
+              descending: _episodesDescending,
+            );
+            final urlItem = road.data[count0 - 1];
             final episodeName = count0 - 1 < road.identifier.length
                 ? road.identifier[count0 - 1]
                 : '第$count0集';
@@ -1083,7 +1165,6 @@ class _VideoPageState extends State<VideoPage>
                 ),
               ),
             ));
-            count++;
           }
         }
         return Expanded(

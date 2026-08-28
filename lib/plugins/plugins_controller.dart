@@ -317,6 +317,35 @@ abstract class _PluginsController with Store {
     }
   }
 
+  /// Returns the persisted rule representation for the backup boundary.
+  String pluginsJsonForBackup() {
+    return jsonEncode(_pluginListToJson());
+  }
+
+  /// Replaces the installed rules through the same serialized mutation path as
+  /// normal rule edits. The backup layer never mutates [pluginList] directly.
+  Future<void> replacePluginsFromBackup(List<Plugin> plugins) {
+    return _mutations.run(() async {
+      final previous = List<Plugin>.from(pluginList);
+      try {
+        pluginList
+          ..clear()
+          ..addAll(plugins);
+        await _writePluginsJson(pluginsJsonForBackup());
+      } catch (error, stackTrace) {
+        pluginList
+          ..clear()
+          ..addAll(previous);
+        _errorReporter(
+          'Plugin: failed to restore rules from backup',
+          error,
+          stackTrace,
+        );
+        rethrow;
+      }
+    });
+  }
+
   Future<List<PluginHTTPItem>> refreshPluginCatalog() {
     return _catalogRefreshSingleFlight.run(() async {
       try {

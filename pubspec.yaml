@@ -51,6 +51,7 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
   image: ^4.8.0
+  archive: ^4.0.9
   # cached_network_image_ce: ^4.6.4
   file_picker: ^10.3.7
 

@@ -206,15 +206,25 @@ class _VideoPageState extends State<VideoPage>
   void _initOnlineMode(PlayerController playerController) {
     videoPageController.historyOffset = 0;
 
-    var progress = historyController.lastWatching(
+    final history = historyController.getHistory(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
+    final progress =
+        history == null ? null : history.progresses[history.lastWatchEpisode];
+    final episodePageUrl = history?.episodePageUrl ?? '';
     if (progress != null) {
       if (videoPageController.roadList.length > progress.road) {
-        if (videoPageController.roadList[progress.road].data.length >=
-            progress.episode) {
+        final road = videoPageController.roadList[progress.road];
+        var episode = progress.episode;
+        if (episodePageUrl.isNotEmpty) {
+          final currentIndex = road.data.indexOf(episodePageUrl);
+          if (currentIndex >= 0) {
+            episode = currentIndex + 1;
+          }
+        }
+        if (road.data.length >= episode) {
           videoPageController.resetEpisodeState(
-            episode: progress.episode,
+            episode: episode,
             road: progress.road,
           );
           if (playResume) {

@@ -209,8 +209,9 @@ class _VideoPageState extends State<VideoPage>
     final history = historyController.getHistory(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
-    final progress =
-        history == null ? null : history.progresses[history.lastWatchEpisode];
+    final progress = historyController.lastWatching(
+        videoPageController.bangumiItem,
+        videoPageController.currentPlugin.name);
     final episodePageUrl = history?.episodePageUrl ?? '';
     if (progress != null) {
       if (videoPageController.roadList.length > progress.road) {

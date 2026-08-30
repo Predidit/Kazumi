@@ -187,7 +187,8 @@ class CollectSyncMerger {
       for (final id in mismatchIds) {
         final localTime = localMap[id]!.time;
         final remoteTime = remoteMap[id]!.updatedAt;
-        if (localTime.isAfter(remoteTime) ||
+        if (remoteTime == null ||
+            localTime.isAfter(remoteTime) ||
             localTime.isAtSameMomentAs(remoteTime)) {
           conflictUploads.add(
             BangumiUploadMutation(bangumiId: id, type: localMap[id]!.type),
@@ -215,7 +216,7 @@ class CollectSyncMerger {
     final localType = remote.type.toCollectType();
     return CollectedBangumi(
       remote.toBangumiItem(),
-      remote.updatedAt,
+      remote.updatedAt ?? DateTime.now(),
       localType.value,
     );
   }

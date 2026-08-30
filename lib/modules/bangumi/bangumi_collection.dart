@@ -5,7 +5,7 @@ import 'bangumi_collection_type.dart';
 /// NOTE: 该类仅用于解析 Bangumi API 返回的收藏数据，不适用本地收藏
 class BangumiCollection {
   /// 最后更新时间
-  DateTime updatedAt;
+  DateTime? updatedAt;
 
   /// Bangumi ID
   int bangumiId;
@@ -95,14 +95,14 @@ class BangumiCollection {
         .whereType<Map>()
         .map((tag) => Map<String, dynamic>.from(tag))
         .toList();
-    DateTime updatedAt;
+    DateTime? updatedAt;
     try {
       final updatedAtStr = json['updated_at'] as String?;
-      updatedAt = updatedAtStr != null
-          ? (DateTime.tryParse(updatedAtStr) ?? DateTime.now())
-          : DateTime.now();
+      if (updatedAtStr != null && updatedAtStr.isNotEmpty) {
+        updatedAt = DateTime.tryParse(updatedAtStr);
+      }
     } catch (_) {
-      updatedAt = DateTime.now();
+      updatedAt = null;
     }
     return BangumiCollection(
       bangumiId,

@@ -177,7 +177,7 @@ void main() {
       expect(plan.conflictLocalUpdates, isEmpty);
     });
 
-    test('resolves conflicts with timeFirst (local newer, remote newer, same moment)', () {
+    test('resolves conflicts with timeFirst (local newer, remote newer, same moment, remote null)', () {
       final plan = CollectSyncMerger.planBangumi(
         localCollectibles: [
           // id 1: local newer (timestamp 50 vs remote 10)
@@ -188,6 +188,8 @@ void main() {
           _collect(3, CollectType.onHold, 30),
           // id 4: local only
           _collect(4, CollectType.watched, 20),
+          // id 6: remote updatedAt is null -> fallback to local (conflictUploads)
+          _collect(6, CollectType.watching, 10),
         ],
         remoteCollections: [
           _remote(1, BangumiCollectionType.watched, 10),
@@ -195,24 +197,44 @@ void main() {
           _remote(3, BangumiCollectionType.abandoned, 30),
           // id 5: remote only
           _remote(5, BangumiCollectionType.planToWatch, 40),
+          // id 6: remote updatedAt is null
+          _remote(6, BangumiCollectionType.watched, null),
         ],
         priority: BangumiSyncPriority.timeFirst,
       );
 
-      expect(plan.totalOperations, 5);
+      expect(plan.totalOperations, 6);
       // local only upload
       expect(plan.localOnlyUploads.map((u) => u.bangumiId), [4]);
       expect(plan.localOnlyUploads.single.type, CollectType.watched.value);
       // remote only put
       expect(plan.remoteOnlyPuts.map((p) => p.collectible.bangumiItem.id), [5]);
       expect(plan.remoteOnlyPuts.single.collectible.type, CollectType.planToWatch.value);
-      // conflict uploads: id 1 (local newer) and id 3 (same moment default to local)
-      expect(plan.conflictUploads.map((u) => u.bangumiId), [1, 3]);
+      // conflict uploads: id 1 (local newer), id 3 (same moment), id 6 (remote null -> local prioritized)
+      expect(plan.conflictUploads.map((u) => u.bangumiId), [1, 3, 6]);
       expect(plan.conflictUploads.firstWhere((u) => u.bangumiId == 1).type, CollectType.watching.value);
       expect(plan.conflictUploads.firstWhere((u) => u.bangumiId == 3).type, CollectType.onHold.value);
+      expect(plan.conflictUploads.firstWhere((u) => u.bangumiId == 6).type, CollectType.watching.value);
       // conflict local updates: id 2 (remote newer)
       expect(plan.conflictLocalUpdates.map((u) => u.collectible.bangumiItem.id), [2]);
       expect(plan.conflictLocalUpdates.single.collectible.type, CollectType.watched.value);
+    });
+
+    test('remote-only put with null updatedAt defaults to current time for local storage', () {
+      final before = DateTime.now().subtract(const Duration(seconds: 1));
+      final plan = CollectSyncMerger.planBangumi(
+        localCollectibles: [],
+        remoteCollections: [
+          _remote(10, BangumiCollectionType.watching, null),
+        ],
+        priority: BangumiSyncPriority.bangumiFirst,
+      );
+
+      expect(plan.remoteOnlyPuts.length, 1);
+      final put = plan.remoteOnlyPuts.single;
+      expect(put.collectible.bangumiItem.id, 10);
+      expect(put.collectible.type, CollectType.watching.value);
+      expect(put.collectible.time.isAfter(before), isTrue);
     });
   });
 
@@ -264,7 +286,6 @@ void main() {
     });
 
     test('handles missing or malformed fields defensively', () {
-      final before = DateTime.now().subtract(const Duration(seconds: 1));
       final collection = BangumiCollection.fromJson({
         'updated_at': 'invalid-date-string',
         'type': 1,
@@ -274,17 +295,34 @@ void main() {
           // missing short_summary, eps, rank, images, tags
         },
       });
-      final after = DateTime.now().add(const Duration(seconds: 1));
 
       expect(collection.bangumiId, 999);
       expect(collection.score, 7.0);
       expect(collection.shortSummary, '');
       expect(collection.eps, 0);
       expect(collection.rank, 0);
-      expect(collection.updatedAt.isAfter(before), isTrue);
-      expect(collection.updatedAt.isBefore(after), isTrue);
+      expect(collection.updatedAt, isNull);
       expect(collection.images['large'], '');
       expect(collection.tags, isEmpty);
+    });
+
+    test('handles missing or empty updated_at as null', () {
+      final collection = BangumiCollection.fromJson({
+        'type': 1,
+        'subject': {
+          'id': 999,
+        },
+      });
+      expect(collection.updatedAt, isNull);
+
+      final emptyCollection = BangumiCollection.fromJson({
+        'updated_at': '',
+        'type': 1,
+        'subject': {
+          'id': 999,
+        },
+      });
+      expect(emptyCollection.updatedAt, isNull);
     });
 
     test('falls back to subject_id when subject.id is missing', () {
@@ -353,12 +391,14 @@ CollectedBangumiChange _change(
 BangumiCollection _remote(
   int id,
   BangumiCollectionType type,
-  int timestamp,
+  int? timestamp,
 ) {
   return BangumiCollection(
     id,
     '2026-01-01',
-    DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+    timestamp == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
     type,
     'subject $id',
     '条目 $id',

@@ -574,69 +574,67 @@ class BangumiApi {
     }
 
     try {
-      const Duration requestInterval = Duration(milliseconds: 250);
+      const Duration requestInterval = Duration(milliseconds: 200);
+      int offset = 0;
+      int? total;
+      bool totalInitialized = false;
 
-      for (final collectionType in includeBangumiTypes) {
-        if (collectionType == BangumiCollectionType.unknown) {
-          continue;
+      while (true) {
+        dynamic jsonData;
+        try {
+          final url = ApiEndpoints.formatUrl(
+              ApiEndpoints.bangumiAuthAPIMirrorDomain +
+                  ApiEndpoints.bangumiGetAllCollections,
+              [resolvedUsername, limit, offset]);
+          jsonData = await _client.get(
+            url,
+            requiresAuth: true,
+          );
+        } catch (e) {
+          KazumiLogger().e(
+            'BangumiApi: fetch collection failed. offset=$offset',
+            error: e,
+          );
+          rethrow;
         }
-        int offset = 0;
-        int? total;
-        bool totalInitialized = false;
-        while (true) {
-          dynamic jsonData;
-          try {
-            final url = ApiEndpoints.formatUrl(
-                ApiEndpoints.bangumiAuthAPIMirrorDomain +
-                    ApiEndpoints.bangumiGetCollection,
-                [resolvedUsername, limit, offset, collectionType.value]);
-            jsonData = await _client.get(
-              url,
-              requiresAuth: true,
-            );
-          } catch (e) {
-            KazumiLogger().e(
-              'BangumiApi: fetch collection failed. type=${collectionType.value}, offset=$offset',
-              error: e,
-            );
-            rethrow;
-          }
 
-          final Map jsonMap = jsonData;
-          final List<dynamic> jsonList = jsonMap['data'];
-          total ??= jsonMap['total'];
-          if (!totalInitialized && total != null) {
-            progressTotal += total;
-            totalInitialized = true;
-          }
+        final Map jsonMap = jsonData;
+        final List<dynamic> jsonList = jsonMap['data'] ?? [];
+        total ??= jsonMap['total'];
+        if (!totalInitialized && total != null) {
+          progressTotal = total;
+          totalInitialized = true;
+        }
 
-          for (dynamic jsonItem in jsonList) {
-            if (jsonItem is Map<String, dynamic>) {
-              try {
-                bangumiCollection.add(BangumiCollection.fromJson(jsonItem));
-                progressCurrent++;
-                onProgress?.call(
-                  '正在拉取${collectionType.label}收藏',
-                  progressCurrent,
-                  progressTotal,
-                );
-              } catch (e) {
-                KazumiLogger().e(
-                  'BangumiApi: parse collection item failed: ${e.toString()}',
-                  error: e,
-                );
-                failedItemCount++;
+        for (dynamic jsonItem in jsonList) {
+          if (jsonItem is Map) {
+            try {
+              final collection = BangumiCollection.fromJson(jsonItem);
+              if (includeBangumiTypes.contains(collection.type)) {
+                bangumiCollection.add(collection);
               }
+              progressCurrent++;
+              onProgress?.call(
+                '正在拉取 Bangumi 收藏',
+                progressCurrent,
+                progressTotal,
+              );
+            } catch (e) {
+              KazumiLogger().e(
+                'BangumiApi: parse collection item failed: ${e.toString()}',
+                error: e,
+              );
+              failedItemCount++;
             }
           }
-
-          if (jsonList.isEmpty || (total != null && offset + limit >= total)) {
-            break;
-          }
-
-          offset += limit;
-          await Future.delayed(requestInterval);
         }
+
+        if (jsonList.isEmpty || (total != null && offset + limit >= total)) {
+          break;
+        }
+
+        offset += limit;
+        await Future.delayed(requestInterval);
       }
     } catch (e) {
       KazumiLogger().e('Network: get bangumi collection failed', error: e);

@@ -75,9 +75,9 @@ class BangumiCollection {
   }
 
   factory BangumiCollection.fromJson(Map json) {
-    final subject = json['subject'];
+    final subject = json['subject'] as Map? ?? const <String, dynamic>{};
     final subjectImages = Map<String, String>.from(
-      subject['images'] ??
+      (subject['images'] as Map?) ??
           const <String, String>{
             'large': '',
             'common': '',
@@ -90,17 +90,26 @@ class BangumiCollection {
         .whereType<Map>()
         .map((tag) => Map<String, dynamic>.from(tag))
         .toList();
+    DateTime updatedAt;
+    try {
+      final updatedAtStr = json['updated_at'] as String?;
+      updatedAt = updatedAtStr != null
+          ? DateTime.parse(updatedAtStr)
+          : DateTime.fromMillisecondsSinceEpoch(0);
+    } catch (_) {
+      updatedAt = DateTime.fromMillisecondsSinceEpoch(0);
+    }
     return BangumiCollection(
-      subject['id'],
-      subject['date'],
-      DateTime.parse(json['updated_at']),
-      BangumiCollectionType.fromValue(json['type']),
-      subject['name'],
-      subject['name_cn'],
-      subject['short_summary'],
-      (subject['score'] as num).toDouble(),
-      subject['eps'],
-      subject['rank'],
+      subject['id'] as int? ?? json['subject_id'] as int? ?? 0,
+      subject['date'] as String?,
+      updatedAt,
+      BangumiCollectionType.fromValue(json['type'] as int? ?? 0),
+      subject['name'] as String? ?? '',
+      subject['name_cn'] as String? ?? '',
+      subject['short_summary'] as String? ?? '',
+      (subject['score'] as num?)?.toDouble() ?? 0.0,
+      subject['eps'] as int? ?? 0,
+      subject['rank'] as int? ?? 0,
       subjectImages,
       subjectTags,
     );

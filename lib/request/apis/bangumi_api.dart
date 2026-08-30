@@ -598,9 +598,17 @@ class BangumiApi {
           rethrow;
         }
 
+        if (jsonData is! Map || jsonData['data'] is! List) {
+          KazumiLogger().e(
+            'BangumiApi: invalid collection response format at offset=$offset',
+          );
+          throw const FormatException(
+              'BangumiApi: Invalid collection response format');
+        }
+
         final Map jsonMap = jsonData;
-        final List<dynamic> jsonList = jsonMap['data'] ?? [];
-        total ??= jsonMap['total'];
+        final List<dynamic> jsonList = jsonMap['data'] as List<dynamic>;
+        total ??= jsonMap['total'] as int?;
         if (!totalInitialized && total != null) {
           progressTotal = total;
           totalInitialized = true;

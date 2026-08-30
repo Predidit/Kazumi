@@ -264,6 +264,7 @@ void main() {
     });
 
     test('handles missing or malformed fields defensively', () {
+      final before = DateTime.now().subtract(const Duration(seconds: 1));
       final collection = BangumiCollection.fromJson({
         'updated_at': 'invalid-date-string',
         'type': 1,
@@ -273,15 +274,54 @@ void main() {
           // missing short_summary, eps, rank, images, tags
         },
       });
+      final after = DateTime.now().add(const Duration(seconds: 1));
 
       expect(collection.bangumiId, 999);
       expect(collection.score, 7.0);
       expect(collection.shortSummary, '');
       expect(collection.eps, 0);
       expect(collection.rank, 0);
-      expect(collection.updatedAt, DateTime.fromMillisecondsSinceEpoch(0));
+      expect(collection.updatedAt.isAfter(before), isTrue);
+      expect(collection.updatedAt.isBefore(after), isTrue);
       expect(collection.images['large'], '');
       expect(collection.tags, isEmpty);
+    });
+
+    test('falls back to subject_id when subject.id is missing', () {
+      final collection = BangumiCollection.fromJson({
+        'subject_id': 888,
+        'type': 1,
+        'subject': {
+          'name': 'Fallback Name',
+        },
+      });
+
+      expect(collection.bangumiId, 888);
+      expect(collection.name, 'Fallback Name');
+    });
+
+    test('throws FormatException when subject id is missing or invalid', () {
+      expect(
+        () => BangumiCollection.fromJson({
+          'type': 1,
+          'subject': {
+            'name': 'No ID',
+          },
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => BangumiCollection.fromJson({
+          'subject_id': 0,
+          'type': 1,
+          'subject': {
+            'id': 0,
+            'name': 'Zero ID',
+          },
+        }),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 }

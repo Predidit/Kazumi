@@ -76,6 +76,11 @@ class BangumiCollection {
 
   factory BangumiCollection.fromJson(Map json) {
     final subject = json['subject'] as Map? ?? const <String, dynamic>{};
+    final bangumiId = (subject['id'] as int?) ?? (json['subject_id'] as int?);
+    if (bangumiId == null || bangumiId <= 0) {
+      throw const FormatException(
+          'BangumiCollection: invalid or missing bangumi id');
+    }
     final subjectImages = Map<String, String>.from(
       (subject['images'] as Map?) ??
           const <String, String>{
@@ -94,13 +99,13 @@ class BangumiCollection {
     try {
       final updatedAtStr = json['updated_at'] as String?;
       updatedAt = updatedAtStr != null
-          ? DateTime.parse(updatedAtStr)
-          : DateTime.fromMillisecondsSinceEpoch(0);
+          ? (DateTime.tryParse(updatedAtStr) ?? DateTime.now())
+          : DateTime.now();
     } catch (_) {
-      updatedAt = DateTime.fromMillisecondsSinceEpoch(0);
+      updatedAt = DateTime.now();
     }
     return BangumiCollection(
-      subject['id'] as int? ?? json['subject_id'] as int? ?? 0,
+      bangumiId,
       subject['date'] as String?,
       updatedAt,
       BangumiCollectionType.fromValue(json['type'] as int? ?? 0),

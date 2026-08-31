@@ -643,20 +643,7 @@ class BangumiApi {
       final List<dynamic> firstPageList =
           firstPageJson['data'] as List<dynamic>;
 
-      final firstPageReceivedCount = firstPageList.length;
-      final firstPageItems = parsePageItems(firstPageList);
-      bangumiCollection.addAll(firstPageItems);
-      progressCurrent += firstPageList.length;
-
-      // 1. 空收藏直接返回
-      if (firstPageReceivedCount == 0) {
-        KazumiLogger()
-            .d('get Bangumi collection count: ${bangumiCollection.length}');
-        KazumiLogger().d('get item failed count: $failedItemCount');
-        return bangumiCollection;
-      }
-
-      // 2. 校验 total：缺失时抛出 FormatException，防止因镜像站/异常响应导致静默返回残缺数据
+      // 1. 优先校验 total：缺失时抛出 FormatException，防止因镜像站/网关返回残缺 body（如丢失 total 的空 data）导致静默返回空快照而误覆盖云端
       if (rawTotal == null) {
         KazumiLogger().e(
           'BangumiApi: missing or invalid total in collection response',
@@ -666,6 +653,11 @@ class BangumiApi {
       }
       final int total = rawTotal;
 
+      final firstPageReceivedCount = firstPageList.length;
+      final firstPageItems = parsePageItems(firstPageList);
+      bangumiCollection.addAll(firstPageItems);
+      progressCurrent += firstPageList.length;
+
       progressTotal = total;
       onProgress?.call(
         '正在拉取 Bangumi 收藏',
@@ -673,8 +665,10 @@ class BangumiApi {
         progressTotal,
       );
 
-      // 3. 单页全量数据直接返回（无需启动并发 Worker）
-      if (total <= effectiveLimit ||
+      // 2. 空收藏或单页全量数据直接返回（无需启动并发 Worker）
+      if (total == 0 ||
+          firstPageReceivedCount == 0 ||
+          total <= effectiveLimit ||
           firstPageReceivedCount < serverLimit ||
           firstPageReceivedCount >= total) {
         KazumiLogger()

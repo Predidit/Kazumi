@@ -594,12 +594,12 @@ class BangumiApi {
         }
       }
 
-      Future<Map> fetchPageData(int offset) async {
+      Future<Map> fetchPageData(int offset, int pageLimit) async {
         await acquireRateLimitSlot();
         final url = ApiEndpoints.formatUrl(
             ApiEndpoints.bangumiAuthAPIMirrorDomain +
                 ApiEndpoints.bangumiGetAllCollections,
-            [resolvedUsername, limit, offset]);
+            [resolvedUsername, pageLimit, offset]);
         final jsonData = await _client.get(
           url,
           requiresAuth: true,
@@ -636,9 +636,10 @@ class BangumiApi {
       }
 
       // 阶段 1：探测首页，获取 total 及第一页数据
-      final firstPageJson = await fetchPageData(0);
+      final firstPageJson = await fetchPageData(0, limit);
       final int? total = firstPageJson['total'] as int?;
       final serverLimit = (firstPageJson['limit'] as int?) ?? limit;
+      final effectiveLimit = (serverLimit > 0) ? serverLimit : limit;
       final List<dynamic> firstPageList =
           firstPageJson['data'] as List<dynamic>;
 
@@ -656,7 +657,7 @@ class BangumiApi {
       // 尾页判断：如果数据已在第一页完全获取，直接返回无需并发
       if (firstPageReceivedCount == 0 ||
           total == null ||
-          total <= limit ||
+          total <= effectiveLimit ||
           firstPageReceivedCount < serverLimit ||
           firstPageReceivedCount >= total) {
         KazumiLogger()
@@ -667,7 +668,7 @@ class BangumiApi {
 
       // 阶段 2：构建剩余分页 offset 队列并启动 3 并发 Worker
       final remainingOffsets = <int>[];
-      for (int off = limit; off < total; off += limit) {
+      for (int off = effectiveLimit; off < total; off += effectiveLimit) {
         remainingOffsets.add(off);
       }
 
@@ -677,7 +678,7 @@ class BangumiApi {
       Future<void> worker() async {
         while (offsetsQueue.isNotEmpty) {
           final offset = offsetsQueue.removeAt(0);
-          final pageJson = await fetchPageData(offset);
+          final pageJson = await fetchPageData(offset, effectiveLimit);
           final List<dynamic> jsonList = pageJson['data'] as List<dynamic>;
           final items = parsePageItems(jsonList);
           pageResults[offset] = items;

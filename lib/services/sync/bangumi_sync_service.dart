@@ -147,7 +147,7 @@ class BangumiSyncService {
         // 1. 全量拉取远程收藏
         final remoteCollection = await BangumiApi.getBangumiCollectibles(
           username: username,
-          limit: 100,
+          limit: 50,
           onProgress: onProgress,
         );
 

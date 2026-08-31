@@ -558,7 +558,7 @@ class BangumiApi {
       BangumiCollectionType.abandoned,
     ],
     String? username,
-    required int limit,
+    int limit = 50,
     void Function(String message, int current, int total)? onProgress,
   }) async {
     final List<BangumiCollection> bangumiCollection = [];
@@ -574,12 +574,22 @@ class BangumiApi {
     }
 
     try {
-      const Duration requestInterval = Duration(milliseconds: 200);
+      const Duration minRequestInterval = Duration(milliseconds: 200);
+      DateTime? lastRequestStartTime;
       int offset = 0;
       int? total;
       bool totalInitialized = false;
 
       while (true) {
+        // 动态时延补偿：确保两次请求发出的时间间隔不小于 minRequestInterval
+        if (lastRequestStartTime != null) {
+          final elapsed = DateTime.now().difference(lastRequestStartTime);
+          if (elapsed < minRequestInterval) {
+            await Future.delayed(minRequestInterval - elapsed);
+          }
+        }
+        lastRequestStartTime = DateTime.now();
+
         dynamic jsonData;
         try {
           final url = ApiEndpoints.formatUrl(
@@ -609,6 +619,7 @@ class BangumiApi {
         final Map jsonMap = jsonData;
         final List<dynamic> jsonList = jsonMap['data'] as List<dynamic>;
         total ??= jsonMap['total'] as int?;
+        final serverLimit = (jsonMap['limit'] as int?) ?? limit;
         if (!totalInitialized && total != null) {
           progressTotal = total;
           totalInitialized = true;
@@ -637,12 +648,19 @@ class BangumiApi {
           }
         }
 
-        if (jsonList.isEmpty || (total != null && offset + limit >= total)) {
+        final receivedCount = jsonList.length;
+        // 终止条件：
+        // 1. 收到空列表
+        // 2. 累计获取条目数达到或超过总数 total
+        // 3. 当前页返回条数小于分页 limit（说明已经是最后一页，无需多发一次空请求）
+        if (receivedCount == 0 ||
+            (total != null && offset + receivedCount >= total) ||
+            receivedCount < serverLimit) {
           break;
         }
 
-        offset += limit;
-        await Future.delayed(requestInterval);
+        // 自适应推进 offset：按实际接收到的条数推进
+        offset += receivedCount;
       }
     } catch (e) {
       KazumiLogger().e('Network: get bangumi collection failed', error: e);

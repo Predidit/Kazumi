@@ -637,27 +637,44 @@ class BangumiApi {
 
       // 阶段 1：探测首页，获取 total 及第一页数据
       final firstPageJson = await fetchPageData(0, limit);
-      final int? total = firstPageJson['total'] as int?;
+      final int? rawTotal = firstPageJson['total'] as int?;
       final serverLimit = (firstPageJson['limit'] as int?) ?? limit;
       final effectiveLimit = (serverLimit > 0) ? serverLimit : limit;
       final List<dynamic> firstPageList =
           firstPageJson['data'] as List<dynamic>;
 
-      progressTotal = total ?? firstPageList.length;
+      final firstPageReceivedCount = firstPageList.length;
       final firstPageItems = parsePageItems(firstPageList);
       bangumiCollection.addAll(firstPageItems);
       progressCurrent += firstPageList.length;
+
+      // 1. 空收藏直接返回
+      if (firstPageReceivedCount == 0) {
+        KazumiLogger()
+            .d('get Bangumi collection count: ${bangumiCollection.length}');
+        KazumiLogger().d('get item failed count: $failedItemCount');
+        return bangumiCollection;
+      }
+
+      // 2. 校验 total：缺失时抛出 FormatException，防止因镜像站/异常响应导致静默返回残缺数据
+      if (rawTotal == null) {
+        KazumiLogger().e(
+          'BangumiApi: missing or invalid total in collection response',
+        );
+        throw const FormatException(
+            'BangumiApi: missing total in collection response');
+      }
+      final int total = rawTotal;
+
+      progressTotal = total;
       onProgress?.call(
         '正在拉取 Bangumi 收藏',
         progressCurrent,
         progressTotal,
       );
 
-      final firstPageReceivedCount = firstPageList.length;
-      // 尾页判断：如果数据已在第一页完全获取，直接返回无需并发
-      if (firstPageReceivedCount == 0 ||
-          total == null ||
-          total <= effectiveLimit ||
+      // 3. 单页全量数据直接返回（无需启动并发 Worker）
+      if (total <= effectiveLimit ||
           firstPageReceivedCount < serverLimit ||
           firstPageReceivedCount >= total) {
         KazumiLogger()

@@ -666,11 +666,9 @@ class BangumiApi {
       );
 
       // 2. 空收藏或单页全量数据直接返回（无需启动并发 Worker）
-      if (total == 0 ||
-          firstPageReceivedCount == 0 ||
-          total <= effectiveLimit ||
-          firstPageReceivedCount < serverLimit ||
-          firstPageReceivedCount >= total) {
+      //    严格仅在 total == 0 或首包实际条数已完整覆盖 total 时短路返回，
+      //    防止异常响应（如 total 很大但首包异常为空或短缺）产生残缺快照误覆盖云端
+      if (total == 0 || firstPageReceivedCount >= total) {
         KazumiLogger()
             .d('get Bangumi collection count: ${bangumiCollection.length}');
         KazumiLogger().d('get item failed count: $failedItemCount');
@@ -701,8 +699,8 @@ class BangumiApi {
             progressTotal,
           );
 
-          // 尾页提前截断优化：如果返回条数小于 serverLimit，说明后续已无数据
-          if (jsonList.length < serverLimit) {
+          // 尾页提前截断优化：当返回条数不足一页且累计条目已达到或超过 total 时，说明已到尾页
+          if (jsonList.length < serverLimit && offset + jsonList.length >= total) {
             offsetsQueue.clear();
             break;
           }

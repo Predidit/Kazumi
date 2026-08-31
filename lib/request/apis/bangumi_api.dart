@@ -658,6 +658,14 @@ class BangumiApi {
       bangumiCollection.addAll(firstPageItems);
       progressCurrent += firstPageList.length;
 
+      // 2. 校验首包一致性：若声明 total > 0 但首包数据却为空，说明响应异常损坏，显式报错中止
+      if (total > 0 && firstPageReceivedCount == 0) {
+        KazumiLogger().e(
+          'BangumiApi: received empty data on first page while total > 0 (total=$total)',
+        );
+        throw const FormatException(
+            'BangumiApi: received empty data on first page while total > 0');
+      }
       progressTotal = total;
       onProgress?.call(
         '正在拉取 Bangumi 收藏',
@@ -665,7 +673,7 @@ class BangumiApi {
         progressTotal,
       );
 
-      // 2. 空收藏或单页全量数据直接返回（无需启动并发 Worker）
+      // 3. 空收藏或单页全量数据直接返回（无需启动并发 Worker）
       //    严格仅在 total == 0 或首包实际条数已完整覆盖 total 时短路返回，
       //    防止异常响应（如 total 很大但首包异常为空或短缺）产生残缺快照误覆盖云端
       if (total == 0 || firstPageReceivedCount >= total) {

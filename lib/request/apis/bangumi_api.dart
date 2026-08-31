@@ -549,6 +549,9 @@ class BangumiApi {
   }
 
   /// Get the Bangumi collection of the current user
+  ///
+  /// 采用 3 并发分片结合全局速率调度器（任意请求发起间隔严格 >= 200ms，即 <= 5 QPS 上限），
+  /// 既严格遵循 Bangumi API 的请求频控安全要求，又利用网络在途 RTT 窗口显著降低全量同步耗时。
   static Future<List<BangumiCollection>> getBangumiCollectibles({
     List<BangumiCollectionType> includeBangumiTypes = const [
       BangumiCollectionType.planToWatch,
@@ -575,39 +578,32 @@ class BangumiApi {
 
     try {
       const Duration minRequestInterval = Duration(milliseconds: 200);
-      DateTime? lastRequestStartTime;
-      int offset = 0;
-      int? total;
-      bool totalInitialized = false;
+      const int concurrency = 3;
+      DateTime nextAllowedLaunchTime = DateTime.now();
 
-      while (true) {
-        // 动态时延补偿：确保两次请求发出的时间间隔不小于 minRequestInterval
-        if (lastRequestStartTime != null) {
-          final elapsed = DateTime.now().difference(lastRequestStartTime);
-          if (elapsed < minRequestInterval) {
-            await Future.delayed(minRequestInterval - elapsed);
-          }
+      // 全局速率控制器：确保任意两次请求发起的间距不小于 minRequestInterval (200ms)
+      Future<void> acquireRateLimitSlot() async {
+        final now = DateTime.now();
+        final scheduledTime = nextAllowedLaunchTime.isAfter(now)
+            ? nextAllowedLaunchTime
+            : now;
+        nextAllowedLaunchTime = scheduledTime.add(minRequestInterval);
+        final waitDuration = scheduledTime.difference(now);
+        if (waitDuration > Duration.zero) {
+          await Future.delayed(waitDuration);
         }
-        lastRequestStartTime = DateTime.now();
+      }
 
-        dynamic jsonData;
-        try {
-          final url = ApiEndpoints.formatUrl(
-              ApiEndpoints.bangumiAuthAPIMirrorDomain +
-                  ApiEndpoints.bangumiGetAllCollections,
-              [resolvedUsername, limit, offset]);
-          jsonData = await _client.get(
-            url,
-            requiresAuth: true,
-          );
-        } catch (e) {
-          KazumiLogger().e(
-            'BangumiApi: fetch collection failed. offset=$offset',
-            error: e,
-          );
-          rethrow;
-        }
-
+      Future<Map> fetchPageData(int offset) async {
+        await acquireRateLimitSlot();
+        final url = ApiEndpoints.formatUrl(
+            ApiEndpoints.bangumiAuthAPIMirrorDomain +
+                ApiEndpoints.bangumiGetAllCollections,
+            [resolvedUsername, limit, offset]);
+        final jsonData = await _client.get(
+          url,
+          requiresAuth: true,
+        );
         if (jsonData is! Map || jsonData['data'] is! List) {
           KazumiLogger().e(
             'BangumiApi: invalid collection response format at offset=$offset',
@@ -615,29 +611,18 @@ class BangumiApi {
           throw const FormatException(
               'BangumiApi: Invalid collection response format');
         }
+        return jsonData;
+      }
 
-        final Map jsonMap = jsonData;
-        final List<dynamic> jsonList = jsonMap['data'] as List<dynamic>;
-        total ??= jsonMap['total'] as int?;
-        final serverLimit = (jsonMap['limit'] as int?) ?? limit;
-        if (!totalInitialized && total != null) {
-          progressTotal = total;
-          totalInitialized = true;
-        }
-
+      List<BangumiCollection> parsePageItems(List<dynamic> jsonList) {
+        final List<BangumiCollection> items = [];
         for (dynamic jsonItem in jsonList) {
           if (jsonItem is Map) {
             try {
               final collection = BangumiCollection.fromJson(jsonItem);
               if (includeBangumiTypes.contains(collection.type)) {
-                bangumiCollection.add(collection);
+                items.add(collection);
               }
-              progressCurrent++;
-              onProgress?.call(
-                '正在拉取 Bangumi 收藏',
-                progressCurrent,
-                progressTotal,
-              );
             } catch (e) {
               KazumiLogger().e(
                 'BangumiApi: parse collection item failed: ${e.toString()}',
@@ -647,20 +632,88 @@ class BangumiApi {
             }
           }
         }
+        return items;
+      }
 
-        final receivedCount = jsonList.length;
-        // 终止条件：
-        // 1. 收到空列表
-        // 2. 累计获取条目数达到或超过总数 total
-        // 3. 当前页返回条数小于分页 limit（说明已经是最后一页，无需多发一次空请求）
-        if (receivedCount == 0 ||
-            (total != null && offset + receivedCount >= total) ||
-            receivedCount < serverLimit) {
-          break;
+      // 阶段 1：探测首页，获取 total 及第一页数据
+      final firstPageJson = await fetchPageData(0);
+      final int? total = firstPageJson['total'] as int?;
+      final serverLimit = (firstPageJson['limit'] as int?) ?? limit;
+      final List<dynamic> firstPageList =
+          firstPageJson['data'] as List<dynamic>;
+
+      progressTotal = total ?? firstPageList.length;
+      final firstPageItems = parsePageItems(firstPageList);
+      bangumiCollection.addAll(firstPageItems);
+      progressCurrent += firstPageList.length;
+      onProgress?.call(
+        '正在拉取 Bangumi 收藏',
+        progressCurrent,
+        progressTotal,
+      );
+
+      final firstPageReceivedCount = firstPageList.length;
+      // 尾页判断：如果数据已在第一页完全获取，直接返回无需并发
+      if (firstPageReceivedCount == 0 ||
+          total == null ||
+          total <= limit ||
+          firstPageReceivedCount < serverLimit ||
+          firstPageReceivedCount >= total) {
+        KazumiLogger()
+            .d('get Bangumi collection count: ${bangumiCollection.length}');
+        KazumiLogger().d('get item failed count: $failedItemCount');
+        return bangumiCollection;
+      }
+
+      // 阶段 2：构建剩余分页 offset 队列并启动 3 并发 Worker
+      final remainingOffsets = <int>[];
+      for (int off = limit; off < total; off += limit) {
+        remainingOffsets.add(off);
+      }
+
+      final Map<int, List<BangumiCollection>> pageResults = {};
+      final offsetsQueue = List<int>.from(remainingOffsets);
+
+      Future<void> worker() async {
+        while (offsetsQueue.isNotEmpty) {
+          final offset = offsetsQueue.removeAt(0);
+          final pageJson = await fetchPageData(offset);
+          final List<dynamic> jsonList = pageJson['data'] as List<dynamic>;
+          final items = parsePageItems(jsonList);
+          pageResults[offset] = items;
+
+          progressCurrent += jsonList.length;
+          onProgress?.call(
+            '正在拉取 Bangumi 收藏',
+            progressCurrent > progressTotal ? progressTotal : progressCurrent,
+            progressTotal,
+          );
+
+          // 尾页提前截断优化：如果返回条数小于 serverLimit，说明后续已无数据
+          if (jsonList.length < serverLimit) {
+            offsetsQueue.clear();
+            break;
+          }
         }
+      }
 
-        // 自适应推进 offset：按实际接收到的条数推进
-        offset += receivedCount;
+      final workerCount = remainingOffsets.length < concurrency
+          ? remainingOffsets.length
+          : concurrency;
+      await Future.wait(List.generate(workerCount, (_) => worker()));
+
+      // 阶段 3：按 offset 顺序合并所有分片，并按 bangumiId 去重（防御网络并发期间服务端数据位移）
+      final Set<int> seenBangumiIds =
+          bangumiCollection.map((e) => e.bangumiId).toSet();
+      for (final offset in remainingOffsets) {
+        final items = pageResults[offset];
+        if (items != null) {
+          for (final item in items) {
+            if (seenBangumiIds.add(item.bangumiId)) {
+              bangumiCollection.add(item);
+            }
+          }
+        }
       }
     } catch (e) {
       KazumiLogger().e('Network: get bangumi collection failed', error: e);

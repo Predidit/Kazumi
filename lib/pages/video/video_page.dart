@@ -1352,7 +1352,6 @@ class _VideoPageState extends State<VideoPage>
                     _DanmakuTextField(
                       inputVisible: danmakuOn && !danmakuLoading,
                       loading: danmakuLoading,
-                      enabled: true,
                       iconColor: danmakuOn
                           ? Theme.of(context).hintColor
                           : Theme.of(context).disabledColor,
@@ -1418,7 +1417,6 @@ class _DanmakuTextField extends StatefulWidget {
   const _DanmakuTextField({
     required this.inputVisible,
     required this.loading,
-    required this.enabled,
     required this.iconColor,
     required this.textColor,
     required this.onToggle,
@@ -1427,7 +1425,6 @@ class _DanmakuTextField extends StatefulWidget {
 
   final bool inputVisible;
   final bool loading;
-  final bool enabled;
   final Color iconColor;
   final Color textColor;
   final VoidCallback onToggle;
@@ -1512,8 +1509,6 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
                       width: inputWidth,
                       child: TextField(
                         focusNode: _focusNode,
-                        // Keep the field tappable while loading so the page
-                        // can show the same loading hint as the old UI.
                         enabled: widget.inputVisible,
                         readOnly: true,
                         textAlignVertical: TextAlignVertical.center,
@@ -1544,9 +1539,7 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
                     width: _collapsedWidth,
                   ),
                   padding: EdgeInsets.zero,
-                  onPressed: widget.enabled && !widget.loading
-                      ? widget.onToggle
-                      : null,
+                  onPressed: !widget.loading ? widget.onToggle : null,
                   icon: widget.loading
                       ? SizedBox(
                           width: 20,

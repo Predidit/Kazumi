@@ -9,6 +9,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/danmaku.dart';
+import 'package:kazumi/utils/async_session.dart';
 
 part 'player_danmaku_controller.g.dart';
 
@@ -298,19 +299,27 @@ abstract class _PlayerDanmakuController with Store {
   }
 
   @action
-  Future<bool> getDanDanmakuByEpisodeID(int episodeID) async {
+  Future<bool?> getDanDanmakuByEpisodeID(
+    int episodeID, {
+    required AsyncSession session,
+  }) async {
     KazumiLogger().i('PlayerController: attempting to get danmaku $episodeID');
     danmakuLoading = true;
     try {
-      danDanmakus.clear();
       var res = await DanmakuApi.getDanDanmakuByEpisodeID(episodeID);
+      if (session.isStale) {
+        return null;
+      }
+      danDanmakus.clear();
       addDanmakus(res);
       return res.isNotEmpty;
     } catch (e) {
       KazumiLogger().w('PlayerController: failed to get danmaku', error: e);
       rethrow;
     } finally {
-      danmakuLoading = false;
+      if (session.isActive) {
+        danmakuLoading = false;
+      }
     }
   }
 

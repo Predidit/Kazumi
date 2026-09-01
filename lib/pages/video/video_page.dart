@@ -1350,7 +1350,7 @@ class _VideoPageState extends State<VideoPage>
                   const Spacer(),
                   if (showDanmakuInput)
                     _DanmakuTextField(
-                      inputVisible: danmakuOn,
+                      inputVisible: danmakuOn && !danmakuLoading,
                       loading: danmakuLoading,
                       iconColor: danmakuOn
                           ? Theme.of(context).hintColor

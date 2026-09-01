@@ -555,20 +555,20 @@ class _VideoPageState extends State<VideoPage>
     if (playerController.danmaku.danmakuOn) {
       playerController.danmaku.setDanmakuEnabled(false);
       GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, false);
-      unawaited(_updateAndroidPIPActions(force: true));
+      unawaited(_updateAndroidPIPActions());
       return;
     }
     if (playerController.danmaku.danDanmakus.isEmpty) {
       _showDanmakuSwitch();
-      unawaited(_updateAndroidPIPActions(force: true));
+      unawaited(_updateAndroidPIPActions());
       return;
     }
     playerController.danmaku.setDanmakuEnabled(true);
     GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, true);
-    unawaited(_updateAndroidPIPActions(force: true));
+    unawaited(_updateAndroidPIPActions());
   }
 
-  Future<void> _updateAndroidPIPActions({bool force = false}) async {
+  Future<void> _updateAndroidPIPActions() async {
     if (!Platform.isAndroid) {
       return;
     }
@@ -677,8 +677,7 @@ class _VideoPageState extends State<VideoPage>
                                       KazumiDialog.showToast(
                                           message: '未找到弹幕内容');
                                     }
-                                    unawaited(
-                                        _updateAndroidPIPActions(force: true));
+                                    unawaited(_updateAndroidPIPActions());
                                   } catch (e) {
                                     KazumiDialog.showToast(message: '弹幕切换失败');
                                   }

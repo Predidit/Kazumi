@@ -1350,7 +1350,7 @@ class _VideoPageState extends State<VideoPage>
                   const Spacer(),
                   if (showDanmakuInput)
                     _DanmakuTextField(
-                      inputVisible: danmakuOn && !danmakuLoading,
+                      inputVisible: danmakuOn,
                       loading: danmakuLoading,
                       iconColor: danmakuOn
                           ? Theme.of(context).hintColor
@@ -1441,6 +1441,7 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
   late final Animation<double> _inputAnimation;
 
   static const Duration _animationDuration = Duration(milliseconds: 220);
+  static const double _height = 36;
   static const double _collapsedWidth = 44;
 
   @override
@@ -1492,6 +1493,7 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
         return Align(
           alignment: Alignment.centerRight,
           child: Container(
+            height: _height,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: widget.iconColor, width: 0.5),
@@ -1513,6 +1515,7 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
                         readOnly: true,
                         textAlignVertical: TextAlignVertical.center,
                         onTap: widget.onTapInput,
+                        style: const TextStyle(fontSize: 13, height: 1),
                         decoration: InputDecoration(
                           hintText: '点我发弹幕',
                           hintStyle: TextStyle(
@@ -1522,7 +1525,7 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
                           ),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10,
+                            horizontal: 5,
                             vertical: 5,
                           ),
                           isDense: true,
@@ -1537,6 +1540,7 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
                       : (widget.inputVisible ? '关闭弹幕' : '打开弹幕'),
                   constraints: const BoxConstraints.tightFor(
                     width: _collapsedWidth,
+                    height: _height,
                   ),
                   padding: EdgeInsets.zero,
                   onPressed: !widget.loading ? widget.onToggle : null,

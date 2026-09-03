@@ -197,7 +197,7 @@ class BangumiSyncService {
           }
         }
 
-        // 5. 双方都有但不一致：按计划处理冲突
+        // 5. 双方都有但不一致：按优先级处理
         if (mergePlan.conflictUploads.isNotEmpty) {
           onProgress?.call(
               '${priority.label}：正在上传冲突状态', syncedCount, totalOperations);
@@ -206,7 +206,7 @@ class BangumiSyncService {
               upload.bangumiId,
               upload.type,
             );
-            if (updated != true) {
+            if (!updated) {
               throw Exception('同步失败：条目 ${upload.bangumiId} 上传到 Bangumi 失败');
             }
             syncedCount++;

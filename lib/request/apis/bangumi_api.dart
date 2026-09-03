@@ -15,6 +15,7 @@ import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/search_parser.dart';
+import 'package:kazumi/utils/async_rate_limiter.dart';
 
 class BangumiSearchPage {
   const BangumiSearchPage({
@@ -28,6 +29,8 @@ class BangumiSearchPage {
 
 class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
+  static final AsyncRateLimiter _writeRateLimiter =
+      AsyncRateLimiter(const Duration(milliseconds: 250));
 
   static Future<List<List<BangumiItem>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
@@ -549,9 +552,6 @@ class BangumiApi {
   }
 
   /// Get the Bangumi collection of the current user
-  ///
-  /// 采用 3 并发分片结合全局速率调度器（任意请求发起间隔严格 >= 200ms，即 <= 5 QPS 上限），
-  /// 既严格遵循 Bangumi API 的请求频控安全要求，又利用网络在途 RTT 窗口显著降低全量同步耗时。
   static Future<List<BangumiCollection>> getBangumiCollectibles({
     List<BangumiCollectionType> includeBangumiTypes = const [
       BangumiCollectionType.planToWatch,
@@ -577,25 +577,12 @@ class BangumiApi {
     }
 
     try {
-      const Duration minRequestInterval = Duration(milliseconds: 200);
+      final rateLimiter =
+          AsyncRateLimiter(const Duration(milliseconds: 200));
       const int concurrency = 3;
-      DateTime nextAllowedLaunchTime = DateTime.now();
-
-      // 全局速率控制器：确保任意两次请求发起的间距不小于 minRequestInterval (200ms)
-      Future<void> acquireRateLimitSlot() async {
-        final now = DateTime.now();
-        final scheduledTime = nextAllowedLaunchTime.isAfter(now)
-            ? nextAllowedLaunchTime
-            : now;
-        nextAllowedLaunchTime = scheduledTime.add(minRequestInterval);
-        final waitDuration = scheduledTime.difference(now);
-        if (waitDuration > Duration.zero) {
-          await Future.delayed(waitDuration);
-        }
-      }
 
       Future<Map> fetchPageData(int offset, int pageLimit) async {
-        await acquireRateLimitSlot();
+        await rateLimiter.acquire();
         final url = ApiEndpoints.formatUrl(
             ApiEndpoints.bangumiAuthAPIMirrorDomain +
                 ApiEndpoints.bangumiGetAllCollections,
@@ -635,7 +622,6 @@ class BangumiApi {
         return items;
       }
 
-      // 阶段 1：探测首页，获取 total 及第一页数据
       final firstPageJson = await fetchPageData(0, limit);
       final int? rawTotal = firstPageJson['total'] as int?;
       final serverLimit = (firstPageJson['limit'] as int?) ?? limit;
@@ -643,7 +629,6 @@ class BangumiApi {
       final List<dynamic> firstPageList =
           firstPageJson['data'] as List<dynamic>;
 
-      // 1. 优先校验 total：缺失时抛出 FormatException，防止因镜像站/网关返回残缺 body（如丢失 total 的空 data）导致静默返回空快照而误覆盖云端
       if (rawTotal == null) {
         KazumiLogger().e(
           'BangumiApi: missing or invalid total in collection response',
@@ -658,7 +643,6 @@ class BangumiApi {
       bangumiCollection.addAll(firstPageItems);
       progressCurrent += firstPageList.length;
 
-      // 2. 校验首包一致性：若声明 total > 0 但首包数据却为空，说明响应异常损坏，显式报错中止
       if (total > 0 && firstPageReceivedCount == 0) {
         KazumiLogger().e(
           'BangumiApi: received empty data on first page while total > 0 (total=$total)',
@@ -673,9 +657,6 @@ class BangumiApi {
         progressTotal,
       );
 
-      // 3. 空收藏或单页全量数据直接返回（无需启动并发 Worker）
-      //    严格仅在 total == 0 或首包实际条数已完整覆盖 total 时短路返回，
-      //    防止异常响应（如 total 很大但首包异常为空或短缺）产生残缺快照误覆盖云端
       if (total == 0 || firstPageReceivedCount >= total) {
         KazumiLogger()
             .d('get Bangumi collection count: ${bangumiCollection.length}');
@@ -683,7 +664,6 @@ class BangumiApi {
         return bangumiCollection;
       }
 
-      // 阶段 2：构建剩余分页 offset 队列并启动 3 并发 Worker
       final remainingOffsets = <int>[];
       for (int off = effectiveLimit; off < total; off += effectiveLimit) {
         remainingOffsets.add(off);
@@ -707,7 +687,6 @@ class BangumiApi {
             progressTotal,
           );
 
-          // 尾页提前截断优化：当返回条数不足一页且累计条目已达到或超过 total 时，说明已到尾页
           if (jsonList.length < serverLimit && offset + jsonList.length >= total) {
             offsetsQueue.clear();
             break;
@@ -720,7 +699,6 @@ class BangumiApi {
           : concurrency;
       await Future.wait(List.generate(workerCount, (_) => worker()));
 
-      // 阶段 3：按 offset 顺序合并所有分片，并按 bangumiId 去重（防御网络并发期间服务端数据位移）
       final Set<int> seenBangumiIds =
           bangumiCollection.map((e) => e.bangumiId).toSet();
       for (final offset in remainingOffsets) {
@@ -746,7 +724,7 @@ class BangumiApi {
   /// Update the Bangumi collection by ID
   static Future<bool> updateBangumiById(
       int id, Map<String, dynamic> data) async {
-    const Duration requestInterval = Duration(milliseconds: 250);
+    await _writeRateLimiter.acquire();
     try {
       await _client.post(
         ApiEndpoints.formatUrl(
@@ -778,8 +756,6 @@ class BangumiApi {
     } catch (e) {
       KazumiLogger().e('Network: update bangumi collection failed', error: e);
       rethrow;
-    } finally {
-      await Future.delayed(requestInterval);
     }
   }
 

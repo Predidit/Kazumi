@@ -1263,9 +1263,11 @@ class _VideoPageState extends State<VideoPage>
     final bool danmakuLoading = playerController.danmaku.danmakuLoading;
     final bool playbackStarted =
         _hasStartedPlayback || playerController.playback.playing;
-    final bool showDanmakuInput = !videoPageController.loading &&
-        !playerController.playback.loading &&
-        playbackStarted;
+    // Keep the entry mounted after playback starts, including episode changes.
+    final bool showDanmakuInput = playbackStarted;
+    final bool danmakuInputLoading = videoPageController.loading ||
+        playerController.playback.loading ||
+        danmakuLoading;
     final int episodeNum = videoPageController.commentsEpisode;
 
     return Container(
@@ -1299,8 +1301,10 @@ class _VideoPageState extends State<VideoPage>
                   const Spacer(),
                   if (showDanmakuInput)
                     _DanmakuTextField(
-                      inputVisible: danmakuOn && !danmakuLoading,
-                      loading: danmakuLoading,
+                      inputVisible: danmakuOn && !danmakuInputLoading,
+                      loading: danmakuInputLoading,
+                      disableAnimations: disableAnimations ||
+                          MediaQuery.disableAnimationsOf(context),
                       iconColor: danmakuOn
                           ? Theme.of(context).hintColor
                           : Theme.of(context).disabledColor,
@@ -1366,6 +1370,7 @@ class _DanmakuTextField extends StatefulWidget {
   const _DanmakuTextField({
     required this.inputVisible,
     required this.loading,
+    required this.disableAnimations,
     required this.iconColor,
     required this.textColor,
     required this.onToggle,
@@ -1374,6 +1379,7 @@ class _DanmakuTextField extends StatefulWidget {
 
   final bool inputVisible;
   final bool loading;
+  final bool disableAnimations;
   final Color iconColor;
   final Color textColor;
   final VoidCallback onToggle;
@@ -1388,8 +1394,10 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
   late final FocusNode _focusNode;
   late final AnimationController _animationController;
   late final Animation<double> _inputAnimation;
+  late final Animation<double> _textOpacity;
 
   static const Duration _animationDuration = Duration(milliseconds: 220);
+  static const Duration _decorationDuration = Duration(milliseconds: 140);
   static const double _height = 36;
   static const double _collapsedWidth = 44;
 
@@ -1402,23 +1410,30 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
       duration: _animationDuration,
       value: widget.inputVisible ? 1 : 0,
     );
-    _inputAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
+    _inputAnimation = _animationController.drive(
+      CurveTween(curve: Curves.easeInOutCubic),
+    );
+    // Reveal text once there is room; fade it out before the width collapses.
+    _textOpacity = _inputAnimation.drive(
+      CurveTween(curve: const Interval(0.45, 1.0)),
     );
   }
 
   @override
   void didUpdateWidget(covariant _DanmakuTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.inputVisible == oldWidget.inputVisible) {
+    if (widget.inputVisible == oldWidget.inputVisible &&
+        widget.disableAnimations == oldWidget.disableAnimations) {
       return;
     }
-    if (widget.inputVisible) {
+    if (!widget.inputVisible) {
+      _focusNode.unfocus();
+    }
+    if (widget.disableAnimations) {
+      _animationController.value = widget.inputVisible ? 1 : 0;
+    } else if (widget.inputVisible) {
       _animationController.forward();
     } else {
-      _focusNode.unfocus();
       _animationController.reverse();
     }
   }
@@ -1432,6 +1447,26 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
 
   @override
   Widget build(BuildContext context) {
+    final Duration decorationDuration =
+        widget.disableAnimations ? Duration.zero : _decorationDuration;
+    final Widget statusIcon = widget.loading
+        ? SizedBox(
+            key: const ValueKey('loading'),
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: widget.iconColor,
+            ),
+          )
+        : Icon(
+            widget.inputVisible
+                ? Icons.subtitles_outlined
+                : Icons.subtitles_off_outlined,
+            key: ValueKey(widget.inputVisible),
+            size: 20,
+            color: widget.iconColor,
+          );
     return LayoutBuilder(
       builder: (context, constraints) {
         final double maxWidth =
@@ -1441,7 +1476,9 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
 
         return Align(
           alignment: Alignment.centerRight,
-          child: Container(
+          child: AnimatedContainer(
+            duration: decorationDuration,
+            curve: Curves.easeInOut,
             height: _height,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
@@ -1455,7 +1492,7 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
                   sizeFactor: _inputAnimation,
                   alignment: Alignment.centerRight,
                   child: FadeTransition(
-                    opacity: _inputAnimation,
+                    opacity: _textOpacity,
                     child: SizedBox(
                       width: inputWidth,
                       child: TextField(
@@ -1485,7 +1522,7 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
                 ),
                 IconButton(
                   tooltip: widget.loading
-                      ? '弹幕加载中...'
+                      ? '加载中，请稍候...'
                       : (widget.inputVisible ? '关闭弹幕' : '打开弹幕'),
                   constraints: const BoxConstraints.tightFor(
                     width: _collapsedWidth,
@@ -1493,21 +1530,13 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
                   ),
                   padding: EdgeInsets.zero,
                   onPressed: !widget.loading ? widget.onToggle : null,
-                  icon: widget.loading
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: widget.iconColor,
-                          ),
-                        )
-                      : Icon(
-                          widget.inputVisible
-                              ? Icons.subtitles_outlined
-                              : Icons.subtitles_off_outlined,
-                          size: 20,
-                          color: widget.iconColor,
+                  icon: widget.disableAnimations
+                      ? statusIcon
+                      : AnimatedSwitcher(
+                          duration: decorationDuration,
+                          switchInCurve: Curves.easeInOut,
+                          switchOutCurve: Curves.easeInOut,
+                          child: statusIcon,
                         ),
                 ),
               ],

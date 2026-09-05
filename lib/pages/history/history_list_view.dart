@@ -97,7 +97,7 @@ class _HistoryListViewState extends State<HistoryListView> {
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(inset, 8, inset, 0),
+                  padding: EdgeInsets.fromLTRB(inset, 16, inset, 0),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

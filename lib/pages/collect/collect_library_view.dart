@@ -91,34 +91,36 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
         autofocus: true,
         child: LayoutBuilder(builder: (context, constraints) {
           final expanded = constraints.maxWidth >= 1000 && textScale <= 1.5;
-          final inset = constraints.maxWidth < 600 ? 16.0 : 24.0;
-          return Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1560),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(inset, 8, inset, 0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (expanded) ...[
-                      _sidebar(query),
-                      const SizedBox(width: 28),
-                    ],
-                    Expanded(
-                      child: Column(
-                        children: [
-                          _searchBar(),
-                          Expanded(
-                            child: _results(query, entries,
-                                expanded: expanded, textScale: textScale),
-                          ),
-                        ],
+          final contentWidth = constraints.maxWidth.clamp(0.0, 1560.0);
+          final inset = (constraints.maxWidth - contentWidth) / 2 +
+              (constraints.maxWidth < 600 ? 16.0 : 24.0);
+          // Keep the right gutter scrollable and the scrollbar at the page edge.
+          return Padding(
+            padding: EdgeInsets.only(left: inset, top: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (expanded) ...[
+                  _sidebar(query),
+                  const SizedBox(width: 28),
+                ],
+                Expanded(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(right: inset),
+                        child: _searchBar(),
                       ),
-                    ),
-                  ],
+                      Expanded(
+                        child: _results(query, entries,
+                            expanded: expanded,
+                            textScale: textScale,
+                            rightInset: inset),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           );
         }),
@@ -202,14 +204,19 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
       );
 
   Widget _results(CollectLibraryQuery query, List<CollectedBangumi> entries,
-      {required bool expanded, required double textScale}) {
+      {required bool expanded,
+      required double textScale,
+      required double rightInset}) {
     return LayoutBuilder(builder: (context, constraints) {
-      final columns = constraints.maxWidth >= 840 && textScale <= 1.3 ? 2 : 1;
+      final contentWidth = constraints.maxWidth - rightInset;
+      final columns = contentWidth >= 840 && textScale <= 1.3 ? 2 : 1;
       return Scrollbar(
         controller: _scrollController,
         child: CustomScrollView(
           key: const ValueKey('collect-results'),
           controller: _scrollController,
+          scrollBehavior:
+              ScrollConfiguration.of(context).copyWith(scrollbars: false),
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             if (!expanded) SliverToBoxAdapter(child: _categoryStrip(query)),
@@ -249,7 +256,12 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
                   },
                 ),
               ),
-          ],
+          ]
+              .map((sliver) => SliverPadding(
+                    padding: EdgeInsets.only(right: rightInset),
+                    sliver: sliver,
+                  ))
+              .toList(),
         ),
       );
     });

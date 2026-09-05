@@ -37,6 +37,8 @@ class BangumiItem {
   List<int> votesCount;
   @HiveField(14, defaultValue: '')
   String info;
+  // Calendar metadata is separate from counted user tags and is not persisted.
+  final List<String> metaTags;
   BangumiInterest? interest;
 
   BangumiItem({
@@ -55,6 +57,7 @@ class BangumiItem {
     required this.votes,
     required this.votesCount,
     required this.info,
+    this.metaTags = const [],
     this.interest,
   });
 
@@ -93,11 +96,9 @@ class BangumiItem {
         return [];
       }
       final json = jsonData['rating']['count'];
-      // For api.bgm.tv
       if (json is Map<String, dynamic>) {
         return List<int>.generate(10, (i) => json['${i + 1}'] as int);
       }
-      // For next.bgm.tv
       if (json is List<dynamic>) {
         return json.map((e) => e as int).toList();
       }
@@ -110,10 +111,9 @@ class BangumiItem {
         final s = v.toString().trim();
         return s.isEmpty ? null : s;
       }
-      // For api.bgm.tv date
+
       final fromTop = nonEmpty(jsonData['date']);
       if (fromTop != null) return fromTop;
-      // For next.bgm.tv date
       final airtime = jsonData['airtime'];
       if (airtime is Map) {
         final fromAir = nonEmpty(airtime['date']);
@@ -124,16 +124,16 @@ class BangumiItem {
 
     final String airDateStr = resolveAirDateString(json);
 
-    List list = json['tags'] ?? [];
-    List<String> bangumiAlias = parseBangumiAliases(json);
-    List<BangumiTag> tagList = list.map((i) => BangumiTag.fromJson(i)).toList();
-    List<int> voteList = parseBangumiVoteCount(json);
+    final rawTags = json['tags'] as List? ?? [];
+    final tagList = rawTags.map((tag) => BangumiTag.fromJson(tag)).toList();
+    final rawMetaTags = json['metaTags'];
     BangumiInterest? interest;
     final interestRaw = json['interest'];
     if (interestRaw is Map<String, dynamic>) {
-      interest = BangumiInterest.fromJson(json['interest']);
+      interest = BangumiInterest.fromJson(interestRaw);
     } else if (interestRaw is Map) {
-      interest = BangumiInterest.fromJson(Map<String, dynamic>.from(interestRaw));
+      interest =
+          BangumiInterest.fromJson(Map<String, dynamic>.from(interestRaw));
     }
     return BangumiItem(
       id: json['id'],
@@ -144,7 +144,8 @@ class BangumiItem {
           : json['name_cn'],
       summary: json['summary'] ?? '',
       airDate: airDateStr,
-      airWeekday: dateStringToWeekday(airDateStr.isEmpty ? '2000-11-11' : airDateStr),
+      airWeekday:
+          dateStringToWeekday(airDateStr.isEmpty ? '2000-11-11' : airDateStr),
       rank: json['rating']['rank'] ?? 0,
       images: Map<String, String>.from(
         json['images'] ??
@@ -157,12 +158,20 @@ class BangumiItem {
             },
       ),
       tags: tagList,
-      alias: bangumiAlias,
+      alias: parseBangumiAliases(json),
       ratingScore: double.parse(
           (json['rating']['score'] ?? 0.0).toDouble().toStringAsFixed(1)),
       votes: json['rating']['total'] ?? 0,
-      votesCount: voteList,
+      votesCount: parseBangumiVoteCount(json),
       info: json['info'] ?? '',
+      metaTags: rawMetaTags is List
+          ? rawMetaTags
+              .whereType<String>()
+              .map((name) => name.trim())
+              .where((name) => name.isNotEmpty)
+              .toSet()
+              .toList()
+          : const [],
       interest: interest,
     );
   }

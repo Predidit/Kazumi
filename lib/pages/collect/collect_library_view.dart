@@ -14,14 +14,12 @@ class CollectLibraryView extends StatefulWidget {
     required this.entries,
     required this.onOpen,
     required this.onChangeType,
-    required this.onDiscover,
     required this.canEdit,
   });
 
   final List<CollectedBangumi> entries;
   final ValueChanged<BangumiItem> onOpen;
   final void Function(BangumiItem, CollectType) onChangeType;
-  final VoidCallback onDiscover;
   final bool Function(BangumiItem) canEdit;
 
   @override
@@ -92,7 +90,6 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
       child: Focus(
         autofocus: true,
         child: LayoutBuilder(builder: (context, constraints) {
-          // The outlet width excludes the app navigation rail.
           final expanded = constraints.maxWidth >= 1000 && textScale <= 1.5;
           final inset = constraints.maxWidth < 600 ? 16.0 : 24.0;
           return Align(
@@ -166,7 +163,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
   Widget _searchBar() => SearchBar(
         controller: _searchController,
         focusNode: _searchFocus,
-        hintText: '搜索片单中的名称、别名',
+        hintText: '搜索收藏番剧的名称、别名',
         leading: const Padding(
           padding: EdgeInsets.only(left: 8),
           child: Icon(Icons.search_rounded),
@@ -222,7 +219,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
             if (entries.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: _emptyState(query),
+                child: _emptyState(query.count(null)),
               )
             else
               SliverPadding(
@@ -234,7 +231,6 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
                     final first = index * columns;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      // Natural row heights accommodate enlarged text.
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -414,39 +410,25 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
     );
   }
 
-  Widget _emptyState(CollectLibraryQuery query) {
+  Widget _emptyState(int matchCount) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final searching = _query.trim().isNotEmpty;
-    final matchCount = query.count(null);
     final String title;
-    final String description;
-    final String actionLabel;
-    final VoidCallback onAction;
-    var actionIcon = Icons.arrow_forward_rounded;
 
     if (searching) {
-      title = '没有找到匹配的番剧';
-      if (matchCount > 0) {
-        description = '其他分类中有 $matchCount 部匹配的番剧。';
-        actionLabel = '在全部收藏中搜索';
-        onAction = () => _selectType(null);
-      } else {
-        description = '试试中文名、原名或别名，也可以缩短关键词。';
-        actionLabel = '清除搜索';
-        actionIcon = Icons.close_rounded;
-        onAction = _clearSearch;
-      }
+      title = matchCount > 0 ? '当前分类没有匹配的番剧' : '没有找到匹配的番剧';
     } else if (matchCount == 0) {
-      title = '你的片单，从这里开始';
-      description = '收藏喜欢的番剧，在这里整理观看状态。';
-      actionLabel = '去发现番剧';
-      onAction = widget.onDiscover;
+      title = '还没有收藏的番剧';
     } else {
-      title = '还没有「${_selectedType!.label}」的番剧';
-      description = '可以从全部收藏中选择番剧，调整观看状态。';
-      actionLabel = '查看全部收藏';
-      onAction = () => _selectType(null);
+      title = switch (_selectedType) {
+        CollectType.watching => '还没有在追的番剧',
+        CollectType.planToWatch => '还没有想看的番剧',
+        CollectType.watched => '还没有看过的番剧',
+        CollectType.onHold => '没有搁置的番剧',
+        CollectType.abandoned => '没有弃追的番剧',
+        _ => '还没有收藏的番剧',
+      };
     }
     return Center(
       child: Padding(
@@ -474,17 +456,6 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleLarge
                     ?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            Text(description,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: colors.onSurfaceVariant)),
-            const SizedBox(height: 24),
-            FilledButton.tonalIcon(
-              onPressed: onAction,
-              icon: Icon(actionIcon),
-              label: Text(actionLabel),
-            ),
           ],
         ),
       ),

@@ -185,7 +185,6 @@ class _CollectPageState extends State<CollectPage> {
             canEdit: (item) => !_syncing && !_pendingIds.contains(item.id),
             onOpen: (item) => context.pushNamed('/info/', arguments: item),
             onChangeType: (item, type) => unawaited(_changeType(item, type)),
-            onDiscover: () => context.pushNamed('/search/'),
           ),
         ),
       ),

@@ -428,6 +428,7 @@ class SettingsKeys {
     true,
     group: SettingGroup.interface,
   );
+  // Retained for legacy settings compatibility; no longer controls the UI.
   static const showAnimeCounter = SettingKey<bool>(
     _SettingBoxKey.showAnimeCounter,
     false,

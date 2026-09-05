@@ -1,16 +1,7 @@
-import 'dart:async';
-import 'dart:convert';
+part of 'source_sheet.dart';
 
-import 'package:flutter/material.dart';
-
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/loading_indicator.dart';
-import 'package:kazumi/plugins/anti_crawler_config.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/services/plugin/captcha_verification_service.dart';
-
-class SourceCaptchaFlow {
-  SourceCaptchaFlow({required this.onVerified, required this.onCancelled});
+class _SourceCaptchaFlow {
+  _SourceCaptchaFlow({required this.onVerified, required this.onCancelled});
 
   final void Function(Plugin plugin, String pageHtml) onVerified;
 
@@ -26,12 +17,9 @@ class SourceCaptchaFlow {
       case CaptchaType.customJavaScript:
         _startAutomated(
           plugin,
-          searchUrl,
-          statusText: '${plugin.name} 正在执行验证脚本，请稍候',
-          detailText: '已加载验证页面并执行自定义脚本，等待验证通过…',
-          startVerification: (service, url, onVerified) =>
+          startVerification: (service, onVerified) =>
               service.loadForCustomScript(
-            url: url,
+            url: searchUrl,
             script: plugin.antiCrawlerConfig.captchaScript,
             pluginName: plugin.name,
             onVerified: onVerified,
@@ -40,12 +28,9 @@ class SourceCaptchaFlow {
       case CaptchaType.autoClickButton:
         _startAutomated(
           plugin,
-          searchUrl,
-          statusText: '${plugin.name} 正在自动完成验证，请稍候',
-          detailText: '已检测到验证按钮并模拟点击，等待验证通过…',
-          startVerification: (service, url, onVerified) =>
+          startVerification: (service, onVerified) =>
               service.loadForButtonClick(
-            url: url,
+            url: searchUrl,
             buttonXpath: plugin.antiCrawlerConfig.captchaButton,
             pluginName: plugin.name,
             onVerified: onVerified,
@@ -63,24 +48,25 @@ class SourceCaptchaFlow {
     _timer = null;
   }
 
+  void showSuccess(String pluginName, {required VoidCallback onComplete}) {
+    KazumiDialog.show<bool>(
+      clickMaskDismiss: false,
+      builder: (_) => _VerificationCompleteDialog(pluginName: pluginName),
+    ).then((completed) {
+      if (completed == true) onComplete();
+    });
+  }
+
   void _startCaptchaInput(Plugin plugin, String searchUrl) {
     bool verified = false;
-
-    // Stop timing verification once detected; cookie harvesting can take longer.
     bool finalizing = false;
 
     _service?.dispose();
     final service = _service = CaptchaVerificationService();
 
-    service.loadForCaptcha(
-      searchUrl,
-      plugin.antiCrawlerConfig.captchaImage,
-      inputXpath: plugin.antiCrawlerConfig.captchaInput,
-    );
-
     Future<void> submitCaptcha(String captchaCode) async {
       await _service?.submitCaptcha(
-        captchaCode: captchaCode.trim(),
+        captchaCode: captchaCode,
         inputXpath: plugin.antiCrawlerConfig.captchaInput,
         buttonXpath: plugin.antiCrawlerConfig.captchaButton,
         pluginName: plugin.name,
@@ -116,7 +102,6 @@ class SourceCaptchaFlow {
         if (verified) {
           captchaService?.dispose();
         } else {
-          // Save cookies before disposing the webview.
           await captchaService?.cancelAndSave(plugin.name);
           captchaService?.dispose();
           onCancelled(plugin);
@@ -125,19 +110,20 @@ class SourceCaptchaFlow {
       builder: (context) => _CaptchaDialog(
         pluginName: plugin.name,
         captchaImageStream: service.onCaptchaImageUrl,
+        onReload: () => service.loadForCaptcha(
+          searchUrl,
+          plugin.antiCrawlerConfig.captchaImage,
+          inputXpath: plugin.antiCrawlerConfig.captchaInput,
+        ),
         onSubmit: submitCaptcha,
       ),
     );
   }
 
   void _startAutomated(
-    Plugin plugin,
-    String searchUrl, {
-    required String statusText,
-    required String detailText,
+    Plugin plugin, {
     required Future<void> Function(
       CaptchaVerificationService service,
-      String searchUrl,
       void Function(String pageHtml) onVerified,
     ) startVerification,
   }) {
@@ -146,7 +132,7 @@ class SourceCaptchaFlow {
     _service?.dispose();
     final service = _service = CaptchaVerificationService();
 
-    unawaited(startVerification(service, searchUrl, (pageHtml) {
+    unawaited(startVerification(service, (pageHtml) {
       verified = true;
       KazumiDialog.dismiss();
       onVerified(plugin, pageHtml);
@@ -165,8 +151,7 @@ class SourceCaptchaFlow {
         }
       },
       builder: (context) => _AutomatedVerifyDialog(
-        statusText: statusText,
-        detailText: detailText,
+        pluginName: plugin.name,
       ),
     );
   }
@@ -174,35 +159,69 @@ class SourceCaptchaFlow {
 
 class _VerifyDialogFrame extends StatelessWidget {
   const _VerifyDialogFrame({
+    required this.pluginName,
     required this.title,
-    required this.statusText,
-    required this.children,
+    required this.description,
+    required this.child,
+    this.actions = const [],
   });
 
+  final String pluginName;
   final String title;
-  final String statusText;
-  final List<Widget> children;
+  final String description;
+  final Widget child;
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Dialog(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: SizedBox(
-          width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    final colors = theme.colorScheme;
+    return AlertDialog(
+      scrollable: true,
+      backgroundColor: colors.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      constraints: const BoxConstraints(maxWidth: 420),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      actionsOverflowButtonSpacing: 8,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text(title, style: theme.textTheme.titleLarge),
-              const SizedBox(height: 4),
-              Text(statusText, style: theme.textTheme.bodySmall),
-              ...children,
+              Icon(Icons.verified_user_outlined,
+                  size: 20, color: colors.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  pluginName,
+                  style: theme.textTheme.labelLarge
+                      ?.copyWith(color: colors.onSurfaceVariant),
+                ),
+              ),
             ],
           ),
+          const SizedBox(height: 16),
+          Text(title, style: theme.textTheme.headlineSmall),
+        ],
+      ),
+      content: SizedBox(
+        width: 372,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(description,
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: colors.onSurfaceVariant)),
+            const SizedBox(height: 24),
+            child,
+            if (actions.isEmpty) const SizedBox(height: 24),
+          ],
         ),
       ),
+      actions: actions,
     );
   }
 }
@@ -211,11 +230,13 @@ class _CaptchaDialog extends StatefulWidget {
   const _CaptchaDialog({
     required this.pluginName,
     required this.captchaImageStream,
+    required this.onReload,
     required this.onSubmit,
   });
 
   final String pluginName;
   final Stream<String?> captchaImageStream;
+  final Future<void> Function() onReload;
   final Future<void> Function(String captchaCode) onSubmit;
 
   @override
@@ -223,167 +244,283 @@ class _CaptchaDialog extends StatefulWidget {
 }
 
 class _CaptchaDialogState extends State<_CaptchaDialog> {
-  final ValueNotifier<String?> _captchaImageNotifier =
-      ValueNotifier<String?>(null);
-  final ValueNotifier<bool> _submittingNotifier = ValueNotifier<bool>(false);
+  final _inputController = TextEditingController();
+  final _inputFocus = FocusNode();
   late final StreamSubscription<String?> _imageSub;
-  String _captchaCode = '';
+  Timer? _loadTimer;
+  Uint8List? _imageBytes;
+  String? _imageError;
+  String? _inputError;
+  bool _submitting = false;
+  int _imageRevision = 0;
 
   @override
   void initState() {
     super.initState();
-    _imageSub = widget.captchaImageStream.listen((url) {
-      if (!mounted || url == null) return;
-      _captchaImageNotifier.value = url;
-    });
+    _imageSub = widget.captchaImageStream.listen(_receiveImage);
+    _reload();
   }
 
   @override
   void dispose() {
+    _loadTimer?.cancel();
     _imageSub.cancel();
-    _captchaImageNotifier.dispose();
-    _submittingNotifier.dispose();
+    _inputController.dispose();
+    _inputFocus.dispose();
     super.dispose();
   }
 
+  Future<void> _receiveImage(String? data) async {
+    if (!mounted || data == null || _submitting) return;
+    final revision = ++_imageRevision;
+    Uint8List? bytes;
+    try {
+      bytes = base64Decode(data.split(',').last);
+      final codec = await ui.instantiateImageCodec(bytes);
+      codec.dispose();
+    } catch (_) {
+      bytes = null;
+    }
+    if (!mounted || revision != _imageRevision) return;
+    _loadTimer?.cancel();
+    setState(() {
+      _imageBytes = bytes;
+      _imageError = bytes == null ? '验证码图片无法显示' : null;
+    });
+  }
+
+  Future<void> _reload() async {
+    if (_submitting) return;
+    final revision = ++_imageRevision;
+    _loadTimer?.cancel();
+    setState(() {
+      _imageBytes = null;
+      _imageError = null;
+      _inputError = null;
+      _inputController.clear();
+    });
+    _loadTimer = Timer(const Duration(seconds: 15), () {
+      if (!mounted || _imageBytes != null) return;
+      setState(() => _imageError = '暂时没有获取到验证码');
+    });
+    try {
+      await widget.onReload();
+    } catch (_) {
+      if (!mounted || revision != _imageRevision) return;
+      _loadTimer?.cancel();
+      setState(() => _imageError = '验证码加载失败');
+    }
+  }
+
   Future<void> _submit() async {
-    if (_submittingNotifier.value) return;
-    final captchaCode = _captchaCode.trim();
-    if (captchaCode.isEmpty) {
-      KazumiDialog.showToast(message: '请输入验证码');
+    if (_submitting || _imageBytes == null) return;
+    final code = _inputController.text.trim();
+    if (code.isEmpty) {
+      setState(() => _inputError = '请输入图片中的字符');
+      _inputFocus.requestFocus();
       return;
     }
-    _submittingNotifier.value = true;
-    await widget.onSubmit(captchaCode);
+    _inputFocus.unfocus();
+    setState(() => _submitting = true);
+    try {
+      await widget.onSubmit(code);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _inputError = '未能提交，请重试';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return _VerifyDialogFrame(
-      title: '验证码验证',
-      statusText: '${widget.pluginName} 需要验证码验证',
-      children: [
-        const SizedBox(height: 20),
-        ValueListenableBuilder<String?>(
-          valueListenable: _captchaImageNotifier,
-          builder: (context, imageUrl, _) {
-            if (imageUrl == null) {
-              return const Column(
-                children: [
-                  LoadingIndicator(),
-                  SizedBox(height: 12),
-                  Text('正在加载验证码图片...'),
-                ],
-              );
-            }
-            return ValueListenableBuilder<bool>(
-              valueListenable: _submittingNotifier,
-              builder: (context, isSubmitting, _) {
-                return Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.memory(
-                        base64Decode(imageUrl.split(',').last),
-                        height: 80,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, _) =>
-                            const Text('图片解码失败'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      autofocus: true,
-                      enabled: !isSubmitting,
-                      onChanged: (value) => _captchaCode = value,
-                      decoration: const InputDecoration(
-                        labelText: '请输入验证码',
-                        border: OutlineInputBorder(),
-                      ),
-                      onSubmitted: isSubmitting ? null : (_) => _submit(),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
+      pluginName: widget.pluginName,
+      title: '输入验证码',
+      description: '输入下图中的字符，继续检索此来源。',
+      actions: [
+        TextButton(
+          style: TextButton.styleFrom(minimumSize: const Size(72, 48)),
+          onPressed: KazumiDialog.dismiss,
+          child: const Text('返回来源'),
         ),
-        const SizedBox(height: 20),
-        ListenableBuilder(
-          listenable: Listenable.merge([
-            _captchaImageNotifier,
-            _submittingNotifier,
-          ]),
-          builder: (context, _) {
-            final isSubmitting = _submittingNotifier.value;
-            final isDisabled =
-                _captchaImageNotifier.value == null || isSubmitting;
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => KazumiDialog.dismiss(),
-                  child: Text(
-                    '取消',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: isDisabled ? null : _submit,
-                  child: isSubmitting
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: LoadingIndicator(),
-                        )
-                      : const Text('提交'),
-                ),
-              ],
-            );
-          },
+        FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(88, 48)),
+          onPressed: _imageBytes == null || _submitting ? null : _submit,
+          child: Text(_submitting ? '验证中…' : '验证'),
         ),
       ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            constraints: const BoxConstraints(minHeight: 128),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: _buildImage(),
+          ),
+          if (_imageBytes != null) ...[
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                onPressed: _submitting ? null : _reload,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('换一张'),
+              ),
+            ),
+            TextField(
+              controller: _inputController,
+              focusNode: _inputFocus,
+              enabled: !_submitting,
+              autocorrect: false,
+              enableSuggestions: false,
+              textInputAction: TextInputAction.done,
+              onChanged: (_) {
+                if (_inputError != null) setState(() => _inputError = null);
+              },
+              onSubmitted: (_) => _submit(),
+              decoration: InputDecoration(
+                labelText: '验证码',
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                errorText: _inputError,
+                errorMaxLines: 2,
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImage() {
+    if (_imageError != null) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.broken_image_outlined,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
+          const SizedBox(height: 8),
+          Text(_imageError!, textAlign: TextAlign.center),
+          TextButton.icon(
+            style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+            onPressed: _reload,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('重新加载'),
+          ),
+        ],
+      );
+    }
+    if (_imageBytes == null || _submitting) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          LoadingIndicator(
+              size: 40, semanticsLabel: _submitting ? '正在验证' : '正在加载验证码'),
+          const SizedBox(height: 12),
+          Text(_submitting ? '正在等待验证结果…' : '正在加载验证码…',
+              textAlign: TextAlign.center),
+        ],
+      );
+    }
+    return Center(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ColoredBox(
+          color: Colors.white,
+          child: Image.memory(
+            _imageBytes!,
+            height: 88,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
+            semanticLabel: '验证码图片',
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _AutomatedVerifyDialog extends StatelessWidget {
-  const _AutomatedVerifyDialog({
-    required this.statusText,
-    required this.detailText,
-  });
+  const _AutomatedVerifyDialog({required this.pluginName});
 
-  final String statusText;
-  final String detailText;
+  final String pluginName;
+
+  @override
+  Widget build(BuildContext context) => _VerifyDialogFrame(
+        pluginName: pluginName,
+        title: '正在验证',
+        description: '正在等待网站响应，通过后会自动继续检索。',
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(minimumSize: const Size(72, 48)),
+            onPressed: KazumiDialog.dismiss,
+            child: const Text('返回来源'),
+          ),
+        ],
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child:
+              Center(child: LoadingIndicator(size: 72, semanticsLabel: '正在验证')),
+        ),
+      );
+}
+
+class _VerificationCompleteDialog extends StatefulWidget {
+  const _VerificationCompleteDialog({required this.pluginName});
+
+  final String pluginName;
+
+  @override
+  State<_VerificationCompleteDialog> createState() =>
+      _VerificationCompleteDialogState();
+}
+
+class _VerificationCompleteDialogState
+    extends State<_VerificationCompleteDialog> {
+  late final Timer _closeTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _closeTimer = Timer(
+        const Duration(seconds: 3), () => Navigator.of(context).pop(true));
+  }
+
+  @override
+  void dispose() {
+    _closeTimer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return _VerifyDialogFrame(
-      title: '自动验证中',
-      statusText: statusText,
-      children: [
-        const SizedBox(height: 24),
-        const LoadingIndicator(),
-        const SizedBox(height: 12),
-        Text(
-          detailText,
-          style: Theme.of(context).textTheme.bodyMedium,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 20),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => KazumiDialog.dismiss(),
-            child: Text(
-              '取消',
-              style: TextStyle(color: Theme.of(context).colorScheme.outline),
-            ),
+      pluginName: widget.pluginName,
+      title: '验证通过',
+      description: '即将自动继续检索。',
+      child: Center(
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: colors.primaryContainer,
+            shape: BoxShape.circle,
           ),
+          child: Icon(Icons.check_rounded,
+              color: colors.onPrimaryContainer, size: 32),
         ),
-      ],
+      ),
     );
   }
 }

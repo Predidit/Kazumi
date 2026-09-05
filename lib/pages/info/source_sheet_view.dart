@@ -179,58 +179,50 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
           child: Row(
             children: [
               Expanded(
-                child: Tooltip(
-                  message: group.hasResults
-                      ? '${collapsed ? '展开' : '收起'}${group.name}的全部条目'
-                      : group.name,
-                  excludeFromSemantics: true,
-                  child: Semantics(
-                    header: true,
-                    button: group.hasResults,
-                    expanded: group.hasResults ? !collapsed : null,
-                    label:
-                        '来源规则：${group.name}${group.hasResults ? '，${group.results.length} 个结果' : ''}',
-                    onTap: group.hasResults ? toggle : null,
-                    excludeSemantics: true,
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: group.hasResults ? toggle : null,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(minHeight: 48),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                    child: Text(
-                                  group.name,
-                                  style: theme.textTheme.labelLarge?.copyWith(
+                child: Semantics(
+                  header: true,
+                  button: group.hasResults,
+                  expanded: group.hasResults ? !collapsed : null,
+                  label:
+                      '来源规则：${group.name}${group.hasResults ? '，${group.results.length} 个结果' : ''}',
+                  onTap: group.hasResults ? toggle : null,
+                  excludeSemantics: true,
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: group.hasResults ? toggle : null,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                  child: Text(
+                                group.name,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                ),
+                              )),
+                              if (group.hasResults) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${group.results.length} 个结果',
+                                  style: theme.textTheme.labelMedium?.copyWith(
                                     color: colors.onSurfaceVariant,
                                   ),
-                                )),
-                                if (group.hasResults) ...[
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${group.results.length} 个结果',
-                                    style:
-                                        theme.textTheme.labelMedium?.copyWith(
-                                      color: colors.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  AnimatedRotation(
-                                    turns: collapsed ? 0 : 0.5,
-                                    duration: duration,
-                                    curve: splitListMotionCurve,
-                                    child: Icon(Icons.expand_more_rounded,
-                                        size: 20,
-                                        color: colors.onSurfaceVariant),
-                                  ),
-                                ],
+                                ),
+                                const SizedBox(width: 8),
+                                AnimatedRotation(
+                                  turns: collapsed ? 0 : 0.5,
+                                  duration: duration,
+                                  curve: splitListMotionCurve,
+                                  child: Icon(Icons.expand_more_rounded,
+                                      size: 20, color: colors.onSurfaceVariant),
+                                ),
                               ],
-                            ),
+                            ],
                           ),
                         ),
                       ),
@@ -319,29 +311,31 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
     );
   }
 
-  Widget _buildSourceMenu(_SourceSearchGroup group) =>
-      PopupMenuButton<VoidCallback>(
-        tooltip: '${group.name} 的更多操作',
-        icon: const Icon(Icons.more_horiz_rounded, size: 20),
-        onSelected: (action) => action(),
-        itemBuilder: (_) => [
-          PopupMenuItem(
-            value: () => widget.onSourceSearch(group.name),
-            child: const Text('修改此来源的检索词'),
-          ),
-          PopupMenuItem(
-            value: () => widget.onSourceAliasSearch(group.name),
-            child: const Text('使用别名检索此来源'),
-          ),
-          PopupMenuItem(
-            value: () => widget.onRetry(group.name),
-            child: const Text('重新检索此来源'),
-          ),
-          PopupMenuItem(
-            value: () => widget.onOpenBrowser(group.name),
-            child: const Text('在浏览器中打开'),
-          ),
-        ],
+  Widget _buildSourceMenu(_SourceSearchGroup group) => TooltipVisibility(
+        visible: false,
+        child: PopupMenuButton<VoidCallback>(
+          tooltip: '${group.name} 的更多操作',
+          icon: const Icon(Icons.more_horiz_rounded, size: 20),
+          onSelected: (action) => action(),
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: () => widget.onSourceSearch(group.name),
+              child: const Text('修改此来源的检索词'),
+            ),
+            PopupMenuItem(
+              value: () => widget.onSourceAliasSearch(group.name),
+              child: const Text('使用别名检索此来源'),
+            ),
+            PopupMenuItem(
+              value: () => widget.onRetry(group.name),
+              child: const Text('重新检索此来源'),
+            ),
+            PopupMenuItem(
+              value: () => widget.onOpenBrowser(group.name),
+              child: const Text('在浏览器中打开'),
+            ),
+          ],
+        ),
       );
 
   Widget _buildResult(_SourceSearchGroup group, int index,

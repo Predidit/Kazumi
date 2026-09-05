@@ -144,27 +144,6 @@ class KazumiDialog {
     }
   }
 
-  /// Dismiss any existing dialog before starting the timed success dialog.
-  static void showTimedSuccessDialog({
-    required String title,
-    required String message,
-    required VoidCallback onComplete,
-    Duration duration = const Duration(seconds: 3),
-  }) {
-    KazumiDialog.show<bool>(
-      clickMaskDismiss: false,
-      builder: (context) => _TimedSuccessDialog(
-        title: title,
-        message: message,
-        duration: duration,
-      ),
-    ).then((completed) {
-      if (completed == true) {
-        onComplete();
-      }
-    });
-  }
-
   static ScaffoldMessengerState? _resolveScaffoldMessenger(
     BuildContext? context,
   ) {
@@ -186,72 +165,6 @@ class KazumiDialog {
       return messengerContext;
     }
     return observer.scaffoldContext;
-  }
-}
-
-class _TimedSuccessDialog extends StatelessWidget {
-  const _TimedSuccessDialog({
-    required this.title,
-    required this.message,
-    required this.duration,
-  });
-
-  final String title;
-  final String message;
-  final Duration duration;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Dialog(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: SizedBox(
-          width: 300,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  size: 32,
-                  color: colorScheme.onSecondaryContainer,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: duration,
-                onEnd: () => KazumiDialog.dismiss(popWith: true),
-                builder: (context, value, _) =>
-                    LinearProgressIndicator(value: value),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 

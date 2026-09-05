@@ -1,3 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -8,11 +13,12 @@ import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
-import 'package:kazumi/pages/info/source_captcha_flow.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
+import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/plugin/captcha_verification_service.dart';
 import 'package:kazumi/services/plugin/plugin_search_service.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
@@ -20,6 +26,7 @@ import 'package:kazumi/utils/device.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 part 'source_alias_dialog.dart';
+part 'source_captcha_flow.dart';
 part 'source_sheet_view.dart';
 
 class SourceSheet extends StatefulWidget {
@@ -38,7 +45,7 @@ class _SourceSheetState extends State<SourceSheet> {
 
   late final String _keyword;
   late final PluginSearchService _searchService;
-  late final SourceCaptchaFlow _captchaFlow;
+  late final _SourceCaptchaFlow _captchaFlow;
   RuleCancelToken? _chapterCancelToken;
 
   @override
@@ -50,7 +57,7 @@ class _SourceSheetState extends State<SourceSheet> {
       infoController: widget.infoController,
       pluginsController: _pluginsController,
     );
-    _captchaFlow = SourceCaptchaFlow(
+    _captchaFlow = _SourceCaptchaFlow(
       onVerified: _showVerifiedResult,
       onCancelled: (plugin) => _retry(plugin.name),
     );
@@ -85,9 +92,8 @@ class _SourceSheetState extends State<SourceSheet> {
       KazumiDialog.showToast(message: '验证成功');
       return;
     }
-    KazumiDialog.showTimedSuccessDialog(
-      title: '验证成功',
-      message: '即将重新检索',
+    _captchaFlow.showSuccess(
+      plugin.name,
       onComplete: () => _retry(plugin.name),
     );
   }

@@ -14,7 +14,17 @@ class _SourceSearchGroup {
   final List<SearchItem> results;
 
   bool get isSearching => status == PluginSearchStatus.pending;
-  bool get hasResults => !isSearching && results.isNotEmpty;
+  bool get hasResults =>
+      status == PluginSearchStatus.success && results.isNotEmpty;
+
+  String get statusLabel => switch (status) {
+        PluginSearchStatus.pending => '检索中…',
+        PluginSearchStatus.success =>
+          results.isEmpty ? '无结果' : '${results.length} 个结果',
+        PluginSearchStatus.noResult => '无结果',
+        PluginSearchStatus.error => '检索失败',
+        PluginSearchStatus.captcha => '需要验证',
+      };
 }
 
 enum _SourceDisplay { preview, expanded, collapsed }
@@ -23,6 +33,7 @@ class _SourceSheetView extends StatefulWidget {
   const _SourceSheetView({
     required this.keyword,
     required this.groups,
+    required this.firstResultSource,
     required this.onSourceSearch,
     required this.onSourceAliasSearch,
     required this.onRetry,
@@ -34,6 +45,7 @@ class _SourceSheetView extends StatefulWidget {
 
   final String keyword;
   final List<_SourceSearchGroup> groups;
+  final String? firstResultSource;
   final ValueChanged<String> onSourceSearch;
   final ValueChanged<String> onSourceAliasSearch;
   final ValueChanged<String> onRetry;
@@ -47,25 +59,31 @@ class _SourceSheetView extends StatefulWidget {
 }
 
 class _SourceSheetViewState extends State<_SourceSheetView> {
-  static const _previewCount = 3;
   final _scrollController = ScrollController();
   final _display = <String, _SourceDisplay>{};
   final _headerKeys = <String, GlobalKey>{};
+  bool _autoExpansionHandled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoExpandFirstResult();
+  }
 
   @override
   void didUpdateWidget(covariant _SourceSheetView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final oldGroups = {for (final group in oldWidget.groups) group.name: group};
     final names = widget.groups.map((group) => group.name).toSet();
     _display.removeWhere((name, _) => !names.contains(name));
     _headerKeys.removeWhere((name, _) => !names.contains(name));
-    for (final group in widget.groups) {
-      final previous = oldGroups[group.name];
-      if (previous?.keyword != group.keyword ||
-          (group.isSearching && previous?.isSearching != true)) {
-        _display.remove(group.name);
-      }
-    }
+    _autoExpandFirstResult();
+  }
+
+  void _autoExpandFirstResult() {
+    final name = widget.firstResultSource;
+    if (_autoExpansionHandled || name == null) return;
+    _autoExpansionHandled = true;
+    _display[name] = _SourceDisplay.preview;
   }
 
   @override
@@ -74,16 +92,20 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
     super.dispose();
   }
 
-  void _setDisplay(String name, _SourceDisplay display,
-      {bool fromFooter = false}) {
-    if (fromFooter && display == _SourceDisplay.collapsed) {
-      final headerContext = _headerKeys[name]?.currentContext;
-      if (headerContext != null) {
-        // Anchor before shrinking a long group, while its header is laid out.
-        Scrollable.ensureVisible(headerContext, alignment: 0);
-      }
+  void _setDisplay(String name, _SourceDisplay display) {
+    setState(() {
+      _autoExpansionHandled = true;
+      _display[name] = display;
+    });
+  }
+
+  void _collapseFromFooter(String name) {
+    final headerContext = _headerKeys[name]?.currentContext;
+    if (headerContext != null) {
+      // Anchor before shrinking, while the header is still laid out.
+      Scrollable.ensureVisible(headerContext, alignment: 0);
     }
-    setState(() => _display[name] = display);
+    _setDisplay(name, _SourceDisplay.collapsed);
   }
 
   Widget _animateSize(Widget child) => MediaQuery.disableAnimationsOf(context)
@@ -157,13 +179,8 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
   Widget _buildSourceGroup(_SourceSearchGroup group) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final display = _display[group.name] ?? _SourceDisplay.preview;
-    final collapsed = group.hasResults && display == _SourceDisplay.collapsed;
-    final showAll = display == _SourceDisplay.expanded;
-    final visibleCount = showAll || group.results.length <= _previewCount
-        ? group.results.length
-        : _previewCount;
-    final hasFooter = group.results.length > _previewCount;
+    final display = _display[group.name] ?? _SourceDisplay.collapsed;
+    final collapsed = display == _SourceDisplay.collapsed;
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
         : splitListMotionDuration;
@@ -181,17 +198,16 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
               Expanded(
                 child: Semantics(
                   header: true,
-                  button: group.hasResults,
-                  expanded: group.hasResults ? !collapsed : null,
-                  label:
-                      '来源规则：${group.name}${group.hasResults ? '，${group.results.length} 个结果' : ''}',
-                  onTap: group.hasResults ? toggle : null,
+                  button: true,
+                  expanded: !collapsed,
+                  label: '来源规则：${group.name}，${group.statusLabel}',
+                  onTap: toggle,
                   excludeSemantics: true,
                   child: Material(
                     type: MaterialType.transparency,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
-                      onTap: group.hasResults ? toggle : null,
+                      onTap: toggle,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(minHeight: 48),
                         child: Padding(
@@ -205,23 +221,21 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
                                   color: colors.onSurfaceVariant,
                                 ),
                               )),
-                              if (group.hasResults) ...[
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${group.results.length} 个结果',
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: colors.onSurfaceVariant,
-                                  ),
+                              const SizedBox(width: 8),
+                              Text(
+                                group.statusLabel,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: colors.onSurfaceVariant,
                                 ),
-                                const SizedBox(width: 8),
-                                AnimatedRotation(
-                                  turns: collapsed ? 0 : 0.5,
-                                  duration: duration,
-                                  curve: splitListMotionCurve,
-                                  child: Icon(Icons.expand_more_rounded,
-                                      size: 20, color: colors.onSurfaceVariant),
-                                ),
-                              ],
+                              ),
+                              const SizedBox(width: 8),
+                              AnimatedRotation(
+                                turns: collapsed ? 0 : 0.5,
+                                duration: duration,
+                                curve: splitListMotionCurve,
+                                child: Icon(Icons.expand_more_rounded,
+                                    size: 20, color: colors.onSurfaceVariant),
+                              ),
                             ],
                           ),
                         ),
@@ -234,7 +248,7 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
             ],
           ),
         ),
-        if (group.keyword != widget.keyword)
+        if (!collapsed && group.keyword != widget.keyword)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: Text(
@@ -244,69 +258,71 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
             ),
           ),
         _animateSize(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (group.hasResults) ...[
-                if (!collapsed) ...[
-                  for (var index = 0; index < visibleCount; index++) ...[
-                    if (index > 0) const SizedBox(height: splitListRowGap),
-                    _buildResult(group, index,
-                        isLast: !hasFooter && index == visibleCount - 1),
-                  ],
-                  if (hasFooter) ...[
-                    const SizedBox(height: splitListRowGap),
-                    SplitListRow(
-                      bottomRadius: splitListOuterRadius,
-                      onTap: () => _setDisplay(
-                        group.name,
-                        showAll
-                            ? _SourceDisplay.collapsed
-                            : _SourceDisplay.expanded,
-                        fromFooter: true,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(minHeight: 48),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                  child: Text(
-                                showAll
-                                    ? '收起全部条目'
-                                    : '展开全部 ${group.results.length} 个结果',
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.labelLarge
-                                    ?.copyWith(color: colors.primary),
-                              )),
-                              const SizedBox(width: 8),
-                              Icon(
-                                  showAll
-                                      ? Icons.unfold_less_rounded
-                                      : Icons.expand_more_rounded,
-                                  size: 20,
-                                  color: colors.primary),
-                            ],
-                          ),
-                        ),
+          collapsed
+              ? const SizedBox.shrink()
+              : _buildSourceBody(group,
+                  showAll: display == _SourceDisplay.expanded),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSourceBody(_SourceSearchGroup group, {required bool showAll}) {
+    if (!group.hasResults) {
+      return SplitListRow(
+        topRadius: splitListOuterRadius,
+        bottomRadius: splitListOuterRadius,
+        child: group.isSearching ? _buildSearching() : _buildRecovery(group),
+      );
+    }
+
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final visibleCount = showAll ? group.results.length : 1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < visibleCount; index++) ...[
+          if (index > 0) const SizedBox(height: splitListRowGap),
+          _buildResult(group, index),
+        ],
+        if (group.results.length > 1) ...[
+          const SizedBox(height: splitListRowGap),
+          SplitListRow(
+            bottomRadius: splitListOuterRadius,
+            onTap: () => showAll
+                ? _collapseFromFooter(group.name)
+                : _setDisplay(group.name, _SourceDisplay.expanded),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        showAll ? '收起全部条目' : '展开全部 ${group.results.length} 个结果',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelLarge
+                            ?.copyWith(color: primary),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      showAll
+                          ? Icons.unfold_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 20,
+                      color: primary,
+                    ),
                   ],
-                ],
-              ] else
-                SplitListRow(
-                  topRadius: splitListOuterRadius,
-                  bottomRadius: splitListOuterRadius,
-                  child: group.isSearching
-                      ? _buildSearching()
-                      : _buildRecovery(group),
                 ),
-            ],
+              ),
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -338,13 +354,14 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
         ),
       );
 
-  Widget _buildResult(_SourceSearchGroup group, int index,
-      {required bool isLast}) {
+  Widget _buildResult(_SourceSearchGroup group, int index) {
     final theme = Theme.of(context);
     final result = group.results[index];
     return SplitListRow(
       topRadius: index == 0 ? splitListOuterRadius : splitListInnerRadius,
-      bottomRadius: isLast ? splitListOuterRadius : splitListInnerRadius,
+      bottomRadius: group.results.length == 1
+          ? splitListOuterRadius
+          : splitListInnerRadius,
       onTap: () => widget.onPlay(group.name, result),
       child: Semantics(
         button: true,

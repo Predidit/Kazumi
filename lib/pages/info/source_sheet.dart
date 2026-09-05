@@ -185,28 +185,33 @@ class _SourceSheetState extends State<SourceSheet> {
   Widget build(BuildContext context) => Observer(
         builder: (context) {
           // Snapshot observable values here; lazy list builders are not tracked.
-          final groups = <_SourceSearchGroup>[];
-          for (final plugin in _pluginsController.pluginList) {
-            final seen = <String>{};
-            final results = <SearchItem>[];
-            for (final response
-                in widget.infoController.pluginSearchResponseList) {
-              if (response.pluginName != plugin.name) continue;
-              for (final result in response.data) {
-                if (seen.add(result.src)) results.add(result);
-              }
+          final groupsByName = {
+            for (final plugin in _pluginsController.pluginList)
+              plugin.name: _SourceSearchGroup(
+                name: plugin.name,
+                keyword: _keywordFor(plugin.name),
+                status: widget.infoController.pluginSearchStatus[plugin.name] ??
+                    PluginSearchStatus.pending,
+                results: <SearchItem>[],
+              ),
+          };
+          final seenBySource = <String, Set<String>>{};
+          String? firstResultSource;
+          // Responses follow completion order; groups keep configured order.
+          for (final response
+              in widget.infoController.pluginSearchResponseList) {
+            final group = groupsByName[response.pluginName];
+            if (group == null) continue;
+            final seen = seenBySource.putIfAbsent(group.name, () => <String>{});
+            for (final result in response.data) {
+              if (seen.add(result.src)) group.results.add(result);
             }
-            groups.add(_SourceSearchGroup(
-              name: plugin.name,
-              keyword: _keywordFor(plugin.name),
-              status: widget.infoController.pluginSearchStatus[plugin.name] ??
-                  PluginSearchStatus.pending,
-              results: results,
-            ));
+            if (group.hasResults) firstResultSource ??= group.name;
           }
           return _SourceSheetView(
             keyword: _keyword,
-            groups: groups,
+            groups: groupsByName.values.toList(),
+            firstResultSource: firstResultSource,
             onSourceSearch: _showCustomKeyword,
             onSourceAliasSearch: _showAliasPicker,
             onRetry: _retry,

@@ -243,12 +243,14 @@ class _TimelinePageState extends State<TimelinePage> {
         return Scaffold(
           appBar: SysAppBar(
             needTopOffset: false,
-            toolbarHeight: narrowPortrait
-                ? (scaler.scale(20) + 24).clamp(56.0, double.infinity)
-                : null,
+            toolbarHeight: 72,
             title: narrowPortrait
                 ? _buildSeasonPicker(context, loading: loading, inAppBar: true)
-                : const Text('时间表'),
+                : Text(
+                    '时间表',
+                    style: theme.textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
             actions: [
               Padding(
                 padding: const EdgeInsets.only(right: 12),

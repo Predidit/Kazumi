@@ -70,7 +70,17 @@ class _MyPageState extends State<MyPage> {
     final bool wide =
         MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!;
     return Scaffold(
-      appBar: const SysAppBar(title: Text('我的'), needTopOffset: false),
+      appBar: SysAppBar(
+        toolbarHeight: 72,
+        title: Text(
+          '我的',
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        needTopOffset: false,
+      ),
       body: SafeArea(
         top: false,
         bottom: false,

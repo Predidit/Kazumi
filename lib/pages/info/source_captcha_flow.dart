@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -279,7 +280,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
             if (imageUrl == null) {
               return const Column(
                 children: [
-                  CircularProgressIndicator(),
+                  M3ELoadingIndicator(),
                   SizedBox(height: 12),
                   Text('正在加载验证码图片...'),
                 ],
@@ -330,7 +331,8 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
             return Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(
+                M3EButton(
+                  style: M3EButtonStyle.text,
                   onPressed: () => KazumiDialog.dismiss(),
                   child: Text(
                     '取消',
@@ -340,12 +342,12 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                FilledButton(
+                M3EButton(
                   onPressed: isDisabled ? null : _submit,
                   child: isSubmitting
                       ? const SizedBox.square(
                           dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: M3ECircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('提交'),
                 ),
@@ -374,7 +376,7 @@ class _AutomatedVerifyDialog extends StatelessWidget {
       statusText: statusText,
       children: [
         const SizedBox(height: 24),
-        const CircularProgressIndicator(),
+        const M3ELoadingIndicator(),
         const SizedBox(height: 12),
         Text(
           detailText,
@@ -384,7 +386,8 @@ class _AutomatedVerifyDialog extends StatelessWidget {
         const SizedBox(height: 20),
         Align(
           alignment: Alignment.centerRight,
-          child: TextButton(
+          child: M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () => KazumiDialog.dismiss(),
             child: Text(
               '取消',

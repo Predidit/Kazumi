@@ -1,9 +1,10 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 Future<String?> showMobileDanmakuInputSheet(BuildContext context) {
-  return showModalBottomSheet<String>(
+  return showM3EModalBottomSheet<String>(
     context: context,
-    shape: const BeveledRectangleBorder(),
+    style: const M3EBottomSheetStyle(padding: EdgeInsets.zero),
     isScrollControlled: true,
     builder: (context) => const _MobileDanmakuInputSheet(),
   );

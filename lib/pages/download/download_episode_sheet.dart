@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -144,10 +145,9 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                 top: false,
                 child: Row(
                   children: [
-                    FilledButton.tonalIcon(
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 48),
-                      ),
+                    M3EButton.icon(
+                      style: M3EButtonStyle.tonal,
+                      size: M3EButtonSize.md,
                       onPressed: selectableEpisodes.isEmpty
                           ? null
                           : () {
@@ -172,10 +172,8 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(48),
-                        ),
+                      child: M3EButton.icon(
+                        size: M3EButtonSize.md,
                         onPressed: _selectedEpisodes.isEmpty
                             ? null
                             : () => _startBatchDownload(context),

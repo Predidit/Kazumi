@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Rounded tonal card for a rule entry, shared by the rule manage page,
@@ -83,7 +84,8 @@ class RuleCardActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 96,
-      child: FilledButton.tonal(
+      child: M3EButton(
+        style: M3EButtonStyle.tonal,
         onPressed: onPressed,
         child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),

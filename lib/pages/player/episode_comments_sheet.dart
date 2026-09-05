@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -190,11 +191,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
           const SizedBox(width: 10),
           SizedBox(
             height: 34,
-            child: TextButton(
-              style: ButtonStyle(
-                padding: WidgetStateProperty.all(
-                    const EdgeInsets.only(left: 4.0, right: 4.0)),
-              ),
+            child: M3EButton(
+              style: M3EButtonStyle.text,
+              size: M3EButtonSize.xs,
               onPressed: () {
                 showEpisodeSelection();
               },
@@ -206,11 +205,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
           ),
           SizedBox(
             height: 34,
-            child: TextButton(
-              style: ButtonStyle(
-                padding: WidgetStateProperty.all(
-                    const EdgeInsets.symmetric(horizontal: 4.0)),
-              ),
+            child: M3EButton(
+              style: M3EButtonStyle.text,
+              size: M3EButtonSize.xs,
               onPressed: toggleSortOrder,
               child: Observer(builder: (context) {
                 return Text(
@@ -285,7 +282,8 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                   alignment: Alignment.centerRight,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                    child: TextButton(
+                    child: M3EButton(
+                      style: M3EButtonStyle.text,
                       onPressed: () => KazumiDialog.dismiss(),
                       child: Text(
                         '取消',

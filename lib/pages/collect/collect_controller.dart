@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -138,19 +139,21 @@ abstract class _CollectController with Store {
           '因为安全考虑，Bangumi 未提供删除接口，您可以选择把本地和远端标记为“抛弃”，或者选择仅删除本地收藏并打开网页后手动删除 Bangumi 数据。',
         ),
         actions: [
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () {
               Navigator.of(context).pop(_BangumiDeleteSyncAction.cancel);
             },
             child: const Text('取消'),
           ),
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () {
               Navigator.of(context).pop(_BangumiDeleteSyncAction.openWeb);
             },
             child: const Text('打开网页'),
           ),
-          FilledButton(
+          M3EButton(
             onPressed: () {
               Navigator.of(context).pop(_BangumiDeleteSyncAction.markAbandoned);
             },

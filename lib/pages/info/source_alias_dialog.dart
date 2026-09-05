@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
@@ -36,14 +37,16 @@ void showCustomKeywordDialog({required ValueChanged<String> onSubmit}) {
         onSubmitted: submit,
       ),
       actions: [
-        TextButton(
+        M3EButton(
+          style: M3EButtonStyle.text,
           onPressed: KazumiDialog.dismiss,
           child: Text(
             '取消',
             style: TextStyle(color: Theme.of(context).colorScheme.outline),
           ),
         ),
-        TextButton(
+        M3EButton(
+          style: M3EButtonStyle.text,
           onPressed: () => submit(keyword),
           child: const Text('确认'),
         ),
@@ -83,14 +86,16 @@ class _AliasPickerDialogState extends State<_AliasPickerDialog> {
         title: const Text('删除确认'),
         content: const Text('删除后无法恢复，确认要永久删除这个别名吗？'),
         actions: [
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: KazumiDialog.dismiss,
             child: Text(
               '取消',
               style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ),
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () {
               KazumiDialog.dismiss();
               widget.aliases.removeAt(index);

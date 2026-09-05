@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
@@ -92,7 +93,7 @@ class _CollectButtonState extends State<CollectButton> {
       crossAxisUnconstrained: false,
       builder: (_, MenuController controller, __) {
         if (widget.isExtended) {
-          return FilledButton.icon(
+          return M3EButton.icon(
             onPressed: () {
               if (controller.isOpen) {
                 controller.close();

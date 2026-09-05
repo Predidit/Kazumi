@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
@@ -180,7 +181,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: M3ECircularProgressIndicator(strokeWidth: 2),
                       )
                     : _hasCustomDirectory
                         ? IconButton(

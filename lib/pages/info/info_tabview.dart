@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
@@ -137,7 +138,8 @@ class _InfoTabViewState extends State<InfoTabView>
                           selectionHeightStyle: ui.BoxHeightStyle.max,
                         ),
                       ),
-                      TextButton(
+                      M3EButton(
+                        style: M3EButtonStyle.text,
                         onPressed: () {
                           setState(() {
                             fullIntro = !fullIntro;

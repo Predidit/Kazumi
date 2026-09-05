@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:kazumi/bean/widget/progress_semantics.dart';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -748,7 +750,7 @@ class _VideoPageState extends State<VideoPage>
                           : Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                CircularProgressIndicator(
+                                M3ECircularProgressIndicator(
                                     color: Theme.of(context)
                                         .colorScheme
                                         .tertiaryContainer),
@@ -895,10 +897,9 @@ class _VideoPageState extends State<VideoPage>
             builder: (_, MenuController controller, __) {
               return SizedBox(
                 height: 34,
-                child: TextButton(
-                  style: ButtonStyle(
-                    padding: WidgetStateProperty.all(EdgeInsets.zero),
-                  ),
+                child: M3EButton(
+                  style: M3EButtonStyle.text,
+                  size: M3EButtonSize.xs,
                   onPressed: () {
                     if (controller.isOpen) {
                       controller.close();
@@ -979,10 +980,12 @@ class _VideoPageState extends State<VideoPage>
         return SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(
-            value: episode.progressPercent,
-            strokeWidth: 2,
-          ),
+          child: ProgressSemantics(
+              value: episode.progressPercent,
+              child: M3ECircularProgressIndicator(
+                value: episode.progressPercent,
+                strokeWidth: 2,
+              )),
         );
       case DownloadStatus.failed:
         return Icon(Icons.error_outline,
@@ -995,7 +998,7 @@ class _VideoPageState extends State<VideoPage>
         return SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: M3ECircularProgressIndicator(strokeWidth: 2),
         );
       default:
         return const SizedBox.shrink();
@@ -1209,7 +1212,7 @@ class _VideoPageState extends State<VideoPage>
                         Positioned(
                           right: 16,
                           bottom: 16,
-                          child: FloatingActionButton(
+                          child: M3EFloatingActionButton(
                             child: const Icon(Icons.download_rounded),
                             onPressed: () {
                               showAdaptiveBottomSheet<void>(

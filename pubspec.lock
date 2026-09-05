@@ -936,6 +936,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0+1"
+  m3e_core:
+    dependency: "direct main"
+    description:
+      name: m3e_core
+      sha256: "32be9bc0bb7e7e8530e1dbd4faff08c1a12c5fa3259f0f25f7576aaf1b03f428"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.2"
   macos_secure_bookmarks:
     dependency: "direct main"
     description:
@@ -953,7 +961,7 @@ packages:
     source: hosted
     version: "0.12.20"
   material_color_utilities:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: material_color_utilities
       sha256: "9c337007e82b1889149c82ed242ed1cb24a66044e30979c44912381e9be4c48b"
@@ -1097,6 +1105,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.7.7"
+  motor:
+    dependency: transitive
+    description:
+      name: motor
+      sha256: cbd49f21b00e568c2b1a55f134ed803614a107782f4fea7769693bca32940c58
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   msix:
     dependency: "direct dev"
     description:
@@ -1193,6 +1209,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
+  path_drawing:
+    dependency: transitive
+    description:
+      name: path_drawing
+      sha256: bbb1934c0cbb03091af082a6389ca2080345291ef07a5fa6d6e078ba8682f977
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   path_parsing:
     dependency: transitive
     description:

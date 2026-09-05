@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -180,7 +181,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: M3ELoadingIndicator());
     }
     if (_loadFailed) {
       return _buildLoadError();

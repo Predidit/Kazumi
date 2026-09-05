@@ -1,8 +1,9 @@
 import 'dart:ui';
+import 'package:kazumi/pages/popular/popular_tag_selector.dart';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
-import 'package:kazumi/bean/widget/custom_dropdown_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -29,9 +30,6 @@ class PopularPage extends StatefulWidget {
 class _PopularPageState extends State<PopularPage> {
   late final ScrollController scrollController;
   PopularController get popularController => widget.controller;
-
-  // Key used to position the dropdown menu for the tag selector
-  final GlobalKey selectorKey = GlobalKey();
 
   @override
   void initState() {
@@ -84,7 +82,7 @@ class _PopularPageState extends State<PopularPage> {
                 opacity: popularController.isLoadingMore ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
                 child: popularController.isLoadingMore
-                    ? const LinearProgressIndicator(minHeight: 4)
+                    ? const M3ELinearProgressIndicator(minHeight: 4)
                     : const SizedBox(height: 4),
               ),
             ),
@@ -122,7 +120,7 @@ class _PopularPageState extends State<PopularPage> {
               })),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: M3EFloatingActionButton(
         onPressed: () => scrollController.animateTo(0,
             duration: const Duration(milliseconds: 350), curve: Curves.easeOut),
         child: const Icon(Icons.arrow_upward),
@@ -194,28 +192,16 @@ class _PopularPageState extends State<PopularPage> {
                   padding: const EdgeInsets.only(
                       left: 16, top: 8, bottom: 8, right: 60),
                   child: SizedBox(
+                    width: 200,
                     height: 44,
                     child: Observer(
                       builder: (_) {
-                        final bool isTrend = popularController.currentTag == '';
-                        return InkWell(
-                          key: selectorKey,
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: showTagMenu,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                isTrend ? '热门番组' : popularController.currentTag,
-                                style: theme.textTheme.headlineMedium!.copyWith(
-                                  fontWeight: fontWeight,
-                                  fontSize: fontSize,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(Icons.keyboard_arrow_down,
-                                  size: fontSize, color: theme.iconTheme.color),
-                            ],
+                        return PopularTagSelector(
+                          value: popularController.currentTag,
+                          onChanged: _selectTag,
+                          textStyle: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: fontWeight,
+                            fontSize: fontSize,
                           ),
                         );
                       },
@@ -260,40 +246,7 @@ class _PopularPageState extends State<PopularPage> {
     return actions;
   }
 
-  Future<void> showTagMenu() async {
-    // Calculate the position of the button manually to position the dropdown menu.
-    // Using CustomDropdownMenu instead of PopupMenuButton to avoid flickering issues
-    // and to support different font sizes in the button and menu items.
-    final RenderBox renderBox =
-        selectorKey.currentContext!.findRenderObject() as RenderBox;
-    final Offset offset = renderBox.localToGlobal(Offset.zero);
-    final Size size = renderBox.size;
-
-    final selected = await Navigator.push<String>(
-      context,
-      PageRouteBuilder(
-        opaque: false,
-        barrierDismissible: true,
-        barrierColor: Colors.transparent,
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return CustomDropdownMenu(
-            offset: offset,
-            buttonSize: size,
-            animation: animation,
-            maxWidth: 80,
-            items: [
-              '',
-              ...defaultAnimeTags,
-            ],
-            itemBuilder: (item) => item.isEmpty ? '热门番组' : item,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 200),
-        reverseTransitionDuration: const Duration(milliseconds: 150),
-      ),
-    );
-
-    if (selected == null) return;
+  Future<void> _selectTag(String selected) async {
     if (selected == '' && popularController.currentTag != '') {
       scrollController.animateTo(0,
           duration: const Duration(milliseconds: 250), curve: Curves.easeOut);

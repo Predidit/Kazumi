@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -79,11 +80,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             title: const Text('恢复默认弹幕设置'),
             content: const Text('弹幕来源、显示和样式设置将恢复为默认值，关键词屏蔽列表不会被清空。'),
             actions: [
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () => KazumiDialog.dismiss(popWith: false),
                 child: Text('取消'),
               ),
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () => KazumiDialog.dismiss(popWith: true),
                 child: Text('恢复默认'),
               ),

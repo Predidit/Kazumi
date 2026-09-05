@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -143,7 +144,7 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                         ),
                       ],
                     ),
-                    Slider(
+                    M3ESlider(
                       value: _offset,
                       min: _minDanmakuTimeOffset,
                       max: _maxDanmakuTimeOffset,
@@ -157,7 +158,8 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                         final advanceButton = SizedBox(
                           width: double.infinity,
                           height: 56,
-                          child: FilledButton.tonalIcon(
+                          child: M3EButton.icon(
+                            style: M3EButtonStyle.tonal,
                             onPressed: _offset > _minDanmakuTimeOffset
                                 ? () => _updateOffset(_offset - 1)
                                 : null,
@@ -168,7 +170,8 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                         final delayButton = SizedBox(
                           width: double.infinity,
                           height: 56,
-                          child: FilledButton.tonalIcon(
+                          child: M3EButton.icon(
+                            style: M3EButtonStyle.tonal,
                             onPressed: _offset < _maxDanmakuTimeOffset
                                 ? () => _updateOffset(_offset + 1)
                                 : null,
@@ -199,7 +202,8 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                     SizedBox(
                       width: double.infinity,
                       height: 52,
-                      child: OutlinedButton.icon(
+                      child: M3EButton.icon(
+                        style: M3EButtonStyle.outlined,
                         onPressed: _offset != 0 ? () => _updateOffset(0) : null,
                         icon: const Icon(Icons.restart_alt_rounded),
                         label: const Text('恢复无偏移'),

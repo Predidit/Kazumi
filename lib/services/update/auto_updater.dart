@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:kazumi/bean/widget/progress_semantics.dart';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -328,7 +330,8 @@ class AutoUpdater {
           ),
           actions: [
             if (isAutoCheck)
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () {
                   GStorage.putSetting(SettingsKeys.autoUpdate, false);
                   KazumiDialog.dismiss();
@@ -340,7 +343,8 @@ class AutoUpdater {
                       TextStyle(color: Theme.of(context).colorScheme.outline),
                 ),
               ),
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () => KazumiDialog.dismiss(),
               child: Text(
                 '稍后提醒',
@@ -348,14 +352,16 @@ class AutoUpdater {
               ),
             ),
             if (updateInfo.releaseNotes.isNotEmpty)
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () {
                   launchUrl(Uri.parse(updateInfo.releaseNotes),
                       mode: LaunchMode.externalApplication);
                 },
                 child: const Text('查看详情'),
               ),
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 KazumiDialog.dismiss();
                 // 直接使用第一个可用的安装类型
@@ -462,7 +468,9 @@ class AutoUpdater {
                 builder: (context, value, child) {
                   return Column(
                     children: [
-                      LinearProgressIndicator(value: value),
+                      ProgressSemantics(
+                          value: value,
+                          child: M3ELinearProgressIndicator(value: value)),
                       const SizedBox(height: 8),
                       Text('${(value * 100).toStringAsFixed(1)}%'),
                     ],
@@ -472,7 +480,8 @@ class AutoUpdater {
             ],
           ),
           actions: [
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 _cancelDownload();
                 KazumiDialog.dismiss();
@@ -523,11 +532,13 @@ class AutoUpdater {
               ],
             ),
             actions: [
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () => KazumiDialog.dismiss(),
                 child: const Text('确定'),
               ),
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () {
                   KazumiDialog.dismiss();
                   // 重新尝试下载
@@ -612,7 +623,8 @@ class AutoUpdater {
             ],
           ),
           actions: [
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () => KazumiDialog.dismiss(),
               child: Text(
                 '稍后安装',
@@ -620,14 +632,16 @@ class AutoUpdater {
               ),
             ),
             if (isDesktop())
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () {
                   // 在文件管理器中显示文件
                   _revealInFileManager(filePath);
                 },
                 child: const Text('打开文件夹'),
               ),
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 KazumiDialog.dismiss();
                 _installUpdate(

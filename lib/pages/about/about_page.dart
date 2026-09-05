@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:material_ui/material_ui.dart';
@@ -109,7 +110,8 @@ class _AboutPageState extends State<AboutPage> {
           title: const Text('缓存管理'),
           content: const Text('缓存为番剧封面, 清除后加载时需要重新下载,确认要清除缓存吗?'),
           actions: [
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 KazumiDialog.dismiss();
               },
@@ -118,7 +120,8 @@ class _AboutPageState extends State<AboutPage> {
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () async {
                 try {
                   _clearCache();

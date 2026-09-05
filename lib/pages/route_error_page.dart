@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -24,7 +25,7 @@ class RouteErrorPage extends StatelessWidget {
               const SizedBox(height: 16),
               Text(message, textAlign: TextAlign.center),
               const SizedBox(height: 24),
-              FilledButton(
+              M3EButton(
                 onPressed: () => context.navigate('/tab/popular/'),
                 child: const Text('返回首页'),
               ),

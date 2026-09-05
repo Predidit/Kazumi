@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -155,7 +156,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: Row(
           children: [
             if (currentIndex == 0)
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () => exit(0),
                 child: Text(
                   '退出',
@@ -163,7 +165,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               )
             else
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: _previousPage,
                 child: const Text('上一步'),
               ),
@@ -175,13 +178,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ),
             ),
-            FilledButton(
+            M3EButton(
               onPressed: installingBundled ? null : _handlePrimary,
               child: installingBundled
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: M3ECircularProgressIndicator(strokeWidth: 2),
                     )
                   : Text(primaryLabel),
             ),

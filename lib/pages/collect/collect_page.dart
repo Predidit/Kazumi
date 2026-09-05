@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:kazumi/bean/widget/progress_semantics.dart';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -244,7 +246,7 @@ class _CollectPageState extends State<CollectPage>
                   : const Icon(Icons.edit))
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: M3EFloatingActionButton(
         onPressed: () async {
           bool webDavenable =
               await GStorage.getSetting(SettingsKeys.webDavEnable);
@@ -285,7 +287,7 @@ class _CollectPageState extends State<CollectPage>
         },
         child: syncCollectiblesing
             ? const SizedBox(
-                width: 32, height: 32, child: CircularProgressIndicator())
+                width: 32, height: 32, child: M3ELoadingIndicator())
             : const Icon(Icons.sync_rounded),
       ),
       body: Observer(builder: (context) {
@@ -434,7 +436,9 @@ class _FullSyncProgressDialogState extends State<_FullSyncProgressDialog> {
                 const SizedBox(height: 12),
                 Text(_progressText),
                 const SizedBox(height: 12),
-                LinearProgressIndicator(value: _progressValue),
+                ProgressSemantics(
+                    value: _progressValue,
+                    child: M3ELinearProgressIndicator(value: _progressValue)),
               ],
             ),
           ),

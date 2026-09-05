@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -120,7 +121,8 @@ class TimedShutdownService {
           title: const Text('定时关闭'),
           content: const Text('定时时间已到，视频已暂停'),
           actions: [
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 _isDialogShowing = false;
                 KazumiDialog.dismiss();
@@ -129,7 +131,8 @@ class TimedShutdownService {
               },
               child: const Text('重复'),
             ),
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 _isDialogShowing = false;
                 KazumiDialog.dismiss();
@@ -310,14 +313,16 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        M3EButton(
+          style: M3EButtonStyle.text,
           onPressed: () => KazumiDialog.dismiss(),
           child: Text(
             '取消',
             style: TextStyle(color: Theme.of(context).colorScheme.outline),
           ),
         ),
-        TextButton(
+        M3EButton(
+          style: M3EButtonStyle.text,
           onPressed: _confirm,
           child: const Text('确定'),
         ),

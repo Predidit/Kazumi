@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/gestures.dart';
@@ -303,7 +304,7 @@ class _ImageViewerState extends State<ImageViewer> {
               ? PhotoViewHeroAttributes(tag: widget.heroTag!)
               : null,
           loadingBuilder: (context, event) => const Center(
-            child: CircularProgressIndicator(),
+            child: M3ELoadingIndicator(),
           ),
           errorBuilder: (context, error, stackTrace) =>
               _buildErrorWidget(context),
@@ -323,7 +324,7 @@ class _ImageViewerState extends State<ImageViewer> {
           onPageChanged: (index) => setState(() => _currentIndex = index),
           backgroundDecoration: const BoxDecoration(color: Colors.black),
           loadingBuilder: (context, event) => const Center(
-            child: CircularProgressIndicator(),
+            child: M3ELoadingIndicator(),
           ),
           builder: (context, index) {
             final imageUrl = widget.imageUrls[index];

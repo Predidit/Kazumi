@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -175,20 +176,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             suffixIcon: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(
+                M3EButton(
+                  style: M3EButtonStyle.tonal,
                   onPressed: () {
                     unawaited(_submitDanmakuText(textController.text));
                   },
-                  style: TextButton.styleFrom(
+                  decoration: M3EButtonDecoration.styleFrom(
                     foregroundColor: playerController.danmaku.danmakuOn
                         ? Theme.of(context).colorScheme.onPrimaryContainer
                         : Colors.white60,
                     backgroundColor: playerController.danmaku.danmakuOn
                         ? Theme.of(context).colorScheme.primaryContainer
                         : Theme.of(context).disabledColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(isDesktop() ? 8 : 20),
-                    ),
                   ),
                   child: const Text('发送'),
                 ),
@@ -225,7 +224,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             children: [
               for (final double i in defaultPlaySpeedList) ...<Widget>[
                 if (i == currentSpeed)
-                  FilledButton(
+                  M3EButton(
                     onPressed: () async {
                       await widget.setPlaybackSpeed(i);
                       KazumiDialog.dismiss();
@@ -233,7 +232,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     child: Text(i.toString()),
                   )
                 else
-                  FilledButton.tonal(
+                  M3EButton(
+                    style: M3EButtonStyle.tonal,
                     onPressed: () async {
                       await widget.setPlaybackSpeed(i);
                       KazumiDialog.dismiss();
@@ -245,14 +245,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           );
         }),
         actions: <Widget>[
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () => KazumiDialog.dismiss(),
             child: Text(
               '取消',
               style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ),
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () async {
               await widget.setPlaybackSpeed(1.0);
               KazumiDialog.dismiss();
@@ -285,14 +287,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           );
         }),
         actions: <Widget>[
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () => KazumiDialog.dismiss(),
             child: Text(
               '取消',
               style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ),
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () async {
               if (input != "") {
                 playerController.setButtonForwardTime(int.parse(input));
@@ -384,7 +388,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             ? SizedBox(
                 width: _danmakuIconSize,
                 height: _danmakuIconSize,
-                child: CircularProgressIndicator(
+                child: M3ECircularProgressIndicator(
                   strokeWidth: _loadingIndicatorStrokeWidth,
                 ),
               )
@@ -787,7 +791,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     consumeOutsideTap: true,
                     builder: (BuildContext context, MenuController controller,
                         Widget? child) {
-                      return TextButton(
+                      return M3EButton(
+                        style: M3EButtonStyle.text,
                         onPressed: () {
                           if (controller.isOpen) {
                             controller.close();
@@ -832,7 +837,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     consumeOutsideTap: true,
                     builder: (BuildContext context, MenuController controller,
                         Widget? child) {
-                      return TextButton(
+                      return M3EButton(
+                        style: M3EButtonStyle.text,
                         onPressed: () {
                           if (controller.isOpen) {
                             controller.close();

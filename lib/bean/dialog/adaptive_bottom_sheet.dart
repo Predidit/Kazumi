@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:kazumi/utils/device.dart';
 
 BoxConstraints adaptiveBottomSheetConstraints(
@@ -35,7 +36,7 @@ Future<T?> showAdaptiveBottomSheet<T>({
   Color? backgroundColor,
   bool showDragHandle = false,
 }) {
-  return showModalBottomSheet<T>(
+  return showM3EModalBottomSheet<T>(
     context: context,
     builder: builder,
     isScrollControlled: true,
@@ -46,10 +47,7 @@ Future<T?> showAdaptiveBottomSheet<T>({
       maxHeightFactor: maxHeightFactor,
       compactLandscapeMaxHeightFactor: compactLandscapeMaxHeightFactor,
     ),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
-    clipBehavior: Clip.antiAlias,
+    style: const M3EBottomSheetStyle(padding: EdgeInsets.zero),
     backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.surface,
   );
 }

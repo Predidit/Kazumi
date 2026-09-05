@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:m3e_core/m3e_core.dart';
 
 class GeneralErrorWidget extends StatelessWidget {
   const GeneralErrorWidget({
@@ -55,17 +56,10 @@ class GeneralErrorButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.tonal(
+    return M3EButton(
+      style: M3EButtonStyle.tonal,
       onPressed: onPressed,
-      style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.resolveWith((_) {
-          return Theme.of(context).colorScheme.primary.withAlpha(20);
-        }),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: Theme.of(context).colorScheme.primary),
-      ),
+      child: Text(text),
     );
   }
 }

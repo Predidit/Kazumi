@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -190,7 +191,8 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                       : _buildUploadArea(colorScheme, textTheme),
                 ),
                 Center(
-                  child: TextButton.icon(
+                  child: M3EButton.icon(
+                    style: M3EButtonStyle.text,
                     onPressed: _switchMode,
                     icon: Icon(
                       _isUrlMode ? Icons.upload_file : Icons.link,
@@ -203,7 +205,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                   builder: (context) => SizedBox(
                     width: double.infinity,
                     height: 52,
-                    child: FilledButton.icon(
+                    child: M3EButton.icon(
                       onPressed: _searchPageController.isImageSearching
                           ? null
                           : _startSearch,
@@ -211,7 +213,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                           ? SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(
+                              child: M3ECircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: colorScheme.onPrimary,
                               ),
@@ -451,7 +453,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(
+                      M3ECircularProgressIndicator(
                         value: total != null ? loaded / total : null,
                         strokeWidth: 2.5,
                       ),
@@ -509,7 +511,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
             icon: const SizedBox(
               width: 28,
               height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
+              child: M3ECircularProgressIndicator(strokeWidth: 2.5),
             ),
             title: '正在识别图片',
             description: '请稍候，正在从截图中匹配番剧信息',

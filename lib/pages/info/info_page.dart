@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
@@ -500,13 +501,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
             }),
           ),
           floatingActionButton: showRatingFab
-              ? FloatingActionButton.extended(
+              ? M3EExtendedFloatingActionButton(
                   tooltip: '吐槽',
                   onPressed: onBangumiRatingTap,
                   label: const Text('发表吐槽'),
                   icon: const Icon(Icons.rate_review_rounded),
                 )
-              : FloatingActionButton.extended(
+              : M3EExtendedFloatingActionButton(
                   tooltip: '开始观看',
                   onPressed: () {
                     showAdaptiveBottomSheet<void>(

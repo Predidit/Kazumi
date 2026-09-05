@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -35,7 +36,8 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
               hintText: "输入关键词或正则表达式",
-              suffixIcon: TextButton.icon(
+              suffixIcon: M3EButton.icon(
+                style: M3EButtonStyle.text,
                 onPressed: () {
                   myController.addShieldList(
                     textEditingController.text.trim(),

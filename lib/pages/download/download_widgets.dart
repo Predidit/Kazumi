@@ -1,3 +1,5 @@
+import 'package:kazumi/bean/widget/progress_semantics.dart';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
@@ -168,7 +170,9 @@ class DownloadRecordCard extends StatelessWidget {
           if (!allCompleted)
             Padding(
               padding: EdgeInsets.fromLTRB(16, 0, 16, expanded ? 4 : 16),
-              child: LinearProgressIndicator(value: aggregateProgress),
+              child: ProgressSemantics(
+                  value: aggregateProgress,
+                  child: M3ELinearProgressIndicator(value: aggregateProgress)),
             ),
           AnimatedSize(
             duration: _kExpandDuration,
@@ -248,7 +252,10 @@ class DownloadEpisodeTile extends StatelessWidget {
                   ),
                   if (showProgress) ...[
                     const SizedBox(height: 6),
-                    LinearProgressIndicator(value: episode.progressPercent),
+                    ProgressSemantics(
+                        value: episode.progressPercent,
+                        child: M3ELinearProgressIndicator(
+                            value: episode.progressPercent)),
                   ],
                 ],
               ),
@@ -288,10 +295,12 @@ class _EpisodeStatusBadge extends StatelessWidget {
         child = SizedBox(
           width: 22,
           height: 22,
-          child: CircularProgressIndicator(
-            value: episode.progressPercent,
-            strokeWidth: 2.5,
-          ),
+          child: ProgressSemantics(
+              value: episode.progressPercent,
+              child: M3ECircularProgressIndicator(
+                value: episode.progressPercent,
+                strokeWidth: 2.5,
+              )),
         );
         break;
       case DownloadStatus.resolving:
@@ -299,7 +308,7 @@ class _EpisodeStatusBadge extends StatelessWidget {
         child = const SizedBox(
           width: 22,
           height: 22,
-          child: CircularProgressIndicator(strokeWidth: 2.5),
+          child: M3ECircularProgressIndicator(strokeWidth: 2.5),
         );
         break;
       case DownloadStatus.failed:

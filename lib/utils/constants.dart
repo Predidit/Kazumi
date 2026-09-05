@@ -12,20 +12,6 @@ class StyleString {
 
 const String customAppFontFamily = "MI_Sans_Regular";
 
-/// Opts into the newer Material progress indicator appearance while Flutter
-/// still exposes the compatibility flag.
-const ProgressIndicatorThemeData progressIndicatorTheme2024 =
-    // ignore: deprecated_member_use
-    ProgressIndicatorThemeData(year2023: false);
-
-/// Opts into the newer Material slider appearance while Flutter still exposes
-/// the compatibility flag.
-const SliderThemeData sliderTheme2024 = SliderThemeData(
-  // ignore: deprecated_member_use
-  year2023: false,
-  showValueIndicator: ShowValueIndicator.onDrag,
-);
-
 /// Flutter-managed platform transitions. Route-level Modular transitions should
 /// avoid overriding these unless the native page transition is intentionally bypassed.
 const PageTransitionsTheme pageTransitionsTheme2024 = PageTransitionsTheme(

@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -337,14 +338,12 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
       child: Column(
         children: [
           _buildMainHeader(theme),
-
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
               child: _buildMainContent(theme),
             ),
           ),
-
           _buildActions(theme),
         ],
       ),
@@ -506,7 +505,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 ),
               ),
               const SizedBox(width: 8),
-              FilledButton.tonalIcon(
+              M3EButton.icon(
+                style: M3EButtonStyle.tonal,
                 onPressed: _isSubmitting ? null : _openTagSelection,
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('编辑'),
@@ -662,7 +662,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               const SizedBox(width: 8),
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: FilledButton.tonalIcon(
+                child: M3EButton.icon(
+                  style: M3EButtonStyle.tonal,
                   onPressed: _isSubmitting ? null : _addCustomTag,
                   icon: const Icon(Icons.add_rounded),
                   label: const Text('添加'),
@@ -752,12 +753,13 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),
           const SizedBox(width: 8),
-          FilledButton(
+          M3EButton(
             onPressed: _isSubmitting ? null : _submit,
             child: SizedBox(
               width: 56,
@@ -767,7 +769,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
+                        child: M3ECircularProgressIndicator(
                           strokeWidth: 2,
                           color: theme.colorScheme.onPrimary,
                         ),

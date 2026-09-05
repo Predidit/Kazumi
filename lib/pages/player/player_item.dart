@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/player_keyboard_shortcuts.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
@@ -797,7 +798,8 @@ class _PlayerItemState extends State<PlayerItem>
             content: const Text('MediaCodec 渲染器不支持超分辨率功能。\n\n'
                 '如需使用超分辨率，请在播放设置中将视频渲染器切换为 gpu 或 gpu-next。'),
             actions: [
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () {
                   KazumiDialog.dismiss();
                 },
@@ -844,7 +846,8 @@ class _PlayerItemState extends State<PlayerItem>
               ],
             ),
             actions: [
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () async {
                   if (dontAskAgain) {
                     await GStorage.putSetting(
@@ -856,7 +859,8 @@ class _PlayerItemState extends State<PlayerItem>
                 },
                 child: const Text('取消'),
               ),
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () async {
                   confirmed = true;
                   if (dontAskAgain) {
@@ -1300,7 +1304,8 @@ class _PlayerItemState extends State<PlayerItem>
             },
           ),
           actions: [
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 KazumiDialog.dismiss();
               },
@@ -1309,7 +1314,8 @@ class _PlayerItemState extends State<PlayerItem>
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 showDanmakuSearchDialog(searchKeyword);
               },
@@ -1558,7 +1564,7 @@ class _PlayerItemState extends State<PlayerItem>
                             videoPageController.loading)
                         ? const Positioned.fill(
                             child: Center(
-                              child: CircularProgressIndicator(),
+                              child: M3ELoadingIndicator(),
                             ),
                           )
                         : Container(),

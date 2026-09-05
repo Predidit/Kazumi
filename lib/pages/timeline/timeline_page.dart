@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -157,9 +158,6 @@ class _TimelinePageState extends State<TimelinePage>
     KazumiDialog.showBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       clipBehavior: Clip.antiAlias,
       useSafeArea: true,
       constraints: buildTimelineBottomSheetConstraints(context),
@@ -694,13 +692,10 @@ class _TimelinePageState extends State<TimelinePage>
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: M3EFloatingActionButton(
         onPressed: () {
           KazumiDialog.showBottomSheet(
             backgroundColor: Theme.of(context).colorScheme.surface,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
             isScrollControlled: true,
             constraints: buildTimelineBottomSheetConstraints(
               context,
@@ -720,7 +715,7 @@ class _TimelinePageState extends State<TimelinePage>
         if (timelineController.isLoading &&
             timelineController.bangumiCalendar.isEmpty) {
           return const Center(
-            child: CircularProgressIndicator(),
+            child: M3ELoadingIndicator(),
           );
         }
         if (timelineController.isTimeOut) {

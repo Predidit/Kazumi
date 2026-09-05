@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:kazumi/bean/widget/split_list_row.dart';
+import 'package:m3e_core/m3e_core.dart';
 
 enum _TileKind { plain, toggle, radio }
 
@@ -74,21 +74,15 @@ class SettingsSection extends StatelessWidget {
   }
 }
 
-/// Rows laid out as an M3 split list: large corners at the group's two ends,
-/// small ones in between, and a pressed row morphing out of the group. That
-/// morph is what separates the rows, in place of a divider.
+/// Retains settings callbacks while M3E owns the row shapes and motion.
 class SettingsSplitGroup extends StatelessWidget {
   const SettingsSplitGroup({
     super.key,
     required this.children,
-    this.outerRadius = splitListOuterRadius,
+    this.outerRadius = 24,
   });
 
   final List<Widget> children;
-
-  /// The group's two end corners, and the radius a pressed row morphs to.
-  /// Settings pages take the default; a page whose surrounding cards run at a
-  /// smaller scale passes theirs so the group sits level with them.
   final double outerRadius;
 
   @override
@@ -96,16 +90,29 @@ class SettingsSplitGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (int i = 0; i < children.length; i++) ...[
-          if (i > 0) const SizedBox(height: splitListRowGap),
-          SplitListRow(
-            topRadius: i == 0 ? outerRadius : splitListInnerRadius,
-            bottomRadius:
-                i == children.length - 1 ? outerRadius : splitListInnerRadius,
-            pressedRadius: outerRadius,
-            child: children[i],
-          ),
-        ],
+        for (var i = 0; i < children.length; i++)
+          Builder(builder: (context) {
+            final tile = children[i];
+            final onTap = switch (tile) {
+              SettingsTile() => tile._tapHandler(context),
+              SettingsCategoryTile() => tile.onTap,
+              _ => null,
+            };
+            return M3ESegmentedItem(
+              key: tile.key,
+              index: i,
+              position: calculateSegmentedItemPosition(i, children.length),
+              outerRadius: outerRadius,
+              innerRadius: 4,
+              padding: EdgeInsets.zero,
+              onTap: onTap == null ? null : (_) => onTap(),
+              child: switch (tile) {
+                SettingsTile() => tile._buildContent(context),
+                SettingsCategoryTile() => tile._buildContent(context),
+                _ => tile,
+              },
+            );
+          }),
       ],
     );
   }
@@ -137,61 +144,6 @@ class SettingsRadioSection<T> extends StatelessWidget {
   }
 }
 
-Color _disabledOn(BuildContext context) =>
-    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38);
-
-/// The icon-and-text run every row opens with. Callers wrap it in [Expanded].
-class _TileLabel extends StatelessWidget {
-  const _TileLabel({
-    required this.title,
-    this.leading,
-    this.description,
-    this.enabled = true,
-  });
-
-  final Widget title;
-  final IconData? leading;
-  final Widget? description;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final disabled = enabled ? null : _disabledOn(context);
-    final foreground = disabled ?? colorScheme.onSurface;
-    final secondary = disabled ?? colorScheme.onSurfaceVariant;
-
-    return Row(
-      children: [
-        if (leading != null) ...[
-          Icon(leading, size: 24, color: secondary),
-          const SizedBox(width: 16),
-        ],
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DefaultTextStyle.merge(
-                style: textTheme.bodyLarge?.copyWith(color: foreground),
-                child: title,
-              ),
-              if (description != null) ...[
-                const SizedBox(height: 2),
-                DefaultTextStyle.merge(
-                  style: textTheme.bodySmall?.copyWith(color: secondary),
-                  child: description!,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// A row that opens a whole category rather than changing one value: the
 /// tonal icon badge marks that step down, which is why [SettingsTile] keeps a
 /// flat icon. Drop it in a [SettingsSplitGroup] like any other row.
@@ -209,61 +161,29 @@ class SettingsCategoryTile extends StatelessWidget {
   final String description;
   final VoidCallback onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: onTap,
-      onHighlightChanged: SplitListRow.pressReporterOf(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: colorScheme.secondaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 18,
-                color: colorScheme.onSecondaryContainer,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: textTheme.bodyLarge),
-                  const SizedBox(height: 2),
-                  Text(
-                    description,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: colorScheme.onSurfaceVariant),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ],
-        ),
+  Widget _buildContent(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return M3EListItem(
+      leading: CircleAvatar(
+        radius: 18,
+        backgroundColor: colors.secondaryContainer,
+        foregroundColor: colors.onSecondaryContainer,
+        child: Icon(icon, size: 18),
       ),
+      headline: Text(title),
+      supportingText: Text(description),
+      trailing: const Icon(Icons.chevron_right_rounded),
     );
   }
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        child: _buildContent(context),
+      );
 }
 
-/// A row whose control is a slider. The label line carries a tonal readout of
-/// the current value and the track spans the row beneath it, so the icon, the
-/// track and the text never share a line.
+/// A settings label and value above the package slider.
 class SettingsSliderTile extends StatelessWidget {
   const SettingsSliderTile({
     super.key,
@@ -290,57 +210,31 @@ class SettingsSliderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _TileLabel(
-                  title: title,
-                  leading: leading,
-                  description: description,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  valueLabel,
-                  style: textTheme.labelMedium?.copyWith(
-                    color: colorScheme.onSecondaryContainer,
-                    // Steady digit widths, so dragging can't jitter the pill.
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        M3EListItem(
+          leading: leading == null ? null : Icon(leading),
+          headline: title,
+          supportingText: description,
+          trailing: Text(
+            valueLabel,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
-          const SizedBox(height: 8),
-          Slider(
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: M3ESlider(
             value: value,
             min: min,
             max: max,
             divisions: divisions,
-            // The pill is the readout, so no bubble rides the thumb; the zero
-            // inset then measures the track against the row rather than the
-            // thumb's overlay box.
-            showValueIndicator: ShowValueIndicator.never,
-            padding: EdgeInsets.zero,
             onChanged: onChanged,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -420,59 +314,47 @@ class SettingsTile<T> extends StatelessWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final secondary =
-        enabled ? colorScheme.onSurfaceVariant : _disabledOn(context);
-
-    return InkWell(
-      onTap: _tapHandler(context),
-      onHighlightChanged: SplitListRow.pressReporterOf(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 32),
-          child: Row(
-            children: [
-              Expanded(
-                child: _TileLabel(
-                  title: title,
-                  leading: leading,
-                  description: description,
-                  enabled: enabled,
-                ),
-              ),
-              if (value != null) ...[
-                const SizedBox(width: 12),
-                DefaultTextStyle.merge(
-                  style: textTheme.bodyMedium?.copyWith(color: secondary),
-                  child: value!,
-                ),
-              ],
-              if (trailing != null) ...[
-                const SizedBox(width: 8),
-                IconTheme.merge(
-                  data: IconThemeData(color: secondary),
-                  child: trailing!,
-                ),
-              ],
-              if (_kind == _TileKind.toggle) ...[
-                const SizedBox(width: 12),
-                Switch(
-                  value: initialValue ?? false,
-                  onChanged: enabled ? onToggle : null,
-                ),
-              ],
-              if (_kind == _TileKind.radio) ...[
-                const SizedBox(width: 12),
-                Radio<T>(value: radioValue as T, enabled: enabled),
-              ],
-            ],
-          ),
+  Widget _buildContent(BuildContext context) {
+    final controls = <Widget>[
+      if (value != null) value!,
+      if (trailing != null) trailing!,
+      if (_kind == _TileKind.toggle)
+        Switch(
+          value: initialValue ?? false,
+          onChanged: enabled ? onToggle : null,
         ),
-      ),
+      if (_kind == _TileKind.radio)
+        Radio<T>(value: radioValue as T, enabled: enabled),
+    ];
+    return M3EListItem(
+      enabled: enabled,
+      leading: leading == null ? null : Icon(leading),
+      headline: title,
+      // Settings explanations may span several lines, especially with large text.
+      supportingText: description == null
+          ? null
+          : DefaultTextStyle(
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    color: enabled
+                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                        : Theme.of(context).disabledColor,
+                  ),
+              overflow: TextOverflow.visible,
+              child: description!,
+            ),
+      trailing: controls.isEmpty
+          ? null
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 8,
+              children: controls,
+            ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: _tapHandler(context),
+        child: _buildContent(context),
+      );
 }

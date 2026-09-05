@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_modular/flutter_modular.dart';
@@ -109,11 +110,13 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             title: const Text('恢复默认播放设置'),
             content: const Text('播放设置、硬件解码器、视频渲染器和超分辨率设置将恢复为默认值。'),
             actions: [
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () => KazumiDialog.dismiss(popWith: false),
                 child: Text('取消'),
               ),
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () => KazumiDialog.dismiss(popWith: true),
                 child: Text('恢复默认'),
               ),
@@ -207,14 +210,16 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
           );
         }),
         actions: <Widget>[
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () => KazumiDialog.dismiss(),
             child: Text(
               '取消',
               style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ),
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () async {
               final int? newValue = int.tryParse(input);
 

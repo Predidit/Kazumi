@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -44,7 +45,8 @@ class _HistoryPageState extends State<HistoryPage> {
           title: const Text('记录管理'),
           content: const Text('确认要清除所有历史记录吗?'),
           actions: [
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 KazumiDialog.dismiss();
               },
@@ -53,7 +55,8 @@ class _HistoryPageState extends State<HistoryPage> {
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 KazumiDialog.dismiss();
                 try {

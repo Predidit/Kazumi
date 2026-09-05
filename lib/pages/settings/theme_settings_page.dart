@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/palette_card.dart';
-import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
@@ -51,54 +50,24 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void setTheme(Color? color) {
-    var defaultDarkTheme = ThemeData(
-        useMaterial3: true,
-        fontFamily: themeProvider.currentFontFamily,
-        brightness: Brightness.dark,
-        colorSchemeSeed: color,
-        progressIndicatorTheme: progressIndicatorTheme2024,
-        sliderTheme: sliderTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024);
-    var oledTheme = oledDarkTheme(defaultDarkTheme);
+    final darkTheme = buildAppTheme(
+      brightness: Brightness.dark,
+      fontFamily: themeProvider.currentFontFamily,
+      color: color,
+    );
     themeProvider.setTheme(
-      ThemeData(
-          useMaterial3: true,
-          fontFamily: themeProvider.currentFontFamily,
-          brightness: Brightness.light,
-          colorSchemeSeed: color,
-          progressIndicatorTheme: progressIndicatorTheme2024,
-          sliderTheme: sliderTheme2024,
-          pageTransitionsTheme: pageTransitionsTheme2024),
-      oledEnhance ? oledTheme : defaultDarkTheme,
+      buildAppTheme(
+        brightness: Brightness.light,
+        fontFamily: themeProvider.currentFontFamily,
+        color: color,
+      ),
+      oledEnhance ? oledDarkTheme(darkTheme) : darkTheme,
     );
     defaultThemeColor = color?.toARGB32().toRadixString(16) ?? 'default';
     GStorage.putSetting(SettingsKeys.themeColor, defaultThemeColor);
   }
 
-  void resetTheme() {
-    var defaultDarkTheme = ThemeData(
-        useMaterial3: true,
-        fontFamily: themeProvider.currentFontFamily,
-        brightness: Brightness.dark,
-        colorSchemeSeed: Colors.green,
-        progressIndicatorTheme: progressIndicatorTheme2024,
-        sliderTheme: sliderTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024);
-    var oledTheme = oledDarkTheme(defaultDarkTheme);
-    themeProvider.setTheme(
-      ThemeData(
-          useMaterial3: true,
-          fontFamily: themeProvider.currentFontFamily,
-          brightness: Brightness.light,
-          colorSchemeSeed: Colors.green,
-          progressIndicatorTheme: progressIndicatorTheme2024,
-          sliderTheme: sliderTheme2024,
-          pageTransitionsTheme: pageTransitionsTheme2024),
-      oledEnhance ? oledTheme : defaultDarkTheme,
-    );
-    defaultThemeColor = 'default';
-    GStorage.putSetting(SettingsKeys.themeColor, 'default');
-  }
+  void resetTheme() => setTheme(null);
 
   void updateTheme(String theme) async {
     if (theme == 'dark') {

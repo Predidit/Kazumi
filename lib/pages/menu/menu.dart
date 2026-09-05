@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
@@ -172,9 +173,8 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
             child: NavigationRail(
               backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
               groupAlignment: 1,
-              leading: FloatingActionButton(
+              leading: M3EFloatingActionButton(
                 elevation: 0,
-                heroTag: null,
                 onPressed: () => context.pushNamed('/search/'),
                 child: const Icon(Icons.search),
               ),

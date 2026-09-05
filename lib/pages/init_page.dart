@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
@@ -122,7 +123,8 @@ class _InitPageState extends State<InitPage> {
               '如果拒绝，下载功能仍可使用，但在后台时可能被系统中断。',
             ),
             actions: [
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () => KazumiDialog.dismiss(popWith: false),
                 child: Text(
                   '稍后再说',
@@ -130,7 +132,8 @@ class _InitPageState extends State<InitPage> {
                       TextStyle(color: Theme.of(context).colorScheme.outline),
                 ),
               ),
-              TextButton(
+              M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () => KazumiDialog.dismiss(popWith: true),
                 child: const Text('允许'),
               ),
@@ -229,7 +232,8 @@ class _InitPageState extends State<InitPage> {
               content: const Text(
                   '检测到您当前运行在X11环境下，Kazumi在X11环境下可能出现性能问题或界面异常，建议切换到Wayland以获得更好的体验。您是否希望在X11下继续使用Kazumi？'),
               actions: [
-                TextButton(
+                M3EButton(
+                  style: M3EButtonStyle.text,
                   onPressed: () {
                     exit(0);
                   },
@@ -239,7 +243,8 @@ class _InitPageState extends State<InitPage> {
                         TextStyle(color: Theme.of(context).colorScheme.outline),
                   ),
                 ),
-                TextButton(
+                M3EButton(
+                  style: M3EButtonStyle.text,
                   onPressed: () {
                     KazumiDialog.dismiss();
                   },
@@ -265,12 +270,14 @@ class _InitPageState extends State<InitPage> {
         title: const Text('创建桌面快捷方式'),
         content: const Text('是否在桌面创建 Kazumi 的快捷方式？'),
         actions: [
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () => KazumiDialog.dismiss(popWith: false),
             child: Text('暂不创建',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline)),
           ),
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () => KazumiDialog.dismiss(popWith: true),
             child: const Text('创建'),
           ),

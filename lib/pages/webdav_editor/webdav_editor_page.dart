@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -92,7 +93,7 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: M3EFloatingActionButton(
         child: const Icon(Icons.save),
         onPressed: () async {
           GStorage.putSetting(SettingsKeys.webDavURL, webDavURLController.text);

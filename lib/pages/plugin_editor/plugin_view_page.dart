@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
@@ -127,14 +128,16 @@ class _PluginViewPageState extends State<PluginViewPage> {
             ),
           ),
           actions: [
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () => KazumiDialog.dismiss(),
               child: Text(
                 '取消',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () => _importFromText(
                 pluginText,
                 dismissDialog: true,
@@ -270,7 +273,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           content:
                               Text('确定要删除选中的 ${selectedNames.length} 条规则吗？'),
                           actions: [
-                            TextButton(
+                            M3EButton(
+                              style: M3EButtonStyle.text,
                               onPressed: () => KazumiDialog.dismiss(),
                               child: Text(
                                 '取消',
@@ -279,7 +283,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                         Theme.of(context).colorScheme.outline),
                               ),
                             ),
-                            TextButton(
+                            M3EButton(
+                              style: M3EButtonStyle.text,
                               onPressed: () async {
                                 try {
                                   await pluginsController
@@ -542,7 +547,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   textAlign: TextAlign.center,
                 ),
                 actions: [
-                  TextButton(
+                  M3EButton(
+                    style: M3EButtonStyle.text,
                     onPressed: () => KazumiDialog.dismiss(),
                     child: Text(
                       '取消',
@@ -550,7 +556,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           color: Theme.of(context).colorScheme.outline),
                     ),
                   ),
-                  TextButton(
+                  M3EButton(
+                    style: M3EButtonStyle.text,
                     onPressed: () {
                       Clipboard.setData(ClipboardData(
                         text: jsonToKazumiBase64(

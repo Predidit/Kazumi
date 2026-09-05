@@ -1,3 +1,5 @@
+import 'package:kazumi/bean/widget/progress_semantics.dart';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -192,8 +194,8 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: M3ECircularProgressIndicator(
+                                    strokeWidth: 2),
                               )
                             : const Icon(Icons.sync_rounded),
                         onPressed: (_) async {
@@ -230,7 +232,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
             ),
           ),
         ),
-        floatingActionButton: FloatingActionButton(
+        floatingActionButton: M3EFloatingActionButton(
           onPressed: isVerifying
               ? null
               : () async {
@@ -331,7 +333,9 @@ class _BangumiSyncProgressDialogState
                 const SizedBox(height: 12),
                 Text(_progressText),
                 const SizedBox(height: 12),
-                LinearProgressIndicator(value: _progressValue),
+                ProgressSemantics(
+                    value: _progressValue,
+                    child: M3ELinearProgressIndicator(value: _progressValue)),
               ],
             ),
           ),

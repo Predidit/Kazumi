@@ -8,7 +8,7 @@ import 'package:kazumi/pages/info/source_captcha_flow.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/bean/widget/split_list_row.dart';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
@@ -211,51 +211,30 @@ class _SourceSheetState extends State<SourceSheet> {
         PluginSearchStatus.pending;
     final colorScheme = Theme.of(context).colorScheme;
 
-    final body = <({Widget child, VoidCallback? onTap})>[];
-    if (open && !searching) {
-      if (results.isEmpty) {
-        body.add((child: _buildActionsRow(plugin), onTap: null));
-      } else {
-        for (final result in results) {
-          body.add((
-            child: _buildResultRow(result),
-            onTap: () => _openSearchItem(plugin, result),
-          ));
-        }
-      }
-    }
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: AnimatedSize(
-        duration: splitListMotionDuration,
-        curve: splitListMotionCurve,
-        alignment: Alignment.topCenter,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SplitListRow(
-              color: open
-                  ? colorScheme.secondaryContainer
-                  : colorScheme.surfaceContainer,
-              topRadius: splitListOuterRadius,
-              bottomRadius:
-                  body.isEmpty ? splitListOuterRadius : splitListInnerRadius,
-              onTap: () => _toggleSource(plugin.name),
-              child: _buildSourceHeader(plugin, results, searching, open),
-            ),
-            for (var i = 0; i < body.length; i++) ...[
-              const SizedBox(height: splitListRowGap),
-              SplitListRow(
-                bottomRadius: i == body.length - 1
-                    ? splitListOuterRadius
-                    : splitListInnerRadius,
-                onTap: body[i].onTap,
-                child: body[i].child,
-              ),
-            ],
-          ],
-        ),
+      child: M3EExpandableSegmentedItem(
+        key: ValueKey(plugin.name),
+        index: 0,
+        totalCount: 1,
+        isExpanded: open && !searching,
+        onToggle: () => _toggleSource(plugin.name),
+        color: open
+            ? colorScheme.secondaryContainer
+            : colorScheme.surfaceContainer,
+        padding: EdgeInsets.zero,
+        childPadding: EdgeInsets.zero,
+        showTrailingIcon: !searching,
+        header: _buildSourceHeader(plugin, results, searching, open),
+        onChildTap: results.isEmpty
+            ? null
+            : (index) => _openSearchItem(plugin, results[index]),
+        children: [
+          if (results.isEmpty)
+            _buildActionsRow(plugin)
+          else
+            for (final result in results) _buildResultRow(result),
+        ],
       ),
     );
   }
@@ -307,7 +286,7 @@ class _SourceSheetState extends State<SourceSheet> {
             const SizedBox(width: 10),
             const SizedBox.square(
               dimension: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: M3ECircularProgressIndicator(strokeWidth: 2),
             ),
           ] else ...[
             if (hasMenu)
@@ -332,16 +311,6 @@ class _SourceSheetState extends State<SourceSheet> {
               )
             else
               const SizedBox(width: 10),
-            AnimatedRotation(
-              turns: open ? 0.5 : 0,
-              duration: splitListMotionDuration,
-              curve: splitListMotionCurve,
-              child: Icon(
-                Icons.expand_more_rounded,
-                size: 20,
-                color: onColor ?? colorScheme.onSurfaceVariant,
-              ),
-            ),
           ],
         ],
       ),
@@ -411,11 +380,11 @@ class _SourceSheetState extends State<SourceSheet> {
 
   void _retry(Plugin plugin) => _querySource(_keyword, plugin.name);
 
-  Widget _primaryAction(String label, VoidCallback onPressed) =>
-      FilledButton.tonal(onPressed: onPressed, child: Text(label));
+  Widget _primaryAction(String label, VoidCallback onPressed) => M3EButton(
+      style: M3EButtonStyle.tonal, onPressed: onPressed, child: Text(label));
 
-  Widget _action(String label, VoidCallback onPressed) =>
-      TextButton(onPressed: onPressed, child: Text(label));
+  Widget _action(String label, VoidCallback onPressed) => M3EButton(
+      style: M3EButtonStyle.text, onPressed: onPressed, child: Text(label));
 
   /// Always plugin order, never ranked by what came back: a source can fill
   /// up long after the search settles — a captcha source does once verified

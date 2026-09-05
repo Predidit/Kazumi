@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -497,8 +498,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: null,
+      floatingActionButton: M3EExtendedFloatingActionButton(
         icon: const Icon(Icons.save_rounded),
         label: const Text(_RuleEditorText.save),
         onPressed: () async {

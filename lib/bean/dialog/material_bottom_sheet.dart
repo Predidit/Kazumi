@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:m3e_core/m3e_core.dart';
 
 const double materialBottomSheetRadius = 24;
 const EdgeInsets materialBottomSheetContentPadding =
@@ -39,10 +40,7 @@ class MaterialBottomSheetHeader extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: theme.emphasizedTextTheme.headlineSmall,
                     ),
                     if (description != null) ...[
                       const SizedBox(height: 4),
@@ -79,20 +77,7 @@ class MaterialBottomSheetHeader extends StatelessWidget {
   }
 }
 
-// Verbatim ConnectedButtonGroupSmallTokens: ContainerHeight, BetweenSpace,
-// InnerCornerCornerSize, PressedInnerCornerCornerSize. Rounding these to the
-// app's usual radius vocabulary breaks the group's proportions.
-
-const double _connectedGroupHeight = 40;
-const double _connectedGroupGap = 2;
-const double _connectedInnerCorner = 8;
-const double _connectedPressedInnerCorner = 4;
-
-/// Material 3 Expressive connected button group driving a [TabBarView].
-///
-/// Outer edges stay `CornerFull`; only the corners facing a sibling move,
-/// opening out on selection and tightening under a press. Driven off the
-/// [TabController] animation so a drag carries the shape and colour with it.
+/// Connects M3E selection to both taps and swipes in a [TabBarView].
 class MaterialBottomSheetSegmentedTabs extends StatelessWidget {
   const MaterialBottomSheetSegmentedTabs({
     super.key,
@@ -102,131 +87,32 @@ class MaterialBottomSheetSegmentedTabs extends StatelessWidget {
   });
 
   final List<String> labels;
-
-  /// Falls back to the enclosing [DefaultTabController].
   final TabController? controller;
-
   final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     final tabController = controller ?? DefaultTabController.of(context);
+    assert(labels.length == tabController.length);
+    if (labels.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: padding,
-      child: SizedBox(
-        height: _connectedGroupHeight,
-        child: AnimatedBuilder(
-          animation: tabController.animation!,
-          builder: (context, _) {
-            final position = tabController.animation!.value;
-            return Row(
-              children: [
-                for (var index = 0; index < labels.length; index++) ...[
-                  if (index != 0) const SizedBox(width: _connectedGroupGap),
-                  Expanded(
-                    child: _ConnectedSegment(
-                      label: labels[index],
-                      selection: (1 - (position - index).abs()).clamp(0.0, 1.0),
-                      isLeading: index == 0,
-                      isTrailing: index == labels.length - 1,
-                      onTap: () => tabController.animateTo(index),
-                    ),
-                  ),
-                ],
-              ],
-            );
+      child: AnimatedBuilder(
+        animation: tabController.animation!,
+        builder: (context, _) => M3EToggleButtonGroup(
+          type: M3EButtonGroupType.connected,
+          style: M3EButtonStyle.tonal,
+          selectedIndex: tabController.animation!.value
+              .round()
+              .clamp(0, labels.length - 1),
+          onSelectedIndexChanged: (index) {
+            if (index != null) tabController.animateTo(index);
           },
-        ),
-      ),
-    );
-  }
-}
-
-class _ConnectedSegment extends StatefulWidget {
-  const _ConnectedSegment({
-    required this.label,
-    required this.selection,
-    required this.isLeading,
-    required this.isTrailing,
-    required this.onTap,
-  });
-
-  final String label;
-  final double selection;
-  final bool isLeading;
-  final bool isTrailing;
-  final VoidCallback onTap;
-
-  @override
-  State<_ConnectedSegment> createState() => _ConnectedSegmentState();
-}
-
-class _ConnectedSegmentState extends State<_ConnectedSegment> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final selection = widget.selection;
-    const outerCorner = _connectedGroupHeight / 2;
-    const outerRadius = Radius.circular(outerCorner);
-
-    return Semantics(
-      button: true,
-      inMutuallyExclusiveGroup: true,
-      selected: selection > 0.5,
-      // Only the press is tweened. Selection already tracks the tab
-      // controller, and tweening it too would lag a drag.
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(end: _pressed ? 1 : 0),
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        builder: (context, press, child) {
-          // A press only bites on a segment that is not already selected.
-          var inner = _connectedInnerCorner +
-              (outerCorner - _connectedInnerCorner) * selection;
-          inner += (_connectedPressedInnerCorner - inner) *
-              press *
-              (1 - selection);
-          final animated = Radius.circular(inner);
-          return Material(
-            // ToggleButtonDefaults fills the selected segment with `primary`,
-            // too heavy for a sheet this only navigates. `secondaryContainer`
-            // is the navigation active-indicator role.
-            color: Color.lerp(
-              colorScheme.surfaceContainer,
-              colorScheme.secondaryContainer,
-              selection,
-            ),
-            borderRadius: BorderRadiusDirectional.only(
-              topStart: widget.isLeading ? outerRadius : animated,
-              bottomStart: widget.isLeading ? outerRadius : animated,
-              topEnd: widget.isTrailing ? outerRadius : animated,
-              bottomEnd: widget.isTrailing ? outerRadius : animated,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: child,
-          );
-        },
-        child: InkWell(
-          onTap: widget.onTap,
-          onHighlightChanged: (value) => setState(() => _pressed = value),
-          child: Center(
-            child: Text(
-              widget.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: Color.lerp(
-                  colorScheme.onSurfaceVariant,
-                  colorScheme.onSecondaryContainer,
-                  selection,
-                ),
-              ),
-            ),
-          ),
+          actions: [
+            for (final label in labels)
+              M3EToggleButtonGroupAction(label: Text(label)),
+          ],
         ),
       ),
     );
@@ -276,10 +162,7 @@ class MaterialBottomSheetSection extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: theme.emphasizedTextTheme.titleMedium,
                       ),
                       if (description != null) ...[
                         const SizedBox(height: 4),
@@ -309,12 +192,10 @@ class MaterialBottomSheetGroup extends StatelessWidget {
     super.key,
     required this.title,
     required this.children,
-    this.dividerIndent = 72,
   });
 
   final String title;
   final List<Widget> children;
-  final double dividerIndent;
 
   @override
   Widget build(BuildContext context) {
@@ -334,23 +215,9 @@ class MaterialBottomSheetGroup extends StatelessWidget {
             ),
           ),
         ),
-        Material(
-          color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              for (var index = 0; index < children.length; index++) ...[
-                children[index],
-                if (index != children.length - 1)
-                  Divider(
-                    height: 1,
-                    indent: dividerIndent,
-                    color: colorScheme.outlineVariant,
-                  ),
-              ],
-            ],
-          ),
+        M3ESegmentedColumn(
+          padding: EdgeInsets.zero,
+          children: children,
         ),
       ],
     );

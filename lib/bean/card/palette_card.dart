@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:material_color_utilities/material_color_utilities.dart';
+import 'package:m3e_core/m3e_core.dart';
 
-class PaletteCard extends StatefulWidget {
+class PaletteCard extends StatelessWidget {
   final Color color;
   final bool selected;
 
@@ -12,17 +12,11 @@ class PaletteCard extends StatefulWidget {
   });
 
   @override
-  State<StatefulWidget> createState() => _PaletteCardState();
-}
-
-class _PaletteCardState extends State<PaletteCard> {
-  @override
   Widget build(BuildContext context) {
-    final Hct hct = Hct.fromInt(widget.color.toARGB32());
-    final primary = Color(Hct.from(hct.hue, 20.0, 90.0).toInt());
-    final tertiary = Color(Hct.from(hct.hue + 50, 20.0, 85.0).toInt());
-    final primaryContainer = Color(Hct.from(hct.hue, 30.0, 50.0).toInt());
-    final checkbox = Color(Hct.from(hct.hue, 30.0, 40.0).toInt());
+    final scheme = M3EColorScheme.generate(
+      seedColor: color,
+      brightness: Theme.of(context).brightness,
+    );
     return SizedBox(
       width: 70,
       height: 70,
@@ -38,7 +32,7 @@ class _PaletteCardState extends State<PaletteCard> {
                   children: [
                     Expanded(
                       child: Container(
-                        color: primary,
+                        color: scheme.primary,
                       ),
                     ),
                     Expanded(
@@ -47,12 +41,12 @@ class _PaletteCardState extends State<PaletteCard> {
                         children: [
                           Expanded(
                             child: Container(
-                              color: tertiary,
+                              color: scheme.tertiary,
                             ),
                           ),
                           Expanded(
                             child: Container(
-                              color: primaryContainer,
+                              color: scheme.primaryContainer,
                             ),
                           ),
                         ],
@@ -63,18 +57,18 @@ class _PaletteCardState extends State<PaletteCard> {
               ),
             ),
           ),
-          if (widget.selected)
+          if (selected)
             Center(
               child: Container(
                 width: 25,
                 height: 25,
                 decoration: BoxDecoration(
-                  color: checkbox,
+                  color: scheme.primary,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.check_rounded,
-                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  color: scheme.onPrimary,
                   size: 12,
                 ),
               ),

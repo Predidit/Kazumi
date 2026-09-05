@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -107,14 +108,16 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
           );
         }),
         actions: <Widget>[
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () => KazumiDialog.dismiss(),
             child: Text(
               '取消',
               style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ),
-          TextButton(
+          M3EButton(
+            style: M3EButtonStyle.text,
             onPressed: () async {
               if (input != "") {
                 playerController.setButtonForwardTime(int.parse(input));
@@ -192,7 +195,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             ? SizedBox(
                 width: _danmakuIconSize,
                 height: _danmakuIconSize,
-                child: CircularProgressIndicator(
+                child: M3ECircularProgressIndicator(
                   strokeWidth: _loadingIndicatorStrokeWidth,
                 ),
               )

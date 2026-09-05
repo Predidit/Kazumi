@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -10,7 +11,6 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/navigation.dart';
-import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
 
@@ -100,13 +100,13 @@ class _AppWidgetState extends State<AppWidget>
 
     final color = _storedThemeColor();
     final oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
-    final defaultDarkTheme = _buildAppTheme(
+    final defaultDarkTheme = buildAppTheme(
       brightness: Brightness.dark,
       color: color,
       fontFamily: themeProvider.currentFontFamily,
     );
     themeProvider.setTheme(
-      _buildAppTheme(
+      buildAppTheme(
         brightness: Brightness.light,
         color: color,
         fontFamily: themeProvider.currentFontFamily,
@@ -130,24 +130,6 @@ class _AppWidgetState extends State<AppWidget>
       return Colors.green;
     }
     return Color(int.parse(defaultThemeColor, radix: 16));
-  }
-
-  ThemeData _buildAppTheme({
-    required Brightness brightness,
-    required String? fontFamily,
-    Color? color,
-    ColorScheme? colorScheme,
-  }) {
-    return ThemeData(
-      useMaterial3: true,
-      fontFamily: fontFamily,
-      brightness: brightness,
-      colorSchemeSeed: color,
-      colorScheme: colorScheme,
-      progressIndicatorTheme: progressIndicatorTheme2024,
-      sliderTheme: sliderTheme2024,
-      pageTransitionsTheme: pageTransitionsTheme2024,
-    );
   }
 
   void _syncWindowsTitleBarBrightness(ThemeProvider themeProvider) {
@@ -230,7 +212,8 @@ class _AppWidgetState extends State<AppWidget>
               ],
             ),
             actions: [
-              TextButton(
+              M3EButton(
+                  style: M3EButtonStyle.text,
                   onPressed: () async {
                     if (saveExitBehavior) {
                       await GStorage.putSetting(SettingsKeys.exitBehavior, 0);
@@ -238,7 +221,8 @@ class _AppWidgetState extends State<AppWidget>
                     exit(0);
                   },
                   child: const Text('退出 Kazumi')),
-              TextButton(
+              M3EButton(
+                  style: M3EButtonStyle.text,
                   onPressed: () async {
                     if (saveExitBehavior) {
                       await GStorage.putSetting(SettingsKeys.exitBehavior, 1);
@@ -247,8 +231,10 @@ class _AppWidgetState extends State<AppWidget>
                     windowManager.hide();
                   },
                   child: const Text('最小化至托盘')),
-              const TextButton(
-                  onPressed: KazumiDialog.dismiss, child: Text('取消')),
+              const M3EButton(
+                  style: M3EButtonStyle.text,
+                  onPressed: KazumiDialog.dismiss,
+                  child: Text('取消')),
             ],
           );
         });
@@ -314,14 +300,14 @@ class _AppWidgetState extends State<AppWidget>
         final useDynamicColor =
             themeProvider.useDynamicColor && theme != null && darkTheme != null;
         final lightTheme = useDynamicColor
-            ? _buildAppTheme(
+            ? buildAppTheme(
                 brightness: Brightness.light,
                 colorScheme: theme,
                 fontFamily: themeProvider.currentFontFamily,
               )
             : themeProvider.light;
         final dynamicDarkTheme = useDynamicColor
-            ? _buildAppTheme(
+            ? buildAppTheme(
                 brightness: Brightness.dark,
                 colorScheme: darkTheme,
                 fontFamily: themeProvider.currentFontFamily,

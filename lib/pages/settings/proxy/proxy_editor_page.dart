@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -132,7 +133,7 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: M3EExtendedFloatingActionButton(
         onPressed: saveAndTest,
         icon: const Icon(Icons.save),
         label: const Text('保存并测试'),

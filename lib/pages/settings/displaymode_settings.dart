@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -70,7 +71,7 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
     return Scaffold(
       appBar: AppBar(title: const Text('屏幕帧率设置')),
       body: (modes.isEmpty)
-          ? const CircularProgressIndicator()
+          ? const M3ELoadingIndicator()
           : SettingsList(
               sections: [
                 SettingsRadioSection<DisplayMode>(

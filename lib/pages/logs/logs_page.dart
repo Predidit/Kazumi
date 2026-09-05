@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:path_provider/path_provider.dart';
@@ -167,7 +168,7 @@ class _LogsPageState extends State<LogsPage> {
   Widget get buildBody {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: M3ELoadingIndicator(),
       );
     }
 
@@ -220,15 +221,13 @@ class _LogsPageState extends State<LogsPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        FloatingActionButton(
-          heroTag: null,
+        M3EFloatingActionButton(
           onPressed: _clearLogs,
           tooltip: '清空日志',
           child: const Icon(Icons.clear_all),
         ),
         const SizedBox(width: 15),
-        FloatingActionButton(
-          heroTag: null,
+        M3EFloatingActionButton(
           onPressed: _copyLogs,
           tooltip: '复制日志',
           child: const Icon(Icons.copy),

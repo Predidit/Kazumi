@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
@@ -279,15 +280,10 @@ class _PluginTestPageState extends State<PluginTestPage> {
                         style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onErrorContainer)),
                     _h8,
-                    TextButton(
+                    M3EButton(
+                      style: M3EButtonStyle.tonal,
                       onPressed: startTest,
-                      style: TextButton.styleFrom(
-                          backgroundColor: theme
-                              .getCoreColor(CoreColorType.error)
-                              .withValues(alpha: 0.1)),
-                      child: Text('重试测试',
-                          style: TextStyle(
-                              color: theme.colorScheme.onErrorContainer)),
+                      child: const Text('重试测试'),
                     ),
                   ]),
             ),
@@ -295,7 +291,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
         );
 
   Widget _buildLoading(ThemeData theme) => Center(
-        child: CircularProgressIndicator.adaptive(
+        child: M3ECircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(
               theme.getCoreColor(CoreColorType.success)),
         ),
@@ -417,8 +413,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
             (message) => Padding(
               padding: const EdgeInsets.only(bottom: 4.0),
               child: SelectableText(message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onErrorContainer)),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onErrorContainer)),
             ),
           ),
         ],

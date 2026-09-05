@@ -1,3 +1,5 @@
+import 'package:kazumi/bean/widget/progress_semantics.dart';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -112,7 +114,7 @@ class KazumiDialog {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(),
+                      const M3ELoadingIndicator(),
                       const SizedBox(height: 16),
                       Text(
                         msg ?? 'Loading...',
@@ -161,13 +163,17 @@ class KazumiDialog {
         observer.currentContext;
     if (ctx != null && ctx.mounted) {
       try {
-        final result = await showModalBottomSheet<T>(
+        final result = await showM3EModalBottomSheet<T>(
           context: ctx,
           builder: builder,
           backgroundColor: backgroundColor,
           elevation: elevation,
-          shape: shape,
-          clipBehavior: clipBehavior,
+          style: M3EBottomSheetStyle(
+            shape: shape,
+            elevation: elevation,
+            clipBehavior: clipBehavior ?? Clip.antiAlias,
+            padding: EdgeInsets.zero,
+          ),
           constraints: constraints,
           barrierColor: barrierColor,
           isScrollControlled: isScrollControlled,
@@ -311,8 +317,9 @@ class _TimedSuccessDialog extends StatelessWidget {
                 tween: Tween(begin: 0.0, end: 1.0),
                 duration: duration,
                 onEnd: () => KazumiDialog.dismiss(popWith: true),
-                builder: (context, value, _) =>
-                    LinearProgressIndicator(value: value),
+                builder: (context, value, _) => ProgressSemantics(
+                    value: value,
+                    child: M3ELinearProgressIndicator(value: value)),
               ),
             ],
           ),

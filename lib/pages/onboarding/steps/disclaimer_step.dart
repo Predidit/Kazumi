@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
@@ -53,7 +54,7 @@ class _DisclaimerStepState extends State<DisclaimerStep> {
         color: colorScheme.surfaceContainerLow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: statementsText == null
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: M3ELoadingIndicator())
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Text(

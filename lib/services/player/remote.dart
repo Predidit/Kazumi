@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:dlna_dart/dlna.dart';
 import 'package:material_ui/material_ui.dart';
@@ -21,7 +22,8 @@ class RemotePlay {
           ),
           actions: [
             const SizedBox(width: 20),
-            TextButton(
+            M3EButton(
+              style: M3EButtonStyle.text,
               onPressed: () {
                 KazumiDialog.dismiss();
               },
@@ -30,7 +32,8 @@ class RemotePlay {
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            TextButton(
+            M3EButton(
+                style: M3EButtonStyle.text,
                 onPressed: () {
                   setState(() {});
                   KazumiDialog.showToast(

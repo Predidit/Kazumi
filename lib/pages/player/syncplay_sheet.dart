@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:m3e_core/m3e_core.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
@@ -176,7 +177,8 @@ class _SyncPlaySheetScaffold extends StatelessWidget {
               child: Row(
                 children: [
                   if (showCancel)
-                    TextButton(
+                    M3EButton(
+                      style: M3EButtonStyle.text,
                       onPressed: () => Navigator.of(context).pop(),
                       child: const Text('取消'),
                     ),
@@ -218,13 +220,16 @@ class _SyncPlayHomeSheet extends StatelessWidget {
         title: '一起看',
         description: '与好友同步播放、暂停与选集',
         primaryAction: hasSession
-            ? FilledButton.tonalIcon(
+            ? M3EButton.icon(
+                style: M3EButtonStyle.tonal,
                 onPressed: () async {
                   await playerController.exitSyncPlayRoom();
                 },
-                style: FilledButton.styleFrom(
-                  backgroundColor: colorScheme.errorContainer,
-                  foregroundColor: colorScheme.onErrorContainer,
+                decoration: M3EButtonDecoration(
+                  backgroundColor:
+                      WidgetStatePropertyAll(colorScheme.errorContainer),
+                  foregroundColor:
+                      WidgetStatePropertyAll(colorScheme.onErrorContainer),
                 ),
                 icon: const Icon(Icons.logout_rounded),
                 label: Text(connecting ? '取消连接' : '断开连接'),
@@ -257,7 +262,7 @@ class _SyncPlayHomeSheet extends StatelessWidget {
           children: [
             const SizedBox.square(
               dimension: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: M3ECircularProgressIndicator(strokeWidth: 2),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -605,7 +610,7 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
       title: isCreate ? '创建房间' : '加入房间',
       description: isCreate ? '将房间号分享给好友' : '输入好友的房间号',
       showCancel: true,
-      primaryAction: FilledButton.icon(
+      primaryAction: M3EButton.icon(
         onPressed: _submit,
         icon: Icon(
             isCreate ? Icons.play_circle_outline_rounded : Icons.login_rounded),
@@ -762,7 +767,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
       title: '同步服务器',
       description: '房间成员需使用同一服务器',
       showCancel: true,
-      primaryAction: FilledButton(
+      primaryAction: M3EButton(
         onPressed: _save,
         child: const Text('保存'),
       ),

@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -25,7 +26,7 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
         return Container(
           color: Colors.black,
           child: const Center(
-            child: CircularProgressIndicator(),
+            child: M3ELoadingIndicator(),
           ),
         );
       }

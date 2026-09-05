@@ -1,3 +1,4 @@
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -233,7 +234,7 @@ class _SearchPageState extends State<SearchPage> {
         backgroundColor: Colors.transparent,
         title: const Text("搜索"),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: M3EExtendedFloatingActionButton(
         onPressed: showWorkbench,
         icon: const Icon(Icons.tune),
         label: const Text("筛选"),
@@ -356,7 +357,7 @@ class _SearchPageState extends State<SearchPage> {
 
               if (searchPageController.isLoading &&
                   searchPageController.bangumiList.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: M3ELoadingIndicator());
               }
               int crossCount = 3;
               if (MediaQuery.sizeOf(context).width >
@@ -529,15 +530,13 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
       0,
       10,
     );
-    return RangeSlider(
-      values: values,
+    return M3ERangeSlider(
+      value: values,
       min: 0,
       max: 10,
       divisions: 20,
-      labels: RangeLabels(
-        values.start.toStringAsFixed(1),
-        values.end.toStringAsFixed(1),
-      ),
+      label:
+          '${values.start.toStringAsFixed(1)} – ${values.end.toStringAsFixed(1)}',
       onChanged: (value) {
         setState(() {
           draft = draft.copyWith(
@@ -558,15 +557,12 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
       1,
       10000,
     );
-    return RangeSlider(
-      values: values,
+    return M3ERangeSlider(
+      value: values,
       min: 1,
       max: 10000,
       divisions: 100,
-      labels: RangeLabels(
-        '${values.start.round()}',
-        '${values.end.round()}',
-      ),
+      label: '${values.start.round()} – ${values.end.round()}',
       onChanged: (value) {
         setState(() {
           draft = draft.copyWith(
@@ -689,7 +685,8 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                               ),
                           ],
                         ),
-                        TextButton.icon(
+                        M3EButton.icon(
+                          style: M3EButtonStyle.text,
                           onPressed: () {
                             setState(() => draft = draft.copyWith(tags: []));
                           },
@@ -737,7 +734,8 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            OutlinedButton.icon(
+                            M3EButton.icon(
+                              style: M3EButtonStyle.outlined,
                               onPressed: pickCustomDateRange,
                               icon: const Icon(Icons.date_range),
                               label: Text(draft.dateRange == null
@@ -746,7 +744,8 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                             ),
                             if (draft.season.isNotEmpty ||
                                 draft.dateRange != null)
-                              TextButton.icon(
+                              M3EButton.icon(
+                                style: M3EButtonStyle.text,
                                 onPressed: () {
                                   setState(() {
                                     draft = draft.copyWith(
@@ -868,7 +867,8 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Row(
               children: [
-                TextButton.icon(
+                M3EButton.icon(
+                  style: M3EButtonStyle.text,
                   onPressed: () {
                     setState(() {
                       draft = resetAdvancedFilters();
@@ -880,7 +880,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                   label: const Text('重置'),
                 ),
                 const Spacer(),
-                FilledButton.icon(
+                M3EButton.icon(
                   onPressed: () {
                     Navigator.pop(
                       context,

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/my/watch_stats.dart';
 import 'package:kazumi/pages/menu/route_visibility.dart';
@@ -11,8 +13,6 @@ import 'package:kazumi/pages/my/recent_watch_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/date_time.dart';
 
-/// Shared by every block on this page, entry group included, so they read as
-/// one set of cards.
 const double _cardRadius = 16;
 
 class MyPage extends StatefulWidget {
@@ -32,8 +32,7 @@ class _MyPageState extends State<MyPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // This page stays mounted under the player, which rewrites history every
-    // second. Drop the subscription while covered, re-derive on the way back.
+    // Pause history updates while the mounted page is covered by the player.
     _setAttached(!RouteVisibility.isCoveredOf(context));
   }
 
@@ -71,7 +70,17 @@ class _MyPageState extends State<MyPage> {
     final bool wide =
         MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!;
     return Scaffold(
-      appBar: const SysAppBar(title: Text('我的'), needTopOffset: false),
+      appBar: SysAppBar(
+        toolbarHeight: 72,
+        title: Text(
+          '我的',
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        needTopOffset: false,
+      ),
       body: SafeArea(
         top: false,
         bottom: false,
@@ -193,7 +202,7 @@ class _MyPageState extends State<MyPage> {
         label: '离线缓存',
       ),
     ];
-    // Tiles hold different amounts of text; stretch keeps them level.
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -207,10 +216,8 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  /// The same split list the settings page uses, at this page's card radius so
-  /// the group sits level with the hero beside it.
   Widget _entryGroup(WatchStats stats) {
-    return SettingsSplitGroup(
+    return SplitListGroup(
       outerRadius: _cardRadius,
       children: [
         SettingsCategoryTile(
@@ -425,4 +432,3 @@ class _StatTile extends StatelessWidget {
     );
   }
 }
-

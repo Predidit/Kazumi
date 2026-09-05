@@ -12,7 +12,6 @@ class InterfaceSettingsPage extends StatefulWidget {
 
 class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   late bool showRating;
-  late bool showAnimeCounter;
   late String defaultPage;
   final MenuController defaultPageMenuController = MenuController();
 
@@ -27,7 +26,6 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   void initState() {
     super.initState();
     showRating = GStorage.getSetting(SettingsKeys.showRating);
-    showAnimeCounter = GStorage.getSetting(SettingsKeys.showAnimeCounter);
     defaultPage = GStorage.getSetting(SettingsKeys.defaultStartupPage);
   }
 
@@ -100,18 +98,6 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
               title: Text('显示评分'),
               description: Text('关闭后将在概览中隐藏评分信息'),
               initialValue: showRating,
-            ),
-            SettingsTile.switchTile(
-              leading: Icons.insights_rounded,
-              onToggle: (value) async {
-                showAnimeCounter = value ?? !showAnimeCounter;
-                await GStorage.putSetting(
-                    SettingsKeys.showAnimeCounter, showAnimeCounter);
-                setState(() {});
-              },
-              title: Text('显示追番统计'),
-              description: Text('在追番页面的分类标签上显示数量'),
-              initialValue: showAnimeCounter,
             ),
           ]),
         ],

@@ -75,9 +75,14 @@ class BangumiCollection {
   }
 
   factory BangumiCollection.fromJson(Map json) {
-    final subject = json['subject'];
+    final subject = json['subject'] as Map? ?? const <String, dynamic>{};
+    final bangumiId = (subject['id'] as int?) ?? (json['subject_id'] as int?);
+    if (bangumiId == null || bangumiId <= 0) {
+      throw const FormatException(
+          'BangumiCollection: invalid or missing bangumi id');
+    }
     final subjectImages = Map<String, String>.from(
-      subject['images'] ??
+      (subject['images'] as Map?) ??
           const <String, String>{
             'large': '',
             'common': '',
@@ -90,17 +95,27 @@ class BangumiCollection {
         .whereType<Map>()
         .map((tag) => Map<String, dynamic>.from(tag))
         .toList();
+    final updatedAtStr = json['updated_at'] as String?;
+    if (updatedAtStr == null || updatedAtStr.trim().isEmpty) {
+      throw const FormatException(
+          'BangumiCollection: missing or empty updated_at');
+    }
+    final updatedAt = DateTime.tryParse(updatedAtStr);
+    if (updatedAt == null) {
+      throw const FormatException(
+          'BangumiCollection: invalid updated_at format');
+    }
     return BangumiCollection(
-      subject['id'],
-      subject['date'],
-      DateTime.parse(json['updated_at']),
-      BangumiCollectionType.fromValue(json['type']),
-      subject['name'],
-      subject['name_cn'],
-      subject['short_summary'],
-      (subject['score'] as num).toDouble(),
-      subject['eps'],
-      subject['rank'],
+      bangumiId,
+      subject['date'] as String?,
+      updatedAt,
+      BangumiCollectionType.fromValue(json['type'] as int? ?? 0),
+      subject['name'] as String? ?? '',
+      subject['name_cn'] as String? ?? '',
+      subject['short_summary'] as String? ?? '',
+      (subject['score'] as num?)?.toDouble() ?? 0.0,
+      subject['eps'] as int? ?? 0,
+      subject['rank'] as int? ?? 0,
       subjectImages,
       subjectTags,
     );

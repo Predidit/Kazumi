@@ -4,9 +4,12 @@ import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
 
 part 'timeline_controller.g.dart';
+
+enum TimelineSort { popularity, rating, defaultOrder }
 
 class TimelineController = _TimelineController with _$TimelineController;
 
@@ -19,8 +22,8 @@ abstract class _TimelineController with Store {
   ObservableList<List<BangumiItem>> bangumiCalendar =
       ObservableList<List<BangumiItem>>();
 
-  @observable
-  String seasonString = '';
+  @readonly
+  DateTime _selectedDate = DateTime.now();
 
   @observable
   bool isLoading = false;
@@ -40,109 +43,72 @@ abstract class _TimelineController with Store {
   late bool onlyShowWatchingBangumis =
       _collectRepository.getTimelineOnlyShowWatchingBangumis();
 
-  int _sortType = 3;
-  int get sortType => _sortType;
-
-  late DateTime _selectedDate;
-  DateTime get selectedDate => _selectedDate;
+  @readonly
+  TimelineSort _sort = TimelineSort.popularity;
 
   bool get _bangumiMirrorEnabled =>
       GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 
-  void init() {
-    _selectedDate = DateTime.now();
-    seasonString = AnimeSeason(_selectedDate).toString();
-    getSchedules();
-  }
-
-  // Async actions commit each segment between awaits as one transaction, so
-  // clear+addAll never shows observers an intermediate empty list.
   @action
-  Future<void> getSchedules() async {
+  Future<void> loadSeason(DateTime date) async {
+    if (isLoading) return;
     isLoading = true;
     isTimeOut = false;
-    bangumiCalendar.clear();
-    final resBangumiCalendar = await BangumiApi.getCalendar();
-    bangumiCalendar.clear();
-    bangumiCalendar.addAll(resBangumiCalendar);
-    changeSortType(sortType);
-    isLoading = false;
-    isTimeOut = bangumiCalendar.isEmpty;
+    try {
+      _selectedDate = date;
+      bangumiCalendar.clear();
+      if (isSameSeason(date, DateTime.now())) {
+        bangumiCalendar.addAll(await BangumiApi.getCalendar());
+        isTimeOut = bangumiCalendar.isEmpty;
+      } else {
+        await _getSchedulesBySeason(date);
+        isTimeOut = bangumiCalendar.every((day) => day.isEmpty);
+      }
+      if (!isTimeOut) changeSort(_sort);
+    } catch (error, stackTrace) {
+      isTimeOut = true;
+      KazumiLogger().e('Timeline: loading season failed',
+          error: error, stackTrace: stackTrace);
+    } finally {
+      isLoading = false;
+    }
   }
 
+  // MobX batches clear/addAll between awaits so observers never see a partial update.
   @action
-  Future<void> getSchedulesBySeason() async {
+  Future<void> _getSchedulesBySeason(DateTime date) async {
+    final dateRange = AnimeSeason(date).toSeasonStartAndEnd();
     if (_bangumiMirrorEnabled) {
-      isLoading = true;
-      isTimeOut = false;
-      bangumiCalendar.clear();
-      final resBangumiCalendar =
-          await BangumiApi.getBangumiMirrorSeasonCalendar(
-              AnimeSeason(selectedDate).toSeasonStartAndEnd());
-      bangumiCalendar.clear();
-      bangumiCalendar.addAll(resBangumiCalendar);
-      isLoading = false;
-      isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
-      if (!isTimeOut) {
-        changeSortType(sortType);
-      }
+      bangumiCalendar
+          .addAll(await BangumiApi.getBangumiMirrorSeasonCalendar(dateRange));
       return;
     }
 
-    isLoading = true;
-    isTimeOut = false;
-    bangumiCalendar.clear();
-    var time = 0;
-    const maxTime = 4;
+    const pageCount = 4;
     const limit = 20;
-    var resBangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
-    for (time = 0; time < maxTime; time++) {
-      final offset = time * limit;
-      var newList = await BangumiApi.getCalendarBySearch(
-          AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
+    final resBangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
+    for (var page = 0; page < pageCount; page++) {
+      final newList =
+          await BangumiApi.getCalendarBySearch(dateRange, limit, page * limit);
       for (int i = 0; i < resBangumiCalendar.length; ++i) {
         resBangumiCalendar[i].addAll(newList[i]);
       }
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);
     }
-    isLoading = false;
-    if (bangumiCalendar.isEmpty) {
-      isTimeOut = true;
-    } else {
-      isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
-    }
-    if (!isTimeOut) {
-      changeSortType(sortType);
-    }
   }
 
-  void tryEnterSeason(DateTime date) {
-    _selectedDate = date;
-    seasonString = "加载中 ٩(◦`꒳´◦)۶";
-  }
-
-  /// Sort type: 1 = default (id), 2 = score, 3 = heat (votes).
   @action
-  void changeSortType(int type) {
-    if (type < 1 || type > 3) {
-      return;
-    }
-    _sortType = type;
-    var resBangumiCalendar = bangumiCalendar.toList();
-    for (var dayList in resBangumiCalendar) {
-      switch (_sortType) {
-        case 1:
-          dayList.sort((a, b) => a.id.compareTo(b.id));
-          break;
-        case 2:
-          dayList.sort((a, b) => (b.ratingScore).compareTo(a.ratingScore));
-          break;
-        case 3:
-          dayList.sort((a, b) => (b.votes).compareTo(a.votes));
-          break;
-        default:
-      }
+  void changeSort(TimelineSort sort) {
+    _sort = sort;
+    final Comparator<BangumiItem> compare = switch (sort) {
+      TimelineSort.popularity => (a, b) => b.votes.compareTo(a.votes),
+      TimelineSort.rating => (a, b) => b.ratingScore.compareTo(a.ratingScore),
+      TimelineSort.defaultOrder => (a, b) => a.id.compareTo(b.id),
+    };
+    final resBangumiCalendar = bangumiCalendar.toList();
+    for (final dayList in resBangumiCalendar) {
+      dayList.sort(compare);
     }
     bangumiCalendar.clear();
     bangumiCalendar.addAll(resBangumiCalendar);
@@ -160,14 +126,6 @@ abstract class _TimelineController with Store {
     await _collectRepository.updateTimelineNotShowWatchedBangumis(value);
   }
 
-  Set<int> loadAbandonedBangumiIds() {
-    return _collectRepository.getBangumiIdsByType(CollectType.abandoned);
-  }
-
-  Set<int> loadWatchedBangumiIds() {
-    return _collectRepository.getBangumiIdsByType(CollectType.watched);
-  }
-
   @action
   Future<void> setOnlyShowWatchingBangumis(bool value) async {
     onlyShowWatchingBangumis = value;
@@ -176,5 +134,39 @@ abstract class _TimelineController with Store {
 
   Set<int> loadWatchingBangumiIds() {
     return _collectRepository.getBangumiIdsByType(CollectType.watching);
+  }
+
+  int get activeFilterCount => [
+        onlyShowWatchingBangumis,
+        notShowWatchedBangumis,
+        notShowAbandonedBangumis,
+      ].where((enabled) => enabled).length;
+
+  List<List<BangumiItem>> filterCalendar(Set<int> watchingIds) {
+    final abandonedIds = notShowAbandonedBangumis
+        ? _collectRepository.getBangumiIdsByType(CollectType.abandoned)
+        : <int>{};
+    final watchedIds = notShowWatchedBangumis
+        ? _collectRepository.getBangumiIdsByType(CollectType.watched)
+        : <int>{};
+    final onlyWatching = onlyShowWatchingBangumis;
+    return List.generate(7, (day) {
+      if (day >= bangumiCalendar.length) return <BangumiItem>[];
+      return bangumiCalendar[day]
+          .where((item) =>
+              !abandonedIds.contains(item.id) &&
+              !watchedIds.contains(item.id) &&
+              (!onlyWatching || watchingIds.contains(item.id)))
+          .toList();
+    });
+  }
+
+  @action
+  Future<void> clearFilters() async {
+    await Future.wait([
+      setNotShowAbandonedBangumis(false),
+      setNotShowWatchedBangumis(false),
+      setOnlyShowWatchingBangumis(false),
+    ]);
   }
 }

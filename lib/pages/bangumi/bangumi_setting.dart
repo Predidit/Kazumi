@@ -1,11 +1,13 @@
-import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
-import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 
 class BangumiEditorPage extends StatefulWidget {
   const BangumiEditorPage({super.key});
@@ -192,8 +194,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: LoadingIndicator(),
                               )
                             : const Icon(Icons.sync_rounded),
                         onPressed: (_) async {

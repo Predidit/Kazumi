@@ -3,18 +3,20 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
+import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/services/player/syncplay_endpoint.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
 
-/// The lobby pops itself with the step to open next, so the framework animates
-/// the swap. Steps never route back — dismissing one ends the flow.
+// Close each step before opening the next to avoid stacked modal routes.
 enum _SyncPlayDestination { create, join, server }
 
-/// Single entry point for everything SyncPlay: status, create, join, server.
 Future<void> showSyncPlaySheet(
   BuildContext context, {
   required PlayerController playerController,
@@ -56,15 +58,8 @@ Future<T?> _showStep<T>(BuildContext context, WidgetBuilder builder) {
 String _readEndPoint() =>
     GStorage.getSetting<String>(SettingsKeys.syncPlayEndPoint);
 
-/// M3 outlined field on the sheet's tonal cards, carrying the cards' radius
-/// instead of the 4dp baseline.
-///
-/// Outlined rather than filled: these fields float a label, and only the
-/// outline can notch around it. A fill would slice the label along the
-/// container's top edge.
 InputDecoration _sheetInputDecoration({
   required String labelText,
-  required IconData icon,
   String? hintText,
   String? helperText,
   String? errorText,
@@ -74,9 +69,6 @@ InputDecoration _sheetInputDecoration({
     hintText: hintText,
     helperText: helperText,
     errorText: errorText,
-    prefixIcon: Icon(icon),
-    // Radius only: InputDecorator recolors this border per state from the M3
-    // defaults, covering hover and disabled as well.
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
   );
 }
@@ -98,73 +90,41 @@ class _SyncPlaySheetScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
     final Size size = MediaQuery.sizeOf(context);
     final double keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    // Phone landscape leaves almost no height once the keyboard is up, so the
-    // layout collapses to rows and sheds the descriptive copy.
+
     final bool compact =
         size.width > size.height && !isDesktop() && size.shortestSide < 600;
     final bool showDescription = !(compact && keyboardInset > 0);
 
     return Padding(
-      // Lifting the sheet by the keyboard inset and letting the body shrink
-      // keeps the fields reachable instead of covered.
       padding: EdgeInsets.only(bottom: keyboardInset),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, compact ? 12 : 20, 12, compact ? 10 : 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          MaterialBottomSheetHeader(
+            title: title,
+            description: showDescription ? description : null,
+            compact: compact,
+            onClose: () => Navigator.of(context).pop(),
+            trailing: compact && primaryAction != null
+                ? Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        title,
-                        style: (compact
-                                ? theme.textTheme.titleLarge
-                                : theme.textTheme.headlineSmall)
-                            ?.copyWith(
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      primaryAction!,
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        tooltip: '关闭',
+                        icon: const Icon(Icons.close_rounded),
                       ),
-                      if (showDescription) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          description,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
-                ),
-                // Compact spends its remaining pixels on the fields, so the
-                // primary action lives here instead of a second button bar.
-                if (compact && primaryAction != null) ...[
-                  const SizedBox(width: 12),
-                  primaryAction!,
-                ],
-                const SizedBox(width: 12),
-                IconButton.filledTonal(
-                  onPressed: () => Navigator.of(context).pop(),
-                  tooltip: '关闭',
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
+                  )
+                : null,
           ),
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: bodyBuilder(context, compact),
             ),
           ),
@@ -172,7 +132,7 @@ class _SyncPlaySheetScaffold extends StatelessWidget {
             const SizedBox(height: 12)
           else if (showCancel || primaryAction != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               child: Row(
                 children: [
                   if (showCancel)
@@ -186,7 +146,7 @@ class _SyncPlaySheetScaffold extends StatelessWidget {
               ),
             )
           else
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
         ],
       ),
     );
@@ -203,20 +163,17 @@ class _SyncPlayHomeSheet extends StatelessWidget {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return Observer(builder: (context) {
-      // Read every observable here and unconditionally: the body builder runs
-      // from the scaffold's build, where reads are no longer tracked, and a
-      // short-circuited read would register no dependency.
+      // Read all observables here; the deferred body builder is not tracked.
       final bool hasSession = playerController.syncplay.hasSession;
       final String room = playerController.syncplay.syncplayRoom;
       final int rtt = playerController.syncplay.syncplayClientRtt;
       final bool connected = room.isNotEmpty;
-      // Connected socket, room not joined yet. The server picker must stay out
-      // of reach, otherwise the saved address stops matching what we dialed.
+      // Lock server selection while connected, even before joining a room.
       final bool connecting = hasSession && !connected;
 
       return _SyncPlaySheetScaffold(
         title: '一起看',
-        description: '与好友同步播放、暂停与选集',
+        description: '和朋友同步看番',
         primaryAction: hasSession
             ? FilledButton.tonalIcon(
                 onPressed: () async {
@@ -247,17 +204,14 @@ class _SyncPlayHomeSheet extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
 
-    return Material(
-      color: colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-      clipBehavior: Clip.antiAlias,
+    return TonalCard(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             const SizedBox.square(
               dimension: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: LoadingIndicator(),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -290,70 +244,38 @@ class _SyncPlayHomeSheet extends StatelessWidget {
   }
 
   Widget _buildLobby(BuildContext context, {required bool compact}) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-
-    final Widget create = _ChoiceCard(
-      icon: Icons.add_home_outlined,
-      title: '创建房间',
-      description: '生成房间号并邀请好友',
-      emphasized: true,
-      onTap: () => Navigator.of(context).pop(_SyncPlayDestination.create),
-    );
-    final Widget join = _ChoiceCard(
-      icon: Icons.login_rounded,
-      title: '加入房间',
-      description: '已有好友的房间号',
-      emphasized: false,
-      onTap: () => Navigator.of(context).pop(_SyncPlayDestination.join),
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (compact)
-          IntrinsicHeight(
+        IntrinsicHeight(
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: create),
-                const SizedBox(width: 12),
-                Expanded(child: join),
-              ],
-            ),
-          )
-        else ...[
-          create,
-          const SizedBox(height: 12),
-          join,
-        ],
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+                child: _ChoiceCard(
+              icon: Icons.add_circle_outline_rounded,
+              title: '创建房间',
+              description: '邀请朋友加入',
+              onTap: () =>
+                  Navigator.of(context).pop(_SyncPlayDestination.create),
+            )),
+            const SizedBox(width: 12),
+            Expanded(
+                child: _ChoiceCard(
+              icon: Icons.login_rounded,
+              title: '加入房间',
+              description: '输入房间号',
+              onTap: () => Navigator.of(context).pop(_SyncPlayDestination.join),
+            )),
+          ],
+        )),
         const SizedBox(height: 16),
-        Material(
-          color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-          clipBehavior: Clip.antiAlias,
-          child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-            leading:
-                Icon(Icons.dns_outlined, color: colorScheme.onSurfaceVariant),
-            title: Text(
-              '同步服务器',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            subtitle: Text(
-              _readEndPoint(),
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => Navigator.of(context).pop(_SyncPlayDestination.server),
-          ),
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          title: const Text('同步服务器'),
+          subtitle: Text(_readEndPoint(), overflow: TextOverflow.ellipsis),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => Navigator.of(context).pop(_SyncPlayDestination.server),
         ),
       ],
     );
@@ -376,10 +298,7 @@ class _SyncPlayHomeSheet extends StatelessWidget {
           trailing: [_CopyButton(value: room)],
         ),
         const SizedBox(height: 12),
-        Material(
-          color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-          clipBehavior: Clip.antiAlias,
+        TonalCard(
           child: Column(
             children: [
               _buildInfoRow(
@@ -419,7 +338,7 @@ class _SyncPlayHomeSheet extends StatelessWidget {
     final ColorScheme colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Icon(icon, size: 22, color: colorScheme.onSurfaceVariant),
@@ -449,69 +368,34 @@ class _SyncPlayHomeSheet extends StatelessWidget {
 }
 
 class _ChoiceCard extends StatelessWidget {
-  const _ChoiceCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.emphasized,
-    required this.onTap,
-  });
-
+  const _ChoiceCard(
+      {required this.icon,
+      required this.title,
+      required this.description,
+      required this.onTap});
   final IconData icon;
   final String title;
   final String description;
-  final bool emphasized;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-    final Color background = emphasized
-        ? colorScheme.primaryContainer
-        : colorScheme.surfaceContainerHigh;
-    final Color foreground = emphasized
-        ? colorScheme.onPrimaryContainer
-        : colorScheme.onSurfaceVariant;
-
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-      clipBehavior: Clip.antiAlias,
+    final theme = Theme.of(context);
+    return TonalCard(
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
-          child: Row(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: foreground),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: emphasized
-                            ? colorScheme.onPrimaryContainer
-                            : colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      description,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: foreground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, color: foreground),
+              Icon(icon, color: theme.colorScheme.primary, size: 28),
+              const SizedBox(height: 20),
+              Text(title, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(description,
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             ],
           ),
         ),
@@ -539,13 +423,9 @@ class _SyncPlayRoomSheet extends StatefulWidget {
 class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
   static final Random _random = Random();
 
-  /// Eight digits keeps accidental collisions with strangers on the public
-  /// server unlikely while staying inside the 6-10 digit room name rule.
   static String _generateRoomNumber() =>
       List.generate(8, (_) => _random.nextInt(10)).join();
 
-  /// Alternating consonants and vowels: the field only accepts 4-12 latin
-  /// letters, and plain random letters out of that alphabet read as noise.
   static String _generateUserName() {
     const String consonants = 'bcdfghjklmnpqrstvwxyz';
     const String vowels = 'aeiou';
@@ -590,8 +470,7 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
     final String room =
         widget.isCreate ? _createdRoom : _roomController.text.trim();
     GStorage.putSetting<String>(SettingsKeys.syncPlayUserName, username);
-    // Close first so the connection toasts land on the page underneath rather
-    // than behind this sheet.
+
     Navigator.of(context).pop();
     widget.playerController
         .createSyncPlayRoom(room, username, widget.changeEpisode);
@@ -621,7 +500,7 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
                     onPressed: () =>
                         setState(() => _createdRoom = _generateRoomNumber()),
                     tooltip: '重新生成',
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    color: Theme.of(context).colorScheme.onSurface,
                     icon: const Icon(Icons.refresh_rounded),
                   ),
                   _CopyButton(value: _createdRoom),
@@ -664,7 +543,6 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
       decoration: _sheetInputDecoration(
         labelText: '房间号',
         hintText: '6-10 位数字',
-        icon: Icons.meeting_room_outlined,
       ),
       validator: (value) {
         final String text = (value ?? '').trim();
@@ -686,7 +564,6 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
       autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: _sheetInputDecoration(
         labelText: '昵称',
-        icon: Icons.person_outline_rounded,
         helperText: compact ? null : '4-12 位英文字母，房间内可见',
       ),
       validator: (value) {
@@ -712,7 +589,6 @@ class _SyncPlayServerSheet extends StatefulWidget {
 }
 
 class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
-  /// Stands in for a user supplied address in the otherwise fixed list.
   static const String _customOption = '自定义服务器';
 
   final TextEditingController _customEndPointController =
@@ -721,8 +597,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
   late String _selectedEndPoint;
   String? _customEndPointError;
 
-  /// Only focus the address field when the user picks the custom option, not
-  /// when the sheet opens with a custom server already saved.
+  // Request keyboard focus only after an explicit custom-server selection.
   bool _focusCustomEndPoint = false;
 
   @override
@@ -767,7 +642,6 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
         child: const Text('保存'),
       ),
       bodyBuilder: (context, compact) {
-        final ColorScheme colorScheme = Theme.of(context).colorScheme;
         final List<String> endPoints = [
           ...officialSyncPlayEndPoints,
           _customOption,
@@ -776,24 +650,10 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Material(
-              color: colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  for (int index = 0; index < endPoints.length; index++) ...[
-                    _buildEndPointTile(context, endPoints[index]),
-                    if (index != endPoints.length - 1)
-                      Divider(
-                        height: 1,
-                        indent: 56,
-                        color: colorScheme.outlineVariant,
-                      ),
-                  ],
-                ],
-              ),
-            ),
+            SplitListGroup(children: [
+              for (final endPoint in endPoints)
+                _buildEndPointTile(context, endPoint),
+            ]),
             if (_selectedEndPoint == _customOption) ...[
               const SizedBox(height: 16),
               TextField(
@@ -805,7 +665,6 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
                   labelText: '服务器地址',
                   hintText: 'example.com:8996',
                   errorText: _customEndPointError,
-                  icon: Icons.link_rounded,
                 ),
                 onChanged: (_) {
                   if (_customEndPointError != null) {
@@ -867,12 +726,8 @@ class _RoomNumberCard extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
 
-    return Container(
+    return TonalCard(
       padding: const EdgeInsets.fromLTRB(20, 14, 8, 14),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-      ),
       child: Row(
         children: [
           Expanded(
@@ -883,13 +738,10 @@ class _RoomNumberCard extends StatelessWidget {
                 Text(
                   label,
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color:
-                        colorScheme.onPrimaryContainer.withValues(alpha: 0.75),
+                    color: colorScheme.onSurface.withValues(alpha: 0.75),
                   ),
                 ),
                 const SizedBox(height: 2),
-                // Compact gives this card half the sheet width, so the
-                // wide-tracked number scales down instead of overflowing.
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
@@ -897,7 +749,7 @@ class _RoomNumberCard extends StatelessWidget {
                     room,
                     maxLines: 1,
                     style: theme.textTheme.headlineSmall?.copyWith(
-                      color: colorScheme.onPrimaryContainer,
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 4,
                     ),
@@ -913,8 +765,6 @@ class _RoomNumberCard extends StatelessWidget {
   }
 }
 
-/// Confirms inline by swapping to a checkmark: a SnackBar raised from inside a
-/// modal sheet lands on the page's Scaffold underneath and stays hidden.
 class _CopyButton extends StatefulWidget {
   const _CopyButton({required this.value});
 
@@ -950,7 +800,7 @@ class _CopyButtonState extends State<_CopyButton> {
     return IconButton(
       onPressed: _copy,
       tooltip: _copied ? '已复制' : '复制',
-      color: Theme.of(context).colorScheme.onPrimaryContainer,
+      color: Theme.of(context).colorScheme.onSurface,
       icon: Icon(_copied ? Icons.check_rounded : Icons.copy_rounded),
     );
   }

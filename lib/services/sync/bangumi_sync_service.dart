@@ -147,7 +147,7 @@ class BangumiSyncService {
         // 1. 全量拉取远程收藏
         final remoteCollection = await BangumiApi.getBangumiCollectibles(
           username: username,
-          limit: 100,
+          limit: 50,
           onProgress: onProgress,
         );
 
@@ -198,21 +198,25 @@ class BangumiSyncService {
         }
 
         // 5. 双方都有但不一致：按优先级处理
-        if (priority == BangumiSyncPriority.localFirst) {
-          onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
+        if (mergePlan.conflictUploads.isNotEmpty) {
+          onProgress?.call(
+              '${priority.label}：正在上传冲突状态', syncedCount, totalOperations);
           for (final upload in mergePlan.conflictUploads) {
             final updated = await BangumiApi.updateBangumiByType(
               upload.bangumiId,
               upload.type,
             );
-            if (updated != true) {
+            if (!updated) {
               throw Exception('同步失败：条目 ${upload.bangumiId} 上传到 Bangumi 失败');
             }
             syncedCount++;
-            onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
+            onProgress?.call(
+                '${priority.label}：正在上传冲突状态', syncedCount, totalOperations);
           }
-        } else {
-          onProgress?.call('Bangumi优先：正在处理冲突状态', syncedCount, totalOperations);
+        }
+        if (mergePlan.conflictLocalUpdates.isNotEmpty) {
+          onProgress?.call(
+              '${priority.label}：正在更新本地冲突状态', syncedCount, totalOperations);
           for (final mutation in mergePlan.conflictLocalUpdates) {
             await GStorage.putCollectible(mutation.collectible);
             await _recordCollectibleChange(
@@ -222,7 +226,7 @@ class BangumiSyncService {
             );
             syncedCount++;
             onProgress?.call(
-                'Bangumi优先：正在处理冲突状态', syncedCount, totalOperations);
+                '${priority.label}：正在更新本地冲突状态', syncedCount, totalOperations);
           }
         }
         onProgress?.call('Bangumi 状态同步完成', 1, 1);

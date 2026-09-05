@@ -1,80 +1,136 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
-/// 时间线番剧卡片
 class BangumiTimelineCard extends StatelessWidget {
   const BangumiTimelineCard({
     super.key,
     required this.bangumiItem,
     required this.showRating,
-    this.onTap,
-    this.cardHeight = 120,
-    this.cardWidth,
-    this.enableHero = true,
+    required this.onTap,
+    this.isWatching = false,
+    this.compact = false,
   });
 
   final BangumiItem bangumiItem;
   final bool showRating;
-  final VoidCallback? onTap;
-  final bool enableHero;
-  final double cardHeight;
-  final double? cardWidth;
+  final bool isWatching;
+  final bool compact;
+  final VoidCallback onTap;
+
+  static final _episodePattern =
+      RegExp(r'^\s*([1-9]\d*)\s*[话話集](?=\s*(?:[/／]|$))');
+
+  static double heightFor(TextScaler scaler, {bool compact = false}) =>
+      (compact ? 48 : 64) +
+      scaler.scale(22) * 2 +
+      scaler.scale(18) +
+      scaler.scale(20);
+
+  String _supportingText(String title) {
+    // Calendar subjects provide episodes in `info`, but no separate air date.
+    final episodes = _episodePattern.firstMatch(bangumiItem.info);
+    final metadata = <String>[
+      if (episodes != null) '${episodes.group(1)} 话',
+      ...(bangumiItem.metaTags.isNotEmpty
+              ? bangumiItem.metaTags
+              : bangumiItem.tags.map((tag) => tag.name))
+          .map((name) => name.trim())
+          .where((name) => name.isNotEmpty)
+          .toSet(),
+    ];
+    if (metadata.isNotEmpty) return metadata.take(3).join(' · ');
+    final originalName = bangumiItem.name.trim();
+    return originalName != title ? originalName : '';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final desktopLayout = isDesktop();
-    final tabletLayout = isTablet();
     final theme = Theme.of(context);
-    final textScaler = MediaQuery.textScalerOf(context);
-    final colorScheme = theme.colorScheme;
-    const double borderRadius = 16;
-    const double horizontalPadding = 12;
-    const double verticalPadding = 10;
-    final double contentHeight = cardHeight > verticalPadding * 2
-        ? cardHeight - (verticalPadding * 2)
-        : cardHeight;
-    final double imageWidth = contentHeight * 0.7;
+    final colors = theme.colorScheme;
+    final translatedName = bangumiItem.nameCn.trim();
+    final title =
+        translatedName.isNotEmpty ? translatedName : bangumiItem.name.trim();
+    final supportingText = _supportingText(title);
+    final radius = BorderRadius.all(Radius.circular(compact ? 20 : 24));
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      clipBehavior: Clip.antiAlias,
-      color: colorScheme.surfaceContainerLow,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(borderRadius),
-        onTap: onTap ??
-            () {
-              context.pushNamed('/info/', arguments: bangumiItem);
-            },
-        child: SizedBox(
-          height: cardHeight,
-          width: cardWidth,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: verticalPadding,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                buildImage(
-                  context,
-                  bangumiItem.images['large'] ?? '',
-                  imageWidth,
-                  contentHeight,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: buildInfo(
-                      context, textScaler, desktopLayout, tabletLayout),
-                ),
-              ],
+    return Semantics(
+      button: true,
+      child: Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        color: colors.surfaceContainerLow,
+        shape: RoundedRectangleBorder(borderRadius: radius),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            height:
+                heightFor(MediaQuery.textScalerOf(context), compact: compact),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCover(context),
+                  SizedBox(width: compact ? 12 : 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: colors.onSurface,
+                            fontWeight: FontWeight.w600,
+                            height: 1.375,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (supportingText.isNotEmpty) ...[
+                          Text(
+                            supportingText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        Row(
+                          children: [
+                            if (showRating)
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: _buildRating(context),
+                                ),
+                              )
+                            else
+                              const Spacer(),
+                            if (isWatching) ...[
+                              if (showRating) const SizedBox(width: 8),
+                              Tooltip(
+                                message: '正在追',
+                                child: Icon(Icons.bookmark_rounded,
+                                    size: 20,
+                                    color: colors.primary,
+                                    semanticLabel: '正在追'),
+                              ),
+                            ],
+                            const SizedBox(width: 8),
+                            Icon(Icons.chevron_right_rounded,
+                                size: 20, color: colors.onSurfaceVariant),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -82,143 +138,71 @@ class BangumiTimelineCard extends StatelessWidget {
     );
   }
 
-  Widget buildImage(
-      BuildContext context, String imageUrl, double width, double height) {
-    final borderRadius = BorderRadius.circular(12);
-    Widget img = NetworkImgLayer(
-      src: imageUrl,
-      width: width,
-      height: height,
+  Widget _buildCover(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final imageUrl = bangumiItem.images['large'] ?? '';
+    final width = compact ? 68.0 : 80.0;
+    final height = compact ? 96.0 : 112.0;
+    final cover = ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: imageUrl.isEmpty
+          ? ColoredBox(
+              color: colors.surfaceContainerHighest,
+              child: SizedBox(
+                width: width,
+                height: height,
+                child:
+                    Icon(Icons.movie_outlined, color: colors.onSurfaceVariant),
+              ),
+            )
+          : NetworkImgLayer(src: imageUrl, width: width, height: height),
     );
-    if (enableHero) {
-      img = Hero(
+    return ExcludeSemantics(
+      child: Hero(
         tag: bangumiItem.id,
         transitionOnUserGestures: true,
-        child: ClipRRect(
-          borderRadius: borderRadius,
-          child: img,
-        ),
-      );
-    } else {
-      img = ClipRRect(
-        borderRadius: borderRadius,
-        child: img,
-      );
-    }
-    return img;
+        child: cover,
+      ),
+    );
   }
 
-  Widget buildInfo(BuildContext context, TextScaler textScaler, bool isDesktop,
-      bool isTablet) {
+  Widget _buildRating(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final title =
-        bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name;
-    final supportingText = bangumiItem.info.trim().isNotEmpty
-        ? bangumiItem.info.trim()
-        : bangumiItem.summary.trim();
-    final bool useWideLayout = isDesktop || isTablet;
-    final int supportingLines = useWideLayout ? 3 : 2;
-    final nameStyle = theme.textTheme.titleSmall?.copyWith(
-      color: colorScheme.onSurface,
-      fontWeight: FontWeight.w600,
-      height: 1.2,
-    );
-    final subStyle = theme.textTheme.bodySmall?.copyWith(
-      color: colorScheme.onSurfaceVariant,
-      height: 1.2,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: nameStyle,
-          maxLines: useWideLayout ? 2 : 1,
+    final colors = theme.colorScheme;
+    if (bangumiItem.ratingScore <= 0) {
+      return Text('暂无评分',
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          textScaler:
-              textScaler.clamp(maxScaleFactor: useWideLayout ? 1.2 : 1.1),
+          style: theme.textTheme.labelMedium
+              ?.copyWith(color: colors.onSurfaceVariant));
+    }
+    final score = bangumiItem.ratingScore.toStringAsFixed(1);
+    return Semantics(
+      label: '评分 $score',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: colors.secondaryContainer,
+          borderRadius: BorderRadius.circular(8),
         ),
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(top: supportingText.isNotEmpty ? 6 : 0),
-            child: supportingText.isNotEmpty
-                ? Text(
-                    supportingText,
-                    style: subStyle,
-                    maxLines: supportingLines,
-                    overflow: TextOverflow.ellipsis,
-                    textScaler: textScaler.clamp(maxScaleFactor: 1.0),
-                  )
-                : const SizedBox.shrink(),
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.star_rounded,
+                size: 14, color: colors.onSecondaryContainer),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(score,
+                  maxLines: 1,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colors.onSecondaryContainer,
+                    fontWeight: FontWeight.w700,
+                  )),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        buildFooter(context),
-      ],
-    );
-  }
-
-  Widget buildFooter(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final metricStyle = theme.textTheme.labelMedium?.copyWith(
-      color: colorScheme.onSurface,
-      fontWeight: FontWeight.w600,
-    );
-    final showScore = showRating ? bangumiItem.ratingScore > 0 : true;
-    final showRank = showRating ? bangumiItem.rank > 0 : true;
-    final showVotes = showRating ? bangumiItem.votes > 0 : true;
-    final rankText = showRating ? '#${bangumiItem.rank}' : '#***';
-    final votesText = showRating ? bangumiItem.votes.toString() : '***';
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        if (showScore)
-          buildMetric(
-            context,
-            icon: Icons.star_rounded,
-            iconColor: colorScheme.primary,
-            label:
-                showRating ? bangumiItem.ratingScore.toStringAsFixed(1) : '***',
-            textStyle: metricStyle,
-          ),
-        if (showRank)
-          buildMetric(
-            context,
-            icon: Icons.leaderboard_outlined,
-            iconColor: colorScheme.secondary,
-            label: rankText,
-            textStyle: metricStyle,
-          ),
-        if (showVotes)
-          buildMetric(
-            context,
-            icon: Icons.how_to_vote_outlined,
-            iconColor: colorScheme.onSurfaceVariant,
-            label: votesText,
-            textStyle: metricStyle,
-          ),
-      ],
-    );
-  }
-
-  Widget buildMetric(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required TextStyle? textStyle,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 15, color: iconColor),
-        const SizedBox(width: 4),
-        Text(label, style: textStyle),
-      ],
+      ),
     );
   }
 }

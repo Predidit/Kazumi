@@ -1,7 +1,10 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:path_provider/path_provider.dart';
+
+import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 
 class StorageErrorPage extends StatelessWidget {
   const StorageErrorPage({super.key});
@@ -31,7 +34,7 @@ class StorageErrorPage extends StatelessWidget {
                 ],
               );
             } else {
-              return const CircularProgressIndicator();
+              return const LoadingIndicator();
             }
           },
         ),

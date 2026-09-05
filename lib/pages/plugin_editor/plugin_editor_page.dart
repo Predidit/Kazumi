@@ -2,12 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/api_rule_config.dart';
-import 'package:kazumi/plugins/anti_crawler_config.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/widget/content_section.dart';
+import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/pages/plugin_editor/editor_form_widgets.dart';
+import 'package:kazumi/plugins/anti_crawler_config.dart';
+import 'package:kazumi/plugins/api_rule_config.dart';
+import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/plugin/api_rule_engine.dart';
 
@@ -214,7 +217,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   String chapterApiMethod = 'GET';
   String chapterApiBodyType = ApiBodyType.none;
   String chapterApiFormat = ApiChapterFormat.nested;
-  // Legacy schema values retained on save but no longer exposed as settings.
+  // Preserve legacy schema values on save, even when no longer editable.
   late String _api;
   late String _type;
   late bool _muliSources;
@@ -224,7 +227,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   bool useLegacyParser = false;
   bool adBlocker = false;
 
-  // AntiCrawler fields
   final TextEditingController captchaImageController = TextEditingController();
   final TextEditingController captchaInputController = TextEditingController();
   final TextEditingController captchaButtonController = TextEditingController();
@@ -426,70 +428,78 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               spacing: 16,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                EditorSectionCard(
-                  icon: Icons.badge_rounded,
+                ContentSection(
                   title: _RuleEditorText.sectionBasic,
                   description: _RuleEditorText.sectionBasicDesc,
-                  children: [
-                    EditorTextField(
-                      controller: nameController,
-                      label: _RuleEditorText.ruleName,
-                    ),
-                    EditorTextField(
-                      controller: versionController,
-                      label: _RuleEditorText.ruleVersion,
-                    ),
-                    EditorTextField(
-                      controller: baseURLController,
-                      label: _RuleEditorText.baseUrl,
-                    ),
-                  ],
+                  child: Column(
+                      spacing: 16,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        EditorTextField(
+                          controller: nameController,
+                          label: _RuleEditorText.ruleName,
+                        ),
+                        EditorTextField(
+                          controller: versionController,
+                          label: _RuleEditorText.ruleVersion,
+                        ),
+                        EditorTextField(
+                          controller: baseURLController,
+                          label: _RuleEditorText.baseUrl,
+                        ),
+                      ]),
                 ),
-                EditorSectionCard(
-                  icon: Icons.search_rounded,
+                ContentSection(
                   title: _RuleEditorText.sectionSearch,
                   description: _RuleEditorText.sectionSearchDesc,
-                  children: [
-                    EditorSegmentedField<String>(
-                      label: _RuleEditorText.searchRuleType,
-                      value: searchMode,
-                      segments: _ruleModeSegments,
-                      onChanged: (value) => setState(() => searchMode = value),
-                    ),
-                    EditorAnimatedSection(
-                      activeKey: searchMode,
-                      child: Column(
-                        spacing: 16,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: searchMode == RuleMode.xpath
-                            ? _buildXPathSearchFields()
-                            : _buildApiSearchFields(),
-                      ),
-                    ),
-                  ],
+                  child: Column(
+                      spacing: 16,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        EditorSegmentedField<String>(
+                          label: _RuleEditorText.searchRuleType,
+                          value: searchMode,
+                          segments: _ruleModeSegments,
+                          onChanged: (value) =>
+                              setState(() => searchMode = value),
+                        ),
+                        EditorAnimatedSection(
+                          activeKey: searchMode,
+                          child: Column(
+                            spacing: 16,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: searchMode == RuleMode.xpath
+                                ? _buildXPathSearchFields()
+                                : _buildApiSearchFields(),
+                          ),
+                        ),
+                      ]),
                 ),
-                EditorSectionCard(
-                  icon: Icons.playlist_play_rounded,
+                ContentSection(
                   title: _RuleEditorText.sectionChapter,
                   description: _RuleEditorText.sectionChapterDesc,
-                  children: [
-                    EditorSegmentedField<String>(
-                      label: _RuleEditorText.chapterRuleType,
-                      value: chapterMode,
-                      segments: _ruleModeSegments,
-                      onChanged: (value) => setState(() => chapterMode = value),
-                    ),
-                    EditorAnimatedSection(
-                      activeKey: chapterMode,
-                      child: Column(
-                        spacing: 16,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: chapterMode == RuleMode.xpath
-                            ? _buildXPathChapterFields()
-                            : _buildApiChapterFields(),
-                      ),
-                    ),
-                  ],
+                  child: Column(
+                      spacing: 16,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        EditorSegmentedField<String>(
+                          label: _RuleEditorText.chapterRuleType,
+                          value: chapterMode,
+                          segments: _ruleModeSegments,
+                          onChanged: (value) =>
+                              setState(() => chapterMode = value),
+                        ),
+                        EditorAnimatedSection(
+                          activeKey: chapterMode,
+                          child: Column(
+                            spacing: 16,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: chapterMode == RuleMode.xpath
+                                ? _buildXPathChapterFields()
+                                : _buildApiChapterFields(),
+                          ),
+                        ),
+                      ]),
                 ),
                 _buildAdvancedOptionsCard(),
               ],
@@ -518,62 +528,71 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   }
 
   Widget _buildAdvancedOptionsCard() {
-    return EditorExpandableSectionCard(
-      icon: Icons.tune_rounded,
-      title: _RuleEditorText.advancedOptions,
-      description: _RuleEditorText.advancedOptionsDesc,
-      children: [
-        const EditorSubheader(label: _RuleEditorText.groupBehavior),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text(_RuleEditorText.legacyParser),
-          subtitle: const Text(_RuleEditorText.legacyParserDesc),
-          value: useLegacyParser,
-          onChanged: (value) => setState(() => useLegacyParser = value),
+    return TonalCard(
+      child: ExpansionTile(
+        maintainState: true,
+        shape: const Border(),
+        collapsedShape: const Border(),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+        title: const SectionHeader(
+          title: Text(_RuleEditorText.advancedOptions),
+          description: Text(_RuleEditorText.advancedOptionsDesc),
         ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text(_RuleEditorText.adBlocker),
-          subtitle: const Text(_RuleEditorText.adBlockerDesc),
-          value: adBlocker,
-          onChanged: (value) => setState(() => adBlocker = value),
-        ),
-        const EditorSubheader(label: _RuleEditorText.groupNetwork),
-        EditorTextField(
-          controller: userAgentController,
-          label: _RuleEditorText.userAgent,
-          helper: _RuleEditorText.userAgentHelper,
-        ),
-        const SizedBox(height: 16),
-        EditorTextField(
-          controller: refererController,
-          label: _RuleEditorText.referer,
-          helper: _RuleEditorText.refererHelper,
-        ),
-        if (searchMode == RuleMode.xpath) ...[
-          const EditorSubheader(label: _RuleEditorText.groupAntiCrawler),
+        children: [
+          const EditorSubheader(label: _RuleEditorText.groupBehavior),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text(_RuleEditorText.antiCrawlerEnable),
-            subtitle: const Text(_RuleEditorText.antiCrawlerEnableDesc),
-            value: antiCrawlerEnabled,
-            onChanged: (value) => setState(() => antiCrawlerEnabled = value),
+            title: const Text(_RuleEditorText.legacyParser),
+            subtitle: const Text(_RuleEditorText.legacyParserDesc),
+            value: useLegacyParser,
+            onChanged: (value) => setState(() => useLegacyParser = value),
           ),
-          EditorAnimatedSection(
-            activeKey: antiCrawlerEnabled,
-            child: antiCrawlerEnabled
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Column(
-                      spacing: 16,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: _buildAntiCrawlerFields(),
-                    ),
-                  )
-                : const SizedBox.shrink(),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text(_RuleEditorText.adBlocker),
+            subtitle: const Text(_RuleEditorText.adBlockerDesc),
+            value: adBlocker,
+            onChanged: (value) => setState(() => adBlocker = value),
           ),
+          const EditorSubheader(label: _RuleEditorText.groupNetwork),
+          EditorTextField(
+            controller: userAgentController,
+            label: _RuleEditorText.userAgent,
+            helper: _RuleEditorText.userAgentHelper,
+          ),
+          const SizedBox(height: 16),
+          EditorTextField(
+            controller: refererController,
+            label: _RuleEditorText.referer,
+            helper: _RuleEditorText.refererHelper,
+          ),
+          if (searchMode == RuleMode.xpath) ...[
+            const EditorSubheader(label: _RuleEditorText.groupAntiCrawler),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(_RuleEditorText.antiCrawlerEnable),
+              subtitle: const Text(_RuleEditorText.antiCrawlerEnableDesc),
+              value: antiCrawlerEnabled,
+              onChanged: (value) => setState(() => antiCrawlerEnabled = value),
+            ),
+            EditorAnimatedSection(
+              activeKey: antiCrawlerEnabled,
+              child: antiCrawlerEnabled
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Column(
+                        spacing: 16,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: _buildAntiCrawlerFields(),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -881,8 +900,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         ),
       ];
 
-  /// Builds the edited plugin, surfacing build/validation errors to the
-  /// user. Returns null when the current input does not form a valid rule.
   Plugin? _tryBuildEditedPlugin() {
     try {
       return _buildEditedPlugin();

@@ -1,37 +1,40 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/video/danmaku_send_sheet.dart';
-import 'package:kazumi/request/apis/danmaku_api.dart';
-import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
-import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
-import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
+import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
+import 'package:kazumi/request/apis/danmaku_api.dart';
+import 'package:mobx/mobx.dart' as mobx;
+import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
+import 'package:scrollview_observer/scrollview_observer.dart';
+import 'package:window_manager/window_manager.dart';
+
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
-import 'package:scrollview_observer/scrollview_observer.dart';
-import 'package:kazumi/pages/player/episode_comments_sheet.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
-import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/services/player/timed_shutdown_service.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/pages/player/episode_comments_sheet.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/pages/player/player_item.dart';
+import 'package:kazumi/pages/video/danmaku_destination_sheet.dart';
+import 'package:kazumi/pages/video/danmaku_send_sheet.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/video/video_playback_args.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
-import 'package:mobx/mobx.dart' as mobx;
+import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/player/timed_shutdown_service.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/device.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({
@@ -56,13 +59,10 @@ class VideoPage extends StatefulWidget {
 class _VideoPageState extends State<VideoPage>
     with TickerProviderStateMixin, WindowListener {
   PlayerController get playerController => widget.playerController;
-
   VideoPageController get videoPageController => widget.videoPageController;
   bool _didInitializePlayback = false;
   bool _isClosing = false;
-
   HistoryController get historyController => widget.historyController;
-
   DownloadController get downloadController => widget.downloadController;
   late bool playResume;
   bool showDebugLog = false;
@@ -87,7 +87,6 @@ class _VideoPageState extends State<VideoPage>
   late final mobx.ReactionDisposer _pipModeListener;
   late final mobx.ReactionDisposer _playbackStartedListener;
   bool _hasStartedPlayback = false;
-
   static const Duration _offlinePlayerInitDelay = Duration(milliseconds: 400);
   static const Duration _sideTabAnimationDuration = Duration(milliseconds: 120);
 
@@ -96,7 +95,7 @@ class _VideoPageState extends State<VideoPage>
     super.initState();
     videoPageController.applyPlaybackArgs(widget.args);
     windowManager.addListener(this);
-    // Window fullscreen can be changed outside this page through system chrome.
+
     videoPageController.isDesktopFullscreen();
     tabController = TabController(length: 2, vsync: this);
     observerController = GridObserverController(controller: scrollController);
@@ -142,9 +141,7 @@ class _VideoPageState extends State<VideoPage>
     return window.width > window.height;
   }
 
-  /// The fullscreen switch has two inputs, the window shape and the picture in
-  /// picture state, and they arrive over different channels in either order, so
-  /// it settles on both. A picture in picture window is not an orientation.
+  // Fullscreen and picture-in-picture events can arrive in either order.
   void _syncFullscreenWithWindowShape() {
     if (isDesktop() || videoPageController.isPip) {
       return;
@@ -283,8 +280,7 @@ class _VideoPageState extends State<VideoPage>
     } catch (_) {}
     _pipModeListener();
     _playbackStartedListener();
-    // Cancellation and log-stream teardown happen in VideoPageController's
-    // own dispose when Modular releases the route scope.
+    // Modular disposes the controller and its log subscription with the route.
     if (!isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
@@ -528,8 +524,7 @@ class _VideoPageState extends State<VideoPage>
 
       unawaited(playerController.sendSyncPlayChatMessage(msg));
     } else {
-      // The remote danmaku provider does not expose a send API here; render the
-      // local echo so the user still sees their message immediately.
+      // This provider has no send API; display a local echo.
       playerController.danmaku.canvasController
           .addDanmaku(DanmakuContentItem(msg, selfSend: true));
     }
@@ -734,52 +729,7 @@ class _VideoPageState extends State<VideoPage>
       return false;
     }
 
-    final DanmakuDestination? result =
-        await showAdaptiveBottomSheet<DanmakuDestination>(
-      context: context,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              MaterialBottomSheetHeader(
-                title: '发送弹幕至',
-                description: '选择这条弹幕的发送位置',
-                onClose: () => Navigator.of(context).pop(),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: MaterialBottomSheetGroup(
-                  title: '发送位置',
-                  children: [
-                    ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(Icons.groups_rounded),
-                      title: const Text('发送到聊天室'),
-                      subtitle: const Text('同步观看成员均可看到'),
-                      onTap: () => Navigator.of(context)
-                          .pop(DanmakuDestination.chatRoom),
-                    ),
-                    ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(Icons.cloud_upload_rounded),
-                      title: const Text('发送到远程弹幕库'),
-                      subtitle: const Text('作为视频弹幕发送'),
-                      onTap: () => Navigator.of(context)
-                          .pop(DanmakuDestination.remoteDanmaku),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    final result = await showDanmakuDestinationSheet(context);
 
     if (result == null || !mounted) {
       return false;
@@ -815,7 +765,6 @@ class _VideoPageState extends State<VideoPage>
           appBar: null,
           body: SafeArea(
               top: !videoPageController.isFullscreen && !isPip,
-              // set iOS and Android navigation bar to immersive
               bottom: false,
               left: !videoPageController.isFullscreen && !isPip,
               right: !videoPageController.isFullscreen && !isPip,
@@ -948,7 +897,7 @@ class _VideoPageState extends State<VideoPage>
                           : Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                CircularProgressIndicator(
+                                LoadingIndicator(
                                     color: Theme.of(context)
                                         .colorScheme
                                         .tertiaryContainer),
@@ -1195,7 +1144,7 @@ class _VideoPageState extends State<VideoPage>
         return SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: LoadingIndicator(),
         );
       default:
         return const SizedBox.shrink();

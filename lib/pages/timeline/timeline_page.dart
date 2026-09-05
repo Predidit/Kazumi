@@ -1,17 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/pages/timeline/timeline_controller.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/utils/anime_season.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/bean/widget/content_section.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/pages/timeline/timeline_controller.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/anime_season.dart';
+
+part 'timeline_week_selector.dart';
+
+extension _TimelineSortLabel on TimelineSort {
+  String get label => switch (this) {
+        TimelineSort.popularity => '热度优先',
+        TimelineSort.rating => '评分优先',
+        TimelineSort.defaultOrder => '默认顺序',
+      };
+}
 
 class TimelinePage extends StatefulWidget {
   const TimelinePage({
@@ -25,795 +36,588 @@ class TimelinePage extends StatefulWidget {
   State<TimelinePage> createState() => _TimelinePageState();
 }
 
-class _TimelinePageState extends State<TimelinePage>
-    with SingleTickerProviderStateMixin {
-  TimelineController get timelineController => widget.controller;
-  TabController? tabController;
-  late bool showRating;
-  final GlobalKey filterSectionKey = GlobalKey();
+class _TimelinePageState extends State<TimelinePage> {
+  TimelineController get _controller => widget.controller;
+  late final bool _showRating;
 
   @override
   void initState() {
     super.initState();
-    int weekday = DateTime.now().weekday - 1;
-    tabController =
-        TabController(vsync: this, length: tabs.length, initialIndex: weekday);
-    showRating = GStorage.getSetting(SettingsKeys.showRating);
-    if (timelineController.bangumiCalendar.isEmpty) {
-      timelineController.init();
+    _showRating = GStorage.getSetting(SettingsKeys.showRating);
+    if (_controller.bangumiCalendar.isEmpty) {
+      _controller.loadSeason(_controller.selectedDate);
     }
   }
 
-  @override
-  void dispose() {
-    tabController?.dispose();
-    super.dispose();
+  String _seasonLabel(DateTime date) {
+    return '${date.year}年${getSeasonStringByMonth(date.month)}季';
   }
 
-  DateTime generateDateTime(int year, String season) {
-    switch (season) {
-      case '冬':
-        return DateTime(year, 1, 1);
-      case '春':
-        return DateTime(year, 4, 1);
-      case '夏':
-        return DateTime(year, 7, 1);
-      case '秋':
-        return DateTime(year, 10, 1);
-      default:
-        return DateTime.now();
-    }
-  }
-
-  final List<Tab> tabs = const <Tab>[
-    Tab(text: '一'),
-    Tab(text: '二'),
-    Tab(text: '三'),
-    Tab(text: '四'),
-    Tab(text: '五'),
-    Tab(text: '六'),
-    Tab(text: '日'),
-  ];
-
-  final seasons = ['秋', '夏', '春', '冬'];
-
-  String getStringByDateTime(DateTime d) {
-    return d.year.toString() + getSeasonStringByMonth(d.month);
-  }
-
-  Future<void> scrollToFilterSection() async {
-    final filterContext = filterSectionKey.currentContext;
-    if (filterContext == null) {
-      return;
-    }
-
-    await Scrollable.ensureVisible(
-      filterContext,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-      alignment: 0.04,
-    );
-  }
-
-  BoxConstraints buildTimelineBottomSheetConstraints(
-    BuildContext context, {
-    double? compactHeightFactor,
-  }) {
-    final mediaSize = MediaQuery.sizeOf(context);
-    final adaptiveConstraints = adaptiveBottomSheetConstraints(context);
-    final maxHeight = compactHeightFactor != null
-        ? (mediaSize.height >= LayoutBreakpoint.compact['height']!
-            ? mediaSize.height * compactHeightFactor
-            : mediaSize.height)
-        : double.infinity;
-
-    return BoxConstraints(
-      maxWidth: adaptiveConstraints.maxWidth,
-      maxHeight: maxHeight,
-    );
-  }
-
-  Widget buildTimelineBottomSheetShell(
-    BuildContext context, {
-    required Widget header,
-    required Widget body,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+  void _showSeasonBottomSheet(BuildContext context) {
+    final now = DateTime.now();
+    final years = List.generate(20, (i) => now.year - i);
+    showAdaptiveBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      maxHeightFactor: .86,
+      builder: (context) => Column(
+        children: [
+          MaterialBottomSheetHeader(
+            title: '放送季度',
+            description: '正在查看 ${_seasonLabel(_controller.selectedDate)}',
+            onClose: () => Navigator.of(context).pop(),
+          ),
+          Expanded(
+            child: ListView.separated(
+              padding: materialBottomSheetContentPadding,
+              itemCount: years.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 24),
+              itemBuilder: (context, index) {
+                final year = years[index];
+                return ContentSection(
+                  title: '$year',
+                  padding: const EdgeInsets.all(8),
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    final columns =
+                        MediaQuery.textScalerOf(context).scale(14) > 21 ? 2 : 4;
+                    return Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        for (final month in [1, 4, 7, 10])
+                          SizedBox(
+                            width: (constraints.maxWidth - 4 * (columns - 1)) /
+                                columns,
+                            child: _seasonButton(
+                                context, DateTime(year, month), now),
+                          ),
+                      ],
+                    );
+                  }),
+                );
+              },
+            ),
+          ),
+        ],
       ),
-      child: Column(
+    );
+  }
+
+  Widget _seasonButton(BuildContext context, DateTime date, DateTime now) {
+    final selected = isSameSeason(_controller.selectedDate, date);
+    final colors = Theme.of(context).colorScheme;
+    return TextButton(
+      style: TextButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        backgroundColor:
+            selected ? colors.secondaryContainer : Colors.transparent,
+        foregroundColor:
+            selected ? colors.onSecondaryContainer : colors.onSurface,
+      ),
+      onPressed: !date.isAfter(now)
+          ? () {
+              Navigator.of(context).pop();
+              _controller.loadSeason(date);
+            }
+          : null,
+      child: Text('${getSeasonStringByMonth(date.month)}季'),
+    );
+  }
+
+  Widget _buildTimelineOptionsSheet(BuildContext context) {
+    return Observer(builder: (context) {
+      return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          header,
-          Flexible(child: body),
-        ],
-      ),
-    );
-  }
-
-  void showSeasonBottomSheet(BuildContext context) {
-    final currDate = DateTime.now();
-    final years = List.generate(20, (index) => currDate.year - index);
-
-    // 按年份分组生成可用季节
-    final yearSeasons = <int, List<DateTime>>{};
-    for (final year in years) {
-      final availableSeasons = <DateTime>[];
-      for (final season in seasons) {
-        final date = generateDateTime(year, season);
-        if (currDate.isAfter(date)) {
-          availableSeasons.add(date);
-        }
-      }
-      if (availableSeasons.isNotEmpty) {
-        yearSeasons[year] = availableSeasons;
-      }
-    }
-
-    KazumiDialog.showBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      useSafeArea: true,
-      constraints: buildTimelineBottomSheetConstraints(context),
-      isScrollControlled: true,
-      builder: (BuildContext sheetContext) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.72,
-          minChildSize: 0.4,
-          maxChildSize: 0.92,
-          expand: false,
-          builder: (context, scrollController) {
-            return buildTimelineBottomSheetShell(
-              sheetContext,
-              header: buildSeasonSheetHeader(sheetContext),
-              body: ListView.separated(
-                controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-                itemCount: yearSeasons.keys.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final year = yearSeasons.keys.elementAt(index);
-                  final availableSeasons = yearSeasons[year]!;
-
-                  return buildSeasonYearSection(
-                    context,
-                    year,
-                    availableSeasons,
-                  );
-                },
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget buildSeasonSheetHeader(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return MaterialBottomSheetHeader(
-      title: '时间机器',
-      description: '按季度回到任意放送季，时间线会立即切换。',
-      onClose: KazumiDialog.dismiss,
-      footer: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: colorScheme.secondaryContainer,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          '当前查看 ${getStringByDateTime(timelineController.selectedDate)}',
-          style: textTheme.labelLarge?.copyWith(
-            color: colorScheme.onSecondaryContainer,
-            fontWeight: FontWeight.w600,
+          MaterialBottomSheetHeader(
+            title: '排序与筛选',
+            onClose: () => Navigator.of(context).pop(),
           ),
-        ),
-      ),
-    );
-  }
-
-  DateTime? getSelectedSeason(List<DateTime> availableSeasons) {
-    for (final season in availableSeasons) {
-      if (isSameSeason(timelineController.selectedDate, season)) {
-        return season;
-      }
-    }
-
-    return null;
-  }
-
-  Widget buildSeasonYearSection(
-      BuildContext context, int year, List<DateTime> availableSeasons) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final hasSelectedSeason = getSelectedSeason(availableSeasons) != null;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-      decoration: BoxDecoration(
-        color: hasSelectedSeason
-            ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
-            : colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: hasSelectedSeason
-              ? colorScheme.secondary.withValues(alpha: 0.24)
-              : colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$year年',
-            style: textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          if (!hasSelectedSeason) ...[
-            const SizedBox(height: 4),
-            Text(
-              '共 ${availableSeasons.length} 个季度可选',
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          buildSeasonChoiceChips(context, availableSeasons),
-        ],
-      ),
-    );
-  }
-
-  Widget buildSeasonChoiceChips(
-      BuildContext context, List<DateTime> availableSeasons) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final selectedSeason = getSelectedSeason(availableSeasons);
-
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: availableSeasons.map((date) {
-        final seasonName = getSeasonStringByMonth(date.month);
-        final isSelected =
-            selectedSeason != null && isSameSeason(selectedSeason, date);
-
-        return ChoiceChip(
-          label: Text(seasonName),
-          selected: isSelected,
-          onSelected: (selected) {
-            if (!selected) {
-              return;
-            }
-            KazumiDialog.dismiss();
-            onSeasonSelected(date);
-          },
-          showCheckmark: false,
-          labelStyle: textTheme.labelLarge?.copyWith(
-            color: isSelected
-                ? colorScheme.onSecondaryContainer
-                : colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
-          backgroundColor: colorScheme.surfaceContainerHigh,
-          selectedColor: colorScheme.secondaryContainer,
-          side: BorderSide(
-            color: isSelected
-                ? Colors.transparent
-                : colorScheme.outlineVariant.withValues(alpha: 0.4),
-            width: 1,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        );
-      }).toList(),
-    );
-  }
-
-  void onSeasonSelected(DateTime date) async {
-    final currDate = DateTime.now();
-    timelineController.tryEnterSeason(date);
-
-    if (isSameSeason(timelineController.selectedDate, currDate)) {
-      await timelineController.getSchedules();
-    } else {
-      await timelineController.getSchedulesBySeason();
-    }
-
-    timelineController.seasonString =
-        AnimeSeason(timelineController.selectedDate).toString();
-  }
-
-  String getSortTypeLabel(int sortType) {
-    switch (sortType) {
-      case 1:
-        return '时间优先';
-      case 2:
-        return '评分优先';
-      case 3:
-        return '热度优先';
-      default:
-        return '热度优先';
-    }
-  }
-
-  int getEnabledTimelineFilterCount() {
-    var enabledCount = 0;
-    if (timelineController.notShowAbandonedBangumis) {
-      enabledCount++;
-    }
-    if (timelineController.notShowWatchedBangumis) {
-      enabledCount++;
-    }
-    if (timelineController.onlyShowWatchingBangumis) {
-      enabledCount++;
-    }
-    return enabledCount;
-  }
-
-  Widget buildTimelineOptionSummaryChip(
-    BuildContext context, {
-    required String label,
-    bool highlighted = false,
-    VoidCallback? onTap,
-    IconData? trailingIcon,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final foregroundColor =
-        highlighted ? colorScheme.onSecondaryContainer : colorScheme.onSurface;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: highlighted
-                ? colorScheme.secondaryContainer
-                : colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: textTheme.labelLarge?.copyWith(
-                  color: foregroundColor,
-                  fontWeight: FontWeight.w600,
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              padding: materialBottomSheetContentPadding,
+              children: [
+                ContentSection(
+                  title: '排序',
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final option in TimelineSort.values)
+                        ChoiceChip(
+                          label: Text(option.label),
+                          selected: _controller.sort == option,
+                          onSelected: (_) => _controller.changeSort(option),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              if (trailingIcon != null) ...[
-                const SizedBox(width: 6),
-                Icon(
-                  trailingIcon,
-                  size: 18,
-                  color: foregroundColor,
+                const SizedBox(height: 24),
+                ContentSection.group(
+                  title: '显示范围',
+                  children: [
+                    SwitchListTile(
+                      title: const Text('隐藏看过的番剧'),
+                      value: _controller.notShowWatchedBangumis,
+                      onChanged: _controller.setNotShowWatchedBangumis,
+                    ),
+                    SwitchListTile(
+                      title: const Text('隐藏抛弃的番剧'),
+                      value: _controller.notShowAbandonedBangumis,
+                      onChanged: _controller.setNotShowAbandonedBangumis,
+                    ),
+                    SwitchListTile(
+                      title: const Text('只看正在追的番剧'),
+                      value: _controller.onlyShowWatchingBangumis,
+                      onChanged: _controller.setOnlyShowWatchingBangumis,
+                    ),
+                  ],
                 ),
               ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget buildTimelineOptionsSheetHeader(BuildContext context) {
-    return MaterialBottomSheetHeader(
-      title: '时间线选项',
-      description: '调整排序和过滤条件，结果会立即应用到当前时间线。',
-      onClose: KazumiDialog.dismiss,
-      footer: Observer(
-        builder: (context) {
-          final enabledFilterCount = getEnabledTimelineFilterCount();
-          return Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              buildTimelineOptionSummaryChip(
-                context,
-                label: '当前排序 ${getSortTypeLabel(timelineController.sortType)}',
-                highlighted: true,
-              ),
-              buildTimelineOptionSummaryChip(
-                context,
-                label: enabledFilterCount == 0
-                    ? '未启用过滤条件'
-                    : '已启用 $enabledFilterCount 个过滤条件',
-                onTap: scrollToFilterSection,
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget buildSortOptionTile(
-    BuildContext context, {
-    required int sortType,
-    required String title,
-    required String description,
-    required IconData icon,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final isSelected = timelineController.sortType == sortType;
-
-    return Ink(
-      decoration: BoxDecoration(
-        color: isSelected
-            ? colorScheme.secondaryContainer
-            : colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isSelected
-              ? colorScheme.secondary.withValues(alpha: 0.3)
-              : colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        leading: Icon(
-          icon,
-          color: isSelected
-              ? colorScheme.onSecondaryContainer
-              : colorScheme.onSurfaceVariant,
-        ),
-        title: Text(
-          title,
-          style: textTheme.titleMedium?.copyWith(
-            color: isSelected
-                ? colorScheme.onSecondaryContainer
-                : colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Text(
-          description,
-          style: textTheme.bodySmall?.copyWith(
-            color: isSelected
-                ? colorScheme.onSecondaryContainer.withValues(alpha: 0.82)
-                : colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: Icon(
-          isSelected
-              ? Icons.check_circle_rounded
-              : Icons.radio_button_unchecked_rounded,
-          color: isSelected
-              ? colorScheme.onSecondaryContainer
-              : colorScheme.onSurfaceVariant,
-        ),
-        onTap: () {
-          KazumiDialog.dismiss();
-          timelineController.changeSortType(sortType);
-        },
-      ),
-    );
-  }
-
-  Widget buildFilterOptionTile(
-    BuildContext context, {
-    required String title,
-    required String description,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-    required IconData icon,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Ink(
-      decoration: BoxDecoration(
-        color: value
-            ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
-            : colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: value
-              ? colorScheme.secondary.withValues(alpha: 0.24)
-              : colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        leading: Icon(
-          icon,
-          color: value
-              ? colorScheme.onSecondaryContainer
-              : colorScheme.onSurfaceVariant,
-        ),
-        title: Text(
-          title,
-          style: textTheme.titleMedium?.copyWith(
-            color: value
-                ? colorScheme.onSecondaryContainer
-                : colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Text(
-          description,
-          style: textTheme.bodySmall?.copyWith(
-            color: value
-                ? colorScheme.onSecondaryContainer.withValues(alpha: 0.82)
-                : colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: Switch(
-          value: value,
-          onChanged: onChanged,
-        ),
-        onTap: () {
-          onChanged(!value);
-        },
-      ),
-    );
-  }
-
-  Widget showFilterSwitcher() {
-    return MaterialBottomSheetSection(
-      key: filterSectionKey,
-      title: '过滤器',
-      description: '按收藏状态收起不需要显示的条目，支持连续调整。',
-      child: Column(
-        children: [
-          Observer(
-            builder: (context) => buildFilterOptionTile(
-              context,
-              title: '不显示已抛弃的番剧',
-              description: '隐藏已经标记为抛弃的条目。',
-              value: timelineController.notShowAbandonedBangumis,
-              onChanged: (value) {
-                timelineController.setNotShowAbandonedBangumis(value);
-              },
-              icon: Icons.heart_broken_rounded,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Observer(
-            builder: (context) => buildFilterOptionTile(
-              context,
-              title: '不显示已看过的番剧',
-              description: '把已经看完的条目从时间线中移除。',
-              value: timelineController.notShowWatchedBangumis,
-              onChanged: (value) {
-                timelineController.setNotShowWatchedBangumis(value);
-              },
-              icon: Icons.task_alt_rounded,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Observer(
-            builder: (context) => buildFilterOptionTile(
-              context,
-              title: '只显示在看的番剧',
-              description: '聚焦当前正在追更的条目。',
-              value: timelineController.onlyShowWatchingBangumis,
-              onChanged: (value) {
-                timelineController.setOnlyShowWatchingBangumis(value);
-              },
-              icon: Icons.live_tv_rounded,
             ),
           ),
         ],
-      ),
-    );
+      );
+    });
   }
 
-  Widget showSortSwitcher() {
-    return MaterialBottomSheetSection(
-      title: '排序方式',
-      description: '选择每一天内番剧卡片的排列方式。',
-      child: Column(
-        children: [
-          buildSortOptionTile(
-            context,
-            sortType: 3,
-            title: '按热度排序',
-            description: '优先展示讨论度和关注度更高的条目。',
-            icon: Icons.local_fire_department_rounded,
-          ),
-          const SizedBox(height: 12),
-          buildSortOptionTile(
-            context,
-            sortType: 2,
-            title: '按评分排序',
-            description: '优先展示评分更高的条目。',
-            icon: Icons.star_rounded,
-          ),
-          const SizedBox(height: 12),
-          buildSortOptionTile(
-            context,
-            sortType: 1,
-            title: '按时间排序',
-            description: '恢复默认时间顺序，方便按播出节奏查看。',
-            icon: Icons.schedule_rounded,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildTimelineOptionsSheet(BuildContext context) {
-    return buildTimelineBottomSheetShell(
-      context,
-      header: buildTimelineOptionsSheetHeader(context),
-      body: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-        children: [
-          showSortSwitcher(),
-          const SizedBox(height: 12),
-          showFilterSwitcher(),
-        ],
-      ),
+  void _showOptions() {
+    showAdaptiveBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      maxHeightFactor: .8,
+      compactLandscapeMaxHeightFactor: 1,
+      builder: _buildTimelineOptionsSheet,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: SysAppBar(
-        needTopOffset: false,
-        toolbarHeight: 104,
-        bottom: TabBar(
-          controller: tabController,
-          tabs: tabs,
-          indicatorColor: Theme.of(context).colorScheme.primary,
-        ),
-        title: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          child: Observer(builder: (context) {
-            return Text(timelineController.seasonString);
-          }),
-          onTap: () {
-            showSeasonBottomSheet(context);
-          },
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          KazumiDialog.showBottomSheet(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            isScrollControlled: true,
-            constraints: buildTimelineBottomSheetConstraints(
-              context,
-              compactHeightFactor: 2 / 3,
-            ),
-            clipBehavior: Clip.antiAlias,
-            useSafeArea: true,
-            context: context,
-            builder: (context) {
-              return buildTimelineOptionsSheet(context);
-            },
-          );
-        },
-        child: const Icon(Icons.tune),
-      ),
-      body: Observer(builder: (context) {
-        if (timelineController.isLoading &&
-            timelineController.bangumiCalendar.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-        if (timelineController.isTimeOut) {
-          return Center(
-            child: SizedBox(
-              height: 400,
-              child: BangumiMirrorErrorWidget(
-                onRetry: () {
-                  onSeasonSelected(timelineController.selectedDate);
-                },
-                onSettingsReturned: () {
-                  if (mounted) {
-                    setState(() {});
-                  }
-                },
-              ),
-            ),
-          );
-        }
-        return TabBarView(
-          controller: tabController,
-          children: contentGrid(timelineController.bangumiCalendar),
-        );
-      }),
+    return DefaultTabController(
+      length: 7,
+      initialIndex: DateTime.now().weekday - 1,
+      animationDuration:
+          MediaQuery.disableAnimationsOf(context) ? Duration.zero : null,
+      child: _buildContent(context),
     );
   }
 
-  List<Widget> contentGrid(List<List<BangumiItem>> bangumiCalendar) {
-    List<Widget> gridViewList = [];
-    int crossCount = 1;
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
-      crossCount = 2;
-    }
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
-      crossCount = 3;
-    }
-    double cardHeight = isDesktop() ? 160 : (isTablet() ? 140 : 120);
-    for (var bangumiList in bangumiCalendar) {
-      // 根据过滤器设置过滤番剧
-      var filteredList = bangumiList;
-
-      if (timelineController.notShowAbandonedBangumis) {
-        final abandonedBangumiIds =
-            timelineController.loadAbandonedBangumiIds();
-        filteredList = filteredList
-            .where((item) => !abandonedBangumiIds.contains(item.id))
-            .toList();
-      }
-
-      if (timelineController.notShowWatchedBangumis) {
-        final watchedBangumiIds = timelineController.loadWatchedBangumiIds();
-        filteredList = filteredList
-            .where((item) => !watchedBangumiIds.contains(item.id))
-            .toList();
-      }
-
-      if (timelineController.onlyShowWatchingBangumis) {
-        final watchingBangumiIds = timelineController.loadWatchingBangumiIds();
-        filteredList = filteredList
-            .where((item) => watchingBangumiIds.contains(item.id))
-            .toList();
-      }
-
-      gridViewList.add(
-        CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  mainAxisSpacing: StyleString.cardSpace - 2,
-                  crossAxisSpacing: StyleString.cardSpace,
-                  crossAxisCount: crossCount,
-                  mainAxisExtent: cardHeight + 12,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    if (filteredList.isEmpty) return null;
-                    final item = filteredList[index];
-                    return BangumiTimelineCard(
-                        bangumiItem: item,
-                        cardHeight: cardHeight,
-                        showRating: showRating);
-                  },
-                  childCount:
-                      filteredList.isNotEmpty ? filteredList.length : 10,
+  Widget _buildContent(BuildContext context) {
+    final theme = Theme.of(context);
+    final scaler = MediaQuery.textScalerOf(context);
+    return LayoutBuilder(builder: (context, constraints) {
+      final narrowPortrait = constraints.maxWidth < 600 &&
+          constraints.maxHeight > constraints.maxWidth;
+      final sidePadding = constraints.maxWidth < 600 ? 16.0 : 24.0;
+      final contentWidth =
+          (constraints.maxWidth - sidePadding * 2).clamp(0.0, 1280.0);
+      final inset = (constraints.maxWidth - contentWidth) / 2;
+      final minCardWidth = scaler.scale(16) > 24 ? 440.0 : 340.0;
+      final columns =
+          ((contentWidth + 12) / (minCardWidth + 12)).floor().clamp(1, 3);
+      return Observer(builder: (context) {
+        final loading = _controller.isLoading;
+        final failed = _controller.isTimeOut;
+        final watchingIds = _controller.loadWatchingBangumiIds();
+        final calendar = _controller.filterCalendar(watchingIds);
+        final filters = _controller.activeFilterCount;
+        final today = DateTime.now();
+        final currentSeason = isSameSeason(_controller.selectedDate, today);
+        final header = narrowPortrait
+            ? null
+            : _buildHeader(context,
+                loading: loading,
+                compact: constraints.maxHeight < 500,
+                horizontal: contentWidth >= scaler.scale(16) * 40);
+        final weekHeight = _TimelineWeekSelector.heightFor(scaler) + 16;
+        final weekSelector = Padding(
+          padding: EdgeInsets.fromLTRB(inset, 0, inset, 16),
+          child: _TimelineWeekSelector(
+            counts: calendar.map((day) => day.length).toList(),
+            todayIndex: currentSeason ? today.weekday - 1 : null,
+            isLoading: loading || failed,
+          ),
+        );
+        return Scaffold(
+          appBar: SysAppBar(
+            needTopOffset: false,
+            toolbarHeight: 72,
+            title: narrowPortrait
+                ? _buildSeasonPicker(context, loading: loading, inAppBar: true)
+                : Text(
+                    '时间表',
+                    style: theme.textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: IconButton.filledTonal(
+                  tooltip: '排序与筛选',
+                  onPressed: _showOptions,
+                  icon: Badge(
+                    isLabelVisible: filters > 0,
+                    label: Text('$filters'),
+                    child: const Icon(Icons.tune_rounded),
+                  ),
                 ),
               ),
+            ],
+          ),
+          body: SafeArea(
+            top: false,
+            child: LayoutBuilder(
+                builder: (context, viewport) => NestedScrollView(
+                      headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                        if (header != null)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.fromLTRB(inset, 8, inset, 20),
+                              child: header,
+                            ),
+                          ),
+                        SliverOverlapAbsorber(
+                          handle:
+                              NestedScrollView.sliverOverlapAbsorberHandleFor(
+                                  context),
+                          sliver: SliverPersistentHeader(
+                            pinned: true,
+                            delegate: _WeekHeaderDelegate(
+                              height: weekHeight,
+                              color: theme.scaffoldBackgroundColor,
+                              child: weekSelector,
+                            ),
+                          ),
+                        ),
+                      ],
+                      body: loading && calendar.every((day) => day.isEmpty)
+                          ? _buildLoading(viewport.maxHeight, weekHeight)
+                          : failed
+                              ? _TimelineScrollView(
+                                  slivers: [
+                                    SliverPadding(
+                                      padding: const EdgeInsets.all(24),
+                                      sliver: SliverToBoxAdapter(
+                                        child: BangumiMirrorErrorWidget(
+                                          onRetry: () => _controller.loadSeason(
+                                              _controller.selectedDate),
+                                          onSettingsReturned: () {
+                                            if (mounted) setState(() {});
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : TabBarView(
+                                  children: [
+                                    for (var day = 0; day < 7; day++)
+                                      _buildDay(
+                                        context,
+                                        day: day,
+                                        items: calendar[day],
+                                        watchingIds: watchingIds,
+                                        columns: columns,
+                                        inset: inset,
+                                        compact: narrowPortrait,
+                                        loading: loading,
+                                      ),
+                                  ],
+                                ),
+                    )),
+          ),
+        );
+      });
+    });
+  }
+
+  Widget _buildLoading(double viewportHeight, double overlapHeight) {
+    return LayoutBuilder(builder: (context, constraints) {
+      // The injector prevents overlap; this offset centers loading in the whole page.
+      final contentHeight =
+          (constraints.maxHeight - overlapHeight).clamp(0.0, double.infinity);
+      final headerHeight = viewportHeight - contentHeight;
+      final bottomInset = headerHeight.clamp(
+          0.0, (contentHeight - 48).clamp(0.0, double.infinity));
+      return _TimelineScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: bottomInset),
+              child: const Center(child: LoadingIndicator()),
             ),
-          ],
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildSeasonPicker(BuildContext context,
+      {required bool loading, bool compact = false, bool inAppBar = false}) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final label = _seasonLabel(_controller.selectedDate);
+    final style = inAppBar
+        ? theme.textTheme.titleMedium
+        : compact || MediaQuery.textScalerOf(context).scale(16) > 24
+            ? theme.textTheme.titleLarge
+            : theme.textTheme.headlineMedium;
+    return Semantics(
+      label: '切换放送季度，$label',
+      button: true,
+      enabled: !loading,
+      onTap: loading ? null : () => _showSeasonBottomSheet(context),
+      excludeSemantics: true,
+      child: Tooltip(
+        message: '切换放送季度',
+        child: InkWell(
+          onTap: loading ? null : () => _showSeasonBottomSheet(context),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(label,
+                      maxLines: inAppBar ? 1 : null,
+                      overflow: inAppBar ? TextOverflow.ellipsis : null,
+                      style: style?.copyWith(
+                          color: colors.onSurface,
+                          fontWeight: FontWeight.w700)),
+                ),
+                SizedBox(width: inAppBar ? 4 : 12),
+                if (inAppBar)
+                  const Icon(Icons.expand_more_rounded, size: 20)
+                else
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: colors.secondaryContainer,
+                    foregroundColor: colors.onSecondaryContainer,
+                    child: const Icon(Icons.expand_more_rounded, size: 24),
+                  ),
+              ],
+            ),
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context,
+      {required bool loading,
+      required bool compact,
+      required bool horizontal}) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final date = _controller.selectedDate;
+    final startMonth = ((date.month - 1) ~/ 3) * 3 + 1;
+    final seasonPicker = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSeasonPicker(context, loading: loading, compact: compact),
+        if (!compact)
+          Text(
+            loading ? '正在加载放送时间表…' : '$startMonth — ${startMonth + 2} 月 · 每周放送',
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: colors.onSurfaceVariant),
+          ),
+      ],
+    );
+    final filters = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        FilterChip(
+          avatar: _controller.onlyShowWatchingBangumis
+              ? null
+              : const Icon(Icons.bookmark_border_rounded, size: 18),
+          label: const Text('只看在追'),
+          selected: _controller.onlyShowWatchingBangumis,
+          onSelected: _controller.setOnlyShowWatchingBangumis,
+        ),
+        ActionChip(
+          avatar: const Icon(Icons.sort_rounded, size: 18),
+          label: Text(_controller.sort.label),
+          onPressed: _showOptions,
+        ),
+        if (_controller.notShowWatchedBangumis)
+          InputChip(
+            label: const Text('隐藏看过'),
+            onDeleted: () => _controller.setNotShowWatchedBangumis(false),
+            deleteButtonTooltipMessage: '显示看过的番剧',
+          ),
+        if (_controller.notShowAbandonedBangumis)
+          InputChip(
+            label: const Text('隐藏抛弃'),
+            onDeleted: () => _controller.setNotShowAbandonedBangumis(false),
+            deleteButtonTooltipMessage: '显示抛弃的番剧',
+          ),
+      ],
+    );
+    if (horizontal) {
+      return Row(
+        children: [
+          Expanded(child: seasonPicker),
+          const SizedBox(width: 24),
+          Flexible(
+            child: Align(alignment: Alignment.centerRight, child: filters),
+          ),
+        ],
       );
     }
-    return gridViewList;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [seasonPicker, SizedBox(height: compact ? 8 : 16), filters],
+    );
   }
+
+  Widget _buildDay(
+    BuildContext context, {
+    required int day,
+    required List<BangumiItem> items,
+    required Set<int> watchingIds,
+    required int columns,
+    required double inset,
+    required bool compact,
+    required bool loading,
+  }) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final cardHeight = BangumiTimelineCard.heightFor(
+        MediaQuery.textScalerOf(context),
+        compact: compact);
+    final rawCalendar = _controller.bangumiCalendar;
+    final filteredOut = day < rawCalendar.length && rawCalendar[day].isNotEmpty;
+    return _TimelineScrollView(
+      key: PageStorageKey('timeline-day-$day'),
+      slivers: [
+        if (loading)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(inset, 0, inset, 12),
+              child: const LinearProgressIndicator(),
+            ),
+          ),
+        if (items.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(inset + 16, 40, inset + 16, 40),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: colors.secondaryContainer,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Icon(
+                      filteredOut
+                          ? Icons.filter_alt_off_outlined
+                          : Icons.event_available_outlined,
+                      size: 32,
+                      color: colors.onSecondaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(filteredOut ? '没有符合筛选的番剧' : '这一天暂无放送',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Text(
+                    filteredOut ? '调整筛选条件，看看其他作品吧' : '切换其他星期，发现更多番剧',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: colors.onSurfaceVariant),
+                  ),
+                  if (filteredOut) ...[
+                    const SizedBox(height: 20),
+                    FilledButton.tonal(
+                        onPressed: _controller.clearFilters,
+                        child: const Text('清除筛选')),
+                  ],
+                ],
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(inset, 0, inset, 24),
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                mainAxisExtent: cardHeight,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = items[index];
+                  return BangumiTimelineCard(
+                    key: ValueKey(item.id),
+                    bangumiItem: item,
+                    compact: compact,
+                    showRating: _showRating,
+                    isWatching: watchingIds.contains(item.id),
+                    onTap: () => context.pushNamed('/info/', arguments: item),
+                  );
+                },
+                childCount: items.length,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _TimelineScrollView extends StatelessWidget {
+  const _TimelineScrollView({super.key, required this.slivers});
+
+  final List<Widget> slivers;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        SliverOverlapInjector(
+          handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+        ),
+        ...slivers,
+      ],
+    );
+  }
+}
+
+class _WeekHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _WeekHeaderDelegate({
+    required this.height,
+    required this.color,
+    required this.child,
+  });
+
+  final double height;
+  final Color color;
+  final Widget child;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+          BuildContext context, double shrinkOffset, bool overlapsContent) =>
+      ColoredBox(color: color, child: child);
+
+  @override
+  bool shouldRebuild(covariant _WeekHeaderDelegate oldDelegate) =>
+      oldDelegate.height != height ||
+      oldDelegate.color != color ||
+      oldDelegate.child != child;
 }

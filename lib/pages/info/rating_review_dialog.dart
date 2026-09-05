@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -52,13 +54,10 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     '超神作',
   ];
 
-  /// Maximum number of tags that can be submitted.
   static const int _maxSelectedTags = 10;
 
-  /// Maximum length for one custom tag.
   static const int _maxTagLength = 10;
 
-  /// Maximum length for the review text.
   static const int _maxCommentLength = 380;
 
   static const Duration _panelFadeDuration = Duration(milliseconds: 180);
@@ -337,14 +336,12 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
       child: Column(
         children: [
           _buildMainHeader(theme),
-
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
               child: _buildMainContent(theme),
             ),
           ),
-
           _buildActions(theme),
         ],
       ),
@@ -651,8 +648,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                         ? '最多 $_maxSelectedTags 个标签'
                         : null,
                     errorText: _tagErrorText,
-                    // Outlined, not filled: this field floats a label, and
-                    // only the outline can notch around it.
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -767,8 +762,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                        child: LoadingIndicator(
                           color: theme.colorScheme.onPrimary,
                         ),
                       )

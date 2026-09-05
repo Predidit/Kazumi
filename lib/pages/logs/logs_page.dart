@@ -1,11 +1,14 @@
-import 'dart:io';
 import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 
 class LogsPage extends StatefulWidget {
   const LogsPage({super.key});
@@ -100,7 +103,6 @@ class _LogsPageState extends State<LogsPage> {
       return;
     }
 
-    // 使用 Future.microtask 避免在构建过程中调用 setState
     Future.microtask(() {
       if (!mounted) return;
 
@@ -167,7 +169,7 @@ class _LogsPageState extends State<LogsPage> {
   Widget get buildBody {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: LoadingIndicator(),
       );
     }
 

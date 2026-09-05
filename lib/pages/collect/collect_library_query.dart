@@ -2,7 +2,7 @@ import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 
 enum CollectSort {
-  recentlyUpdated('最近更新'),
+  recentlyChanged('最近变更'),
   title('番剧名称'),
   rating('评分最高'),
   airDate('开播时间');
@@ -39,7 +39,7 @@ class CollectLibraryQuery {
         .toList();
     result.sort((a, b) {
       final comparison = switch (sort) {
-        CollectSort.recentlyUpdated => b.time.compareTo(a.time),
+        CollectSort.recentlyChanged => b.time.compareTo(a.time),
         CollectSort.title => titleOf(a).toLowerCase().compareTo(
               titleOf(b).toLowerCase(),
             ),

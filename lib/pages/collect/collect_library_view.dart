@@ -33,7 +33,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
   final _searchFocus = FocusNode();
   final _scrollController = ScrollController();
   CollectType? _selectedType = CollectType.watching;
-  CollectSort _sort = CollectSort.recentlyUpdated;
+  CollectSort _sort = CollectSort.recentlyChanged;
   String _query = '';
 
   static const _categories = <CollectType?>[
@@ -263,8 +263,9 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
         key: ValueKey('collect-${entry.bangumiItem.id}'),
         entry: entry,
         onOpen: () => widget.onOpen(entry.bangumiItem),
-        onChangeType: (type) => widget.onChangeType(entry.bangumiItem, type),
-        enabled: widget.canEdit(entry.bangumiItem),
+        onChangeType: widget.canEdit(entry.bangumiItem)
+            ? (type) => widget.onChangeType(entry.bangumiItem, type)
+            : null,
       );
 
   Widget _category(CollectType? type, CollectLibraryQuery query,
@@ -312,11 +313,21 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
                   mainAxisSize: wide ? MainAxisSize.max : MainAxisSize.min,
                   children: [
                     Icon(
-                        type == null
-                            ? Icons.video_library_outlined
-                            : _collectTypeIcon(type),
-                        size: 20,
-                        color: foreground),
+                      switch (type) {
+                        CollectType.watching =>
+                          Icons.play_circle_outline_rounded,
+                        CollectType.planToWatch =>
+                          Icons.bookmark_border_rounded,
+                        CollectType.onHold =>
+                          Icons.pause_circle_outline_rounded,
+                        CollectType.watched => Icons.task_alt_rounded,
+                        CollectType.abandoned =>
+                          Icons.remove_circle_outline_rounded,
+                        _ => Icons.video_library_outlined,
+                      },
+                      size: 20,
+                      color: foreground,
+                    ),
                     const SizedBox(width: 10),
                     Text(label,
                         style: theme.textTheme.labelLarge?.copyWith(
@@ -374,6 +385,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
             ],
           ),
           MenuAnchor(
+            consumeOutsideTap: true,
             menuChildren: [
               for (final sort in CollectSort.values)
                 MenuItemButton(

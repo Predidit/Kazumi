@@ -1246,11 +1246,17 @@ class _PlayerItemState extends State<PlayerItem>
                                   try {
                                     videoPageController
                                         .cancelAutomaticDanmakuLoad();
+                                    final session = videoPageController
+                                        .beginDanmakuLoadSession();
                                     final hasDanmakus = await playerController
                                         .danmaku
                                         .getDanDanmakuByEpisodeID(
-                                            episode.episodeId);
+                                            episode.episodeId,
+                                            session: session);
                                     if (!mounted) {
+                                      return;
+                                    }
+                                    if (hasDanmakus == null) {
                                       return;
                                     }
                                     if (hasDanmakus) {

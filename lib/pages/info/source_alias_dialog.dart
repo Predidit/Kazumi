@@ -1,25 +1,30 @@
-import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
+part of 'source_sheet.dart';
 
-/// Deletions edit [aliases] in place and then fire [onAliasesChanged], so the
-/// caller can persist the list it passed in.
-void showAliasPickerDialog({
+void _showAliasPickerDialog({
+  required String sourceName,
   required List<String> aliases,
   required ValueChanged<String> onAliasSelected,
   required VoidCallback onAliasesChanged,
 }) {
   KazumiDialog.show(
     builder: (context) => _AliasPickerDialog(
+      sourceName: sourceName,
       aliases: aliases,
-      onAliasSelected: onAliasSelected,
+      onAliasSelected: (alias) {
+        KazumiDialog.dismiss();
+        onAliasSelected(alias);
+      },
       onAliasesChanged: onAliasesChanged,
     ),
   );
 }
 
-/// [onSubmit] never sees a blank keyword.
-void showCustomKeywordDialog({required ValueChanged<String> onSubmit}) {
-  String keyword = '';
+void _showCustomKeywordDialog({
+  required ValueChanged<String> onSubmit,
+  required String initialKeyword,
+  required String sourceName,
+}) {
+  String keyword = initialKeyword;
 
   void submit(String value) {
     final trimmed = value.trim();
@@ -30,10 +35,19 @@ void showCustomKeywordDialog({required ValueChanged<String> onSubmit}) {
 
   KazumiDialog.show(
     builder: (context) => AlertDialog(
-      title: const Text('输入别名'),
-      content: TextField(
+      title: const Text('修改检索词'),
+      content: TextFormField(
+        initialValue: initialKeyword,
+        autofocus: true,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          labelText: '检索关键词',
+          helperText: '仅检索来源：$sourceName',
+          helperMaxLines: 3,
+          border: const OutlineInputBorder(),
+        ),
         onChanged: (value) => keyword = value,
-        onSubmitted: submit,
+        onFieldSubmitted: submit,
       ),
       actions: [
         TextButton(
@@ -45,7 +59,7 @@ void showCustomKeywordDialog({required ValueChanged<String> onSubmit}) {
         ),
         TextButton(
           onPressed: () => submit(keyword),
-          child: const Text('确认'),
+          child: const Text('检索'),
         ),
       ],
     ),
@@ -54,11 +68,13 @@ void showCustomKeywordDialog({required ValueChanged<String> onSubmit}) {
 
 class _AliasPickerDialog extends StatefulWidget {
   const _AliasPickerDialog({
+    required this.sourceName,
     required this.aliases,
     required this.onAliasSelected,
     required this.onAliasesChanged,
   });
 
+  final String sourceName;
   final List<String> aliases;
   final ValueChanged<String> onAliasSelected;
   final VoidCallback onAliasesChanged;
@@ -68,15 +84,6 @@ class _AliasPickerDialog extends StatefulWidget {
 }
 
 class _AliasPickerDialogState extends State<_AliasPickerDialog> {
-  late final ValueNotifier<List<String>> _aliasNotifier =
-      ValueNotifier<List<String>>(List.from(widget.aliases));
-
-  @override
-  void dispose() {
-    _aliasNotifier.dispose();
-    super.dispose();
-  }
-
   void _confirmDelete(int index) {
     KazumiDialog.show(
       builder: (context) => AlertDialog(
@@ -93,8 +100,8 @@ class _AliasPickerDialogState extends State<_AliasPickerDialog> {
           TextButton(
             onPressed: () {
               KazumiDialog.dismiss();
-              widget.aliases.removeAt(index);
-              _aliasNotifier.value = List.from(widget.aliases);
+              // Aliases are shared across source rules.
+              setState(() => widget.aliases.removeAt(index));
               widget.onAliasesChanged();
               if (widget.aliases.isEmpty) {
                 Navigator.of(this.context).pop();
@@ -113,24 +120,35 @@ class _AliasPickerDialogState extends State<_AliasPickerDialog> {
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
         width: 560,
-        child: ValueListenableBuilder<List<String>>(
-          valueListenable: _aliasNotifier,
-          builder: (context, aliasList, child) {
-            return ListView(
-              shrinkWrap: true,
-              children: [
-                for (var index = 0; index < aliasList.length; index++)
-                  ListTile(
-                    title: Text(aliasList[index]),
-                    trailing: IconButton(
-                      onPressed: () => _confirmDelete(index),
-                      icon: const Icon(Icons.delete),
-                    ),
-                    onTap: () => widget.onAliasSelected(aliasList[index]),
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('别名检索', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  Text(
+                    '仅检索来源：${widget.sourceName}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
-              ],
-            );
-          },
+                ],
+              ),
+            ),
+            for (var index = 0; index < widget.aliases.length; index++)
+              ListTile(
+                title: Text(widget.aliases[index]),
+                trailing: IconButton(
+                  onPressed: () => _confirmDelete(index),
+                  icon: const Icon(Icons.delete),
+                ),
+                onTap: () => widget.onAliasSelected(widget.aliases[index]),
+              ),
+          ],
         ),
       ),
     );

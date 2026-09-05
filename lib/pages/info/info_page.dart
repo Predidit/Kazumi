@@ -511,6 +511,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                   onPressed: () {
                     showAdaptiveBottomSheet<void>(
                       context: context,
+                      maxHeightFactor: 0.88,
                       builder: (context) {
                         return SourceSheet(infoController: infoController);
                       },

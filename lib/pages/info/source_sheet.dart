@@ -1,31 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:mobx/mobx.dart' show reaction, ReactionDisposer;
-import 'package:kazumi/pages/info/info_controller.dart';
-import 'package:kazumi/pages/info/source_alias_dialog.dart';
-import 'package:kazumi/pages/info/source_captcha_flow.dart';
-import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/split_list_row.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/pages/info/source_captcha_flow.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
+import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/plugin/plugin_search_service.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
-import 'package:url_launcher/url_launcher.dart';
-import 'package:kazumi/services/plugin/plugin_search_service.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+part 'source_alias_dialog.dart';
+part 'source_sheet_view.dart';
 
 class SourceSheet extends StatefulWidget {
-  const SourceSheet({
-    super.key,
-    required this.infoController,
-  });
+  const SourceSheet({super.key, required this.infoController});
 
   final InfoController infoController;
 
@@ -36,111 +34,89 @@ class SourceSheet extends StatefulWidget {
 class _SourceSheetState extends State<SourceSheet> {
   final CollectController _collectController = inject<CollectController>();
   final PluginsController _pluginsController = inject<PluginsController>();
+  final Map<String, String> _sourceKeywords = {};
 
   late final String _keyword;
   late final PluginSearchService _searchService;
   late final SourceCaptchaFlow _captchaFlow;
-
-  String? _expandedSource;
-  ReactionDisposer? _autoExpandDisposer;
+  RuleCancelToken? _chapterCancelToken;
 
   @override
   void initState() {
     super.initState();
-    _keyword = widget.infoController.bangumiItem.nameCn == ''
-        ? widget.infoController.bangumiItem.name
-        : widget.infoController.bangumiItem.nameCn;
+    final item = widget.infoController.bangumiItem;
+    _keyword = item.nameCn.isEmpty ? item.name : item.nameCn;
     _searchService = PluginSearchService(
       infoController: widget.infoController,
       pluginsController: _pluginsController,
     );
-    _searchService.queryAllSource(_keyword);
     _captchaFlow = SourceCaptchaFlow(
       onVerified: _showVerifiedResult,
-      onCancelled: (plugin) => _querySource(_keyword, plugin.name),
+      onCancelled: (plugin) => _retry(plugin.name),
     );
-    // Auto-open only the first result; subsequent expansion belongs to the user.
-    _autoExpandDisposer = reaction<String?>(
-      (_) => _firstSourceWithResults(),
-      (name) {
-        if (name == null) return;
-        setState(() => _expandedSource = name);
-        _stopAutoExpand();
-      },
-    );
+    _searchService.queryAllSource(_keyword);
   }
 
   @override
   void dispose() {
-    _stopAutoExpand();
+    _chapterCancelToken?.cancel();
     _searchService.cancel();
     _captchaFlow.dispose();
     super.dispose();
   }
 
-  void _stopAutoExpand() {
-    _autoExpandDisposer?.call();
-    _autoExpandDisposer = null;
+  String _keywordFor(String name) => _sourceKeywords[name] ?? _keyword;
+
+  Plugin _pluginFor(String name) =>
+      _pluginsController.pluginList.firstWhere((plugin) => plugin.name == name);
+
+  void _querySource(String keyword, String pluginName) {
+    final trimmed = keyword.trim();
+    if (!mounted || trimmed.isEmpty) return;
+    setState(() => _sourceKeywords[pluginName] = trimmed);
+    _searchService.querySource(trimmed, pluginName);
   }
 
-  // Late verification callbacks must not restart a disposed sheet.
-  void _querySource(String keyword, String pluginName) {
-    if (!mounted) return;
-    _searchService.querySource(keyword, pluginName);
-  }
+  void _retry(String name) => _querySource(_keywordFor(name), name);
 
   void _showVerifiedResult(Plugin plugin, String pageHtml) {
+    if (!mounted) return;
     if (_searchService.applyHarvestedSearchResult(plugin.name, pageHtml)) {
       KazumiDialog.showToast(message: '验证成功');
       return;
     }
-    // Wait before retrying to avoid triggering the rate limit again.
     KazumiDialog.showTimedSuccessDialog(
       title: '验证成功',
       message: '即将重新检索',
-      onComplete: () => _querySource(_keyword, plugin.name),
+      onComplete: () => _retry(plugin.name),
     );
   }
 
-  // Alias searches can add responses for the same plugin.
-  List<SearchItem> _resultsFor(String pluginName) {
-    final results = <SearchItem>[];
-    for (final response in widget.infoController.pluginSearchResponseList) {
-      if (response.pluginName == pluginName) {
-        results.addAll(response.data);
-      }
-    }
-    return results;
-  }
-
-  String? _firstSourceWithResults() {
-    for (final plugin in _pluginsController.pluginList) {
-      if (_resultsFor(plugin.name).isNotEmpty) return plugin.name;
-    }
-    return null;
-  }
-
-  void _toggleSource(String pluginName) {
-    setState(() {
-      _expandedSource = _expandedSource == pluginName ? null : pluginName;
-    });
-    _stopAutoExpand();
-  }
-
-  void _openInBrowser(Plugin plugin) {
+  Future<void> _openInBrowser(String name) async {
+    final plugin = _pluginFor(name);
     final targetUrl = plugin.usesApiSearch
         ? plugin.baseUrl
-        : plugin.searchURL.replaceFirst(
+        : plugin.searchURL.replaceAll(
             '@keyword',
-            Uri.encodeQueryComponent(_keyword),
+            Uri.encodeQueryComponent(_keywordFor(name)),
           );
-    launchUrl(Uri.parse(targetUrl), mode: LaunchMode.externalApplication);
+    try {
+      if (await launchUrl(Uri.parse(targetUrl),
+          mode: LaunchMode.externalApplication)) {
+        return;
+      }
+    } catch (error) {
+      KazumiLogger().w('SourceSheet: failed to open browser', error: error);
+    }
+    if (mounted) KazumiDialog.showToast(message: '无法打开浏览器，请稍后重试');
   }
 
-  Future<void> _openSearchItem(Plugin plugin, SearchItem searchItem) async {
-    final cancelToken = RuleCancelToken();
+  Future<void> _openSearchItem(String name, SearchItem searchItem) async {
+    if (_chapterCancelToken != null) return;
+    final plugin = _pluginFor(name);
+    final cancelToken = _chapterCancelToken = RuleCancelToken();
     KazumiDialog.showLoading(
-      msg: '获取中',
+      msg: '正在获取播放列表',
       barrierDismissible: isDesktop(),
       onDismiss: cancelToken.cancel,
     );
@@ -149,11 +125,9 @@ class _SourceSheetState extends State<SourceSheet> {
         searchItem.src,
         cancelToken: cancelToken,
       );
-      if (roads.isEmpty) {
-        throw ChapterErrorException(plugin.name);
-      }
+      if (!mounted || cancelToken.isCancelled) return;
+      if (roads.isEmpty) throw ChapterErrorException(plugin.name);
       KazumiDialog.dismiss();
-      if (!mounted) return;
       context.pushNamed(
         '/video/',
         arguments: OnlineVideoPlaybackArgs(
@@ -164,310 +138,78 @@ class _SourceSheetState extends State<SourceSheet> {
           roads: roads,
         ),
       );
-    } catch (_) {
-      KazumiLogger().w("PluginSearchService: failed to query video playlist");
+    } catch (error) {
+      if (!mounted || cancelToken.isCancelled) return;
+      KazumiLogger().w('SourceSheet: failed to query playlist', error: error);
       KazumiDialog.dismiss();
+      KazumiDialog.showToast(message: '未能获取播放列表，请重试或选择其他结果');
+    } finally {
+      _chapterCancelToken = null;
     }
-  }
-
-  void _searchAlias(String pluginName, String alias) {
-    if (!widget.infoController.bangumiItem.alias.contains(alias)) {
-      widget.infoController.bangumiItem.alias.add(alias);
-      _collectController.updateLocalCollect(widget.infoController.bangumiItem);
-    }
-    _querySource(alias, pluginName);
   }
 
   void _showAliasPicker(String pluginName) {
     if (widget.infoController.bangumiItem.alias.isEmpty) {
-      KazumiDialog.showToast(message: '无可用别名，试试手动检索');
+      KazumiDialog.showToast(message: '无可用别名，试试修改检索关键词');
       return;
     }
-    showAliasPickerDialog(
+    _showAliasPickerDialog(
+      sourceName: pluginName,
       aliases: widget.infoController.bangumiItem.alias,
-      onAliasSelected: (alias) {
-        KazumiDialog.dismiss();
-        _querySource(alias, pluginName);
-      },
+      onAliasSelected: (alias) => _querySource(alias, pluginName),
       onAliasesChanged: () => _collectController
           .updateLocalCollect(widget.infoController.bangumiItem),
     );
   }
 
-  void _showCustomKeyword(String pluginName) => showCustomKeywordDialog(
-        onSubmit: (keyword) => _searchAlias(pluginName, keyword),
+  void _showCustomKeyword(String pluginName) => _showCustomKeywordDialog(
+        initialKeyword: _keywordFor(pluginName),
+        sourceName: pluginName,
+        onSubmit: (keyword) {
+          final item = widget.infoController.bangumiItem;
+          if (!item.alias.contains(keyword)) {
+            item.alias.add(keyword);
+            _collectController.updateLocalCollect(item);
+          }
+          _querySource(keyword, pluginName);
+        },
       );
 
-  Widget _buildSourceCard(Plugin plugin, List<SearchItem> results, bool open) {
-    final searching = widget.infoController.pluginSearchStatus[plugin.name] ==
-        PluginSearchStatus.pending;
-
-    final body = <({Widget child, VoidCallback? onTap})>[];
-    if (open && !searching) {
-      if (results.isEmpty) {
-        body.add((child: _buildActionsRow(plugin), onTap: null));
-      } else {
-        for (final result in results) {
-          body.add((
-            child: _buildResultRow(result),
-            onTap: () => _openSearchItem(plugin, result),
-          ));
-        }
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: AnimatedSize(
-        duration: splitListMotionDuration,
-        curve: splitListMotionCurve,
-        alignment: Alignment.topCenter,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SplitListRow(
-              topRadius: splitListOuterRadius,
-              bottomRadius:
-                  body.isEmpty ? splitListOuterRadius : splitListInnerRadius,
-              onTap: () => _toggleSource(plugin.name),
-              child: _buildSourceHeader(plugin, results, searching, open),
-            ),
-            for (var i = 0; i < body.length; i++) ...[
-              const SizedBox(height: splitListRowGap),
-              SplitListRow(
-                bottomRadius: i == body.length - 1
-                    ? splitListOuterRadius
-                    : splitListInnerRadius,
-                onTap: body[i].onTap,
-                child: body[i].child,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  ({String text, Color? color}) _sourceSummary(
-      Plugin plugin, List<SearchItem> results, bool searching) {
-    if (searching) return (text: '检索中', color: null);
-    if (results.isNotEmpty) return (text: '${results.length} 条', color: null);
-    final error = Theme.of(context).colorScheme.error;
-    return switch (widget.infoController.pluginSearchStatus[plugin.name]) {
-      PluginSearchStatus.error => (text: '检索失败', color: error),
-      PluginSearchStatus.captcha => (text: '需要验证', color: error),
-      _ => (text: '无结果', color: null),
-    };
-  }
-
-  Widget _buildSourceHeader(
-      Plugin plugin, List<SearchItem> results, bool searching, bool open) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final summary = _sourceSummary(plugin, results, searching);
-    final onColor = colorScheme.onSurface;
-
-    final hasMenu = open && !searching && results.isNotEmpty;
-    return Padding(
-      padding: hasMenu
-          ? const EdgeInsets.fromLTRB(18, 4, 14, 4)
-          : const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              plugin.name,
-              style: theme.textTheme.titleMedium?.copyWith(color: onColor),
-            ),
-          ),
-          Text(
-            summary.text,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: summary.color ?? colorScheme.onSurfaceVariant,
-            ),
-          ),
-          if (searching) ...[
-            const SizedBox(width: 10),
-            const SizedBox.square(
-              dimension: 16,
-              child: LoadingIndicator(),
-            ),
-          ] else ...[
-            if (hasMenu)
-              PopupMenuButton<VoidCallback>(
-                tooltip: '${plugin.name} 的更多操作',
-                icon: Icon(Icons.more_vert_rounded, size: 20, color: onColor),
-                onSelected: (action) => action(),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: () => _showAliasPicker(plugin.name),
-                    child: const Text('别名检索'),
-                  ),
-                  PopupMenuItem(
-                    value: () => _showCustomKeyword(plugin.name),
-                    child: const Text('手动检索'),
-                  ),
-                  PopupMenuItem(
-                    value: () => _openInBrowser(plugin),
-                    child: const Text('在浏览器中打开'),
-                  ),
-                ],
-              )
-            else
-              const SizedBox(width: 10),
-            AnimatedRotation(
-              turns: open ? 0.5 : 0,
-              duration: splitListMotionDuration,
-              curve: splitListMotionCurve,
-              child: Icon(
-                Icons.expand_more_rounded,
-                size: 20,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResultRow(SearchItem searchItem) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 16, 18),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(searchItem.name, style: theme.textTheme.bodyMedium),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.play_arrow_rounded,
-            size: 20,
-            color: theme.colorScheme.primary,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionsRow(Plugin plugin) {
-    final theme = Theme.of(context);
-    final actions = <Widget>[];
-    final String hint;
-    switch (widget.infoController.pluginSearchStatus[plugin.name]) {
-      case PluginSearchStatus.captcha:
-        hint = '这个源要求先完成验证';
-        actions.add(
-            _primaryAction('进行验证', () => _captchaFlow.start(plugin, _keyword)));
-        actions.add(_action('重试', () => _retry(plugin)));
-      case PluginSearchStatus.error:
-        hint = '这个源没能返回结果';
-        actions.add(_primaryAction('重试', () => _retry(plugin)));
-      default:
-        hint = '换个关键词再试试';
-        actions
-            .add(_primaryAction('别名检索', () => _showAliasPicker(plugin.name)));
-        actions.add(_action('手动检索', () => _showCustomKeyword(plugin.name)));
-    }
-    actions.add(_action('浏览器打开', () => _openInBrowser(plugin)));
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 6),
-            child: Text(
-              hint,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Wrap(spacing: 8, runSpacing: 4, children: actions),
-        ],
-      ),
-    );
-  }
-
-  void _retry(Plugin plugin) => _querySource(_keyword, plugin.name);
-
-  Widget _primaryAction(String label, VoidCallback onPressed) =>
-      FilledButton.tonal(onPressed: onPressed, child: Text(label));
-
-  Widget _action(String label, VoidCallback onPressed) =>
-      TextButton(onPressed: onPressed, child: Text(label));
-
-  // Preserve plugin order as late results arrive.
-  List<Widget> _buildSourceCards() {
-    final cards = <Widget>[];
-    for (final plugin in _pluginsController.pluginList) {
-      cards.add(_buildSourceCard(
-        plugin,
-        _resultsFor(plugin.name),
-        _expandedSource == plugin.name,
-      ));
-    }
-    cards.add(const SafeArea(top: false, child: SizedBox(height: 12)));
-    return cards;
-  }
-
-  String _progressDescription() {
-    final plugins = _pluginsController.pluginList;
-    final done = plugins
-        .where((plugin) =>
-            widget.infoController.pluginSearchStatus[plugin.name] !=
-            PluginSearchStatus.pending)
-        .length;
-    final found = plugins.fold<int>(
-        0, (sum, plugin) => sum + _resultsFor(plugin.name).length);
-    if (done < plugins.length) {
-      return '正在搜索 $done/${plugins.length} 个来源';
-    }
-    return '${plugins.length} 个来源 · $found 个结果';
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Observer(
+  Widget build(BuildContext context) => Observer(
         builder: (context) {
-          // MobX tracks reads only inside this Observer builder.
-          final cards = _buildSourceCards();
-          return Column(
-            children: [
-              MaterialBottomSheetHeader(
-                title: '选择播放源',
-                description: _keyword,
-                onClose: () => Navigator.of(context).pop(),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: materialBottomSheetContentPadding,
-                  itemCount: cards.length + 1,
-                  itemBuilder: (context, index) => index == 0
-                      ? Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                          child: Text(_progressDescription(),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelMedium
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  )),
-                        )
-                      : cards[index - 1],
-                ),
-              ),
-            ],
+          // Snapshot observable values here; lazy list builders are not tracked.
+          final groups = <_SourceSearchGroup>[];
+          for (final plugin in _pluginsController.pluginList) {
+            final seen = <String>{};
+            final results = <SearchItem>[];
+            for (final response
+                in widget.infoController.pluginSearchResponseList) {
+              if (response.pluginName != plugin.name) continue;
+              for (final result in response.data) {
+                if (seen.add(result.src)) results.add(result);
+              }
+            }
+            groups.add(_SourceSearchGroup(
+              name: plugin.name,
+              keyword: _keywordFor(plugin.name),
+              status: widget.infoController.pluginSearchStatus[plugin.name] ??
+                  PluginSearchStatus.pending,
+              results: results,
+            ));
+          }
+          return _SourceSheetView(
+            keyword: _keyword,
+            groups: groups,
+            onSourceSearch: _showCustomKeyword,
+            onSourceAliasSearch: _showAliasPicker,
+            onRetry: _retry,
+            onVerify: (name) =>
+                _captchaFlow.start(_pluginFor(name), _keywordFor(name)),
+            onOpenBrowser: _openInBrowser,
+            onPlay: _openSearchItem,
+            onClose: () => Navigator.of(context).pop(),
           );
         },
-      ),
-    );
-  }
+      );
 }

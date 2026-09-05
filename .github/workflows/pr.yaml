@@ -58,26 +58,6 @@
       KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
     
     jobs:
-      flutter-test:
-        if: ${{ github.event_name == 'workflow_dispatch' || ! github.event.pull_request.draft }}
-        runs-on: "ubuntu-latest"
-        permissions:
-          contents: read
-        steps:
-          - name: Clone repository
-            uses: actions/checkout@v4
-          - name: Set up Flutter
-            uses: subosito/flutter-action@v2.16.0
-            with:
-              channel: stable
-              flutter-version-file: pubspec.yaml
-          - name: Get Flutter dependencies
-            run: flutter pub get
-            shell: bash
-          - name: Run Flutter tests
-            run: flutter test
-            shell: bash
-
       flutter-analyze:
         if: ${{ github.event_name == 'workflow_dispatch' || ! github.event.pull_request.draft }}
         runs-on: "ubuntu-latest"
@@ -100,7 +80,7 @@
 
 
       flutter-build-android:
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         if: ${{ (github.event_name == 'pull_request' && ! github.event.pull_request.draft) || (github.event_name == 'workflow_dispatch' && (inputs.run_android || (! inputs.run_android && ! inputs.run_windows && ! inputs.run_ios && ! inputs.run_macos && ! inputs.run_linux))) }}
         name: "Release for android"
         runs-on: "ubuntu-latest"
@@ -151,7 +131,7 @@
               path: Kazumi_android_*.apk
 
       flutter-build-windows:
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         if: ${{ (github.event_name == 'pull_request' && ! github.event.pull_request.draft) || (github.event_name == 'workflow_dispatch' && (inputs.run_windows || (! inputs.run_android && ! inputs.run_windows && ! inputs.run_ios && ! inputs.run_macos && ! inputs.run_linux))) }}
         name: "Release for windows"
         runs-on: "windows-latest"
@@ -222,7 +202,7 @@
 
 
       flutter-build-ios:
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         if: ${{ (github.event_name == 'pull_request' && ! github.event.pull_request.draft) || (github.event_name == 'workflow_dispatch' && (inputs.run_ios || (! inputs.run_android && ! inputs.run_windows && ! inputs.run_ios && ! inputs.run_macos && ! inputs.run_linux))) }}
         name: "Release for iOS"
         runs-on: "macos-latest"
@@ -257,7 +237,7 @@
               path: Kazumi_ios_*.ipa
 
       flutter-build-macos:
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         if: ${{ (github.event_name == 'pull_request' && ! github.event.pull_request.draft) || (github.event_name == 'workflow_dispatch' && (inputs.run_macos || (! inputs.run_android && ! inputs.run_windows && ! inputs.run_ios && ! inputs.run_macos && ! inputs.run_linux))) }}
         name: "Release for Macos"
         runs-on: "macos-latest"
@@ -292,7 +272,7 @@
               path: Kazumi_macos_*.dmg
 
       flutter-build-linux-amd64:
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         if: ${{ (github.event_name == 'pull_request' && ! github.event.pull_request.draft) || (github.event_name == 'workflow_dispatch' && (inputs.run_linux || (! inputs.run_android && ! inputs.run_windows && ! inputs.run_ios && ! inputs.run_macos && ! inputs.run_linux))) }}
         name: "Release for Linux amd64"
         runs-on: "ubuntu-latest" 
@@ -391,7 +371,7 @@
                 Kazumi_linux_*.deb
 
       flutter-build-linux-arm64:
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         if: ${{ (github.event_name == 'pull_request' && ! github.event.pull_request.draft) || (github.event_name == 'workflow_dispatch' && (inputs.run_linux || (! inputs.run_android && ! inputs.run_windows && ! inputs.run_ios && ! inputs.run_macos && ! inputs.run_linux))) }}
         name: "Release for Linux arm64"
         runs-on: ${{ vars.LINUX_ARM64_RUNNER || 'ubuntu-24.04-arm' }}

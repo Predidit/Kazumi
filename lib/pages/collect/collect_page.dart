@@ -1,19 +1,21 @@
 import 'dart:async';
 
-import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/bean/card/bangumi_card.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/constants.dart';
 
 class CollectPage extends StatefulWidget {
   const CollectPage({
@@ -149,12 +151,10 @@ class _CollectPageState extends State<CollectPage>
     super.dispose();
   }
 
-  /// Tab order follows [CollectType.value], so a collectible of type `n`
-  /// belongs to tab `n - 1`.
+  // CollectType values are one-based; tab indices are zero-based.
   static final List<CollectType> _tabTypes =
       CollectType.values.where((type) => type.isCollected).toList();
 
-  /// Room a counted tab needs before the badge squeezes out the label.
   static const double _countedTabMinWidth = 104;
 
   List<int> get _collectibleCounts {
@@ -202,16 +202,13 @@ class _CollectPageState extends State<CollectPage>
       appBar: SysAppBar(
         needTopOffset: false,
         toolbarHeight: 104,
-        // The app bar sits outside the body observer, so the counts need
-        // their own one to track the collectibles store.
+        // App bar counts need their own Observer, outside the body observer.
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(kTextTabBarHeight),
           child: Observer(builder: (context) {
             final List<int>? counts =
                 showAnimeCounter ? _collectibleCounts : null;
             return LayoutBuilder(builder: (context, constraints) {
-              // Splitting the bar evenly leaves no room for label and badge
-              // on a narrow screen, so scroll the tabs instead.
               final bool scrollable = counts != null &&
                   constraints.maxWidth <
                       MediaQuery.textScalerOf(context)
@@ -284,8 +281,7 @@ class _CollectPageState extends State<CollectPage>
           }
         },
         child: syncCollectiblesing
-            ? const SizedBox(
-                width: 32, height: 32, child: CircularProgressIndicator())
+            ? const SizedBox(width: 32, height: 32, child: LoadingIndicator())
             : const Icon(Icons.sync_rounded),
       ),
       body: Observer(builder: (context) {

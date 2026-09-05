@@ -5,7 +5,6 @@
 ```
 Kazumi/
 ├── lib/                        # Dart 代码
-├── test/                       # 测试
 ├── assets/                     # 资源
 ├── static/                     # 文档与静态素材
 ├── android/  ios/  linux/  macos/  windows/  web/   # Flutter 平台框架

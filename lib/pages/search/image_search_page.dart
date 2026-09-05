@@ -5,13 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/search/image_search_module.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/utils/format.dart';
 
 class ImageSearchPage extends StatefulWidget {
@@ -211,8 +213,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                           ? SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
+                              child: LoadingIndicator(
                                 color: colorScheme.onPrimary,
                               ),
                             )
@@ -509,7 +510,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
             icon: const SizedBox(
               width: 28,
               height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
+              child: LoadingIndicator(),
             ),
             title: '正在识别图片',
             description: '请稍候，正在从截图中匹配番剧信息',

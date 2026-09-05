@@ -1,20 +1,20 @@
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/services/logging/logger.dart';
-
 import '../../modules/roads/road_module.dart';
 import '../../plugins/api_rule_config.dart';
 import '../../plugins/plugins.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/modules/search/plugin_search_module.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 const _h8 = SizedBox(height: 8.0);
 const _h12 = SizedBox(height: 12.0);
 
-// 简化配色映射：仅三类核心色
 enum CoreColorType { error, success, waiting }
 
 extension CoreColorExtension on ThemeData {
@@ -295,9 +295,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
         );
 
   Widget _buildLoading(ThemeData theme) => Center(
-        child: CircularProgressIndicator.adaptive(
-          valueColor: AlwaysStoppedAnimation<Color>(
-              theme.getCoreColor(CoreColorType.success)),
+        child: LoadingIndicator(
+          color: theme.getCoreColor(CoreColorType.success),
         ),
       );
 
@@ -322,7 +321,6 @@ class _PluginTestPageState extends State<PluginTestPage> {
     return '${plugin.searchMode == RuleMode.api ? 'JSON' : 'HTML'}长度：${searchRaw.length} 字符';
   }
 
-  // 简化副标题颜色逻辑：仅三类
   Color _getSubtitleColor(String subtitle, ThemeData theme) {
     if (subtitle.contains('测试中') ||
         subtitle.contains('获取中') ||
@@ -388,7 +386,6 @@ class _PluginTestPageState extends State<PluginTestPage> {
     ]);
   }
 
-  /// Nodes the rule skipped during parsing; empty when every node matched.
   Widget _buildDiagnosticsWidget(List<String> diagnostics, ThemeData theme) {
     if (diagnostics.isEmpty) return const SizedBox.shrink();
     return Container(
@@ -417,8 +414,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
             (message) => Padding(
               padding: const EdgeInsets.only(bottom: 4.0),
               child: SelectableText(message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onErrorContainer)),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onErrorContainer)),
             ),
           ),
         ],

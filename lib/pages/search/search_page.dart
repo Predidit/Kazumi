@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/bean/widget/connected_tabs.dart';
+import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -104,10 +108,9 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  Future<void> showWorkbench() async {
+  Future<void> _showWorkbench() async {
     final result = await showAdaptiveBottomSheet<_SearchWorkbenchResult>(
       maxHeightFactor: 0.86,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       context: context,
       builder: (context) {
         return _SearchWorkbenchSheet(
@@ -234,7 +237,7 @@ class _SearchPageState extends State<SearchPage> {
         title: const Text("搜索"),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: showWorkbench,
+        onPressed: _showWorkbench,
         icon: const Icon(Icons.tune),
         label: const Text("筛选"),
       ),
@@ -356,7 +359,7 @@ class _SearchPageState extends State<SearchPage> {
 
               if (searchPageController.isLoading &&
                   searchPageController.bangumiList.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: LoadingIndicator());
               }
               int crossCount = 3;
               if (MediaQuery.sizeOf(context).width >
@@ -582,323 +585,306 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          MaterialBottomSheetHeader(
-            title: '筛选条件',
-            description: '组合标签、季度和评分等条件，更快找到想看的番剧。',
-            onClose: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-              children: [
-                MaterialBottomSheetSection(
-                  title: '排序',
-                  description: '选择列表优先展示的内容。',
-                  icon: Icons.sort_rounded,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SegmentedButton<String>(
-                      selected: {draft.sort},
-                      onSelectionChanged: (value) {
-                        setState(() {
-                          draft = draft.copyWith(sort: value.first);
-                        });
-                      },
-                      segments: const [
-                        ButtonSegment(value: 'heat', label: Text('热度')),
-                        ButtonSegment(value: 'rank', label: Text('排名')),
-                        ButtonSegment(value: 'score', label: Text('评分')),
-                        ButtonSegment(value: 'match', label: Text('匹配')),
-                      ],
-                    ),
-                  ),
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboardInset),
+      child: DefaultTabController(
+        length: 2,
+        child: LayoutBuilder(builder: (context, constraints) {
+          final editingInShortWindow =
+              keyboardInset > 0 && constraints.maxHeight < 280;
+          return Column(
+            children: [
+              if (!editingInShortWindow)
+                MaterialBottomSheetHeader(
+                  title: '筛选番剧',
+                  onClose: () => Navigator.pop(context),
                 ),
-                const SizedBox(height: 12),
-                MaterialBottomSheetSection(
-                  title: '标签',
-                  description: '选择多个标签时，会优先寻找同时包含这些标签的番剧。',
-                  icon: Icons.sell_outlined,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              if (!editingInShortWindow)
+                const ConnectedTabs(
+                    padding: materialBottomSheetTabsPadding,
+                    labels: ['常用', '进阶']),
+              Expanded(
+                child: TabBarView(children: [
+                  ListView(
+                    key: const PageStorageKey('search-basic-filters'),
+                    padding: materialBottomSheetContentPadding,
                     children: [
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final tag in defaultAnimeTags)
-                            FilterChip(
-                              label: Text(tag),
-                              selected: draft.tags.contains(tag),
-                              showCheckmark: false,
-                              onSelected: (selected) {
-                                setState(() {
-                                  draft = draft.copyWith(
-                                    tags: selected
-                                        ? [...draft.tags, tag]
-                                        : draft.tags
-                                            .where((item) => item != tag)
-                                            .toList(),
-                                  );
-                                });
-                              },
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: tagController,
-                              decoration: const InputDecoration(
-                                labelText: '自定义标签',
-                                prefixIcon: Icon(Icons.add_circle_outline),
-                              ),
-                              onSubmitted: addTag,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filledTonal(
-                            tooltip: '添加标签',
-                            onPressed: () => addTag(tagController.text),
-                            icon: const Icon(Icons.add),
-                          ),
-                        ],
-                      ),
-                      if (draft.tags.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final tag in draft.tags)
-                              InputChip(
-                                label: Text(tag),
-                                onDeleted: () {
-                                  setState(() {
-                                    draft = draft.copyWith(
-                                      tags: draft.tags
-                                          .where((item) => item != tag)
-                                          .toList(),
-                                    );
-                                  });
-                                },
-                              ),
-                          ],
-                        ),
-                        TextButton.icon(
-                          onPressed: () {
-                            setState(() => draft = draft.copyWith(tags: []));
-                          },
-                          icon: const Icon(Icons.clear_all),
-                          label: const Text('清空标签'),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                MaterialBottomSheetSection(
-                  title: '季度与日期',
-                  description: '按播出季度查找，也可以指定更精确的日期范围。',
-                  icon: Icons.calendar_month,
-                  child: Column(
-                    children: [
-                      DropdownButtonFormField<String>(
-                        initialValue:
-                            draft.season.isEmpty ? null : draft.season,
-                        decoration: const InputDecoration(
-                          labelText: '季度',
-                          prefixIcon: Icon(Icons.event_available_outlined),
-                        ),
-                        items: [
-                          for (final season in seasonOptions)
-                            DropdownMenuItem(
-                              value: season.value,
-                              child: Text(season.label),
-                            ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            draft = draft.copyWith(
-                              season: value ?? '',
-                              dateRange: null,
-                            );
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
+                      ContentSection(
+                        title: '排序',
                         child: Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            OutlinedButton.icon(
-                              onPressed: pickCustomDateRange,
-                              icon: const Icon(Icons.date_range),
-                              label: Text(draft.dateRange == null
-                                  ? '自定义日期'
-                                  : '${draft.dateRange!.start}..${draft.dateRange!.end}'),
-                            ),
-                            if (draft.season.isNotEmpty ||
-                                draft.dateRange != null)
-                              TextButton.icon(
-                                onPressed: () {
-                                  setState(() {
-                                    draft = draft.copyWith(
-                                      season: '',
-                                      dateRange: null,
-                                    );
-                                  });
-                                },
-                                icon: const Icon(Icons.clear),
-                                label: const Text('不限日期'),
+                            for (final sort in [
+                              'heat',
+                              'rank',
+                              'score',
+                              'match'
+                            ])
+                              ChoiceChip(
+                                label: Text(_sortLabel(sort)),
+                                selected: draft.sort == sort,
+                                onSelected: (_) => setState(() {
+                                  draft = draft.copyWith(sort: sort);
+                                }),
                               ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ContentSection(
+                        title: '题材标签',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final tag in {
+                                  ...defaultAnimeTags,
+                                  ...draft.tags
+                                })
+                                  FilterChip(
+                                    label: Text(tag),
+                                    selected: draft.tags.contains(tag),
+                                    onSelected: (selected) => setState(() {
+                                      draft = draft.copyWith(
+                                          tags: selected
+                                              ? [...draft.tags, tag]
+                                              : draft.tags
+                                                  .where((item) => item != tag)
+                                                  .toList());
+                                    }),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: tagController,
+                              decoration: InputDecoration(
+                                hintText: '添加自定义标签',
+                                filled: true,
+                                fillColor:
+                                    Theme.of(context).colorScheme.surface,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: BorderSide.none,
+                                ),
+                                suffixIcon: IconButton(
+                                  tooltip: '添加标签',
+                                  onPressed: () => addTag(tagController.text),
+                                  icon: const Icon(Icons.add_rounded),
+                                ),
+                              ),
+                              onSubmitted: addTag,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ContentSection(
+                        title: '收藏状态',
+                        child: Column(
+                          children: [
+                            _SearchSwitchTile(
+                              title: '隐藏看过的番剧',
+                              value: notShowWatched,
+                              onChanged: (value) {
+                                setState(() => notShowWatched = value);
+                              },
+                            ),
+                            _SearchSwitchTile(
+                              title: '隐藏抛弃的番剧',
+                              value: notShowAbandoned,
+                              onChanged: (value) {
+                                setState(() => notShowAbandoned = value);
+                              },
+                            ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                MaterialBottomSheetSection(
-                  title: '数值范围',
-                  description: '只显示符合评分或排名范围的番剧。',
-                  icon: Icons.tune_rounded,
-                  child: Column(
+                  ListView(
+                    key: const PageStorageKey('search-advanced-filters'),
+                    padding: materialBottomSheetContentPadding,
                     children: [
-                      _SearchSwitchTile(
-                        title: '启用评分范围',
-                        value: draft.scoreRange?.isValid == true,
-                        onChanged: (value) {
-                          setState(() {
-                            draft = draft.copyWith(
-                              scoreRange: value
-                                  ? const SearchDoubleRange(
-                                      min: 7.0,
-                                      max: 10.0,
-                                    )
-                                  : null,
-                            );
-                          });
-                        },
-                      ),
-                      if (draft.scoreRange?.isValid == true)
-                        _buildScoreRangeSlider(draft.scoreRange!),
-                      _SearchSwitchTile(
-                        title: '启用排名范围',
-                        value: draft.rankRange?.isValid == true,
-                        onChanged: (value) {
-                          setState(() {
-                            draft = draft.copyWith(
-                              rankRange: value
-                                  ? const SearchIntRange(min: 1, max: 5000)
-                                  : null,
-                            );
-                          });
-                        },
-                      ),
-                      if (draft.rankRange?.isValid == true)
-                        _buildRankRangeSlider(draft.rankRange!),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                MaterialBottomSheetSection(
-                  title: '星期',
-                  description: '按放送星期过滤，多个星期按任一匹配处理。',
-                  icon: Icons.today_outlined,
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (int weekday = 1; weekday <= 7; weekday++)
-                        FilterChip(
-                          label: Text('周$weekday'),
-                          selected: draft.weekdays.contains(weekday),
-                          showCheckmark: false,
-                          onSelected: (selected) {
-                            final weekdays = draft.weekdays.toSet();
-                            if (selected) {
-                              weekdays.add(weekday);
-                            } else {
-                              weekdays.remove(weekday);
-                            }
-                            final next = weekdays.toList()..sort();
-                            setState(() {
-                              draft = draft.copyWith(weekdays: next);
-                            });
-                          },
+                      ContentSection(
+                        title: '放送日期',
+                        child: Column(
+                          children: [
+                            DropdownButtonFormField<String>(
+                              initialValue:
+                                  draft.season.isEmpty ? null : draft.season,
+                              decoration: const InputDecoration(
+                                labelText: '季度',
+                                prefixIcon:
+                                    Icon(Icons.event_available_outlined),
+                              ),
+                              items: [
+                                for (final season in seasonOptions)
+                                  DropdownMenuItem(
+                                    value: season.value,
+                                    child: Text(season.label),
+                                  ),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  draft = draft.copyWith(
+                                    season: value ?? '',
+                                    dateRange: null,
+                                  );
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: pickCustomDateRange,
+                                    icon: const Icon(Icons.date_range),
+                                    label: Text(draft.dateRange == null
+                                        ? '自定义日期'
+                                        : '${draft.dateRange!.start}..${draft.dateRange!.end}'),
+                                  ),
+                                  if (draft.season.isNotEmpty ||
+                                      draft.dateRange != null)
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        setState(() {
+                                          draft = draft.copyWith(
+                                            season: '',
+                                            dateRange: null,
+                                          );
+                                        });
+                                      },
+                                      icon: const Icon(Icons.clear),
+                                      label: const Text('不限日期'),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(height: 24),
+                      ContentSection(
+                        title: '放送星期',
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (int weekday = 1; weekday <= 7; weekday++)
+                              FilterChip(
+                                label: Text('周${[
+                                  '一',
+                                  '二',
+                                  '三',
+                                  '四',
+                                  '五',
+                                  '六',
+                                  '日'
+                                ][weekday - 1]}'),
+                                selected: draft.weekdays.contains(weekday),
+                                showCheckmark: false,
+                                onSelected: (selected) {
+                                  final weekdays = draft.weekdays.toSet();
+                                  if (selected) {
+                                    weekdays.add(weekday);
+                                  } else {
+                                    weekdays.remove(weekday);
+                                  }
+                                  final next = weekdays.toList()..sort();
+                                  setState(() {
+                                    draft = draft.copyWith(weekdays: next);
+                                  });
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ContentSection(
+                        title: '评分与排名',
+                        child: Column(
+                          children: [
+                            _SearchSwitchTile(
+                              title: '限定评分',
+                              value: draft.scoreRange?.isValid == true,
+                              onChanged: (value) {
+                                setState(() {
+                                  draft = draft.copyWith(
+                                    scoreRange: value
+                                        ? const SearchDoubleRange(
+                                            min: 7.0,
+                                            max: 10.0,
+                                          )
+                                        : null,
+                                  );
+                                });
+                              },
+                            ),
+                            if (draft.scoreRange?.isValid == true)
+                              _buildScoreRangeSlider(draft.scoreRange!),
+                            _SearchSwitchTile(
+                              title: '限定排名',
+                              value: draft.rankRange?.isValid == true,
+                              onChanged: (value) {
+                                setState(() {
+                                  draft = draft.copyWith(
+                                    rankRange: value
+                                        ? const SearchIntRange(
+                                            min: 1, max: 5000)
+                                        : null,
+                                  );
+                                });
+                              },
+                            ),
+                            if (draft.rankRange?.isValid == true)
+                              _buildRankRangeSlider(draft.rankRange!),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
+                ]),
+              ),
+              if (!editingInShortWindow)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                  child: Row(children: [
+                    TextButton(
+                      onPressed: () => setState(() {
+                        draft = resetAdvancedFilters();
+                        notShowWatched = false;
+                        notShowAbandoned = false;
+                        tagController.clear();
+                      }),
+                      child: const Text('重置'),
+                    ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(
+                          context,
+                          _SearchWorkbenchResult(
+                            filterState: draft,
+                            notShowWatched: notShowWatched,
+                            notShowAbandoned: notShowAbandoned,
+                            shouldSearch: true,
+                          )),
+                      child: const Text('查看结果'),
+                    ),
+                  ]),
                 ),
-                const SizedBox(height: 12),
-                MaterialBottomSheetSection(
-                  title: '过滤',
-                  description: '控制是否隐藏已经看过或放弃的番剧。',
-                  icon: Icons.filter_alt_outlined,
-                  child: Column(
-                    children: [
-                      _SearchSwitchTile(
-                        title: '隐藏已看',
-                        value: notShowWatched,
-                        onChanged: (value) {
-                          setState(() => notShowWatched = value);
-                        },
-                      ),
-                      _SearchSwitchTile(
-                        title: '隐藏已弃',
-                        value: notShowAbandoned,
-                        onChanged: (value) {
-                          setState(() => notShowAbandoned = value);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Row(
-              children: [
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      draft = resetAdvancedFilters();
-                      notShowWatched = false;
-                      notShowAbandoned = false;
-                    });
-                  },
-                  icon: const Icon(Icons.restart_alt),
-                  label: const Text('重置'),
-                ),
-                const Spacer(),
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.pop(
-                      context,
-                      _SearchWorkbenchResult(
-                        filterState: draft,
-                        notShowWatched: notShowWatched,
-                        notShowAbandoned: notShowAbandoned,
-                        shouldSearch: true,
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.check),
-                  label: const Text('应用'),
-                ),
-              ],
-            ),
-          ),
-        ],
+            ],
+          );
+        }),
       ),
     );
   }

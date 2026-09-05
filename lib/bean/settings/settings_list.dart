@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+
+import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/bean/widget/split_list_row.dart';
 
 enum _TileKind { plain, toggle, radio }
 
 class SettingsList extends StatelessWidget {
-  const SettingsList({super.key, required this.sections, this.maxWidth = 1000});
+  const SettingsList({
+    super.key,
+    required this.sections,
+    this.maxWidth = 1000,
+  });
 
   final List<Widget> sections;
 
-  /// Defaulted here so a page that says nothing still matches the others.
   final double maxWidth;
 
   @override
@@ -52,13 +57,9 @@ class SettingsSection extends StatelessWidget {
           if (title != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: DefaultTextStyle.merge(
-                style:
-                    textTheme.titleSmall?.copyWith(color: colorScheme.primary),
-                child: title!,
-              ),
+              child: SectionHeader(title: title!),
             ),
-          SettingsSplitGroup(children: tiles),
+          SplitListGroup(children: tiles),
           if (bottomInfo != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -74,45 +75,6 @@ class SettingsSection extends StatelessWidget {
   }
 }
 
-/// Rows laid out as an M3 split list: large corners at the group's two ends,
-/// small ones in between, and a pressed row morphing out of the group. That
-/// morph is what separates the rows, in place of a divider.
-class SettingsSplitGroup extends StatelessWidget {
-  const SettingsSplitGroup({
-    super.key,
-    required this.children,
-    this.outerRadius = splitListOuterRadius,
-  });
-
-  final List<Widget> children;
-
-  /// The group's two end corners, and the radius a pressed row morphs to.
-  /// Settings pages take the default; a page whose surrounding cards run at a
-  /// smaller scale passes theirs so the group sits level with them.
-  final double outerRadius;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (int i = 0; i < children.length; i++) ...[
-          if (i > 0) const SizedBox(height: splitListRowGap),
-          SplitListRow(
-            topRadius: i == 0 ? outerRadius : splitListInnerRadius,
-            bottomRadius:
-                i == children.length - 1 ? outerRadius : splitListInnerRadius,
-            pressedRadius: outerRadius,
-            child: children[i],
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-/// A [SettingsSection] whose tiles form a single radio group, so arrow keys
-/// traverse the options and screen readers announce them as one set.
 class SettingsRadioSection<T> extends StatelessWidget {
   const SettingsRadioSection({
     super.key,
@@ -140,7 +102,6 @@ class SettingsRadioSection<T> extends StatelessWidget {
 Color _disabledOn(BuildContext context) =>
     Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38);
 
-/// The icon-and-text run every row opens with. Callers wrap it in [Expanded].
 class _TileLabel extends StatelessWidget {
   const _TileLabel({
     required this.title,
@@ -192,9 +153,6 @@ class _TileLabel extends StatelessWidget {
   }
 }
 
-/// A row that opens a whole category rather than changing one value: the
-/// tonal icon badge marks that step down, which is why [SettingsTile] keeps a
-/// flat icon. Drop it in a [SettingsSplitGroup] like any other row.
 class SettingsCategoryTile extends StatelessWidget {
   const SettingsCategoryTile({
     super.key,
@@ -261,9 +219,6 @@ class SettingsCategoryTile extends StatelessWidget {
   }
 }
 
-/// A row whose control is a slider. The label line carries a tonal readout of
-/// the current value and the track spans the row beneath it, so the icon, the
-/// track and the text never share a line.
 class SettingsSliderTile extends StatelessWidget {
   const SettingsSliderTile({
     super.key,
@@ -319,7 +274,6 @@ class SettingsSliderTile extends StatelessWidget {
                   valueLabel,
                   style: textTheme.labelMedium?.copyWith(
                     color: colorScheme.onSecondaryContainer,
-                    // Steady digit widths, so dragging can't jitter the pill.
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -332,9 +286,6 @@ class SettingsSliderTile extends StatelessWidget {
             min: min,
             max: max,
             divisions: divisions,
-            // The pill is the readout, so no bubble rides the thumb; the zero
-            // inset then measures the track against the row rather than the
-            // thumb's overlay box.
             showValueIndicator: ShowValueIndicator.never,
             padding: EdgeInsets.zero,
             onChanged: onChanged,
@@ -360,7 +311,7 @@ class SettingsTile<T> extends StatelessWidget {
         initialValue = null,
         radioValue = null;
 
-  /// Tapping the row toggles too, in which case [onToggle] receives null.
+  /// Row taps pass null to [onToggle]; switch gestures pass the new value.
   const SettingsTile.switchTile({
     super.key,
     required this.title,
@@ -375,8 +326,6 @@ class SettingsTile<T> extends StatelessWidget {
         onPressed = null,
         radioValue = null;
 
-  /// Selection and change handling come from the enclosing
-  /// [SettingsRadioSection], so the whole option list is one radio group.
   const SettingsTile.radioTile({
     super.key,
     required this.title,
@@ -393,7 +342,6 @@ class SettingsTile<T> extends StatelessWidget {
 
   final Widget title;
 
-  /// Flat, not a tonal badge — the badge marks a row opening a whole category.
   final IconData? leading;
   final Widget? description;
   final Widget? trailing;

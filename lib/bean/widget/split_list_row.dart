@@ -1,24 +1,18 @@
 import 'package:flutter/material.dart';
 
-/// The M3 Expressive split-list vocabulary: large corners at a group's ends,
-/// small ones between rows, and a gap in place of a divider.
-const double splitListOuterRadius = 24;
+import 'package:kazumi/bean/widget/tonal_card.dart';
+
+const double splitListOuterRadius = tonalCardRadius;
 const double splitListInnerRadius = 4;
 const double splitListRowGap = 4;
 
 const Duration splitListMotionDuration = Duration(milliseconds: 250);
 const Curve splitListMotionCurve = Curves.easeInOutCubic;
 
-/// One row of a split list, morphing to [pressedRadius] while held.
-///
-/// The press is driven by [onTap] here, or, when the row's content owns its
-/// own [InkWell], by handing [pressReporterOf] to that
-/// [InkWell.onHighlightChanged].
 class SplitListRow extends StatefulWidget {
   const SplitListRow({
     super.key,
     required this.child,
-    this.color,
     this.topRadius = splitListInnerRadius,
     this.bottomRadius = splitListInnerRadius,
     this.pressedRadius = splitListOuterRadius,
@@ -27,15 +21,12 @@ class SplitListRow extends StatefulWidget {
 
   final Widget child;
 
-  /// Defaults to `surfaceContainerLow`.
-  final Color? color;
-
   final double topRadius;
   final double bottomRadius;
   final double pressedRadius;
   final VoidCallback? onTap;
 
-  /// Null outside a row, which leaves that row's shape static.
+  /// Forward a child InkWell's onHighlightChanged here.
   static ValueChanged<bool>? pressReporterOf(BuildContext context) {
     return context
         .dependOnInheritedWidgetOfExactType<_SplitRowScope>()
@@ -53,6 +44,8 @@ class _SplitListRowState extends State<SplitListRow> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final child = widget.onTap == null
         ? widget.child
         : InkWell(
@@ -60,15 +53,13 @@ class _SplitListRowState extends State<SplitListRow> {
             onHighlightChanged: _reportPress,
             child: widget.child,
           );
-    // An AnimatedContainer rather than Material's implicit animation:
-    // Material tweens its shape but snaps its colour.
+    // Animate color as well as shape; Material alone snaps color changes.
     return AnimatedContainer(
       duration: splitListMotionDuration,
       curve: splitListMotionCurve,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color:
-            widget.color ?? Theme.of(context).colorScheme.surfaceContainerLow,
+        color: colors.surfaceContainerLow,
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(
               _pressed ? widget.pressedRadius : widget.topRadius),
@@ -78,7 +69,17 @@ class _SplitListRowState extends State<SplitListRow> {
       ),
       child: Material(
         type: MaterialType.transparency,
-        child: _SplitRowScope(onPressChanged: _reportPress, child: child),
+        child: ListTileTheme(
+          data: theme.listTileTheme.copyWith(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            titleTextStyle:
+                theme.textTheme.bodyLarge?.copyWith(color: colors.onSurface),
+            subtitleTextStyle: theme.textTheme.bodyMedium
+                ?.copyWith(color: colors.onSurfaceVariant),
+          ),
+          child: _SplitRowScope(onPressChanged: _reportPress, child: child),
+        ),
       ),
     );
   }
@@ -89,8 +90,38 @@ class _SplitRowScope extends InheritedWidget {
 
   final ValueChanged<bool> onPressChanged;
 
-  // The callback always reaches the same state, so a rebuilt scope never
-  // obsoletes the one a row already holds.
+  // The callback always targets the same state.
   @override
   bool updateShouldNotify(_SplitRowScope oldWidget) => false;
+}
+
+class SplitListGroup extends StatelessWidget {
+  const SplitListGroup({
+    super.key,
+    required this.children,
+    this.outerRadius = splitListOuterRadius,
+  });
+
+  final List<Widget> children;
+
+  final double outerRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(height: splitListRowGap),
+          SplitListRow(
+            topRadius: i == 0 ? outerRadius : splitListInnerRadius,
+            bottomRadius:
+                i == children.length - 1 ? outerRadius : splitListInnerRadius,
+            pressedRadius: outerRadius,
+            child: children[i],
+          ),
+        ],
+      ],
+    );
+  }
 }

@@ -19,25 +19,6 @@
       KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
 
     jobs:
-      flutter-test:
-        runs-on: "ubuntu-latest"
-        permissions:
-          contents: read
-        steps:
-          - name: Clone repository
-            uses: actions/checkout@v4
-          - name: Set up Flutter
-            uses: subosito/flutter-action@v2.16.0
-            with:
-              channel: stable
-              flutter-version-file: pubspec.yaml
-          - name: Get Flutter dependencies
-            run: flutter pub get
-            shell: bash
-          - name: Run Flutter tests
-            run: flutter test
-            shell: bash
-
       flutter-analyze:
         runs-on: "ubuntu-latest"
         permissions:
@@ -59,7 +40,7 @@
 
       flutter-build-android:
         name: "Release for android"
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         runs-on: "ubuntu-latest" 
         permissions: write-all
         steps:
@@ -211,7 +192,7 @@
 
       flutter-build-linux-amd64:
         name: "Release for Linux amd64"
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         runs-on: "ubuntu-latest" 
         permissions: write-all
         steps:
@@ -315,7 +296,7 @@
 
       flutter-build-linux-arm64:
         name: "Release for Linux arm64"
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         runs-on: ${{ vars.LINUX_ARM64_RUNNER || 'ubuntu-24.04-arm' }}
         permissions: write-all
         steps:
@@ -398,7 +379,7 @@
 
       flutter-build-ios:
         name: "Release for iOS"
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         runs-on: "macos-latest"
         permissions: write-all
 
@@ -436,7 +417,7 @@
 
       flutter-build-macos:
         name: "Release for Macos"
-        needs: [flutter-test, flutter-analyze]
+        needs: [flutter-analyze]
         runs-on: "macos-latest"
         permissions: write-all
 

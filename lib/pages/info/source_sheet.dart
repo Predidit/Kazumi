@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart' show reaction, ReactionDisposer;
@@ -58,8 +59,7 @@ class _SourceSheetState extends State<SourceSheet> {
       onVerified: _showVerifiedResult,
       onCancelled: (plugin) => _querySource(_keyword, plugin.name),
     );
-    // One shot: whichever source reports results first opens, and from then on
-    // the open card only moves when tapped.
+    // Auto-open only the first result; subsequent expansion belongs to the user.
     _autoExpandDisposer = reaction<String?>(
       (_) => _firstSourceWithResults(),
       (name) {
@@ -83,9 +83,7 @@ class _SourceSheetState extends State<SourceSheet> {
     _autoExpandDisposer = null;
   }
 
-  /// Callbacks can outlive the sheet — a countdown ending after it closes, a
-  /// dialog dismissed behind it — and a cancelled service still clears the
-  /// page's results on its way to doing nothing.
+  // Late verification callbacks must not restart a disposed sheet.
   void _querySource(String keyword, String pluginName) {
     if (!mounted) return;
     _searchService.querySource(keyword, pluginName);
@@ -96,8 +94,7 @@ class _SourceSheetState extends State<SourceSheet> {
       KazumiDialog.showToast(message: '验证成功');
       return;
     }
-    // Counting down before re-querying keeps the retry from tripping the rate
-    // limit the verification just cleared.
+    // Wait before retrying to avoid triggering the rate limit again.
     KazumiDialog.showTimedSuccessDialog(
       title: '验证成功',
       message: '即将重新检索',
@@ -105,8 +102,7 @@ class _SourceSheetState extends State<SourceSheet> {
     );
   }
 
-  /// A plugin can publish more than one response: an alias search adds to what
-  /// the first pass found.
+  // Alias searches can add responses for the same plugin.
   List<SearchItem> _resultsFor(String pluginName) {
     final results = <SearchItem>[];
     for (final response in widget.infoController.pluginSearchResponseList) {
@@ -174,7 +170,6 @@ class _SourceSheetState extends State<SourceSheet> {
     }
   }
 
-  /// Searching under an alias also saves it for the next visit.
   void _searchAlias(String pluginName, String alias) {
     if (!widget.infoController.bangumiItem.alias.contains(alias)) {
       widget.infoController.bangumiItem.alias.add(alias);
@@ -203,13 +198,9 @@ class _SourceSheetState extends State<SourceSheet> {
         onSubmit: (keyword) => _searchAlias(pluginName, keyword),
       );
 
-  /// One source, collapsed to a row until opened. The header sits a surface
-  /// step above its result rows — and shifts to `secondaryContainer` while
-  /// open — so a rule never reads as one of the titles it returned.
   Widget _buildSourceCard(Plugin plugin, List<SearchItem> results, bool open) {
     final searching = widget.infoController.pluginSearchStatus[plugin.name] ==
         PluginSearchStatus.pending;
-    final colorScheme = Theme.of(context).colorScheme;
 
     final body = <({Widget child, VoidCallback? onTap})>[];
     if (open && !searching) {
@@ -235,9 +226,6 @@ class _SourceSheetState extends State<SourceSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SplitListRow(
-              color: open
-                  ? colorScheme.secondaryContainer
-                  : colorScheme.surfaceContainer,
               topRadius: splitListOuterRadius,
               bottomRadius:
                   body.isEmpty ? splitListOuterRadius : splitListInnerRadius,
@@ -260,8 +248,6 @@ class _SourceSheetState extends State<SourceSheet> {
     );
   }
 
-  /// Status rides in trailing text rather than a leading icon: rows whose
-  /// siblings lack one end up with misaligned names.
   ({String text, Color? color}) _sourceSummary(
       Plugin plugin, List<SearchItem> results, bool searching) {
     if (searching) return (text: '检索中', color: null);
@@ -279,13 +265,10 @@ class _SourceSheetState extends State<SourceSheet> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final summary = _sourceSummary(plugin, results, searching);
-    final onColor = open ? colorScheme.onSecondaryContainer : null;
-    // Buttons under a result list get hit by thumbs reaching for the last row,
-    // so a source with results keeps its actions up here instead.
+    final onColor = colorScheme.onSurface;
+
     final hasMenu = open && !searching && results.isNotEmpty;
     return Padding(
-      // Both branches land on 56dp, matching a result row: the menu's
-      // IconButton is 48dp on its own.
       padding: hasMenu
           ? const EdgeInsets.fromLTRB(18, 4, 14, 4)
           : const EdgeInsets.fromLTRB(18, 18, 18, 18),
@@ -294,20 +277,20 @@ class _SourceSheetState extends State<SourceSheet> {
           Expanded(
             child: Text(
               plugin.name,
-              style: theme.textTheme.titleSmall?.copyWith(color: onColor),
+              style: theme.textTheme.titleMedium?.copyWith(color: onColor),
             ),
           ),
           Text(
             summary.text,
             style: theme.textTheme.labelMedium?.copyWith(
-              color: summary.color ?? onColor ?? colorScheme.onSurfaceVariant,
+              color: summary.color ?? colorScheme.onSurfaceVariant,
             ),
           ),
           if (searching) ...[
             const SizedBox(width: 10),
             const SizedBox.square(
               dimension: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: LoadingIndicator(),
             ),
           ] else ...[
             if (hasMenu)
@@ -339,7 +322,7 @@ class _SourceSheetState extends State<SourceSheet> {
               child: Icon(
                 Icons.expand_more_rounded,
                 size: 20,
-                color: onColor ?? colorScheme.onSurfaceVariant,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -417,10 +400,7 @@ class _SourceSheetState extends State<SourceSheet> {
   Widget _action(String label, VoidCallback onPressed) =>
       TextButton(onPressed: onPressed, child: Text(label));
 
-  /// Always plugin order, never ranked by what came back: a source can fill
-  /// up long after the search settles — a captcha source does once verified
-  /// — and ranking would slide the card someone just acted on out from
-  /// under them.
+  // Preserve plugin order as late results arrive.
   List<Widget> _buildSourceCards() {
     final cards = <Widget>[];
     for (final plugin in _pluginsController.pluginList) {
@@ -444,32 +424,44 @@ class _SourceSheetState extends State<SourceSheet> {
     final found = plugins.fold<int>(
         0, (sum, plugin) => sum + _resultsFor(plugin.name).length);
     if (done < plugins.length) {
-      return '「$_keyword」· 检索中 $done/${plugins.length}';
+      return '正在搜索 $done/${plugins.length} 个来源';
     }
-    return '「$_keyword」· $found 条结果';
+    return '${plugins.length} 个来源 · $found 个结果';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: Observer(
         builder: (context) {
-          // Must be read here, not behind a nested Builder: mobx only tracks
-          // reads made while the Observer's own builder runs.
+          // MobX tracks reads only inside this Observer builder.
           final cards = _buildSourceCards();
           return Column(
             children: [
               MaterialBottomSheetHeader(
                 title: '选择播放源',
-                description: _progressDescription(),
+                description: _keyword,
                 onClose: () => Navigator.of(context).pop(),
               ),
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: cards.length,
-                  itemBuilder: (context, index) => cards[index],
+                  padding: materialBottomSheetContentPadding,
+                  itemCount: cards.length + 1,
+                  itemBuilder: (context, index) => index == 0
+                      ? Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: Text(_progressDescription(),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelMedium
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  )),
+                        )
+                      : cards[index - 1],
                 ),
               ),
             ],

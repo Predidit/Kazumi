@@ -2,19 +2,18 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/services/plugin/captcha_verification_service.dart';
 
-/// Runs one plugin's anti-crawler verification end to end, owning the webview
-/// service, its dialog and the timeout that closes it.
 class SourceCaptchaFlow {
   SourceCaptchaFlow({required this.onVerified, required this.onCancelled});
 
   final void Function(Plugin plugin, String pageHtml) onVerified;
 
-  /// Dismissed before verification landed, so the source is still unresolved.
   final void Function(Plugin plugin) onCancelled;
 
   CaptchaVerificationService? _service;
@@ -67,9 +66,7 @@ class SourceCaptchaFlow {
   void _startCaptchaInput(Plugin plugin, String searchUrl) {
     bool verified = false;
 
-    // Set once the webview reports the captcha gone. The timeout only guards
-    // "verification was never detected", so it keys off this rather than
-    // `verified`, which lands seconds later when the harvest finishes.
+    // Stop timing verification once detected; cookie harvesting can take longer.
     bool finalizing = false;
 
     _service?.dispose();
@@ -87,8 +84,6 @@ class SourceCaptchaFlow {
         inputXpath: plugin.antiCrawlerConfig.captchaInput,
         buttonXpath: plugin.antiCrawlerConfig.captchaButton,
         pluginName: plugin.name,
-        // Verification is already confirmed here; the harvest that follows
-        // takes seconds, so retire the timeout now rather than in onVerified.
         onFinalizing: () {
           finalizing = true;
           _timer?.cancel();
@@ -100,8 +95,7 @@ class SourceCaptchaFlow {
           onVerified(plugin, pageHtml);
         },
       );
-      // submitCaptcha completes once the JS button click is fired; only now
-      // does the wait for the captcha to disappear begin.
+      // Submission finishes on the JS click, before verification completes.
       if (!finalizing) {
         _timer?.cancel();
         _timer = Timer(const Duration(seconds: 8), () {
@@ -116,16 +110,13 @@ class SourceCaptchaFlow {
       onDismiss: () async {
         _timer?.cancel();
         _timer = null;
-        // Capture before the await: an async gap could otherwise let
-        // [_service] be replaced or cleared, leaving this closure to dispose
-        // the wrong one.
+        // Capture the service before awaiting so a replacement cannot be disposed.
         final captchaService = _service;
         _service = null;
         if (verified) {
           captchaService?.dispose();
         } else {
-          // Saving the earned cookies needs the webview, so it has to
-          // happen before the service goes.
+          // Save cookies before disposing the webview.
           await captchaService?.cancelAndSave(plugin.name);
           captchaService?.dispose();
           onCancelled(plugin);
@@ -279,7 +270,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
             if (imageUrl == null) {
               return const Column(
                 children: [
-                  CircularProgressIndicator(),
+                  LoadingIndicator(),
                   SizedBox(height: 12),
                   Text('正在加载验证码图片...'),
                 ],
@@ -345,7 +336,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                   child: isSubmitting
                       ? const SizedBox.square(
                           dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: LoadingIndicator(),
                         )
                       : const Text('提交'),
                 ),
@@ -374,7 +365,7 @@ class _AutomatedVerifyDialog extends StatelessWidget {
       statusText: statusText,
       children: [
         const SizedBox(height: 24),
-        const CircularProgressIndicator(),
+        const LoadingIndicator(),
         const SizedBox(height: 12),
         Text(
           detailText,

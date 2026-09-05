@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:kazumi/modules/history/history_module.dart';
@@ -15,12 +16,19 @@ class HistorySyncService {
   static const int checkpointLogThresholdBytes = 1024 * 1024;
   static const String _pendingLogPrefix = 'history.local.pending.';
 
-  HistorySyncService._internal();
+  HistorySyncService._internal()
+      : _applicationSupportDirectoryProvider = getApplicationSupportDirectory;
 
   static final HistorySyncService _instance = HistorySyncService._internal();
 
   factory HistorySyncService() => _instance;
 
+  @visibleForTesting
+  HistorySyncService.forTesting(Directory applicationSupportDirectory)
+      : _applicationSupportDirectoryProvider =
+            (() async => applicationSupportDirectory);
+
+  final Future<Directory> Function() _applicationSupportDirectoryProvider;
   final AsyncSerialQueue _localLogQueue = AsyncSerialQueue();
   final AsyncSerialQueue _sequenceQueue = AsyncSerialQueue();
   int _captureSequence = 0;
@@ -394,7 +402,7 @@ class HistorySyncService {
   }
 
   Future<File> localChangeLogFile() async {
-    final directory = await getApplicationSupportDirectory();
+    final directory = await _applicationSupportDirectoryProvider();
     return File('${directory.path}/webdavTemp/history.local.jsonl');
   }
 

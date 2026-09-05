@@ -140,6 +140,11 @@ dependency_overrides:
       path: ./libs/ohos/media_kit_libs_ohos
 
 dev_dependencies:
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
+  flutter_test:
+    sdk: flutter
+
   flutter_lints: ^6.0.0
   build_runner: ^2.15.0
   mobx_codegen: ^2.7.5

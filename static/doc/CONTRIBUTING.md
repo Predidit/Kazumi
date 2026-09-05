@@ -26,6 +26,7 @@ flutter doctor -v
 flutter pub get
 
 # 进行检查
+flutter test
 flutter analyze --no-fatal-infos --fatal-warnings
 
 # 进行调试
@@ -45,6 +46,7 @@ flutter build apk --release
 您的更改应该通过检查和验证。
 
 ```bash
+flutter test
 flutter analyze --no-fatal-infos --fatal-warnings
 ```
 
@@ -61,7 +63,7 @@ flutter analyze --no-fatal-infos --fatal-warnings
 - 如果需要使用 `Print()` 等输出 - 使用 `KazumiLogger` 或其它代替？
 - 如果性能表现大打折扣 - 当前功能的思路是不是需要重新考虑？
 
-当出现行为或风险改动时, 请手动验证受影响的功能, 并在 PR 中说明验证结果。涉及平台配置时, 还应完成相应平台的编译检查。
+当出现行为或风险改动时, 您应该完善测试文件。有的修改也无需测试文件, 可在推送 PR 后关注审查者意见。
 
 ## 更改与 Commits
 

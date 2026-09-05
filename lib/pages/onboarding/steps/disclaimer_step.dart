@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
@@ -41,19 +44,14 @@ class _DisclaimerStepState extends State<DisclaimerStep> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return OnboardingStepLayout(
       leading: const OnboardingStepIcon(icon: Icons.waving_hand_rounded),
       title: '欢迎使用',
       subtitle: '请阅读并同意免责声明',
-      child: Card(
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        color: colorScheme.surfaceContainerLow,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: TonalCard(
         child: statementsText == null
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: LoadingIndicator())
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Text(

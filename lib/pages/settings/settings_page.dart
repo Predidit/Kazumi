@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/pages/about/about_page.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_view_page.dart';
@@ -133,8 +135,7 @@ final List<_SettingsGroup> _settingsGroups = [
   ),
 ];
 
-/// Adds and removes pages without a transition, so a breakpoint reflow is
-/// carried by the rail animation alone instead of two animations at once.
+// Breakpoint changes use only the rail animation, without a page transition.
 class _InstantTransitionDelegate extends TransitionDelegate<dynamic> {
   const _InstantTransitionDelegate();
 
@@ -182,13 +183,9 @@ class _SettingsPageState extends State<SettingsPage> {
   static const ValueKey<String> _listPageKey =
       ValueKey<String>('settings-list');
 
-  /// Single-pane detail rides a real route so it keeps the platform transition.
   final GlobalKey<NavigatorState> _detailNavigatorKey =
       GlobalKey<NavigatorState>();
 
-  /// Single source of truth for the layout: it picks the right pane's content
-  /// in two-pane mode and whether the detail route is pushed in single-pane,
-  /// so resizing across the breakpoint reflows without losing the selection.
   _SettingsCategory? _selected;
 
   bool? _lastTwoPane;
@@ -205,8 +202,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final twoPane = _useTwoPane(context);
-    // Falls back to the first category without writing it back, otherwise
-    // narrowing the window would jump into a category never picked.
+    // Do not persist the fallback category during a layout change.
     final shown = _selected ?? _settingsGroups.first.categories.first;
     final detail = twoPane ? null : _selected;
     final layoutChanged = _lastTwoPane != null && _lastTwoPane != twoPane;
@@ -220,7 +216,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ? const _InstantTransitionDelegate()
             : const DefaultTransitionDelegate<dynamic>(),
         onDidRemovePage: (page) {
-          // A layout-driven removal keeps the selection for the right pane.
+          // Keep the selection when layout changes remove the detail route.
           if (page.key != _listPageKey && !_useTwoPane(context)) {
             _backToCategoryList();
           }
@@ -252,7 +248,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       appBar: SysAppBar(
         title: const Text('设置'),
-        // First route of the nested Navigator, so back must pop the outer one.
+        // The nested root route delegates back navigation to the outer navigator.
         leading: IconButton(
           onPressed: () => context.maybePop(),
           icon: const Icon(Icons.arrow_back),
@@ -294,8 +290,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  /// Left unfilled so the pane shares the page surface; a fill would either
-  /// match the cards inside it or stack another tone step onto them.
   Widget _detailPane(BuildContext context, _SettingsCategory shown) {
     return Padding(
       key: ValueKey<String>('pane:${shown.id}'),
@@ -310,7 +304,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  /// Scoped so the lists inside each embedded settings page are covered too.
   Widget _withoutScrollbar(BuildContext context, Widget child) {
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
@@ -319,8 +312,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _rail(BuildContext context, _SettingsCategory shown) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
     return _withoutScrollbar(
       context,
       ListView(
@@ -329,11 +320,7 @@ class _SettingsPageState extends State<SettingsPage> {
           for (final group in _settingsGroups) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(28, 16, 28, 8),
-              child: Text(
-                group.title,
-                style:
-                    textTheme.titleSmall?.copyWith(color: colorScheme.primary),
-              ),
+              child: SectionHeader(title: Text(group.title)),
             ),
             for (final category in group.categories)
               _RailDestination(
@@ -347,35 +334,27 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _singlePaneBody(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: [
-        for (final group in _settingsGroups) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
-              group.title,
-              style: textTheme.titleSmall?.copyWith(color: colorScheme.primary),
+  Widget _singlePaneBody(BuildContext context) => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          for (final group in _settingsGroups)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: ContentSection.group(
+                title: group.title,
+                children: [
+                  for (final category in group.categories)
+                    SettingsCategoryTile(
+                      icon: category.icon,
+                      title: category.label,
+                      description: category.description,
+                      onTap: () => setState(() => _selected = category),
+                    ),
+                ],
+              ),
             ),
-          ),
-          SettingsSplitGroup(
-            children: [
-              for (final category in group.categories)
-                SettingsCategoryTile(
-                  icon: category.icon,
-                  title: category.label,
-                  description: category.description,
-                  onTap: () => setState(() => _selected = category),
-                ),
-            ],
-          ),
         ],
-      ],
-    );
-  }
+      );
 }
 
 class _RailDestination extends StatelessWidget {

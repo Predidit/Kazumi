@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -29,13 +31,7 @@ class _MirrorSettingsStepState extends State<MirrorSettingsStep> {
       subtitle: '中国大陆用户推荐启用，提升访问速度',
       child: Align(
         alignment: Alignment.topCenter,
-        child: Card(
-          elevation: 0,
-          margin: EdgeInsets.zero,
-          color: colorScheme.surfaceContainerLow,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          clipBehavior: Clip.antiAlias,
+        child: TonalCard(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

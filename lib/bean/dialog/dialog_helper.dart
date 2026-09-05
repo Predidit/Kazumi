@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
+
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/utils/constants.dart';
 
-// A simple dialog helper class to show dialogs and toasts based on flutter native implementation (replace flutter_smart_dialog)
-// flutter_smart_dialog use overlays and self-managed route stack to show dialogs.
-// It's powerful but can't behave like the default showDialog, e.g. the lack of mask animation. the lack of snackbar.
-// Use the implementation should be careful, because shared route stack with the whole app, it may cause some unexpected behaviors.
-// Don't use it in double PopScope widget.
 class KazumiDialog {
-  /// The global observer that tracks contexts across the application
   static final KazumiDialogObserver observer = KazumiDialogObserver();
 
   KazumiDialog._internal();
@@ -112,7 +108,7 @@ class KazumiDialog {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(),
+                      const LoadingIndicator(),
                       const SizedBox(height: 16),
                       Text(
                         msg ?? 'Loading...',
@@ -136,63 +132,6 @@ class KazumiDialog {
     }
   }
 
-  static Future<T?> showBottomSheet<T>({
-    BuildContext? context,
-    required WidgetBuilder builder,
-    Color? backgroundColor,
-    double? elevation,
-    ShapeBorder? shape,
-    Clip? clipBehavior,
-    BoxConstraints? constraints,
-    Color? barrierColor,
-    bool isScrollControlled = false,
-    bool useRootNavigator = true,
-    bool isDismissible = true,
-    bool enableDrag = true,
-    RouteSettings? routeSettings,
-    AnimationController? transitionAnimationController,
-    Offset? anchorPoint,
-    bool useSafeArea = false,
-  }) async {
-    // Use provided context first, then root context, then fallback to current context
-    final ctx = context ??
-        rootNavigatorKey.currentContext ??
-        observer.rootContext ??
-        observer.currentContext;
-    if (ctx != null && ctx.mounted) {
-      try {
-        final result = await showModalBottomSheet<T>(
-          context: ctx,
-          builder: builder,
-          backgroundColor: backgroundColor,
-          elevation: elevation,
-          shape: shape,
-          clipBehavior: clipBehavior,
-          constraints: constraints,
-          barrierColor: barrierColor,
-          isScrollControlled: isScrollControlled,
-          useRootNavigator: useRootNavigator,
-          isDismissible: isDismissible,
-          enableDrag: enableDrag,
-          routeSettings:
-              routeSettings ?? const RouteSettings(name: 'KazumiBottomSheet'),
-          transitionAnimationController: transitionAnimationController,
-          anchorPoint: anchorPoint,
-          useSafeArea: useSafeArea,
-        );
-        return result;
-      } catch (e) {
-        debugPrint('Kazumi Dialog Error: Failed to show bottom sheet: $e');
-        return null;
-      }
-    } else {
-      debugPrint(
-          'Kazumi Dialog Error: No context available to show the bottom sheet');
-      return null;
-    }
-  }
-
-  // 在存在返回值时弹出并附带返回值
   static void dismiss<T>({T? popWith}) {
     if (observer.hasKazumiDialog && observer.kazumiDialogContext != null) {
       try {
@@ -203,33 +142,6 @@ class KazumiDialog {
     } else {
       debugPrint('Kazumi Dialog Debug: No active KazumiDialog to dismiss');
     }
-  }
-
-  /// Shows a non-dismissible timed success dialog with a linear progress
-  /// countdown, then auto-dismisses when the countdown completes.
-  ///
-  /// The caller is responsible for dismissing any currently-open dialog
-  /// BEFORE calling this method.
-  ///
-  /// [onComplete] is invoked after the dialog route finishes.
-  static void showTimedSuccessDialog({
-    required String title,
-    required String message,
-    required VoidCallback onComplete,
-    Duration duration = const Duration(seconds: 3),
-  }) {
-    KazumiDialog.show<bool>(
-      clickMaskDismiss: false,
-      builder: (context) => _TimedSuccessDialog(
-        title: title,
-        message: message,
-        duration: duration,
-      ),
-    ).then((completed) {
-      if (completed == true) {
-        onComplete();
-      }
-    });
   }
 
   static ScaffoldMessengerState? _resolveScaffoldMessenger(
@@ -256,94 +168,17 @@ class KazumiDialog {
   }
 }
 
-class _TimedSuccessDialog extends StatelessWidget {
-  const _TimedSuccessDialog({
-    required this.title,
-    required this.message,
-    required this.duration,
-  });
-
-  final String title;
-  final String message;
-  final Duration duration;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Dialog(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: SizedBox(
-          width: 300,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  size: 32,
-                  color: colorScheme.onSecondaryContainer,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: duration,
-                onEnd: () => KazumiDialog.dismiss(popWith: true),
-                builder: (context, value, _) =>
-                    LinearProgressIndicator(value: value),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Navigator observer to track contexts and dialog routes
 class KazumiDialogObserver extends NavigatorObserver {
-  /// List of active dialog routes
   final List<Route<dynamic>> _kazumiDialogRoutes = [];
   bool _snackBarClearScheduled = false;
 
-  /// The most recent context from any MaterialPageRoute or PopupRoute
   BuildContext? _currentContext;
 
-  /// The most recent context from any route containing a Scaffold
   BuildContext? _scaffoldContext;
-
-  /// The root context of the app (for bottom sheets to cover the entire app)
-  BuildContext? _rootContext;
 
   BuildContext? get currentContext => _currentContext;
 
   BuildContext? get scaffoldContext => _scaffoldContext ?? _currentContext;
-
-  /// Get the root context for bottom sheets, fallback to scaffold context, then current context
-  BuildContext? get rootContext =>
-      _rootContext ?? _scaffoldContext ?? _currentContext;
 
   bool get hasKazumiDialog => _kazumiDialogRoutes.isNotEmpty;
 
@@ -358,7 +193,7 @@ class KazumiDialogObserver extends NavigatorObserver {
       _kazumiDialogRoutes.add(route);
     }
     if (route.navigator?.context != null) {
-      _updateContexts(route.navigator!.context, route);
+      _updateContexts(route.navigator!.context);
     }
   }
 
@@ -370,7 +205,7 @@ class KazumiDialogObserver extends NavigatorObserver {
       _kazumiDialogRoutes.remove(route);
     }
     if (previousRoute?.navigator?.context != null) {
-      _updateContexts(previousRoute!.navigator!.context, previousRoute);
+      _updateContexts(previousRoute!.navigator!.context);
     }
   }
 
@@ -378,14 +213,15 @@ class KazumiDialogObserver extends NavigatorObserver {
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
     _scheduleSnackBarClear();
-    if (_isKazumiDialogRoute(oldRoute!)) {
+    if (_isKazumiDialogRoute(oldRoute)) {
       _kazumiDialogRoutes.remove(oldRoute);
     }
-    if (_isKazumiDialogRoute(newRoute!)) {
+    if (newRoute != null && _isKazumiDialogRoute(newRoute)) {
       _kazumiDialogRoutes.add(newRoute);
     }
-    if (newRoute.navigator?.context != null) {
-      _updateContexts(newRoute.navigator!.context, newRoute);
+    final context = newRoute?.navigator?.context;
+    if (context != null) {
+      _updateContexts(context);
     }
   }
 
@@ -399,37 +235,26 @@ class KazumiDialogObserver extends NavigatorObserver {
     }
 
     if (previousRoute?.navigator?.context != null) {
-      _updateContexts(previousRoute!.navigator!.context, previousRoute);
+      _updateContexts(previousRoute!.navigator!.context);
     }
   }
 
-  void _updateContexts(BuildContext context, Route<dynamic> route) {
+  void _updateContexts(BuildContext context) {
     _currentContext = context;
-    if (_hasScaffold(context)) {
+    if (Scaffold.maybeOf(context) != null) {
       _scaffoldContext = context;
-      // Always update root context with scaffold contexts to ensure we have the most recent one
-      // This helps ensure bottom sheets appear at the app level
-      _rootContext = context;
     }
   }
 
-  bool _hasScaffold(BuildContext context) {
-    return Scaffold.maybeOf(context) != null;
-  }
-
-  bool _isKazumiDialogRoute(Route<dynamic> route) {
-    return route.settings.name == 'KazumiDialog' ||
-        route.settings.name == 'KazumiBottomSheet';
-  }
+  bool _isKazumiDialogRoute(Route<dynamic>? route) =>
+      route?.settings.name == 'KazumiDialog';
 
   void _scheduleSnackBarClear() {
     if (_snackBarClearScheduled) return;
     _snackBarClearScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _snackBarClearScheduled = false;
-      // Route observer callbacks run while Navigator is reconciling routes.
-      // Clearing the root messenger after the frame avoids mutating UI state
-      // in the middle of that reconciliation.
+      // Defer snackbar removal until Navigator finishes reconciling routes.
       rootScaffoldMessengerKey.currentState?.removeCurrentSnackBar();
     });
   }

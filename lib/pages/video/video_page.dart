@@ -1506,7 +1506,7 @@ class _DanmakuInputEntryState extends State<_DanmakuInputEntry>
                               onTap: canOpenInput ? widget.onTapInput : null,
                               child: Padding(
                                 padding:
-                                    const EdgeInsets.symmetric(horizontal: 5),
+                                    const EdgeInsets.symmetric(horizontal: 10),
                                 child: Align(
                                   alignment: Alignment.centerLeft,
                                   child: Text(

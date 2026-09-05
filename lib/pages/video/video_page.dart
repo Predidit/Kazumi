@@ -1300,7 +1300,7 @@ class _VideoPageState extends State<VideoPage>
                     MediaQuery.sizeOf(context).height) ...[
                   const Spacer(),
                   if (showDanmakuInput)
-                    _DanmakuTextField(
+                    _DanmakuInputEntry(
                       inputVisible: danmakuOn && !danmakuInputLoading,
                       loading: danmakuInputLoading,
                       disableAnimations: disableAnimations ||
@@ -1366,8 +1366,8 @@ class _VideoPageState extends State<VideoPage>
   }
 }
 
-class _DanmakuTextField extends StatefulWidget {
-  const _DanmakuTextField({
+class _DanmakuInputEntry extends StatefulWidget {
+  const _DanmakuInputEntry({
     required this.inputVisible,
     required this.loading,
     required this.disableAnimations,
@@ -1386,12 +1386,11 @@ class _DanmakuTextField extends StatefulWidget {
   final VoidCallback onTapInput;
 
   @override
-  State<_DanmakuTextField> createState() => _DanmakuTextFieldState();
+  State<_DanmakuInputEntry> createState() => _DanmakuInputEntryState();
 }
 
-class _DanmakuTextFieldState extends State<_DanmakuTextField>
+class _DanmakuInputEntryState extends State<_DanmakuInputEntry>
     with SingleTickerProviderStateMixin {
-  late final FocusNode _focusNode;
   late final AnimationController _animationController;
   late final Animation<double> _inputAnimation;
   late final Animation<double> _textOpacity;
@@ -1404,7 +1403,6 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode();
     _animationController = AnimationController(
       vsync: this,
       duration: _animationDuration,
@@ -1420,14 +1418,11 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
   }
 
   @override
-  void didUpdateWidget(covariant _DanmakuTextField oldWidget) {
+  void didUpdateWidget(covariant _DanmakuInputEntry oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.inputVisible == oldWidget.inputVisible &&
         widget.disableAnimations == oldWidget.disableAnimations) {
       return;
-    }
-    if (!widget.inputVisible) {
-      _focusNode.unfocus();
     }
     if (widget.disableAnimations) {
       _animationController.value = widget.inputVisible ? 1 : 0;
@@ -1440,13 +1435,13 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
 
   @override
   void dispose() {
-    _focusNode.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool canOpenInput = widget.inputVisible && !widget.loading;
     final Duration decorationDuration =
         widget.disableAnimations ? Duration.zero : _decorationDuration;
     final Widget statusIcon = widget.loading
@@ -1495,26 +1490,39 @@ class _DanmakuTextFieldState extends State<_DanmakuTextField>
                     opacity: _textOpacity,
                     child: SizedBox(
                       width: inputWidth,
-                      child: TextField(
-                        focusNode: _focusNode,
-                        enabled: widget.inputVisible,
-                        readOnly: true,
-                        textAlignVertical: TextAlignVertical.center,
-                        onTap: widget.onTapInput,
-                        style: const TextStyle(fontSize: 13, height: 1),
-                        decoration: InputDecoration(
-                          hintText: '点我发弹幕',
-                          hintStyle: TextStyle(
-                            color: widget.textColor,
-                            fontSize: 13,
-                            height: 1,
+                      height: _height,
+                      child: ExcludeSemantics(
+                        excluding: !canOpenInput,
+                        child: Semantics(
+                          button: true,
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: const BorderRadius.horizontal(
+                              left: Radius.circular(18),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              canRequestFocus: canOpenInput,
+                              onTap: canOpenInput ? widget.onTapInput : null,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 5),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    '发弹幕',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: widget.textColor,
+                                      fontSize: 13,
+                                      height: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 5,
-                          ),
-                          isDense: true,
                         ),
                       ),
                     ),

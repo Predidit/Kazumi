@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The M3 Expressive split-list vocabulary: large corners at a group's ends,
 /// small ones between rows, and a gap in place of a divider.

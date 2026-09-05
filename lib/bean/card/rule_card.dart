@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Rounded tonal card for a rule entry, shared by the rule manage page,
 /// the rule shop page and the onboarding rule step.

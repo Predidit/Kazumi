@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// workaround for padding check error on Xiaomi HyperOS devices
 /// caused by flutter/flutter#161086

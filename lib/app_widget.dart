@@ -1,6 +1,5 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -346,6 +345,11 @@ class _AppWidgetState extends State<AppWidget>
           themeMode: themeProvider.themeMode,
           scaffoldMessengerKey: rootScaffoldMessengerKey,
           routerConfig: ModularApp.routerConfigOf(context),
+          // Dependencies still on package:flutter/material read their colors
+          // from the legacy Theme; mirror ours into it until they migrate.
+          builder: (context, child) =>
+              // ignore: deprecated_member_use
+              MaterialUiCompatibilityBridge(child: child ?? const SizedBox()),
         );
       },
     );

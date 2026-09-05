@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 
 class PaletteCard extends StatefulWidget {

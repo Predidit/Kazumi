@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shared empty state following the onboarding badge idiom:
 /// a tonal circular badge with an icon above a bold title.

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:antlr4/antlr4.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/bbcode/bbcode_elements.dart';

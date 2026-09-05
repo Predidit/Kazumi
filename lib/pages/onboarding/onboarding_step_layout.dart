@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shared visual skeleton for onboarding steps: a leading badge, a headline,
 /// a one-line supporting text and the step content below.

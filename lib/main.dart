@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/app_module.dart';
 import 'package:kazumi/app_widget.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -14,8 +14,8 @@ import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/page_transition.dart';
 import 'package:kazumi/services/platform/webview_feature_service.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/navigation.dart';
@@ -98,7 +98,7 @@ void main() async {
       module: appModule,
       navigatorKey: rootNavigatorKey,
       navigatorObservers: [KazumiDialog.observer, rootRouteObserver],
-      defaultTransition: TransitionType.material,
+      defaultTransition: const MaterialUiTransition(),
       provide: (scoped) {
         scoped.addChangeNotifier<ThemeProvider>(ThemeProvider.new);
       },

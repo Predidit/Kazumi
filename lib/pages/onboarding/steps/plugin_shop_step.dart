@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_catalog_view.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';

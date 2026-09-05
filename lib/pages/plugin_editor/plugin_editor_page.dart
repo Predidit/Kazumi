@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/api_rule_config.dart';

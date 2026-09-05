@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 /// Tells a settings detail page how the settings page is hosting it.

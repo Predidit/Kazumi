@@ -3,6 +3,7 @@ import 'package:kazumi/pages/about/about_module.dart';
 import 'package:kazumi/pages/bangumi/bangumi_module.dart';
 import 'package:kazumi/pages/download/download_page_module.dart';
 import 'package:kazumi/pages/history/history_module.dart';
+import 'package:kazumi/pages/logs/logs_page.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_module.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_module.dart';
 import 'package:kazumi/pages/settings/decoder_settings.dart';
@@ -14,8 +15,10 @@ import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_module.dart';
 import 'package:kazumi/pages/settings/renderer_settings.dart';
 import 'package:kazumi/pages/settings/settings_page.dart';
+import 'package:kazumi/pages/settings/storage_settings.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
+import 'package:kazumi/pages/settings/update_settings.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 
 final settingsModule = createModule(
@@ -23,6 +26,13 @@ final settingsModule = createModule(
   register: (c) {
     c
       ..route('/', child: (context, state) => const SettingsPage())
+      ..route(
+        '/update',
+        child: (context, state) => const UpdateSettingsPage(),
+      )
+      ..route('/storage',
+          child: (context, state) => const StorageSettingsPage())
+      ..route('/storage/logs', child: (context, state) => const LogsPage())
       ..route('/theme', child: (context, state) => const ThemeSettingsPage())
       ..route(
         '/theme/display',

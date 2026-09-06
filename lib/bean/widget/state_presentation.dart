@@ -51,6 +51,7 @@ class StateActionButton extends StatelessWidget {
     required this.onPressed,
     required this.text,
     this.icon,
+    this.reserveText,
   }) : _tonal = false;
 
   const StateActionButton.tonal({
@@ -58,11 +59,15 @@ class StateActionButton extends StatelessWidget {
     required this.onPressed,
     required this.text,
     this.icon,
+    this.reserveText,
   }) : _tonal = true;
 
   final VoidCallback? onPressed;
   final String text;
   final IconData? icon;
+
+  /// Reserves label space for a longer status without changing button size.
+  final String? reserveText;
   final bool _tonal;
 
   @override
@@ -80,11 +85,26 @@ class StateActionButton extends StatelessWidget {
           : const Duration(milliseconds: 200),
     );
     final button = _tonal ? FilledButton.tonalIcon : FilledButton.icon;
+    final label = Text(text, textAlign: TextAlign.center);
     return button(
       onPressed: onPressed,
       style: style,
       icon: icon == null ? null : Icon(icon, size: 20),
-      label: Text(text, textAlign: TextAlign.center),
+      label: reserveText == null
+          ? label
+          : Stack(
+              alignment: Alignment.center,
+              children: [
+                Visibility(
+                  visible: false,
+                  maintainSize: true,
+                  maintainState: true,
+                  maintainAnimation: true,
+                  child: Text(reserveText!, textAlign: TextAlign.center),
+                ),
+                label,
+              ],
+            ),
     );
   }
 }

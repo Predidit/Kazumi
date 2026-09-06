@@ -14,7 +14,9 @@ import 'package:kazumi/pages/settings/interface_settings.dart';
 import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_settings_page.dart';
+import 'package:kazumi/pages/settings/storage_settings.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
+import 'package:kazumi/pages/settings/update_settings.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_setting.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -101,7 +103,7 @@ final List<_SettingsGroup> _settingsGroups = [
       _SettingsCategory(
         id: 'interface',
         label: '界面设置',
-        description: '启动页与展示信息',
+        description: '启动、窗口行为与展示信息',
         icon: Icons.pages_rounded,
         builder: (_) => const InterfaceSettingsPage(),
       ),
@@ -125,11 +127,27 @@ final List<_SettingsGroup> _settingsGroups = [
     title: '其他',
     categories: [
       _SettingsCategory(
+        id: 'update',
+        label: '更新设置',
+        description: '应用与规则更新',
+        icon: Icons.update_rounded,
+        builder: (_) => const UpdateSettingsPage(),
+      ),
+      _SettingsCategory(
+        id: 'storage',
+        label: '存储与日志',
+        description: '图片缓存与错误日志',
+        icon: Icons.storage_rounded,
+        builder: (_) => const StorageSettingsPage(),
+      ),
+      _SettingsCategory(
         id: 'about',
         label: '关于',
-        description: '版本、日志与开源许可',
+        description: '版本与开源信息',
         icon: Icons.info_outline_rounded,
-        builder: (_) => AboutPage(controller: inject<MyController>()),
+        builder: (_) => AboutPage(
+          onCheckUpdate: inject<MyController>().checkUpdate,
+        ),
       ),
     ],
   ),

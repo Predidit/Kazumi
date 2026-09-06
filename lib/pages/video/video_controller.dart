@@ -580,6 +580,10 @@ abstract class _VideoPageController with Store implements Disposable {
     _danmakuSessions.cancel();
   }
 
+  AsyncSession beginDanmakuLoadSession() {
+    return _danmakuSessions.begin();
+  }
+
   String? _getLocalVideoPath(
       int bangumiId, String pluginName, int episodeNumber) {
     final episode =

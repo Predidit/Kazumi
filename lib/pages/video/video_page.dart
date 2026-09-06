@@ -1,9 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
+import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
+import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
@@ -13,7 +18,6 @@ import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
-import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
@@ -66,7 +70,6 @@ class _VideoPageState extends State<VideoPage>
   StreamSubscription<String>? _logSubscription;
   final FocusNode keyboardFocus =
       FocusNode(debugLabel: 'Video player shortcut scope');
-
   ScrollController scrollController = ScrollController();
   late GridObserverController observerController;
   late AnimationController animation;
@@ -82,7 +85,8 @@ class _VideoPageState extends State<VideoPage>
 
   StreamSubscription<SyncPlayChatMessage>? _syncChatSubscription;
   late final mobx.ReactionDisposer _pipModeListener;
-
+  late final mobx.ReactionDisposer _playbackStartedListener;
+  bool _hasStartedPlayback = false;
   static const Duration _offlinePlayerInitDelay = Duration(milliseconds: 400);
   static const Duration _sideTabAnimationDuration = Duration(milliseconds: 120);
 
@@ -120,6 +124,15 @@ class _VideoPageState extends State<VideoPage>
     _pipModeListener = mobx.reaction<bool>(
       (_) => videoPageController.isPip,
       (_) => _syncFullscreenWithWindowShape(),
+    );
+    _hasStartedPlayback = playerController.playback.playing;
+    _playbackStartedListener = mobx.reaction<bool>(
+      (_) => playerController.playback.playing,
+      (playing) {
+        if (playing) {
+          _hasStartedPlayback = true;
+        }
+      },
     );
   }
 
@@ -266,6 +279,7 @@ class _VideoPageState extends State<VideoPage>
       _logSubscription?.cancel();
     } catch (_) {}
     _pipModeListener();
+    _playbackStartedListener();
     // Modular disposes the controller and its log subscription with the route.
     if (!isDesktop()) {
       try {
@@ -329,7 +343,8 @@ class _VideoPageState extends State<VideoPage>
 
   void menuJumpToCurrentEpisode() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Wait for GridViewObserver to bind its sliver in the post-frame callback.
+      // GridViewObserver binds its sliver context in its own post-frame callback.
+      // Wait until the current frame's callbacks have all completed first.
       await Future<void>.delayed(Duration.zero);
       if (!mounted || !scrollController.hasClients) {
         return;
@@ -524,6 +539,188 @@ class _VideoPageState extends State<VideoPage>
       return;
     }
     await showDanmakuDestinationPickerAndSend(message);
+  }
+
+  void _toggleDanmakuFromInput() {
+    if (videoPageController.loading) {
+      KazumiDialog.showToast(message: '请等待视频加载完成');
+      return;
+    }
+    playerController.danmaku.canvasController.clear();
+    if (playerController.danmaku.danmakuOn) {
+      playerController.danmaku.setDanmakuEnabled(false);
+      GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, false);
+      unawaited(_updateAndroidPIPActions());
+      return;
+    }
+    if (playerController.danmaku.danDanmakus.isEmpty) {
+      _showDanmakuSwitch();
+      unawaited(_updateAndroidPIPActions());
+      return;
+    }
+    playerController.danmaku.setDanmakuEnabled(true);
+    GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, true);
+    unawaited(_updateAndroidPIPActions());
+  }
+
+  Future<void> _updateAndroidPIPActions() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    await PipUtils.updateAndroidPIPActions(
+      playing: playerController.playback.playing,
+      danmakuEnabled: playerController.danmaku.danmakuOn,
+      width: playerController.debug.playerWidth.toInt(),
+      height: playerController.debug.playerHeight.toInt(),
+    );
+  }
+
+  void _showDanmakuSearchDialog(String keyword) async {
+    KazumiDialog.dismiss();
+    KazumiDialog.showLoading(msg: '弹幕检索中');
+    DanmakuSearchResponse searchResponse;
+    try {
+      searchResponse = await DanmakuApi.searchAnimes(keyword);
+    } catch (e) {
+      KazumiDialog.dismiss();
+      KazumiDialog.showToast(message: '弹幕检索错误: ${e.toString()}');
+      return;
+    }
+    KazumiDialog.dismiss();
+    if (searchResponse.animes.isEmpty) {
+      KazumiDialog.showToast(message: '未找到匹配结果');
+      return;
+    }
+    await KazumiDialog.show(builder: (context) {
+      return Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              if (searchResponse.hasMore)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                  child: Text(
+                    '结果较多，仅显示部分条目，可补充更完整的番剧名缩小范围',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                  ),
+                ),
+              ...searchResponse.animes.map((danmakuInfo) {
+                return ListTile(
+                  title: Text(danmakuInfo.animeTitle),
+                  subtitle: danmakuInfo.typeDescription.isEmpty
+                      ? null
+                      : Text(danmakuInfo.typeDescription),
+                  onTap: () async {
+                    KazumiDialog.dismiss();
+                    KazumiDialog.showLoading(msg: '弹幕检索中');
+                    final DanmakuEpisodeResponse episodeResponse;
+                    try {
+                      episodeResponse =
+                          await DanmakuApi.getDanDanEpisodesByDanDanBangumiID(
+                              danmakuInfo.animeId);
+                    } catch (e) {
+                      KazumiDialog.dismiss();
+                      KazumiDialog.showToast(
+                          message: '弹幕检索错误: ${e.toString()}');
+                      return;
+                    }
+                    KazumiDialog.dismiss();
+                    if (episodeResponse.episodes.isEmpty) {
+                      KazumiDialog.showToast(message: '未找到匹配结果');
+                      return;
+                    }
+                    KazumiDialog.show(builder: (context) {
+                      return Dialog(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 560),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: episodeResponse.episodes.length,
+                            itemBuilder: (context, index) {
+                              final episode = episodeResponse.episodes[index];
+                              return ListTile(
+                                title: Text(episode.episodeTitle),
+                                onTap: () async {
+                                  KazumiDialog.dismiss();
+                                  try {
+                                    videoPageController
+                                        .cancelAutomaticDanmakuLoad();
+                                    final session = videoPageController
+                                        .beginDanmakuLoadSession();
+                                    final hasDanmakus = await playerController
+                                        .danmaku
+                                        .getDanDanmakuByEpisodeID(
+                                            episode.episodeId,
+                                            session: session);
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    if (hasDanmakus == null) {
+                                      return;
+                                    }
+                                    if (hasDanmakus) {
+                                      playerController.danmaku
+                                          .setDanmakuEnabled(true);
+                                      KazumiDialog.showToast(message: '弹幕切换成功');
+                                    } else {
+                                      playerController.danmaku
+                                          .setDanmakuEnabled(false);
+                                      KazumiDialog.showToast(
+                                          message: '未找到弹幕内容');
+                                    }
+                                    unawaited(_updateAndroidPIPActions());
+                                  } catch (e) {
+                                    KazumiDialog.showToast(message: '弹幕切换失败');
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    });
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  void _showDanmakuSwitch() {
+    String searchKeyword = videoPageController.title;
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('弹幕检索'),
+          content: TextFormField(
+            initialValue: searchKeyword,
+            decoration: const InputDecoration(hintText: '番剧名'),
+            onChanged: (value) => searchKeyword = value,
+            onFieldSubmitted: _showDanmakuSearchDialog,
+          ),
+          actions: [
+            TextButton(
+              onPressed: KazumiDialog.dismiss,
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _showDanmakuSearchDialog(searchKeyword),
+              child: const Text('提交'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<bool> showDanmakuDestinationPickerAndSend(String msg) async {
@@ -1063,6 +1260,14 @@ class _VideoPageState extends State<VideoPage>
 
   Widget get tabBody {
     final bool danmakuOn = playerController.danmaku.danmakuOn;
+    final bool danmakuLoading = playerController.danmaku.danmakuLoading;
+    final bool playbackStarted =
+        _hasStartedPlayback || playerController.playback.playing;
+    // Keep the entry mounted after playback starts, including episode changes.
+    final bool showDanmakuInput = playbackStarted;
+    final bool danmakuInputLoading = videoPageController.loading ||
+        playerController.playback.loading ||
+        danmakuLoading;
     final int episodeNum = videoPageController.commentsEpisode;
 
     return Container(
@@ -1094,49 +1299,19 @@ class _VideoPageState extends State<VideoPage>
                 if (MediaQuery.sizeOf(context).width <=
                     MediaQuery.sizeOf(context).height) ...[
                   const Spacer(),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(
-                        color: danmakuOn
-                            ? Theme.of(context).hintColor
-                            : Theme.of(context).disabledColor,
-                        width: 0.5,
-                      ),
+                  if (showDanmakuInput)
+                    _DanmakuInputEntry(
+                      inputVisible: danmakuOn && !danmakuInputLoading,
+                      loading: danmakuInputLoading,
+                      disableAnimations: disableAnimations ||
+                          MediaQuery.disableAnimationsOf(context),
+                      iconColor: danmakuOn
+                          ? Theme.of(context).hintColor
+                          : Theme.of(context).disabledColor,
+                      textColor: Theme.of(context).hintColor,
+                      onToggle: _toggleDanmakuFromInput,
+                      onTapInput: showMobileDanmakuInput,
                     ),
-                    child: GestureDetector(
-                      onTap: () {
-                        if (danmakuOn && !videoPageController.loading) {
-                          showMobileDanmakuInput();
-                        } else if (videoPageController.loading) {
-                          KazumiDialog.showToast(message: '请等待视频加载完成');
-                        } else {
-                          KazumiDialog.showToast(message: '请先打开弹幕');
-                        }
-                      },
-                      child: Row(
-                        children: [
-                          Text(
-                            danmakuOn ? '  点我发弹幕  ' : '  已关闭弹幕  ',
-                            softWrap: false,
-                            overflow: TextOverflow.clip,
-                            style: TextStyle(
-                              color: danmakuOn
-                                  ? Theme.of(context).hintColor
-                                  : Theme.of(context).disabledColor,
-                            ),
-                          ),
-                          if (danmakuOn)
-                            Icon(
-                              Icons.send_rounded,
-                              size: 20,
-                              color: Theme.of(context).hintColor,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
                 const SizedBox(width: 8),
               ],
@@ -1187,6 +1362,196 @@ class _VideoPageState extends State<VideoPage>
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DanmakuInputEntry extends StatefulWidget {
+  const _DanmakuInputEntry({
+    required this.inputVisible,
+    required this.loading,
+    required this.disableAnimations,
+    required this.iconColor,
+    required this.textColor,
+    required this.onToggle,
+    required this.onTapInput,
+  });
+
+  final bool inputVisible;
+  final bool loading;
+  final bool disableAnimations;
+  final Color iconColor;
+  final Color textColor;
+  final VoidCallback onToggle;
+  final VoidCallback onTapInput;
+
+  @override
+  State<_DanmakuInputEntry> createState() => _DanmakuInputEntryState();
+}
+
+class _DanmakuInputEntryState extends State<_DanmakuInputEntry>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animationController;
+  late final Animation<double> _inputAnimation;
+  late final Animation<double> _textOpacity;
+
+  static const Duration _animationDuration = Duration(milliseconds: 220);
+  static const Duration _decorationDuration = Duration(milliseconds: 140);
+  static const double _height = 36;
+  static const double _collapsedWidth = 44;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: _animationDuration,
+      value: widget.inputVisible ? 1 : 0,
+    );
+    _inputAnimation = _animationController.drive(
+      CurveTween(curve: Curves.easeInOutCubic),
+    );
+    // Reveal text once there is room; fade it out before the width collapses.
+    _textOpacity = _inputAnimation.drive(
+      CurveTween(curve: const Interval(0.45, 1.0)),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _DanmakuInputEntry oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.inputVisible == oldWidget.inputVisible &&
+        widget.disableAnimations == oldWidget.disableAnimations) {
+      return;
+    }
+    if (widget.disableAnimations) {
+      _animationController.value = widget.inputVisible ? 1 : 0;
+    } else if (widget.inputVisible) {
+      _animationController.forward();
+    } else {
+      _animationController.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool canOpenInput = widget.inputVisible && !widget.loading;
+    final Duration decorationDuration =
+        widget.disableAnimations ? Duration.zero : _decorationDuration;
+    final Widget statusIcon = widget.loading
+        ? SizedBox(
+            key: const ValueKey('loading'),
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: widget.iconColor,
+            ),
+          )
+        : Icon(
+            widget.inputVisible
+                ? Icons.subtitles_outlined
+                : Icons.subtitles_off_outlined,
+            key: ValueKey(widget.inputVisible),
+            size: 20,
+            color: widget.iconColor,
+          );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxWidth =
+            constraints.hasBoundedWidth ? constraints.maxWidth - 8 : 150;
+        final double inputWidth =
+            (maxWidth - _collapsedWidth).clamp(0.0, double.infinity);
+
+        return Align(
+          alignment: Alignment.centerRight,
+          child: AnimatedContainer(
+            duration: decorationDuration,
+            curve: Curves.easeInOut,
+            height: _height,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: widget.iconColor, width: 0.5),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizeTransition(
+                  axis: Axis.horizontal,
+                  sizeFactor: _inputAnimation,
+                  alignment: Alignment.centerRight,
+                  child: FadeTransition(
+                    opacity: _textOpacity,
+                    child: SizedBox(
+                      width: inputWidth,
+                      height: _height,
+                      child: ExcludeSemantics(
+                        excluding: !canOpenInput,
+                        child: Semantics(
+                          button: true,
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: const BorderRadius.horizontal(
+                              left: Radius.circular(18),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              canRequestFocus: canOpenInput,
+                              onTap: canOpenInput ? widget.onTapInput : null,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    '发弹幕',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: widget.textColor,
+                                      fontSize: 13,
+                                      height: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: widget.loading
+                      ? '加载中，请稍候...'
+                      : (widget.inputVisible ? '关闭弹幕' : '打开弹幕'),
+                  constraints: const BoxConstraints.tightFor(
+                    width: _collapsedWidth,
+                    height: _height,
+                  ),
+                  padding: EdgeInsets.zero,
+                  onPressed: !widget.loading ? widget.onToggle : null,
+                  icon: widget.disableAnimations
+                      ? statusIcon
+                      : AnimatedSwitcher(
+                          duration: decorationDuration,
+                          switchInCurve: Curves.easeInOut,
+                          switchOutCurve: Curves.easeInOut,
+                          child: statusIcon,
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

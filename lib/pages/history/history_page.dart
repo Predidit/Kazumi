@@ -224,7 +224,7 @@ class _HistoryCardState extends State<_HistoryCard> with KazumiDialogOwner {
         history: widget.history,
         borderRadius: widget.borderRadius,
         editing: widget.editing,
-        busy: widget.busy || dialogs.isRunning,
+        busy: widget.busy,
         onPlay: _play,
         onDelete: widget.onDelete,
         onDetails: () =>

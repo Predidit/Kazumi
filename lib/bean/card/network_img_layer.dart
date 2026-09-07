@@ -1,8 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/image_extension.dart';
-import 'package:kazumi/services/logging/logger.dart';
 
 class NetworkImgLayer extends StatelessWidget {
   const NetworkImgLayer({
@@ -10,10 +10,10 @@ class NetworkImgLayer extends StatelessWidget {
     this.src,
     required this.width,
     required this.height,
+    this.fit = BoxFit.cover,
     this.type,
     this.fadeOutDuration,
     this.fadeInDuration,
-    this.quality,
     this.origAspectRatio,
     this.filterQuality = FilterQuality.high,
     this.color,
@@ -23,10 +23,10 @@ class NetworkImgLayer extends StatelessWidget {
   final String? src;
   final double width;
   final double height;
+  final BoxFit fit;
   final String? type;
   final Duration? fadeOutDuration;
   final Duration? fadeInDuration;
-  final int? quality;
   final double? origAspectRatio;
   final FilterQuality filterQuality;
   final Color? color;
@@ -58,81 +58,78 @@ class NetworkImgLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String imageUrl = src ?? '';
-
-    //// We need this to shink memory usage
-    int? memCacheWidth, memCacheHeight;
-    double aspectRatio = (width / height).toDouble();
-
-    void setMemCacheSizes() {
-      final sourceAspectRatio = origAspectRatio;
-      if (sourceAspectRatio != null) {
-        // BoxFit.cover needs the decoded image to fill the target's limiting
-        // axis. A portrait source shown in a landscape box must therefore be
-        // decoded by width, otherwise it is downscaled and enlarged again.
-        if (sourceAspectRatio < aspectRatio) {
-          memCacheWidth = width.cacheSize(context);
-        } else if (sourceAspectRatio > aspectRatio) {
-          memCacheHeight = height.cacheSize(context);
-        } else {
-          memCacheWidth = width.cacheSize(context);
-          memCacheHeight = height.cacheSize(context);
-        }
-        return;
-      }
-      if (aspectRatio > 1) {
-        memCacheHeight = height.cacheSize(context);
-      } else if (aspectRatio < 1) {
-        memCacheWidth = width.cacheSize(context);
-      } else {
-        memCacheWidth = width.cacheSize(context);
-        memCacheHeight = height.cacheSize(context);
-      }
+    final imageUrl = src ?? '';
+    if (imageUrl.isEmpty) {
+      return _placeholder(context);
     }
 
-    setMemCacheSizes();
-
-    if (memCacheWidth == null && memCacheHeight == null) {
-      memCacheWidth = width.toInt();
-    }
-
-    return src != '' && src != null
-        ? ClipRRect(
-            clipBehavior: Clip.antiAlias,
-            borderRadius: BorderRadius.circular(
-              type == 'avatar'
-                  ? 50
-                  : type == 'emote'
-                      ? 0
-                      : StyleString.imgRadius.x,
-            ),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              width: width,
-              height: height,
-              memCacheWidth: memCacheWidth,
-              memCacheHeight: memCacheHeight,
-              fit: BoxFit.cover,
-              fadeOutDuration:
-                  fadeOutDuration ?? const Duration(milliseconds: 120),
-              fadeInDuration:
-                  fadeInDuration ?? const Duration(milliseconds: 120),
-              filterQuality: filterQuality,
-              color: color,
-              colorBlendMode: colorBlendMode,
-              errorListener: (e) {
-                KazumiLogger()
-                    .w("NetworkImage: network image load error", error: e);
-              },
-              errorWidget: (BuildContext context, String url, Object error) =>
-                  placeholder(context),
-              placeholder: (BuildContext context, String url) =>
-                  placeholder(context),
-            ))
-        : placeholder(context);
+    final (memCacheWidth, memCacheHeight) = _cacheSize(context);
+    return ClipRRect(
+      clipBehavior: Clip.antiAlias,
+      borderRadius: _borderRadius,
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: width,
+        height: height,
+        memCacheWidth: memCacheWidth,
+        memCacheHeight: memCacheHeight,
+        fit: fit,
+        fadeOutDuration: fadeOutDuration ?? const Duration(milliseconds: 120),
+        fadeInDuration: fadeInDuration ?? const Duration(milliseconds: 120),
+        filterQuality: filterQuality,
+        color: color,
+        colorBlendMode: colorBlendMode,
+        errorListener: (e) {
+          KazumiLogger().w("NetworkImage: network image load error", error: e);
+        },
+        errorWidget: (context, url, error) => _placeholder(context),
+        placeholder: (context, url) => _placeholder(context),
+      ),
+    );
   }
 
-  Widget placeholder(BuildContext context) {
+  (int?, int?) _cacheSize(BuildContext context) {
+    final cacheWidth = width.cacheSize(context);
+    final cacheHeight = height.cacheSize(context);
+    final aspectRatio = width / height;
+    final sourceAspectRatio = origAspectRatio;
+
+    switch (fit) {
+      case BoxFit.none:
+      case BoxFit.scaleDown:
+        // These modes depend on the original image dimensions.
+        return (null, null);
+      case BoxFit.fill:
+        return (cacheWidth, cacheHeight);
+      case BoxFit.fitWidth:
+        return (cacheWidth, null);
+      case BoxFit.fitHeight:
+        return (null, cacheHeight);
+      case BoxFit.contain:
+        // A single decode axis preserves unknown source proportions.
+        return sourceAspectRatio != null && sourceAspectRatio > aspectRatio
+            ? (cacheWidth, null)
+            : (null, cacheHeight);
+      case BoxFit.cover:
+        // Decode enough pixels along the axis that fills the box.
+        if (sourceAspectRatio != null) {
+          if (sourceAspectRatio < aspectRatio) return (cacheWidth, null);
+          if (sourceAspectRatio > aspectRatio) return (null, cacheHeight);
+        } else {
+          if (aspectRatio > 1) return (null, cacheHeight);
+          if (aspectRatio < 1) return (cacheWidth, null);
+        }
+        return (cacheWidth, cacheHeight);
+    }
+  }
+
+  BorderRadius get _borderRadius => BorderRadius.circular(switch (type) {
+        'avatar' => 50,
+        'emote' => 0,
+        _ => StyleString.imgRadius.x,
+      });
+
+  Widget _placeholder(BuildContext context) {
     return Container(
       width: width,
       height: height,
@@ -142,11 +139,7 @@ class NetworkImgLayer extends StatelessWidget {
             .colorScheme
             .onInverseSurface
             .withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(type == 'avatar'
-            ? 50
-            : type == 'emote'
-                ? 0
-                : StyleString.imgRadius.x),
+        borderRadius: _borderRadius,
       ),
       child: type == 'bg'
           ? const SizedBox()

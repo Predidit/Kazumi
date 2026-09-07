@@ -1,13 +1,12 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
 import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
-import 'package:kazumi/utils/image_extension.dart';
 
 class CharacterInfoView extends StatelessWidget {
   const CharacterInfoView({
@@ -262,23 +261,11 @@ class _CharacterPortrait extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                 child: Hero(
                   tag: heroTag,
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
+                  child: NetworkImgLayer(
+                    src: imageUrl,
                     width: width - 24,
                     height: height,
-                    // Single-axis decoding and contain preserve extreme aspect ratios.
-                    memCacheHeight: height.cacheSize(context),
                     fit: BoxFit.contain,
-                    fadeInDuration: const Duration(milliseconds: 120),
-                    fadeOutDuration: const Duration(milliseconds: 120),
-                    placeholder: (context, _) => Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        semanticsLabel: '正在加载人物图片',
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => _imageMessage(
-                        context, Icons.broken_image_outlined, '图片加载失败'),
                   ),
                 ),
               ),
@@ -305,24 +292,6 @@ class _CharacterPortrait extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _imageMessage(BuildContext context, IconData icon, String message) {
-    final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 32, color: colors.onSurfaceVariant),
-          const SizedBox(height: 8),
-          Text(message,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: colors.onSurfaceVariant)),
-        ],
       ),
     );
   }

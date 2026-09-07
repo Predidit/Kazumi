@@ -180,32 +180,35 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
-  void onBangumiRatingTap() {
+  Future<void> onBangumiRatingTap() async {
     final token =
         GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
     if (token.isEmpty) {
-      KazumiDialog.showToast(message: '请先在同步设置中绑定你的 Bangumi 配置以发表吐槽');
+      KazumiDialog.showToast(message: '请先在同步设置中绑定 Bangumi');
       return;
     }
     final localType = infoController.collectController
         .getCollectType(infoController.bangumiItem);
     if (localType == 0) {
-      KazumiDialog.showToast(message: '请先追番后再发表评价');
+      KazumiDialog.showToast(message: '请先追番');
       return;
     }
-    KazumiDialog.show(
+    final editing = infoController.bangumiItem.interest?.hasReviewContent ?? false;
+    final submitted = await KazumiDialog.show<bool>(
+      context: context,
       builder: (context) => RatingReviewDialog(
         bangumiItem: infoController.bangumiItem,
-        onSubmit: (data) async {
-          final updated =
-              await infoController.rateBangumi(data, localType: localType);
-          if (updated && mounted) {
-            setState(() {});
-          }
-          return updated;
-        },
+        onSubmit: (review) =>
+            infoController.rateBangumi(review, localType: localType),
       ),
     );
+    if (submitted == true && mounted) {
+      setState(() {});
+      KazumiDialog.showToast(
+        context: context,
+        message: editing ? '吐槽已更新' : '吐槽已发表',
+      );
+    }
   }
 
   @override
@@ -343,6 +346,10 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     final bool showWindowButton =
         GStorage.getSetting(SettingsKeys.showWindowButton);
     final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
+    final reviewActionLabel =
+        infoController.bangumiItem.interest?.hasReviewContent == true
+            ? '编辑吐槽'
+            : '发表吐槽';
     return PopScope(
       canPop: true,
       child: DefaultTabController(
@@ -501,9 +508,9 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
           ),
           floatingActionButton: showRatingFab
               ? FloatingActionButton.extended(
-                  tooltip: '吐槽',
+                  tooltip: reviewActionLabel,
                   onPressed: onBangumiRatingTap,
-                  label: const Text('发表吐槽'),
+                  label: Text(reviewActionLabel),
                   icon: const Icon(Icons.rate_review_rounded),
                 )
               : FloatingActionButton.extended(

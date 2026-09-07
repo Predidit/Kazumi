@@ -46,13 +46,18 @@ class _CollectLibraryCard extends StatelessWidget {
               children: [
                 ExcludeSemantics(
                   child: IgnorePointer(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: NetworkImgLayer(
-                        src:
-                            item.images['large'] ?? item.images['common'] ?? '',
-                        width: 80,
-                        height: 120,
+                    child: Hero(
+                      tag: item.id,
+                      transitionOnUserGestures: true,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: NetworkImgLayer(
+                          src: item.images['large'] ??
+                              item.images['common'] ??
+                              '',
+                          width: 80,
+                          height: 120,
+                        ),
                       ),
                     ),
                   ),

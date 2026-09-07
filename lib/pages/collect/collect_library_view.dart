@@ -282,11 +282,15 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
               _selectType(_categories[index]);
             },
             itemCount: _categories.length,
-            itemBuilder: (context, index) => _scrollableContent(
-              query,
-              _categories[index],
-              textScale: textScale,
-              rightInset: 0,
+            itemBuilder: (context, index) => HeroMode(
+              // Avoid duplicate Hero tags across collection categories.
+              enabled: _categories[index] == _selectedType,
+              child: _scrollableContent(
+                query,
+                _categories[index],
+                textScale: textScale,
+                rightInset: 0,
+              ),
             ),
           ),
         ),

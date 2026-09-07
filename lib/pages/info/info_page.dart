@@ -19,7 +19,6 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
@@ -29,18 +28,17 @@ class InfoPage extends StatefulWidget {
     super.key,
     required this.inputBangumiItem,
     required this.infoController,
-    required this.pluginsController,
   });
 
   final BangumiItem inputBangumiItem;
   final InfoController infoController;
-  final PluginsController pluginsController;
 
   @override
   State<InfoPage> createState() => _InfoPageState();
 }
 
-class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
+class _InfoPageState extends State<InfoPage>
+    with SingleTickerProviderStateMixin {
   static const List<String> _infoTabs = <String>[
     '概览',
     '吐槽',
@@ -48,28 +46,23 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     '关联',
     '制作人员',
   ];
-  static const int _commentsTabIndex = 1;
   static const Duration _minimumBangumiInfoLoadingDuration =
       Duration(milliseconds: 600);
 
   InfoController get infoController => widget.infoController;
-  PluginsController get pluginsController => widget.pluginsController;
-  late TabController infoTabController;
-  late bool showRating;
+  late final TabController infoTabController;
+  late final bool showRating;
 
   bool commentsIsLoading = false;
   bool charactersIsLoading = false;
   bool commentsQueryTimeout = false;
-  bool commentsIsEmpty = false;
+  bool commentsHasLoaded = false;
   bool charactersQueryTimeout = false;
   bool charactersIsEmpty = false;
   bool staffIsLoading = false;
   bool staffQueryTimeout = false;
   bool staffIsEmpty = false;
   bool _showBangumiInfoSkeleton = false;
-  int _fabTabIndex = 0;
-
-  BangumiItem get inputBangumiIten => widget.inputBangumiItem;
 
   bool get _isShowingBangumiInfoSkeleton =>
       infoController.isLoading || _showBangumiInfoSkeleton;
@@ -153,7 +146,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     setState(() {
       commentsIsLoading = true;
       commentsQueryTimeout = false;
-      commentsIsEmpty = false;
     });
     try {
       await infoController.queryBangumiCommentsByID(
@@ -162,11 +154,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       if (mounted) {
         setState(() {
           commentsIsLoading = false;
-          if (infoController.commentsList.isEmpty &&
-              !(infoController.bangumiItem.interest?.hasReviewContent ??
-                  false)) {
-            commentsIsEmpty = true;
-          }
+          commentsHasLoaded = true;
         });
       }
     } catch (e) {
@@ -180,7 +168,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> onBangumiRatingTap() async {
+  Future<void> _openReviewEditor() async {
     final token =
         GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
     if (token.isEmpty) {
@@ -193,7 +181,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       KazumiDialog.showToast(message: '请先追番');
       return;
     }
-    final editing = infoController.bangumiItem.interest?.hasReviewContent ?? false;
+    final editing =
+        infoController.bangumiItem.interest?.hasReviewContent ?? false;
     final submitted = await KazumiDialog.show<bool>(
       context: context,
       builder: (context) => RatingReviewDialog(
@@ -214,31 +203,26 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    infoController.bangumiItem = inputBangumiIten;
+    infoController.bangumiItem = widget.inputBangumiItem;
     infoController.characterList.clear();
     infoController.clearComments();
     infoController.staffList.clear();
     infoController.clearRelations();
     infoController.pluginSearchResponseList.clear();
-    // Preserve rendered image URLs when filling missing metadata.
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
       _showBangumiInfoSkeleton = true;
-      queryBangumiInfoByID(
-        infoController.bangumiItem.id,
-        type: 'attach',
-        enforceMinimumLoadingDuration: true,
-      );
+      _loadBangumiInfo();
     }
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
-    _fabTabIndex = infoTabController.index;
     showRating = GStorage.getSetting(SettingsKeys.showRating);
     infoTabController.addListener(onInfoTabChanged);
-    infoTabController.addListener(_syncFabTabIndex);
-    infoTabController.animation?.addListener(_syncFabTabIndex);
   }
 
   void onInfoTabChanged() {
     final index = infoTabController.index;
+    if (index == 1) {
+      onCommentsTabSelected();
+    }
     if (index == 2 &&
         infoController.characterList.isEmpty &&
         !charactersIsLoading &&
@@ -258,38 +242,20 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
-  void _syncFabTabIndex() {
-    final animation = infoTabController.animation;
-    final targetIndex = infoTabController.indexIsChanging
-        ? infoTabController.index
-        : (animation?.value.round() ?? infoTabController.index);
-    final nextIndex =
-        targetIndex.clamp(0, infoTabController.length - 1).toInt();
-
-    if (_fabTabIndex == nextIndex) {
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _fabTabIndex = nextIndex;
-    });
-  }
-
   Future<void> onCommentsTabSelected() async {
     final interest = infoController.bangumiItem.interest;
     final token =
         GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
     if (interest != null && token.isNotEmpty) {
       final updated = await infoController.fillInterestUserProfileIfNeeded();
-      if (updated && mounted) {
+      if (!mounted) return;
+      if (updated) {
         setState(() {});
       }
     }
     if (infoController.commentsList.isEmpty &&
         !commentsIsLoading &&
-        !commentsIsEmpty &&
+        !commentsHasLoaded &&
         !commentsQueryTimeout) {
       loadMoreComments();
     }
@@ -298,8 +264,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   @override
   void dispose() {
     infoTabController.removeListener(onInfoTabChanged);
-    infoTabController.removeListener(_syncFabTabIndex);
-    infoTabController.animation?.removeListener(_syncFabTabIndex);
     infoController.characterList.clear();
     infoController.clearComments();
     infoController.staffList.clear();
@@ -309,19 +273,19 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> queryBangumiInfoByID(
-    int id, {
-    String type = "init",
-    bool enforceMinimumLoadingDuration = false,
-  }) async {
+  Future<void> _loadBangumiInfo() async {
     final loadingStartedAt = DateTime.now();
     try {
-      await infoController.queryBangumiInfoByID(id, type: type);
+      // Attach metadata without replacing rendered image URLs.
+      await infoController.queryBangumiInfoByID(
+        infoController.bangumiItem.id,
+        type: 'attach',
+      );
     } catch (e) {
       KazumiLogger()
           .e('InfoPage: failed to query bangumi info by ID', error: e);
     } finally {
-      if (enforceMinimumLoadingDuration && mounted) {
+      if (mounted) {
         await _waitForMinimumBangumiInfoLoadingDuration(loadingStartedAt);
       }
       if (mounted) {
@@ -345,189 +309,168 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final bool showWindowButton =
         GStorage.getSetting(SettingsKeys.showWindowButton);
-    final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
-    final reviewActionLabel =
-        infoController.bangumiItem.interest?.hasReviewContent == true
-            ? '编辑吐槽'
-            : '发表吐槽';
-    return PopScope(
-      canPop: true,
-      child: DefaultTabController(
-        length: _infoTabs.length,
-        child: Scaffold(
-          body: NestedScrollView(
-            headerSliverBuilder:
-                (BuildContext context, bool innerBoxIsScrolled) {
-              return <Widget>[
-                SliverOverlapAbsorber(
-                  handle:
-                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                  sliver: SliverAppBar.medium(
-                    title: EmbeddedNativeControlArea(
-                      child: dtb.DragToMoveArea(
-                        child: Container(
-                          width: double.infinity,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            infoController.bangumiItem.nameCn == ''
-                                ? infoController.bangumiItem.name
-                                : infoController.bangumiItem.nameCn,
-                          ),
-                        ),
+    return Scaffold(
+      body: NestedScrollView(
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          return <Widget>[
+            SliverOverlapAbsorber(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              sliver: SliverAppBar.medium(
+                title: EmbeddedNativeControlArea(
+                  child: dtb.DragToMoveArea(
+                    child: Container(
+                      width: double.infinity,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        infoController.bangumiItem.nameCn == ''
+                            ? infoController.bangumiItem.name
+                            : infoController.bangumiItem.nameCn,
                       ),
-                    ),
-                    automaticallyImplyLeading: false,
-                    scrolledUnderElevation: 0.0,
-                    leading: EmbeddedNativeControlArea(
-                      child: IconButton(
-                        onPressed: () {
-                          context.maybePop();
-                        },
-                        icon: Icon(Icons.arrow_back),
-                      ),
-                    ),
-                    actions: [
-                      if (innerBoxIsScrolled)
-                        EmbeddedNativeControlArea(
-                          child: CollectButton(
-                            bangumiItem: infoController.bangumiItem,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      EmbeddedNativeControlArea(
-                        child: IconButton(
-                          onPressed: () {
-                            launchUrl(
-                              Uri.parse(
-                                  'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
-                              mode: LaunchMode.externalApplication,
-                            );
-                          },
-                          icon: const Icon(Icons.open_in_browser_rounded),
-                        ),
-                      ),
-                      if (!showWindowButton && isDesktop())
-                        CloseButton(onPressed: () => windowManager.close()),
-                      SizedBox(width: 8),
-                    ],
-                    toolbarHeight: (Platform.isMacOS && showWindowButton)
-                        ? kToolbarHeight + 22
-                        : kToolbarHeight,
-                    stretch: true,
-                    centerTitle: false,
-                    expandedHeight: (Platform.isMacOS && showWindowButton)
-                        ? 308 + kTextTabBarHeight + kToolbarHeight + 22
-                        : 308 + kTextTabBarHeight + kToolbarHeight,
-                    collapsedHeight: (Platform.isMacOS && showWindowButton)
-                        ? kTextTabBarHeight +
-                            kToolbarHeight +
-                            MediaQuery.paddingOf(context).top +
-                            22
-                        : kTextTabBarHeight +
-                            kToolbarHeight +
-                            MediaQuery.paddingOf(context).top,
-                    flexibleSpace: FlexibleSpaceBar(
-                      collapseMode: CollapseMode.pin,
-                      background: Observer(builder: (context) {
-                        final showBangumiInfoSkeleton =
-                            _isShowingBangumiInfoSkeleton;
-                        return Stack(
-                          children: [
-                            if (!showBangumiInfoSkeleton)
-                              Positioned.fill(
-                                bottom: kTextTabBarHeight,
-                                child: IgnorePointer(
-                                  child: _InfoHeaderBackground(
-                                    imageUrl: infoController
-                                            .bangumiItem.images['large'] ??
-                                        '',
-                                  ),
-                                ),
-                              ),
-                            SafeArea(
-                              bottom: false,
-                              child: EmbeddedNativeControlArea(
-                                child: Align(
-                                  alignment: Alignment.topCenter,
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        16, kToolbarHeight, 16, 0),
-                                    child: BangumiInfoCardV(
-                                      bangumiItem: infoController.bangumiItem,
-                                      isLoading: showBangumiInfoSkeleton,
-                                      showRating: showRating,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }),
-                    ),
-                    forceElevated: innerBoxIsScrolled,
-                    bottom: TabBar(
-                      controller: infoTabController,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.center,
-                      dividerHeight: 0,
-                      tabs: _infoTabs.map((name) => Tab(text: name)).toList(),
                     ),
                   ),
                 ),
-              ];
-            },
-            body: Observer(builder: (context) {
-              final showBangumiInfoSkeleton = _isShowingBangumiInfoSkeleton;
-              return InfoTabView(
-                tabController: infoTabController,
-                bangumiItem: infoController.bangumiItem,
-                commentsQueryTimeout: commentsQueryTimeout,
-                commentsIsEmpty: commentsIsEmpty,
-                charactersQueryTimeout: charactersQueryTimeout,
-                charactersIsEmpty: charactersIsEmpty,
-                staffQueryTimeout: staffQueryTimeout,
-                staffIsEmpty: staffIsEmpty,
-                loadMoreComments: loadMoreComments,
-                loadCharacters: loadCharacters,
-                loadStaff: loadStaff,
-                commentsList: infoController.commentsList,
-                commentsIsLoading: commentsIsLoading,
-                onCommentsTabSelected: onCommentsTabSelected,
-                characterList: infoController.characterList,
-                staffList: infoController.staffList,
-                relationList: infoController.relationList,
-                relationsIsLoading: infoController.relationsIsLoading,
-                relationsQueryTimeout: infoController.relationsQueryTimeout,
-                relationsHasLoaded: infoController.relationsHasLoaded,
-                loadRelations: loadRelations,
-                isLoading: showBangumiInfoSkeleton,
-              );
-            }),
-          ),
-          floatingActionButton: showRatingFab
-              ? FloatingActionButton.extended(
-                  tooltip: reviewActionLabel,
-                  onPressed: onBangumiRatingTap,
-                  label: Text(reviewActionLabel),
-                  icon: const Icon(Icons.rate_review_rounded),
-                )
-              : FloatingActionButton.extended(
-                  tooltip: '开始观看',
-                  onPressed: () {
-                    showAdaptiveBottomSheet<void>(
-                      context: context,
-                      maxHeightFactor: 0.88,
-                      builder: (context) {
-                        return SourceSheet(infoController: infoController);
-                      },
-                    );
-                  },
-                  label: const Text('开始观看'),
-                  icon: const Icon(Icons.play_arrow_rounded),
+                automaticallyImplyLeading: false,
+                scrolledUnderElevation: 0.0,
+                leading: EmbeddedNativeControlArea(
+                  child: IconButton(
+                    onPressed: () {
+                      context.maybePop();
+                    },
+                    icon: Icon(Icons.arrow_back),
+                  ),
                 ),
-        ),
+                actions: [
+                  if (innerBoxIsScrolled)
+                    EmbeddedNativeControlArea(
+                      child: CollectButton(
+                        bangumiItem: infoController.bangumiItem,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  EmbeddedNativeControlArea(
+                    child: IconButton(
+                      onPressed: () {
+                        launchUrl(
+                          Uri.parse(
+                              'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
+                      icon: const Icon(Icons.open_in_browser_rounded),
+                    ),
+                  ),
+                  if (!showWindowButton && isDesktop())
+                    CloseButton(onPressed: () => windowManager.close()),
+                  SizedBox(width: 8),
+                ],
+                toolbarHeight: (Platform.isMacOS && showWindowButton)
+                    ? kToolbarHeight + 22
+                    : kToolbarHeight,
+                stretch: true,
+                centerTitle: false,
+                expandedHeight: (Platform.isMacOS && showWindowButton)
+                    ? 308 + kTextTabBarHeight + kToolbarHeight + 22
+                    : 308 + kTextTabBarHeight + kToolbarHeight,
+                collapsedHeight: (Platform.isMacOS && showWindowButton)
+                    ? kTextTabBarHeight +
+                        kToolbarHeight +
+                        MediaQuery.paddingOf(context).top +
+                        22
+                    : kTextTabBarHeight +
+                        kToolbarHeight +
+                        MediaQuery.paddingOf(context).top,
+                flexibleSpace: FlexibleSpaceBar(
+                  collapseMode: CollapseMode.pin,
+                  background: Observer(builder: (context) {
+                    final showBangumiInfoSkeleton =
+                        _isShowingBangumiInfoSkeleton;
+                    return Stack(
+                      children: [
+                        if (!showBangumiInfoSkeleton)
+                          Positioned.fill(
+                            bottom: kTextTabBarHeight,
+                            child: IgnorePointer(
+                              child: _InfoHeaderBackground(
+                                imageUrl: infoController
+                                        .bangumiItem.images['large'] ??
+                                    '',
+                              ),
+                            ),
+                          ),
+                        SafeArea(
+                          bottom: false,
+                          child: EmbeddedNativeControlArea(
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    16, kToolbarHeight, 16, 0),
+                                child: BangumiInfoCardV(
+                                  bangumiItem: infoController.bangumiItem,
+                                  isLoading: showBangumiInfoSkeleton,
+                                  showRating: showRating,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+                forceElevated: innerBoxIsScrolled,
+                bottom: TabBar(
+                  controller: infoTabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.center,
+                  dividerHeight: 0,
+                  tabs: _infoTabs.map((name) => Tab(text: name)).toList(),
+                ),
+              ),
+            ),
+          ];
+        },
+        body: Observer(builder: (context) {
+          final showBangumiInfoSkeleton = _isShowingBangumiInfoSkeleton;
+          return InfoTabView(
+            tabController: infoTabController,
+            bangumiItem: infoController.bangumiItem,
+            commentsQueryTimeout: commentsQueryTimeout,
+            commentsHasLoaded: commentsHasLoaded,
+            charactersQueryTimeout: charactersQueryTimeout,
+            charactersIsEmpty: charactersIsEmpty,
+            staffQueryTimeout: staffQueryTimeout,
+            staffIsEmpty: staffIsEmpty,
+            loadMoreComments: loadMoreComments,
+            loadCharacters: loadCharacters,
+            loadStaff: loadStaff,
+            commentsList: infoController.commentsList.toList(growable: false),
+            commentsIsLoading: commentsIsLoading,
+            onWriteReview: _openReviewEditor,
+            characterList: infoController.characterList,
+            staffList: infoController.staffList,
+            relationList: infoController.relationList,
+            relationsIsLoading: infoController.relationsIsLoading,
+            relationsQueryTimeout: infoController.relationsQueryTimeout,
+            relationsHasLoaded: infoController.relationsHasLoaded,
+            loadRelations: loadRelations,
+            isLoading: showBangumiInfoSkeleton,
+          );
+        }),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        tooltip: '开始观看',
+        onPressed: () {
+          showAdaptiveBottomSheet<void>(
+            context: context,
+            maxHeightFactor: 0.88,
+            builder: (context) {
+              return SourceSheet(infoController: infoController);
+            },
+          );
+        },
+        label: const Text('开始观看'),
+        icon: const Icon(Icons.play_arrow_rounded),
       ),
     );
   }

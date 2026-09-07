@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/bean/card/comments_card.dart';
+import 'package:kazumi/pages/info/info_comments_view.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
@@ -20,7 +20,7 @@ class InfoTabView extends StatefulWidget {
   const InfoTabView({
     super.key,
     required this.commentsQueryTimeout,
-    required this.commentsIsEmpty,
+    required this.commentsHasLoaded,
     required this.charactersQueryTimeout,
     required this.charactersIsEmpty,
     required this.staffQueryTimeout,
@@ -36,7 +36,7 @@ class InfoTabView extends StatefulWidget {
     required this.bangumiItem,
     required this.commentsList,
     required this.commentsIsLoading,
-    this.onCommentsTabSelected,
+    required this.onWriteReview,
     required this.characterList,
     required this.staffList,
     required this.relationList,
@@ -44,9 +44,9 @@ class InfoTabView extends StatefulWidget {
   });
 
   final bool commentsQueryTimeout;
-  final bool commentsIsEmpty;
+  final bool commentsHasLoaded;
   final bool commentsIsLoading;
-  final VoidCallback? onCommentsTabSelected;
+  final VoidCallback onWriteReview;
   final bool charactersQueryTimeout;
   final bool charactersIsEmpty;
   final bool staffQueryTimeout;
@@ -74,27 +74,6 @@ class _InfoTabViewState extends State<InfoTabView> {
   final maxWidth = 950.0;
   bool fullIntro = false;
   bool fullTag = false;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.tabController.addListener(_onTabChanged);
-    if (widget.tabController.index == 1) {
-      widget.onCommentsTabSelected?.call();
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.tabController.removeListener(_onTabChanged);
-    super.dispose();
-  }
-
-  void _onTabChanged() {
-    if (widget.tabController.index == 1) {
-      widget.onCommentsTabSelected?.call();
-    }
-  }
 
   Widget get infoBody {
     return Center(
@@ -332,145 +311,6 @@ class _InfoTabViewState extends State<InfoTabView> {
     );
   }
 
-  Widget get commentsListBody {
-    return Builder(
-      builder: (BuildContext context) {
-        return NotificationListener<ScrollEndNotification>(
-          onNotification: (scrollEnd) {
-            // Scrolling a long error message must not trigger pagination.
-            if (scrollEnd.depth != 0) {
-              return false;
-            }
-            final metrics = scrollEnd.metrics;
-            if (metrics.pixels >= metrics.maxScrollExtent - 200) {
-              widget.loadMoreComments(loadMore: widget.commentsList.isNotEmpty);
-            }
-            return true;
-          },
-          child: CustomScrollView(
-            scrollBehavior: const ScrollBehavior().copyWith(
-              scrollbars: false,
-            ),
-            key: PageStorageKey<String>('吐槽'),
-            slivers: <Widget>[
-              SliverOverlapInjector(
-                handle:
-                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-              ),
-              SliverLayoutBuilder(builder: (context, _) {
-                final myInterest = widget.bangumiItem.interest;
-                final showMyReview = !widget.commentsIsLoading &&
-                    myInterest != null &&
-                    myInterest.hasUserProfile &&
-                    myInterest.hasReviewContent;
-                final listItemCount =
-                    widget.commentsList.length + (showMyReview ? 1 : 0);
-
-                if (listItemCount > 0) {
-                  return SliverList.separated(
-                    addAutomaticKeepAlives: false,
-                    itemCount: listItemCount,
-                    itemBuilder: (context, index) {
-                      final commentIndex = showMyReview ? index - 1 : index;
-                      final myUser = myInterest?.user;
-                      final card = showMyReview && index == 0 && myUser != null
-                          ? CommentsCard.own(
-                              commentItem: CommentItem(
-                                user: myUser,
-                                comment: Comment(
-                                  rate: myInterest.rate,
-                                  comment: myInterest.comment,
-                                  updatedAt: myInterest.updatedAt,
-                                ),
-                              ),
-                            )
-                          : CommentsCard(
-                              commentItem: widget.commentsList[commentIndex],
-                            );
-                      return SafeArea(
-                        top: false,
-                        bottom: false,
-                        child: Center(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: SizedBox(
-                              width: MediaQuery.sizeOf(context).width > maxWidth
-                                  ? maxWidth
-                                  : MediaQuery.sizeOf(context).width - 32,
-                              child: card,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    separatorBuilder: (BuildContext context, int index) {
-                      return SafeArea(
-                        top: false,
-                        bottom: false,
-                        child: Center(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: SizedBox(
-                              width: MediaQuery.sizeOf(context).width > maxWidth
-                                  ? maxWidth
-                                  : MediaQuery.sizeOf(context).width - 32,
-                              child: Divider(
-                                  thickness: 0.5, indent: 10, endIndent: 10),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }
-                if (widget.commentsQueryTimeout) {
-                  return SliverFillRemaining(
-                    child: GeneralErrorWidget(
-                      title: '评论加载失败',
-                      errMsg: '请检查网络连接后重试。',
-                      onRetry: () => widget.loadMoreComments(loadMore: false),
-                    ),
-                  );
-                }
-                if (widget.commentsIsEmpty) {
-                  return const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: GeneralEmptyState(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      title: '还没有评论',
-                    ),
-                  );
-                }
-                return SliverList.builder(
-                  itemCount: 4,
-                  itemBuilder: (context, _) {
-                    return SafeArea(
-                      top: false,
-                      bottom: false,
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: SizedBox(
-                            width: MediaQuery.sizeOf(context).width > maxWidth
-                                ? maxWidth
-                                : MediaQuery.sizeOf(context).width - 32,
-                            child: CommentsCard.bone(),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              })
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Widget get staffListBody {
     return Builder(
       builder: (BuildContext context) {
@@ -656,7 +496,16 @@ class _InfoTabViewState extends State<InfoTabView> {
             );
           },
         ),
-        commentsListBody,
+        InfoCommentsView(
+          interest: widget.bangumiItem.interest,
+          comments: widget.commentsList,
+          isLoading: widget.commentsIsLoading,
+          hasLoaded: widget.commentsHasLoaded,
+          hasError: widget.commentsQueryTimeout,
+          onReviewTap: widget.onWriteReview,
+          onRetry: () => widget.loadMoreComments(loadMore: false),
+          onLoadMore: () => widget.loadMoreComments(loadMore: true),
+        ),
         charactersListBody,
         relationsListBody,
         staffListBody,

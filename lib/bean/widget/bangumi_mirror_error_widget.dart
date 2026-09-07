@@ -26,7 +26,7 @@ class BangumiMirrorErrorWidget extends StatelessWidget {
       actions: [
         StateActionButton.tonal(
           onPressed: () async {
-            await context.pushNamed('/settings/webdav/');
+            await context.pushNamed('/settings/proxy/');
             onSettingsReturned?.call();
           },
           icon: Icons.tune_rounded,

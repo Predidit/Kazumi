@@ -39,6 +39,7 @@ class WebDav {
   factory WebDav() => _instance;
 
   Future<void> init() async {
+    initialized = false;
     var directory = await getApplicationSupportDirectory();
     webDavLocalTempDirectory = Directory('${directory.path}/webdavTemp');
     webDavURL = GStorage.getSetting(SettingsKeys.webDavURL);
@@ -65,6 +66,16 @@ class WebDav {
       KazumiLogger().e('WebDav: WebDAV ping failed', error: e);
       rethrow;
     }
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    if (enabled && !initialized) await init();
+    if (!enabled) {
+      // Collection sync reads its own flag independently of the master switch.
+      await GStorage.putSetting(SettingsKeys.webDavEnableHistory, false);
+      await GStorage.putSetting(SettingsKeys.webDavEnableCollect, false);
+    }
+    await GStorage.putSetting(SettingsKeys.webDavEnable, enabled);
   }
 
   Future<T> _runWebDavExclusive<T>(Future<T> Function() action) {
@@ -220,10 +231,7 @@ class WebDav {
         snapshot: remoteSnapshot,
         eventFiles: downloads.eventFiles,
       );
-      // Locally-owned logs tolerate malformed lines: a crash mid-append must
-      // not permanently block sync, and the Hive box still holds the state a
-      // damaged line described. Remote logs above stay fail-closed so an
-      // invalid file is quarantined as a whole.
+      // Salvage interrupted local writes; reject malformed remote files as a whole.
       final mergedFromFiles = await historySync.mergeEventFiles(
         snapshot: mergedRemoteSnapshot,
         eventFiles: localBatch.files,

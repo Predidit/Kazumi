@@ -52,7 +52,7 @@ class BangumiSyncService extends ChangeNotifier {
 
   Future<String> _validateToken(String token) async {
     if (token.isEmpty) {
-      throw StateError('请先在 Bangumi 配置中填写并保存 Access Token');
+      throw StateError('请先连接 Bangumi 账号');
     }
     final user = await BangumiApi.getCurrentUser(accessToken: token);
     final name = user?.username;
@@ -113,7 +113,7 @@ class BangumiSyncService extends ChangeNotifier {
     if (error is NetworkException) {
       switch (error.statusCode) {
         case 401:
-          return 'Access Token 无效或已过期，请在 Bangumi 配置中更换 Token';
+          return 'Access Token 无效或已过期，请在「Bangumi 账号」中更换';
         case 403:
           return 'Bangumi 拒绝访问，请检查 Token 权限或稍后重试';
         case 429:

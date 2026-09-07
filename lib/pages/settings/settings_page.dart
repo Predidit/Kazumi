@@ -15,9 +15,9 @@ import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_settings_page.dart';
 import 'package:kazumi/pages/settings/storage_settings.dart';
+import 'package:kazumi/pages/settings/sync/sync_settings_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/settings/update_settings.dart';
-import 'package:kazumi/pages/webdav_editor/webdav_setting.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -110,15 +110,15 @@ final List<_SettingsGroup> _settingsGroups = [
       _SettingsCategory(
         id: 'sync',
         label: '同步设置',
-        description: 'WebDav 与 Bangumi 同步',
+        description: '追番状态与多设备同步',
         icon: Icons.cloud_rounded,
-        builder: (_) => const WebDavSettingsPage(),
+        builder: (_) => const SyncSettingsPage(),
       ),
       _SettingsCategory(
         id: 'proxy',
-        label: '代理设置',
-        description: 'HTTP 代理服务器',
-        icon: Icons.vpn_key_rounded,
+        label: '网络设置',
+        description: '访问加速与代理',
+        icon: Icons.language_rounded,
         builder: (_) => const ProxySettingsPage(),
       ),
     ],

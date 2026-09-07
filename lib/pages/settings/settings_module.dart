@@ -1,6 +1,5 @@
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/about/about_module.dart';
-import 'package:kazumi/pages/bangumi/bangumi_module.dart';
 import 'package:kazumi/pages/download/download_page_module.dart';
 import 'package:kazumi/pages/history/history_module.dart';
 import 'package:kazumi/pages/logs/logs_page.dart';
@@ -17,15 +16,23 @@ import 'package:kazumi/pages/settings/renderer_settings.dart';
 import 'package:kazumi/pages/settings/settings_page.dart';
 import 'package:kazumi/pages/settings/storage_settings.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
+import 'package:kazumi/pages/settings/sync/bangumi_sync_page.dart';
+import 'package:kazumi/pages/settings/sync/sync_settings_page.dart';
+import 'package:kazumi/pages/settings/sync/webdav_server_page.dart';
+import 'package:kazumi/pages/settings/sync/webdav_sync_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/settings/update_settings.dart';
-import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 
 final settingsModule = createModule(
   path: '/settings',
   register: (c) {
     c
       ..route('/', child: (context, state) => const SettingsPage())
+      ..route('/sync', child: (context, state) => const SyncSettingsPage())
+      ..route('/bangumi/', child: (context, state) => const BangumiSyncPage())
+      ..route('/webdav/', child: (context, state) => const WebDavSyncPage())
+      ..route('/webdav/editor',
+          child: (context, state) => const WebDavServerPage())
       ..route(
         '/update',
         child: (context, state) => const UpdateSettingsPage(),
@@ -60,7 +67,6 @@ final settingsModule = createModule(
         '/player/super',
         child: (context, state) => const SuperResolutionSettings(),
       )
-      ..module(webDavModule)
       ..module(aboutModule)
       ..module(pluginModule)
       ..module(historyModule)
@@ -69,7 +75,6 @@ final settingsModule = createModule(
       ..route(
         '/download-settings',
         child: (context, state) => const DownloadSettingsPage(),
-      )
-      ..module(bangumiModule);
+      );
   },
 );

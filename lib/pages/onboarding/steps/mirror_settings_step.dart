@@ -46,7 +46,7 @@ class _MirrorSettingsStepState extends State<MirrorSettingsStep> {
                 await GStorage.putSetting(SettingsKeys.enableGitProxy, value);
               },
             ),
-            const OnboardingHint(text: '可随时在 设置 → 同步设置 中调整这两项设置。'),
+            const OnboardingHint(text: '可在「设置 → 网络设置」中调整。'),
           ],
         ),
       );

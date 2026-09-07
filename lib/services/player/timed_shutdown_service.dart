@@ -12,31 +12,16 @@ class TimedShutdownService {
 
   Timer? _shutdownTimer;
   int _remainingSeconds = 0;
-  bool _isDialogShowing = false;
-
-  /// Last set minutes, used for repeat functionality
+  KazumiDialogHandle<void>? _expiryDialog;
   int _lastSetMinutes = 0;
-
-  /// Callback to invoke when timer expires (e.g., pause video)
   VoidCallback? _onExpiredCallback;
 
-  /// Remaining time in seconds notifier
   final ValueNotifier<int> remainingSecondsNotifier = ValueNotifier<int>(0);
-
-  /// Currently set minutes notifier (for UI display)
   final ValueNotifier<int> setMinutesNotifier = ValueNotifier<int>(0);
 
-  /// Whether a shutdown timer is currently active
   bool get isActive => _shutdownTimer != null && _shutdownTimer!.isActive;
-
-  /// Currently set minutes (0 = disabled)
   int get setMinutes => setMinutesNotifier.value;
 
-  /// Remaining time in seconds
-  int get remainingSeconds => remainingSecondsNotifier.value;
-
-  /// Start the shutdown timer with the given duration in minutes
-  /// [onExpired] callback is invoked when timer expires (before showing dialog)
   void start(int minutes, {VoidCallback? onExpired}) {
     cancel();
     if (minutes <= 0) return;
@@ -46,8 +31,6 @@ class TimedShutdownService {
     remainingSecondsNotifier.value = _remainingSeconds;
     setMinutesNotifier.value = minutes;
     _onExpiredCallback = onExpired;
-
-    // Update remaining time every second (runs globally, not tied to playback)
     _shutdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
@@ -62,14 +45,6 @@ class TimedShutdownService {
     });
   }
 
-  /// Repeat the timer with the last set duration
-  void repeat() {
-    if (_lastSetMinutes > 0) {
-      start(_lastSetMinutes, onExpired: _onExpiredCallback);
-    }
-  }
-
-  /// Cancel the current shutdown timer
   void cancel() {
     _shutdownTimer?.cancel();
     _shutdownTimer = null;
@@ -81,20 +56,12 @@ class TimedShutdownService {
     if (setMinutesNotifier.value != 0) {
       setMinutesNotifier.value = 0;
     }
-
-    // If dialog is showing, dismiss it
-    if (_isDialogShowing) {
-      KazumiDialog.dismiss();
-      _isDialogShowing = false;
-    }
+    _expiryDialog?.dismiss();
+    _expiryDialog = null;
   }
 
-  /// Called when timer expires: invoke callback and show dialog
   void _onTimerExpired() {
-    // Reset UI state so it doesn't show 00:00
     setMinutesNotifier.value = 0;
-
-    // Invoke the callback if set (e.g., pause video)
     try {
       _onExpiredCallback?.call();
     } catch (e) {
@@ -105,15 +72,15 @@ class TimedShutdownService {
     _showTimerExpiredDialog();
   }
 
-  /// Show the timer expired dialog with repeat/close options
   void _showTimerExpiredDialog() {
-    if (_isDialogShowing) return;
-    _isDialogShowing = true;
+    if (_expiryDialog?.isActive ?? false) return;
+    final dialog = _expiryDialog = KazumiDialogHandle<void>();
 
-    KazumiDialog.show(
+    KazumiDialog.show<void>(
+      handle: dialog,
       clickMaskDismiss: false,
       onDismiss: () {
-        _isDialogShowing = false;
+        if (identical(_expiryDialog, dialog)) _expiryDialog = null;
       },
       builder: (context) {
         return AlertDialog(
@@ -122,17 +89,14 @@ class TimedShutdownService {
           actions: [
             TextButton(
               onPressed: () {
-                _isDialogShowing = false;
-                KazumiDialog.dismiss();
-                repeat();
+                start(_lastSetMinutes, onExpired: _onExpiredCallback);
                 KazumiDialog.showToast(message: '已重新开始 $_lastSetMinutes 分钟定时');
               },
               child: const Text('重复'),
             ),
             TextButton(
               onPressed: () {
-                _isDialogShowing = false;
-                KazumiDialog.dismiss();
+                dialog.dismiss();
               },
               child: Text(
                 '关闭',
@@ -145,7 +109,6 @@ class TimedShutdownService {
     );
   }
 
-  /// Format remaining seconds to a readable string (e.g., "15:30")
   String formatRemainingTime() {
     int totalSeconds = remainingSecondsNotifier.value;
     if (totalSeconds <= 0) return '00:00';
@@ -154,7 +117,6 @@ class TimedShutdownService {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  /// Format minutes to readable display string (e.g., "1 小时 30 分钟")
   String formatMinutesToDisplay(int totalMinutes) {
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
@@ -167,21 +129,12 @@ class TimedShutdownService {
     }
   }
 
-  /// Show custom timer picker dialog and start timer if user confirms
-  /// Uses KazumiDialog to avoid context-related resource leaks
-  /// [onExpired] callback is invoked when timer expires (before showing dialog)
   static void showCustomTimerDialog({
-    String title = '自定义定时',
-    bool autoStart = true,
     VoidCallback? onExpired,
-    void Function(int)? onResult,
   }) {
     KazumiDialog.show(
       builder: (context) => _CustomTimerDialog(
-        title: title,
-        autoStart: autoStart,
         onExpired: onExpired,
-        onResult: onResult,
       ),
     );
   }
@@ -189,16 +142,10 @@ class TimedShutdownService {
 
 class _CustomTimerDialog extends StatefulWidget {
   const _CustomTimerDialog({
-    required this.title,
-    required this.autoStart,
     required this.onExpired,
-    required this.onResult,
   });
 
-  final String title;
-  final bool autoStart;
   final VoidCallback? onExpired;
-  final void Function(int)? onResult;
 
   @override
   State<_CustomTimerDialog> createState() => _CustomTimerDialogState();
@@ -231,21 +178,18 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
       KazumiDialog.showToast(message: '请选择有效的时间');
       return;
     }
-    KazumiDialog.dismiss();
-    if (widget.autoStart) {
-      TimedShutdownService().start(totalMinutes, onExpired: widget.onExpired);
-      KazumiDialog.showToast(
-        message:
-            '已设置 ${TimedShutdownService().formatMinutesToDisplay(totalMinutes)} 后定时关闭',
-      );
-    }
-    widget.onResult?.call(totalMinutes);
+    KazumiDialog.dismiss(context: context);
+    TimedShutdownService().start(totalMinutes, onExpired: widget.onExpired);
+    KazumiDialog.showToast(
+      message:
+          '已设置 ${TimedShutdownService().formatMinutesToDisplay(totalMinutes)} 后定时关闭',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.title),
+      title: const Text('自定义定时'),
       content: SizedBox(
         height: 200,
         child: Row(
@@ -311,7 +255,7 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => KazumiDialog.dismiss(),
+          onPressed: () => KazumiDialog.dismiss(context: context),
           child: Text(
             '取消',
             style: TextStyle(color: Theme.of(context).colorScheme.outline),

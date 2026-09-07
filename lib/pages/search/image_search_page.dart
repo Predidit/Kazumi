@@ -11,6 +11,7 @@ import 'package:path/path.dart' as path;
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
@@ -200,13 +201,11 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
       // Fall through to the shared error message.
     }
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('暂时无法打开链接，请稍后再试')),
-    );
+    KazumiDialog.showToast(context: context, message: '暂时无法打开链接，请稍后再试');
   }
 
   void _showHelp() {
-    showDialog<void>(
+    KazumiDialog.show<void>(
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.image_search_rounded),

@@ -15,19 +15,17 @@ import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/crypto.dart';
 import 'package:kazumi/utils/version.dart';
 
-/// 安装类型枚举
 enum InstallationType {
-  windowsMsix, // Kazumi_windows_1.7.5.msix
-  windowsPortable, // Kazumi_windows_1.7.5.zip
-  linuxDeb, // Kazumi_linux_1.7.5_amd64.deb
-  linuxTar, // Kazumi_linux_1.7.5_amd64.tar.gz
-  macosDmg, // Kazumi_macos_1.7.5.dmg
-  androidApk, // Kazumi_android_1.7.5.apk
-  ios, // iOS App
+  windowsMsix,
+  windowsPortable,
+  linuxDeb,
+  linuxTar,
+  macosDmg,
+  androidApk,
+  ios,
   unknown,
 }
 
-/// 更新信息类
 class UpdateInfo {
   final String version;
   final String description;
@@ -48,8 +46,6 @@ class UpdateInfo {
     this.availableInstallationTypes = const [],
     this.assets = const [],
   });
-
-  /// 获取默认的安装类型（第一个可用类型）
   InstallationType get recommendedInstallationType {
     if (availableInstallationTypes.isNotEmpty) {
       return availableInstallationTypes.first;
@@ -86,7 +82,7 @@ String getUpdateDownloadUrlFromAsset(Map<String, dynamic>? asset) {
 
 String getUpdateFileHashFromAsset(Map<String, dynamic> asset) {
   final digest = asset['digest'] as String? ?? '';
-  if (digest.isNotEmpty && digest.startsWith('sha256:')) {
+  if (digest.startsWith('sha256:')) {
     return digest.substring(7);
   }
   return '';
@@ -119,41 +115,19 @@ class AutoUpdater {
 
   final DownloadHttpClient _downloadClient = DownloadHttpClient.instance;
 
-  /// 检测所有可能的安装类型
-  Future<List<InstallationType>> _detectAvailableInstallationTypes() async {
-    List<InstallationType> availableTypes = [];
-
-    try {
-      if (Platform.isWindows) {
-        // Windows 平台支持 MSIX 和 ZIP 便携版
-        availableTypes.add(InstallationType.windowsMsix);
-        availableTypes.add(InstallationType.windowsPortable);
-      } else if (Platform.isLinux) {
-        // Linux 平台支持 DEB 和 TAR.GZ
-        availableTypes.add(InstallationType.linuxDeb);
-        availableTypes.add(InstallationType.linuxTar);
-      } else if (Platform.isMacOS) {
-        // macOS 平台支持 DMG
-        availableTypes.add(InstallationType.macosDmg);
-      } else if (Platform.isIOS) {
-        // iOS 平台通过 Github
-        availableTypes.add(InstallationType.ios);
-      } else if (Platform.isAndroid) {
-        // Android 平台支持 APK
-        availableTypes.add(InstallationType.androidApk);
-      }
-    } catch (e) {
-      KazumiLogger().w('Update: detect installation types failed', error: e);
+  List<InstallationType> _detectAvailableInstallationTypes() {
+    if (Platform.isWindows) {
+      return [InstallationType.windowsMsix, InstallationType.windowsPortable];
     }
-
-    if (availableTypes.isEmpty) {
-      availableTypes.add(InstallationType.unknown);
+    if (Platform.isLinux) {
+      return [InstallationType.linuxDeb, InstallationType.linuxTar];
     }
-
-    return availableTypes;
+    if (Platform.isMacOS) return [InstallationType.macosDmg];
+    if (Platform.isIOS) return [InstallationType.ios];
+    if (Platform.isAndroid) return [InstallationType.androidApk];
+    return [InstallationType.unknown];
   }
 
-  /// 检查是否有新版本可用
   Future<UpdateInfo?> checkForUpdates() async {
     try {
       final data = await _latestRelease();
@@ -166,17 +140,15 @@ class AutoUpdater {
       final currentVersion = ApiEndpoints.version;
 
       if (needUpdate(currentVersion, remoteVersion)) {
-        final availableTypes = await _detectAvailableInstallationTypes();
+        final availableTypes = _detectAvailableInstallationTypes();
 
         return UpdateInfo(
           version: remoteVersion,
           description: data['body'] ?? '发现新版本',
           downloadUrl: '',
-          // 将在用户选择安装类型后填充
           releaseNotes: data['html_url'] ?? '',
           publishedAt: data['published_at'] ?? '',
           installationType: availableTypes.first,
-          // 保持兼容性
           availableInstallationTypes: availableTypes,
           assets: data['assets'] ?? [],
         );
@@ -198,7 +170,6 @@ class AutoUpdater {
     return Map<String, dynamic>.from(data);
   }
 
-  /// 自动检查更新（仅在启用自动更新时）
   Future<void> autoCheckForUpdates() async {
     final autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
     if (!autoUpdate) return;
@@ -209,12 +180,10 @@ class AutoUpdater {
         _showUpdateDialog(updateInfo, isAutoCheck: true);
       }
     } catch (e) {
-      // 自动检查失败时不显示错误
       KazumiLogger().w('Update: auto check for updates failed', error: e);
     }
   }
 
-  /// 手动检查更新
   Future<void> manualCheckForUpdates() async {
     try {
       final updateInfo = await checkForUpdates();
@@ -228,7 +197,6 @@ class AutoUpdater {
     }
   }
 
-  /// 显示更新对话框
   void _showUpdateDialog(UpdateInfo updateInfo, {bool isAutoCheck = false}) {
     KazumiDialog.show(
       builder: (context) {
@@ -358,7 +326,6 @@ class AutoUpdater {
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
-                // 直接使用第一个可用的安装类型
                 if (updateInfo.availableInstallationTypes.isNotEmpty) {
                   _downloadUpdateWithType(
                       updateInfo, updateInfo.availableInstallationTypes.first);
@@ -372,7 +339,6 @@ class AutoUpdater {
     );
   }
 
-  /// 获取安装类型的描述
   String _getInstallationTypeDescription(InstallationType type) {
     switch (type) {
       case InstallationType.windowsMsix:
@@ -394,11 +360,9 @@ class AutoUpdater {
     }
   }
 
-  /// 根据选择的类型下载更新
   Future<void> _downloadUpdateWithType(
       UpdateInfo updateInfo, InstallationType selectedType) async {
     try {
-      // iOS 和 Linux 直接跳转到 Release 页面
       if (selectedType == InstallationType.ios ||
           selectedType == InstallationType.linuxDeb ||
           selectedType == InstallationType.linuxTar) {
@@ -420,8 +384,6 @@ class AutoUpdater {
       }
 
       final expectedHash = getUpdateFileHashFromAsset(asset);
-
-      // 创建一个临时的 UpdateInfo 对象用于下载
       final downloadInfo = UpdateInfo(
         version: updateInfo.version,
         description: updateInfo.description,
@@ -440,60 +402,48 @@ class AutoUpdater {
     }
   }
 
-  /// 下载更新
   Future<void> _downloadUpdate(
       UpdateInfo updateInfo, String expectedHash) async {
-    if (updateInfo.downloadUrl.isEmpty) {
-      KazumiDialog.showToast(message: '没有找到合适的下载链接');
-      return;
-    }
-
-    // 显示下载进度对话框
-    KazumiDialog.show(
-      clickMaskDismiss: false,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('正在下载更新'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ValueListenableBuilder<double>(
-                valueListenable: _downloadProgress,
-                builder: (context, value, child) {
-                  return Column(
-                    children: [
-                      LinearProgressIndicator(value: value),
-                      const SizedBox(height: 8),
-                      Text('${(value * 100).toStringAsFixed(1)}%'),
-                    ],
-                  );
-                },
+    if (_downloadDialogs.isRunning) return;
+    await _downloadDialogs.run((task) async {
+      _downloadProgress.value = 0;
+      final cancelToken = CancelToken();
+      final downloadPath = await task.loading(
+        action: () => _downloadFile(updateInfo.downloadUrl, updateInfo.version,
+            expectedHash, cancelToken),
+        onCancel: cancelToken.cancel,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('正在下载更新'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ValueListenableBuilder<double>(
+                  valueListenable: _downloadProgress,
+                  builder: (context, value, child) {
+                    return Column(
+                      children: [
+                        LinearProgressIndicator(value: value),
+                        const SizedBox(height: 8),
+                        Text('${(value * 100).toStringAsFixed(1)}%'),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => KazumiDialog.dismiss(context: context),
+                child: const Text('取消'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _cancelDownload();
-                KazumiDialog.dismiss();
-              },
-              child: const Text('取消'),
-            ),
-          ],
-        );
-      },
-    );
+          );
+        },
+      );
 
-    try {
-      final downloadPath = await _downloadFile(
-          updateInfo.downloadUrl, updateInfo.version, expectedHash);
-
-      // 不自动关闭对话框，而是显示下载完成状态
       _showDownloadCompleteDialog(downloadPath, updateInfo);
-    } catch (e) {
-      KazumiDialog.dismiss();
-
-      // 显示详细的错误信息
+    }, onError: (e, _) {
       String errorMessage = '下载失败';
       if (e.toString().contains('Permission denied') ||
           e.toString().contains('Operation not permitted')) {
@@ -524,13 +474,12 @@ class AutoUpdater {
             ),
             actions: [
               TextButton(
-                onPressed: () => KazumiDialog.dismiss(),
+                onPressed: () => KazumiDialog.dismiss(context: context),
                 child: const Text('确定'),
               ),
               TextButton(
                 onPressed: () {
-                  KazumiDialog.dismiss();
-                  // 重新尝试下载
+                  KazumiDialog.dismiss(context: context);
                   _downloadUpdate(updateInfo, expectedHash);
                 },
                 child: const Text('重试'),
@@ -541,21 +490,13 @@ class AutoUpdater {
       );
 
       KazumiLogger().e('Update: download update failed', error: e);
-    }
+    });
   }
 
   final ValueNotifier<double> _downloadProgress = ValueNotifier(0.0);
-  CancelToken? _cancelToken;
+  final _downloadDialogs = KazumiDialogController();
 
-  void _cancelDownload() {
-    _cancelToken?.cancel();
-  }
-
-  /// 显示下载完成对话框
   void _showDownloadCompleteDialog(String filePath, UpdateInfo updateInfo) {
-    // 替换当前的下载进度对话框内容
-    KazumiDialog.dismiss();
-
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
@@ -622,7 +563,7 @@ class AutoUpdater {
             if (isDesktop())
               TextButton(
                 onPressed: () {
-                  // 在文件管理器中显示文件
+                  KazumiDialog.dismiss(context: context);
                   _revealInFileManager(filePath);
                 },
                 child: const Text('打开文件夹'),
@@ -641,35 +582,35 @@ class AutoUpdater {
     );
   }
 
-  /// 下载文件
-  Future<String> _downloadFile(
-      String url, String version, String expectedHash) async {
-    final fileName = _getFileNameFromUrl(url, version);
+  Future<String> _downloadFile(String url, String version, String expectedHash,
+      CancelToken cancelToken) async {
+    // Dio cancellation does not cover filesystem preparation or hash checks.
+    void checkCancelled() {
+      if (cancelToken.isCancelled) throw cancelToken.cancelError!;
+    }
 
-    // 统一使用临时目录
+    checkCancelled();
+    final fileName = _getFileNameFromUrl(url, version);
     final tempDir = await getTemporaryDirectory();
+    checkCancelled();
     final filePath = '${tempDir.path}/$fileName';
     final file = File(filePath);
-
-    // 检查文件是否已存在
     if (await file.exists()) {
       try {
-        //使用哈希验证文件完整性
         final localHash = await calculateFileHash(file);
+        checkCancelled();
         if (localHash == expectedHash) {
-          // 文件已存在且哈希匹配，直接返回
           KazumiLogger().i(
               'Update: file already exists and hash verified, skipping download: $filePath');
           _downloadProgress.value = 1.0;
           return filePath;
         } else {
-          // 文件存在但哈希不匹配，删除后重新下载
           KazumiLogger().i(
               'Update: file hash mismatch detected (local: $localHash, expected: $expectedHash), deleting and re-downloading');
           await file.delete();
         }
       } catch (e) {
-        // 验证过程中出错，删除文件重新下载
+        checkCancelled();
         KazumiLogger().w(
             'Update: file verification failed, deleting and re-downloading',
             error: e);
@@ -679,23 +620,21 @@ class AutoUpdater {
       }
     }
 
-    _cancelToken = CancelToken();
+    checkCancelled();
 
     await _downloadClient.download(
       url,
       filePath,
-      cancelToken: _cancelToken,
+      cancelToken: cancelToken,
       onReceiveProgress: (received, total) {
-        if (total > 0) {
+        if (!cancelToken.isCancelled && total > 0) {
           _downloadProgress.value = received / total;
         }
       },
     );
-
-    // 下载完成后验证文件哈希
     final downloadedHash = await calculateFileHash(file);
+    checkCancelled();
     if (downloadedHash != expectedHash) {
-      // 哈希不匹配，删除文件并抛出异常
       await file.delete();
       throw Exception('文件完整性验证失败: 期望 $expectedHash，实际 $downloadedHash');
     }
@@ -704,11 +643,9 @@ class AutoUpdater {
     return filePath;
   }
 
-  /// 安装更新
   void _installUpdate(
       String filePath, InstallationType installationType) async {
     try {
-      // 显示准备退出的提示
       KazumiDialog.showToast(message: '准备安装更新，应用即将退出...');
 
       await Future.delayed(const Duration(seconds: 2));
@@ -744,14 +681,10 @@ class AutoUpdater {
     }
   }
 
-  /// 在文件管理器中显示文件
   void _revealInFileManager(String filePath) async {
     try {
       final type = await FileSystemEntity.type(filePath);
       String targetDirOrFile;
-
-      // 如果传入的本来就是目录则打开这个目录
-      // 如果是文件则打开包含它的目录
       if (type == FileSystemEntityType.notFound) {
         KazumiDialog.showToast(message: '文件或目录不存在');
         return;
@@ -777,7 +710,6 @@ class AutoUpdater {
           await Process.start('open', [targetDirOrFile]);
         }
       } else if (Platform.isLinux) {
-        // 尝试打开包含文件的文件夹
         await Process.start('xdg-open', [targetDirOrFile]);
       } else {
         KazumiDialog.showToast(message: '此平台不支持通过此方法打开文件管理器');
@@ -785,15 +717,9 @@ class AutoUpdater {
     } catch (e) {
       KazumiDialog.showToast(message: '无法打开文件管理器');
       KazumiLogger().w('Update: reveal in file manager failed', error: e);
-    } finally {
-      try {
-        // 确保对话框被关闭
-        KazumiDialog.dismiss();
-      } catch (_) {}
     }
   }
 
-  /// 从URL获取文件名
   String _getFileNameFromUrl(String url, String version) {
     final uri = Uri.parse(url);
     final fileName = uri.pathSegments.last;
@@ -801,8 +727,6 @@ class AutoUpdater {
     if (fileName.isNotEmpty) {
       return fileName;
     }
-
-    // 回退方案
     String extension = '';
     if (Platform.isWindows) {
       extension = '.msix';

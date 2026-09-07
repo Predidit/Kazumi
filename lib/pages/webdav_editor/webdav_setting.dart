@@ -35,13 +35,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     bangumiSyncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
   }
 
-  void onBackPressed(BuildContext context) {
-    if (KazumiDialog.observer.hasKazumiDialog) {
-      KazumiDialog.dismiss();
-      return;
-    }
-  }
-
   Future<void> syncHistoryWithWebDav() async {
     var webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
     if (webDavEnable) {
@@ -71,164 +64,157 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        onBackPressed(context);
-      },
-      child: SettingsDetailScaffold(
-        title: const Text('同步设置'),
-        body: SettingsList(
-          sections: [
-            NetworkMirrorSettings(
-              enableBangumiProxy: enableBangumiProxy,
-              enableGitProxy: enableGitProxy,
-              onBangumiChanged: (value) async {
-                setState(() => enableBangumiProxy = value);
-                await GStorage.putSetting(
-                    SettingsKeys.enableBangumiProxy, value);
-              },
-              onGitChanged: (value) async {
-                setState(() => enableGitProxy = value);
-                await GStorage.putSetting(SettingsKeys.enableGitProxy, value);
-              },
-            ),
-            SettingsSection(
-              title: Text('Bangumi'),
-              tiles: [
-                SettingsTile.switchTile(
-                  leading: Icons.sync_rounded,
-                  onToggle: (value) async {
-                    final tBangumiEnableSync = value ?? !bangumiSyncEnable;
-                    final bangumi = BangumiSyncService();
-                    if (tBangumiEnableSync == true) {
-                      final token =
-                          GStorage.getSetting(SettingsKeys.bangumiAccessToken)
-                              .trim();
-                      if (token.isEmpty) {
-                        KazumiDialog.showToast(
-                            message: '请先配置 Bangumi 的 Access Token');
-                        return;
-                      } else {
-                        if (!bangumi.initialized) {
-                          try {
-                            await bangumi.init();
-                          } catch (e) {
-                            KazumiDialog.showToast(
-                                message: "Bangumi 初始化失败，请稍后再试");
-                            return;
-                          }
+    return SettingsDetailScaffold(
+      title: const Text('同步设置'),
+      body: SettingsList(
+        sections: [
+          NetworkMirrorSettings(
+            enableBangumiProxy: enableBangumiProxy,
+            enableGitProxy: enableGitProxy,
+            onBangumiChanged: (value) async {
+              setState(() => enableBangumiProxy = value);
+              await GStorage.putSetting(SettingsKeys.enableBangumiProxy, value);
+            },
+            onGitChanged: (value) async {
+              setState(() => enableGitProxy = value);
+              await GStorage.putSetting(SettingsKeys.enableGitProxy, value);
+            },
+          ),
+          SettingsSection(
+            title: Text('Bangumi'),
+            tiles: [
+              SettingsTile.switchTile(
+                leading: Icons.sync_rounded,
+                onToggle: (value) async {
+                  final tBangumiEnableSync = value ?? !bangumiSyncEnable;
+                  final bangumi = BangumiSyncService();
+                  if (tBangumiEnableSync == true) {
+                    final token =
+                        GStorage.getSetting(SettingsKeys.bangumiAccessToken)
+                            .trim();
+                    if (token.isEmpty) {
+                      KazumiDialog.showToast(
+                          message: '请先配置 Bangumi 的 Access Token');
+                      return;
+                    } else {
+                      if (!bangumi.initialized) {
+                        try {
+                          await bangumi.init();
+                        } catch (e) {
+                          KazumiDialog.showToast(
+                              message: "Bangumi 初始化失败，请稍后再试");
+                          return;
                         }
                       }
                     }
-                    bangumiSyncEnable = tBangumiEnableSync;
+                  }
+                  bangumiSyncEnable = tBangumiEnableSync;
+                  await GStorage.putSetting(
+                      SettingsKeys.bangumiSyncEnable, bangumiSyncEnable);
+                  if (!mounted) {
+                    return;
+                  }
+                  setState(() {});
+                },
+                title: Text('Bangumi 同步'),
+                description: Text('与Bangumi自动同步追番状态'),
+                initialValue: bangumiSyncEnable,
+              ),
+              SettingsTile(
+                leading: Icons.tune_rounded,
+                onPressed: (_) async {
+                  await context.pushNamed('/settings/bangumi/');
+                  bangumiSyncEnable =
+                      GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+                  setState(() {});
+                },
+                title: Text('Bangumi 配置'),
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: Text('WEBDAV'),
+            tiles: [
+              SettingsTile.switchTile(
+                leading: Icons.cloud_sync_rounded,
+                onToggle: (value) async {
+                  webDavEnable = value ?? !webDavEnable;
+                  if (!WebDav().initialized && webDavEnable) {
+                    try {
+                      await WebDav().init();
+                    } catch (e) {
+                      webDavEnable = false;
+                      KazumiDialog.showToast(message: 'WEBDAV初始化失败 $e');
+                    }
+                  }
+                  if (!webDavEnable) {
+                    webDavEnableHistory = false;
+                    webDavEnableCollect = false;
                     await GStorage.putSetting(
-                        SettingsKeys.bangumiSyncEnable, bangumiSyncEnable);
-                    if (!mounted) {
-                      return;
-                    }
-                    setState(() {});
-                  },
-                  title: Text('Bangumi 同步'),
-                  description: Text('与Bangumi自动同步追番状态'),
-                  initialValue: bangumiSyncEnable,
-                ),
-                SettingsTile(
-                  leading: Icons.tune_rounded,
-                  onPressed: (_) async {
-                    await context.pushNamed('/settings/bangumi/');
-                    bangumiSyncEnable =
-                        GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-                    setState(() {});
-                  },
-                  title: Text('Bangumi 配置'),
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: Text('WEBDAV'),
-              tiles: [
-                SettingsTile.switchTile(
-                  leading: Icons.cloud_sync_rounded,
-                  onToggle: (value) async {
-                    webDavEnable = value ?? !webDavEnable;
-                    if (!WebDav().initialized && webDavEnable) {
-                      try {
-                        await WebDav().init();
-                      } catch (e) {
-                        webDavEnable = false;
-                        KazumiDialog.showToast(message: 'WEBDAV初始化失败 $e');
-                      }
-                    }
-                    if (!webDavEnable) {
-                      webDavEnableHistory = false;
-                      webDavEnableCollect = false;
-                      await GStorage.putSetting(
-                          SettingsKeys.webDavEnableHistory, false);
-                      await GStorage.putSetting(
-                          SettingsKeys.webDavEnableCollect, false);
-                    }
+                        SettingsKeys.webDavEnableHistory, false);
                     await GStorage.putSetting(
-                        SettingsKeys.webDavEnable, webDavEnable);
-                    if (mounted) {
-                      setState(() {});
-                    }
-                  },
-                  title: Text('WEBDAV同步'),
-                  initialValue: webDavEnable,
-                ),
-                SettingsTile.switchTile(
-                  leading: Icons.history_rounded,
-                  onToggle: (value) async {
-                    if (!webDavEnable) {
-                      KazumiDialog.showToast(message: '请先开启WEBDAV同步');
-                      return;
-                    }
-                    webDavEnableHistory = value ?? !webDavEnableHistory;
-                    await GStorage.putSetting(
-                        SettingsKeys.webDavEnableHistory, webDavEnableHistory);
+                        SettingsKeys.webDavEnableCollect, false);
+                  }
+                  await GStorage.putSetting(
+                      SettingsKeys.webDavEnable, webDavEnable);
+                  if (mounted) {
                     setState(() {});
-                  },
-                  title: Text('观看记录同步'),
-                  description: Text('允许自动同步观看记录'),
-                  initialValue: webDavEnableHistory,
-                ),
-                SettingsTile.switchTile(
-                  leading: Icons.favorite_rounded,
-                  onToggle: (value) async {
-                    if (!webDavEnable) {
-                      KazumiDialog.showToast(message: '请先开启WEBDAV同步');
-                      return;
-                    }
-                    webDavEnableCollect = value ?? !webDavEnableCollect;
-                    await GStorage.putSetting(
-                        SettingsKeys.webDavEnableCollect, webDavEnableCollect);
-                    setState(() {});
-                  },
-                  title: Text('收藏同步'),
-                  description: Text('允许 WebDAV 参与追番状态同步'),
-                  initialValue: webDavEnableCollect,
-                ),
-                SettingsTile(
-                  leading: Icons.tune_rounded,
-                  onPressed: (_) async {
-                    context.pushNamed('/settings/webdav/editor');
-                  },
-                  title: Text('WEBDAV配置'),
-                ),
-                SettingsTile(
-                  leading: Icons.cloud_upload_rounded,
-                  trailing: const Icon(Icons.sync_rounded),
-                  onPressed: (_) {
-                    syncHistoryWithWebDav();
-                  },
-                  title: Text('立即同步观看记录'),
-                  description: Text('与WEBDAV双向合并观看记录'),
-                ),
-              ],
-            ),
-          ],
-        ),
+                  }
+                },
+                title: Text('WEBDAV同步'),
+                initialValue: webDavEnable,
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.history_rounded,
+                onToggle: (value) async {
+                  if (!webDavEnable) {
+                    KazumiDialog.showToast(message: '请先开启WEBDAV同步');
+                    return;
+                  }
+                  webDavEnableHistory = value ?? !webDavEnableHistory;
+                  await GStorage.putSetting(
+                      SettingsKeys.webDavEnableHistory, webDavEnableHistory);
+                  setState(() {});
+                },
+                title: Text('观看记录同步'),
+                description: Text('允许自动同步观看记录'),
+                initialValue: webDavEnableHistory,
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.favorite_rounded,
+                onToggle: (value) async {
+                  if (!webDavEnable) {
+                    KazumiDialog.showToast(message: '请先开启WEBDAV同步');
+                    return;
+                  }
+                  webDavEnableCollect = value ?? !webDavEnableCollect;
+                  await GStorage.putSetting(
+                      SettingsKeys.webDavEnableCollect, webDavEnableCollect);
+                  setState(() {});
+                },
+                title: Text('收藏同步'),
+                description: Text('允许 WebDAV 参与追番状态同步'),
+                initialValue: webDavEnableCollect,
+              ),
+              SettingsTile(
+                leading: Icons.tune_rounded,
+                onPressed: (_) async {
+                  context.pushNamed('/settings/webdav/editor');
+                },
+                title: Text('WEBDAV配置'),
+              ),
+              SettingsTile(
+                leading: Icons.cloud_upload_rounded,
+                trailing: const Icon(Icons.sync_rounded),
+                onPressed: (_) {
+                  syncHistoryWithWebDav();
+                },
+                title: Text('立即同步观看记录'),
+                description: Text('与WEBDAV双向合并观看记录'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

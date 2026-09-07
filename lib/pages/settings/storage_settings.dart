@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/services/storage/image_cache_service.dart';
@@ -20,14 +21,12 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
   void _refreshSize() => setState(() => _cacheSize = _cache.sizeInBytes());
 
   void _message(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    KazumiDialog.showToast(context: context, message: message);
   }
 
   Future<void> _confirmClear() async {
     if (_clearing) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await KazumiDialog.show<bool>(
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.cleaning_services_rounded),

@@ -159,7 +159,7 @@ Future<void> showRuleShareDialog(BuildContext context, Plugin plugin) async {
             try {
               await Clipboard.setData(ClipboardData(text: link));
               if (!context.mounted) return;
-              Navigator.of(context).pop();
+              KazumiDialog.dismiss(context: context);
               KazumiDialog.showToast(message: '规则链接已复制');
             } catch (_) {
               if (context.mounted) {
@@ -222,7 +222,7 @@ class _RuleImportDialogState extends State<_RuleImportDialog> {
     try {
       await widget.controller.updatePlugins(result.plugins);
       if (!mounted) return;
-      Navigator.of(context).pop();
+      KazumiDialog.dismiss(context: context);
       KazumiDialog.showToast(
           message: '已导入 ${result.plugins.length} 条规则'
               '，跳过重复 ${result.duplicateCount} 条，失败 ${result.failureCount} 条');

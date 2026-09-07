@@ -132,13 +132,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     KazumiDialog.showToast(message: '已恢复默认播放设置');
   }
 
-  void onBackPressed(BuildContext context) {
-    if (KazumiDialog.observer.hasKazumiDialog) {
-      KazumiDialog.dismiss();
-      return;
-    }
-  }
-
   void updateDefaultPlaySpeed(double speed) {
     GStorage.putSetting<double>(SettingsKeys.defaultPlaySpeed, speed);
     setState(() {
@@ -194,11 +187,10 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             builder: (BuildContext context, StateSetter setState) {
           return TextField(
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly, // 只允许输入数字
+              FilteringTextInputFormatter.digitsOnly,
             ],
             decoration: InputDecoration(
-              floatingLabelBehavior:
-                  FloatingLabelBehavior.never, // 控制label的显示方式
+              floatingLabelBehavior: FloatingLabelBehavior.never,
               labelText: initialValue,
             ),
             onChanged: (value) {
@@ -227,7 +219,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 KazumiDialog.showToast(message: '请输入大于0的数字');
                 return;
               }
-              // 以新设置的值弹出
               KazumiDialog.dismiss(popWith: newValue);
             },
             child: const Text('确定'),
@@ -265,395 +256,385 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        onBackPressed(context);
-      },
-      child: SettingsDetailScaffold(
-        title: const Text('播放设置'),
-        body: SettingsList(
-          sections: [
-            SettingsSection(
-              title: Text('解码与渲染'),
-              tiles: [
-                SettingsTile.switchTile(
-                  leading: Icons.memory_rounded,
-                  onToggle: (value) async {
-                    hAenable = value ?? !hAenable;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.hAenable, hAenable);
-                    setState(() {});
-                  },
-                  title: Text('硬件解码'),
-                  initialValue: hAenable,
-                ),
+    return SettingsDetailScaffold(
+      title: const Text('播放设置'),
+      body: SettingsList(
+        sections: [
+          SettingsSection(
+            title: Text('解码与渲染'),
+            tiles: [
+              SettingsTile.switchTile(
+                leading: Icons.memory_rounded,
+                onToggle: (value) async {
+                  hAenable = value ?? !hAenable;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.hAenable, hAenable);
+                  setState(() {});
+                },
+                title: Text('硬件解码'),
+                initialValue: hAenable,
+              ),
+              SettingsTile(
+                leading: Icons.developer_board_rounded,
+                onPressed: (_) async {
+                  await context.pushNamed('/settings/player/decoder');
+                },
+                title: Text('硬件解码器'),
+                description: Text('仅在硬件解码启用时生效'),
+              ),
+              if (Platform.isAndroid) ...[
                 SettingsTile(
-                  leading: Icons.developer_board_rounded,
+                  leading: Icons.tv_rounded,
                   onPressed: (_) async {
-                    await context.pushNamed('/settings/player/decoder');
+                    await context.pushNamed('/settings/player/renderer');
                   },
-                  title: Text('硬件解码器'),
-                  description: Text('仅在硬件解码启用时生效'),
-                ),
-                if (Platform.isAndroid) ...[
-                  SettingsTile(
-                    leading: Icons.tv_rounded,
-                    onPressed: (_) async {
-                      await context.pushNamed('/settings/player/renderer');
-                    },
-                    title: Text('视频渲染器'),
-                    description: Text('选择视频输出方式'),
-                  ),
-                ],
-                SettingsTile.switchTile(
-                  leading: Icons.data_saver_on_rounded,
-                  enabled: !MeteredNetworkService.isMetered,
-                  onToggle: (value) async {
-                    lowMemoryMode = value ?? !lowMemoryMode;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.lowMemoryMode, lowMemoryMode);
-                    setState(() {});
-                  },
-                  title: Text('低内存模式'),
-                  description: Text(MeteredNetworkService.isMetered
-                      ? '移动网络下已自动启用'
-                      : '禁用高级缓存以减少内存占用'),
-                  // Effective state, not the stored one, which stays untouched.
-                  initialValue:
-                      lowMemoryMode || MeteredNetworkService.isMetered,
-                ),
-                if (Platform.isAndroid) ...[
-                  SettingsTile.switchTile(
-                    leading: Icons.graphic_eq_rounded,
-                    onToggle: (value) async {
-                      androidEnableOpenSLES = value ?? !androidEnableOpenSLES;
-                      await GStorage.putSetting<bool>(
-                          SettingsKeys.androidEnableOpenSLES,
-                          androidEnableOpenSLES);
-                      setState(() {});
-                    },
-                    title: Text('低延迟音频'),
-                    description: Text('启用OpenSLES音频输出以降低延时'),
-                    initialValue: androidEnableOpenSLES,
-                  ),
-                ],
-                SettingsTile(
-                  leading: Icons.auto_awesome_rounded,
-                  onPressed: (_) async {
-                    context.pushNamed('/settings/player/super');
-                  },
-                  title: Text('超分辨率'),
+                  title: Text('视频渲染器'),
+                  description: Text('选择视频输出方式'),
                 ),
               ],
-            ),
-            SettingsSection(
-              title: Text('播放行为'),
-              tiles: [
+              SettingsTile.switchTile(
+                leading: Icons.data_saver_on_rounded,
+                enabled: !MeteredNetworkService.isMetered,
+                onToggle: (value) async {
+                  lowMemoryMode = value ?? !lowMemoryMode;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.lowMemoryMode, lowMemoryMode);
+                  setState(() {});
+                },
+                title: Text('低内存模式'),
+                description: Text(MeteredNetworkService.isMetered
+                    ? '移动网络下已自动启用'
+                    : '禁用高级缓存以减少内存占用'),
+                // Effective state, not the stored one, which stays untouched.
+                initialValue: lowMemoryMode || MeteredNetworkService.isMetered,
+              ),
+              if (Platform.isAndroid) ...[
                 SettingsTile.switchTile(
-                  leading: Icons.headphones_rounded,
+                  leading: Icons.graphic_eq_rounded,
                   onToggle: (value) async {
-                    backgroundPlayback = value ?? !backgroundPlayback;
+                    androidEnableOpenSLES = value ?? !androidEnableOpenSLES;
                     await GStorage.putSetting<bool>(
-                        SettingsKeys.backgroundPlayback, backgroundPlayback);
+                        SettingsKeys.androidEnableOpenSLES,
+                        androidEnableOpenSLES);
                     setState(() {});
                   },
-                  title: Text('后台播放'),
-                  description: Text('应用退到后台或熄屏时继续播放音频'),
-                  initialValue: backgroundPlayback,
-                ),
-                SettingsTile.switchTile(
-                  leading: Icons.history_rounded,
-                  onToggle: (value) async {
-                    playResume = value ?? !playResume;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.playResume, playResume);
-                    setState(() {});
-                  },
-                  title: Text('自动跳转'),
-                  description: Text('跳转到上次播放位置'),
-                  initialValue: playResume,
-                ),
-                SettingsTile.switchTile(
-                  leading: Icons.playlist_play_rounded,
-                  onToggle: (value) async {
-                    autoPlayNext = value ?? !autoPlayNext;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.autoPlayNext, autoPlayNext);
-                    setState(() {});
-                  },
-                  title: Text('自动连播'),
-                  description: Text('当前视频播放完毕后自动播放下一集'),
-                  initialValue: autoPlayNext,
-                ),
-                if (Platform.isAndroid)
-                  SettingsTile.switchTile(
-                    leading: Icons.picture_in_picture_alt_rounded,
-                    onToggle: (value) async {
-                      androidAutoEnterPIP = value ?? !androidAutoEnterPIP;
-                      await GStorage.putSetting<bool>(
-                          SettingsKeys.androidAutoEnterPIP,
-                          androidAutoEnterPIP);
-                      await PipUtils.setAndroidAutoEnterPIPEnabled(
-                          androidAutoEnterPIP);
-                      setState(() {});
-                    },
-                    title: Text('自动进入画中画'),
-                    description: Text('切到后台时，自动进入画中画'),
-                    initialValue: androidAutoEnterPIP,
-                  ),
-                SettingsTile.switchTile(
-                  leading: Icons.block_rounded,
-                  onToggle: (value) async {
-                    forceAdBlocker = value ?? !forceAdBlocker;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.forceAdBlocker, forceAdBlocker);
-                    setState(() {});
-                  },
-                  title: Text('广告过滤'),
-                  description: Text('强制启用HLS广告过滤，忽略规则设置'),
-                  initialValue: forceAdBlocker,
-                ),
-                SettingsTile.switchTile(
-                  leading: Icons.animation_rounded,
-                  onToggle: (value) async {
-                    playerDisableAnimations = value ?? !playerDisableAnimations;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.playerDisableAnimations,
-                        playerDisableAnimations);
-                    setState(() {});
-                  },
-                  title: Text('禁用动画'),
-                  description: Text('禁用播放器内的过渡动画'),
-                  initialValue: playerDisableAnimations,
-                ),
-                if (!isDesktop())
-                  SettingsTile.switchTile(
-                    leading: Icons.swipe_vertical_rounded,
-                    onToggle: (value) async {
-                      brightnessVolumeGesture =
-                          value ?? !brightnessVolumeGesture;
-                      await GStorage.putSetting<bool>(
-                          SettingsKeys.brightnessVolumeGesture,
-                          brightnessVolumeGesture);
-                      setState(() {});
-                    },
-                    title: Text('滑动手势'),
-                    description: Text('竖向滑动调节音量和亮度'),
-                    initialValue: brightnessVolumeGesture,
-                  ),
-                SettingsTile.switchTile(
-                  leading: Icons.visibility_off_rounded,
-                  onToggle: (value) async {
-                    privateMode = value ?? !privateMode;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.privateMode, privateMode);
-                    setState(() {});
-                  },
-                  title: Text('隐身模式'),
-                  description: Text('不保留观看记录'),
-                  initialValue: privateMode,
+                  title: Text('低延迟音频'),
+                  description: Text('启用OpenSLES音频输出以降低延时'),
+                  initialValue: androidEnableOpenSLES,
                 ),
               ],
-            ),
-            SettingsSection(
-              title: Text('诊断'),
-              tiles: [
+              SettingsTile(
+                leading: Icons.auto_awesome_rounded,
+                onPressed: (_) async {
+                  context.pushNamed('/settings/player/super');
+                },
+                title: Text('超分辨率'),
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: Text('播放行为'),
+            tiles: [
+              SettingsTile.switchTile(
+                leading: Icons.headphones_rounded,
+                onToggle: (value) async {
+                  backgroundPlayback = value ?? !backgroundPlayback;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.backgroundPlayback, backgroundPlayback);
+                  setState(() {});
+                },
+                title: Text('后台播放'),
+                description: Text('应用退到后台或熄屏时继续播放音频'),
+                initialValue: backgroundPlayback,
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.history_rounded,
+                onToggle: (value) async {
+                  playResume = value ?? !playResume;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.playResume, playResume);
+                  setState(() {});
+                },
+                title: Text('自动跳转'),
+                description: Text('跳转到上次播放位置'),
+                initialValue: playResume,
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.playlist_play_rounded,
+                onToggle: (value) async {
+                  autoPlayNext = value ?? !autoPlayNext;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.autoPlayNext, autoPlayNext);
+                  setState(() {});
+                },
+                title: Text('自动连播'),
+                description: Text('当前视频播放完毕后自动播放下一集'),
+                initialValue: autoPlayNext,
+              ),
+              if (Platform.isAndroid)
                 SettingsTile.switchTile(
-                  leading: Icons.error_outline_rounded,
+                  leading: Icons.picture_in_picture_alt_rounded,
                   onToggle: (value) async {
-                    showPlayerError = value ?? !showPlayerError;
+                    androidAutoEnterPIP = value ?? !androidAutoEnterPIP;
                     await GStorage.putSetting<bool>(
-                        SettingsKeys.showPlayerError, showPlayerError);
+                        SettingsKeys.androidAutoEnterPIP, androidAutoEnterPIP);
+                    await PipUtils.setAndroidAutoEnterPIPEnabled(
+                        androidAutoEnterPIP);
                     setState(() {});
                   },
-                  title: Text('错误提示'),
-                  description: Text('显示播放器内部错误提示'),
-                  initialValue: showPlayerError,
+                  title: Text('自动进入画中画'),
+                  description: Text('切到后台时，自动进入画中画'),
+                  initialValue: androidAutoEnterPIP,
                 ),
+              SettingsTile.switchTile(
+                leading: Icons.block_rounded,
+                onToggle: (value) async {
+                  forceAdBlocker = value ?? !forceAdBlocker;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.forceAdBlocker, forceAdBlocker);
+                  setState(() {});
+                },
+                title: Text('广告过滤'),
+                description: Text('强制启用HLS广告过滤，忽略规则设置'),
+                initialValue: forceAdBlocker,
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.animation_rounded,
+                onToggle: (value) async {
+                  playerDisableAnimations = value ?? !playerDisableAnimations;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.playerDisableAnimations,
+                      playerDisableAnimations);
+                  setState(() {});
+                },
+                title: Text('禁用动画'),
+                description: Text('禁用播放器内的过渡动画'),
+                initialValue: playerDisableAnimations,
+              ),
+              if (!isDesktop())
                 SettingsTile.switchTile(
-                  leading: Icons.bug_report_rounded,
+                  leading: Icons.swipe_vertical_rounded,
                   onToggle: (value) async {
-                    playerDebugMode = value ?? !playerDebugMode;
+                    brightnessVolumeGesture = value ?? !brightnessVolumeGesture;
                     await GStorage.putSetting<bool>(
-                        SettingsKeys.playerDebugMode, playerDebugMode);
+                        SettingsKeys.brightnessVolumeGesture,
+                        brightnessVolumeGesture);
                     setState(() {});
                   },
-                  title: Text('调试模式'),
-                  description: Text('记录播放器内部日志'),
-                  initialValue: playerDebugMode,
+                  title: Text('滑动手势'),
+                  description: Text('竖向滑动调节音量和亮度'),
+                  initialValue: brightnessVolumeGesture,
                 ),
-                SettingsTile(
-                  leading: Icons.receipt_long_rounded,
-                  onPressed: (_) async {
-                    if (playerLogLevelMenuController.isOpen) {
-                      playerLogLevelMenuController.close();
-                    } else {
-                      playerLogLevelMenuController.open();
-                    }
+              SettingsTile.switchTile(
+                leading: Icons.visibility_off_rounded,
+                onToggle: (value) async {
+                  privateMode = value ?? !privateMode;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.privateMode, privateMode);
+                  setState(() {});
+                },
+                title: Text('隐身模式'),
+                description: Text('不保留观看记录'),
+                initialValue: privateMode,
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: Text('诊断'),
+            tiles: [
+              SettingsTile.switchTile(
+                leading: Icons.error_outline_rounded,
+                onToggle: (value) async {
+                  showPlayerError = value ?? !showPlayerError;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.showPlayerError, showPlayerError);
+                  setState(() {});
+                },
+                title: Text('错误提示'),
+                description: Text('显示播放器内部错误提示'),
+                initialValue: showPlayerError,
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.bug_report_rounded,
+                onToggle: (value) async {
+                  playerDebugMode = value ?? !playerDebugMode;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.playerDebugMode, playerDebugMode);
+                  setState(() {});
+                },
+                title: Text('调试模式'),
+                description: Text('记录播放器内部日志'),
+                initialValue: playerDebugMode,
+              ),
+              SettingsTile(
+                leading: Icons.receipt_long_rounded,
+                onPressed: (_) async {
+                  if (playerLogLevelMenuController.isOpen) {
+                    playerLogLevelMenuController.close();
+                  } else {
+                    playerLogLevelMenuController.open();
+                  }
+                },
+                title: Text('日志等级'),
+                description: Text('播放器内部日志等级'),
+                value: MenuAnchor(
+                  consumeOutsideTap: true,
+                  controller: playerLogLevelMenuController,
+                  builder: (_, __, ___) {
+                    return Text(
+                      playerLogLevelMap[playerLogLevel] ?? '???',
+                    );
                   },
-                  title: Text('日志等级'),
-                  description: Text('播放器内部日志等级'),
-                  value: MenuAnchor(
-                    consumeOutsideTap: true,
-                    controller: playerLogLevelMenuController,
-                    builder: (_, __, ___) {
-                      return Text(
-                        playerLogLevelMap[playerLogLevel] ?? '???',
-                      );
-                    },
-                    menuChildren: [
-                      for (final entry in playerLogLevelMap.entries)
-                        MenuItemButton(
-                          requestFocusOnHover: false,
-                          onPressed: () => updatePlayerLogLevel(entry.key),
-                          child: Container(
-                            height: 48,
-                            constraints: BoxConstraints(minWidth: 112),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                entry.value,
-                                style: TextStyle(
-                                  color: entry.key == playerLogLevel
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
-                                ),
+                  menuChildren: [
+                    for (final entry in playerLogLevelMap.entries)
+                      MenuItemButton(
+                        requestFocusOnHover: false,
+                        onPressed: () => updatePlayerLogLevel(entry.key),
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 112),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              entry.value,
+                              style: TextStyle(
+                                color: entry.key == playerLogLevel
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
                               ),
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-            SettingsSection(
-              title: Text('播放参数'),
-              tiles: [
-                SettingsSliderTile(
-                  leading: Icons.speed_rounded,
-                  title: Text('默认倍速'),
-                  value: defaultPlaySpeed,
-                  min: 0.25,
-                  max: 3,
-                  divisions: 11,
-                  valueLabel: '${defaultPlaySpeed}x',
-                  onChanged: (value) => updateDefaultPlaySpeed(
-                      double.parse(value.toStringAsFixed(2))),
-                ),
-                SettingsSliderTile(
-                  leading: Icons.fast_forward_rounded,
-                  title: Text('长按倍速'),
-                  description: Text('长按屏幕或按住方向键时的倍速'),
-                  value: defaultShortcutForwardPlaySpeed,
-                  min: 1.25,
-                  max: 3,
-                  divisions: 7,
-                  valueLabel: '${defaultShortcutForwardPlaySpeed}x',
-                  onChanged: (value) => updateDefaultShortcutForwardPlaySpeed(
-                      double.parse(value.toStringAsFixed(2))),
-                ),
-                SettingsSliderTile(
-                  leading: Icons.swap_horiz_rounded,
-                  title: Text('方向键跳转'),
-                  description: Text('左右方向键的快进/快退秒数'),
-                  value: playerArrowKeySkipTime.toDouble(),
-                  min: 0,
-                  max: 15,
-                  divisions: 15,
-                  valueLabel: '$playerArrowKeySkipTime 秒',
-                  onChanged: (value) {
-                    final newArrowKeySkipTime = value.toInt();
-                    if (newArrowKeySkipTime == playerArrowKeySkipTime) {
-                      return;
-                    }
-                    GStorage.putSetting<int>(
-                        SettingsKeys.arrowKeySkipTime, newArrowKeySkipTime);
-                    setState(() {
-                      playerArrowKeySkipTime = newArrowKeySkipTime;
-                    });
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: Text('播放参数'),
+            tiles: [
+              SettingsSliderTile(
+                leading: Icons.speed_rounded,
+                title: Text('默认倍速'),
+                value: defaultPlaySpeed,
+                min: 0.25,
+                max: 3,
+                divisions: 11,
+                valueLabel: '${defaultPlaySpeed}x',
+                onChanged: (value) => updateDefaultPlaySpeed(
+                    double.parse(value.toStringAsFixed(2))),
+              ),
+              SettingsSliderTile(
+                leading: Icons.fast_forward_rounded,
+                title: Text('长按倍速'),
+                description: Text('长按屏幕或按住方向键时的倍速'),
+                value: defaultShortcutForwardPlaySpeed,
+                min: 1.25,
+                max: 3,
+                divisions: 7,
+                valueLabel: '${defaultShortcutForwardPlaySpeed}x',
+                onChanged: (value) => updateDefaultShortcutForwardPlaySpeed(
+                    double.parse(value.toStringAsFixed(2))),
+              ),
+              SettingsSliderTile(
+                leading: Icons.swap_horiz_rounded,
+                title: Text('方向键跳转'),
+                description: Text('左右方向键的快进/快退秒数'),
+                value: playerArrowKeySkipTime.toDouble(),
+                min: 0,
+                max: 15,
+                divisions: 15,
+                valueLabel: '$playerArrowKeySkipTime 秒',
+                onChanged: (value) {
+                  final newArrowKeySkipTime = value.toInt();
+                  if (newArrowKeySkipTime == playerArrowKeySkipTime) {
+                    return;
+                  }
+                  GStorage.putSetting<int>(
+                      SettingsKeys.arrowKeySkipTime, newArrowKeySkipTime);
+                  setState(() {
+                    playerArrowKeySkipTime = newArrowKeySkipTime;
+                  });
+                },
+              ),
+              SettingsTile(
+                leading: Icons.skip_next_rounded,
+                onPressed: (_) async {
+                  await updateButtonSkipTime();
+                },
+                title: Text('跳过时长'),
+                description: Text('顶栏跳过按钮的秒数'),
+                value: Text('$playerButtonSkipTime 秒'),
+              ),
+              SettingsSliderTile(
+                leading: Icons.timer_rounded,
+                title: Text('控制栏消失时间'),
+                description: Text('播放控制器自动隐藏前的停留时长'),
+                value: playerControllerLayerDisappearSeconds,
+                min: _minPlayerControllerLayerDisappearSeconds,
+                max: _maxPlayerControllerLayerDisappearSeconds,
+                divisions: _playerControllerLayerDisappearDivisions,
+                valueLabel: formatPlayerControllerLayerDisappearSeconds(
+                    playerControllerLayerDisappearSeconds),
+                onChanged: updatePlayerControllerLayerDisappearSeconds,
+              ),
+              SettingsTile(
+                leading: Icons.aspect_ratio_rounded,
+                onPressed: (_) async {
+                  if (playerAspectRatioMenuController.isOpen) {
+                    playerAspectRatioMenuController.close();
+                  } else {
+                    playerAspectRatioMenuController.open();
+                  }
+                },
+                title: Text('默认视频比例'),
+                value: MenuAnchor(
+                  consumeOutsideTap: true,
+                  controller: playerAspectRatioMenuController,
+                  builder: (_, __, ___) {
+                    return Text(
+                      defaultAspectRatioMode.label,
+                    );
                   },
-                ),
-                SettingsTile(
-                  leading: Icons.skip_next_rounded,
-                  onPressed: (_) async {
-                    await updateButtonSkipTime();
-                  },
-                  title: Text('跳过时长'),
-                  description: Text('顶栏跳过按钮的秒数'),
-                  value: Text('$playerButtonSkipTime 秒'),
-                ),
-                SettingsSliderTile(
-                  leading: Icons.timer_rounded,
-                  title: Text('控制栏消失时间'),
-                  description: Text('播放控制器自动隐藏前的停留时长'),
-                  value: playerControllerLayerDisappearSeconds,
-                  min: _minPlayerControllerLayerDisappearSeconds,
-                  max: _maxPlayerControllerLayerDisappearSeconds,
-                  divisions: _playerControllerLayerDisappearDivisions,
-                  valueLabel: formatPlayerControllerLayerDisappearSeconds(
-                      playerControllerLayerDisappearSeconds),
-                  onChanged: updatePlayerControllerLayerDisappearSeconds,
-                ),
-                SettingsTile(
-                  leading: Icons.aspect_ratio_rounded,
-                  onPressed: (_) async {
-                    if (playerAspectRatioMenuController.isOpen) {
-                      playerAspectRatioMenuController.close();
-                    } else {
-                      playerAspectRatioMenuController.open();
-                    }
-                  },
-                  title: Text('默认视频比例'),
-                  value: MenuAnchor(
-                    consumeOutsideTap: true,
-                    controller: playerAspectRatioMenuController,
-                    builder: (_, __, ___) {
-                      return Text(
-                        defaultAspectRatioMode.label,
-                      );
-                    },
-                    menuChildren: [
-                      for (final aspectRatioMode in PlayerAspectRatio.values)
-                        MenuItemButton(
-                          requestFocusOnHover: false,
-                          onPressed: () =>
-                              updateDefaultAspectRatioMode(aspectRatioMode),
-                          child: Container(
-                            height: 48,
-                            constraints: BoxConstraints(minWidth: 112),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                aspectRatioMode.label,
-                                style: TextStyle(
-                                  color: aspectRatioMode ==
-                                          defaultAspectRatioMode
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
-                                ),
+                  menuChildren: [
+                    for (final aspectRatioMode in PlayerAspectRatio.values)
+                      MenuItemButton(
+                        requestFocusOnHover: false,
+                        onPressed: () =>
+                            updateDefaultAspectRatioMode(aspectRatioMode),
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 112),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              aspectRatioMode.label,
+                              style: TextStyle(
+                                color: aspectRatioMode == defaultAspectRatioMode
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
                               ),
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-            SettingsSection(
-              tiles: [
-                SettingsTile(
-                  leading: Icons.settings_backup_restore_rounded,
-                  onPressed: (_) => resetPlayerSettings(),
-                  title: Text('恢复默认设置'),
-                  description: Text('将播放相关设置恢复为默认值'),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          SettingsSection(
+            tiles: [
+              SettingsTile(
+                leading: Icons.settings_backup_restore_rounded,
+                onPressed: (_) => resetPlayerSettings(),
+                title: Text('恢复默认设置'),
+                description: Text('将播放相关设置恢复为默认值'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

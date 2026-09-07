@@ -25,12 +25,12 @@ class EpisodeCommentsSheet extends StatefulWidget {
   State<EpisodeCommentsSheet> createState() => _EpisodeCommentsSheetState();
 }
 
-class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
+class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
+    with KazumiDialogOwner {
   VideoPageController get _controller => widget.videoPageController;
   late int _selectedEpisode;
   bool _isLoading = false;
   bool _hasError = false;
-  bool _isSelectingEpisode = false;
   int _requestVersion = 0;
   final Map<int, EpisodeInfo> _episodeInfoByIndex = {};
 
@@ -57,6 +57,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   void _resetAndScheduleRefresh() {
+    dialogs.cancel();
     final version = ++_requestVersion;
     _selectedEpisode = widget.episode;
     _hasError = false;
@@ -106,20 +107,14 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   Future<void> _showEpisodeSelection() async {
-    if (_isSelectingEpisode) return;
-    _isSelectingEpisode = true;
+    if (dialogs.isRunning) return;
     final controller = _controller;
-    final selection = widget.selection;
-    KazumiDialog.showLoading(msg: '分集列表加载中');
-    try {
-      final episodes =
-          await BangumiApi.getBangumiEpisodesByID(controller.bangumiItem.id);
-      KazumiDialog.dismiss();
-      if (!mounted ||
-          controller != _controller ||
-          selection != widget.selection) {
-        return;
-      }
+    await dialogs.run((task) async {
+      final episodes = await task.loading(
+        message: '分集列表加载中',
+        action: () =>
+            BangumiApi.getBangumiEpisodesByID(controller.bangumiItem.id),
+      );
       if (episodes.isEmpty) {
         KazumiDialog.showToast(message: '未找到分集列表');
         return;
@@ -127,25 +122,16 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       for (var index = 0; index < episodes.length; index++) {
         _rememberEpisodeInfo(index + 1, episodes[index]);
       }
-      final selected = await KazumiDialog.show<int>(
-        context: context,
+      final selected = await task.show<int>(
         builder: (context) => EpisodeCommentsPicker(
           episodes: episodes,
           selectedEpisode: _selectedEpisode,
         ),
       );
-      if (!mounted ||
-          controller != _controller ||
-          selection != widget.selection ||
-          selected == null ||
-          selected == _selectedEpisode) {
-        return;
-      }
+      if (selected == _selectedEpisode) return;
       _selectedEpisode = selected;
       unawaited(_loadComments());
-    } finally {
-      _isSelectingEpisode = false;
-    }
+    }, errorMessage: '分集列表加载失败，请稍后重试');
   }
 
   @override

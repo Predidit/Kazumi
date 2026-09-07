@@ -4,156 +4,98 @@ class _SourceCaptchaFlow {
   _SourceCaptchaFlow({required this.onVerified, required this.onCancelled});
 
   final void Function(Plugin plugin, String pageHtml) onVerified;
-
   final void Function(Plugin plugin) onCancelled;
+  final _dialogs = KazumiDialogController();
 
-  CaptchaVerificationService? _service;
-  Timer? _timer;
-
-  void start(Plugin plugin, String keyword) {
-    final searchUrl = plugin.searchURL
-        .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
-    switch (plugin.antiCrawlerConfig.captchaType) {
-      case CaptchaType.customJavaScript:
-        _startAutomated(
-          plugin,
-          startVerification: (service, onVerified) =>
-              service.loadForCustomScript(
-            url: searchUrl,
-            script: plugin.antiCrawlerConfig.captchaScript,
-            pluginName: plugin.name,
-            onVerified: onVerified,
-          ),
-        );
-      case CaptchaType.autoClickButton:
-        _startAutomated(
-          plugin,
-          startVerification: (service, onVerified) =>
-              service.loadForButtonClick(
-            url: searchUrl,
-            buttonXpath: plugin.antiCrawlerConfig.captchaButton,
-            pluginName: plugin.name,
-            onVerified: onVerified,
-          ),
-        );
-      default:
-        _startCaptchaInput(plugin, searchUrl);
-    }
-  }
-
-  void dispose() {
-    _service?.dispose();
-    _service = null;
-    _timer?.cancel();
-    _timer = null;
-  }
+  void dispose() => _dialogs.dispose();
 
   void showSuccess(String pluginName, {required VoidCallback onComplete}) {
-    KazumiDialog.show<bool>(
-      clickMaskDismiss: false,
-      builder: (_) => _VerificationCompleteDialog(pluginName: pluginName),
-    ).then((completed) {
-      if (completed == true) onComplete();
-    });
-  }
-
-  void _startCaptchaInput(Plugin plugin, String searchUrl) {
-    bool verified = false;
-    bool finalizing = false;
-
-    _service?.dispose();
-    final service = _service = CaptchaVerificationService();
-
-    Future<void> submitCaptcha(String captchaCode) async {
-      await _service?.submitCaptcha(
-        captchaCode: captchaCode,
-        inputXpath: plugin.antiCrawlerConfig.captchaInput,
-        buttonXpath: plugin.antiCrawlerConfig.captchaButton,
-        pluginName: plugin.name,
-        onFinalizing: () {
-          finalizing = true;
-          _timer?.cancel();
-          _timer = null;
-        },
-        onVerified: (pageHtml) {
-          verified = true;
-          KazumiDialog.dismiss();
-          onVerified(plugin, pageHtml);
-        },
+    unawaited(_dialogs.run((task) async {
+      await task.show<bool>(
+        clickMaskDismiss: false,
+        builder: (_) => _VerificationCompleteDialog(pluginName: pluginName),
       );
-      // Submission finishes on the JS click, before verification completes.
-      if (!finalizing) {
-        _timer?.cancel();
-        _timer = Timer(const Duration(seconds: 8), () {
-          if (!finalizing) {
-            KazumiDialog.dismiss();
-          }
-        });
-      }
-    }
-
-    KazumiDialog.show(
-      onDismiss: () async {
-        _timer?.cancel();
-        _timer = null;
-        // Capture the service before awaiting so a replacement cannot be disposed.
-        final captchaService = _service;
-        _service = null;
-        if (verified) {
-          captchaService?.dispose();
-        } else {
-          await captchaService?.cancelAndSave(plugin.name);
-          captchaService?.dispose();
-          onCancelled(plugin);
-        }
-      },
-      builder: (context) => _CaptchaDialog(
-        pluginName: plugin.name,
-        captchaImageStream: service.onCaptchaImageUrl,
-        onReload: () => service.loadForCaptcha(
-          searchUrl,
-          plugin.antiCrawlerConfig.captchaImage,
-          inputXpath: plugin.antiCrawlerConfig.captchaInput,
-        ),
-        onSubmit: submitCaptcha,
-      ),
-    );
+      onComplete();
+    }));
   }
 
-  void _startAutomated(
-    Plugin plugin, {
-    required Future<void> Function(
-      CaptchaVerificationService service,
-      void Function(String pageHtml) onVerified,
-    ) startVerification,
-  }) {
-    bool verified = false;
+  void start(Plugin plugin, String keyword) {
+    unawaited(_dialogs.run((task) async {
+      final service = CaptchaVerificationService();
+      final verified = Completer<String>();
+      final config = plugin.antiCrawlerConfig;
+      final searchUrl = plugin.searchURL
+          .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
+      Timer? timeout;
+      bool finalizing = false;
 
-    _service?.dispose();
-    final service = _service = CaptchaVerificationService();
-
-    unawaited(startVerification(service, (pageHtml) {
-      verified = true;
-      KazumiDialog.dismiss();
-      onVerified(plugin, pageHtml);
-    }));
-
-    KazumiDialog.show(
-      onDismiss: () async {
-        final captchaService = _service;
-        _service = null;
-        if (verified) {
-          captchaService?.dispose();
-        } else {
-          await captchaService?.cancelAndSave(plugin.name);
-          captchaService?.dispose();
-          onCancelled(plugin);
+      Future<void> submitCaptcha(String code) async {
+        await task.wait(service.submitCaptcha(
+          captchaCode: code,
+          inputXpath: config.captchaInput,
+          buttonXpath: config.captchaButton,
+          pluginName: plugin.name,
+          onFinalizing: () {
+            finalizing = true;
+            timeout?.cancel();
+          },
+          onVerified: verified.complete,
+        ));
+        // Submission returns after the JS click, before verification completes.
+        if (!finalizing) {
+          timeout?.cancel();
+          timeout = Timer(const Duration(seconds: 8), task.cancel);
         }
-      },
-      builder: (context) => _AutomatedVerifyDialog(
-        pluginName: plugin.name,
-      ),
-    );
+      }
+
+      final String pageHtml;
+      try {
+        pageHtml = await task.loading(
+          barrierDismissible: true,
+          onCancel: () => service.cancelAndSave(plugin.name),
+          builder: (_) => switch (config.captchaType) {
+            CaptchaType.customJavaScript ||
+            CaptchaType.autoClickButton =>
+              _AutomatedVerifyDialog(pluginName: plugin.name),
+            _ => _CaptchaDialog(
+                pluginName: plugin.name,
+                captchaImageStream: service.onCaptchaImageUrl,
+                onReload: () => service.loadForCaptcha(
+                  searchUrl,
+                  config.captchaImage,
+                  inputXpath: config.captchaInput,
+                ),
+                onSubmit: submitCaptcha,
+              ),
+          },
+          action: () async {
+            switch (config.captchaType) {
+              case CaptchaType.customJavaScript:
+                await service.loadForCustomScript(
+                  url: searchUrl,
+                  script: config.captchaScript,
+                  pluginName: plugin.name,
+                  onVerified: verified.complete,
+                );
+              case CaptchaType.autoClickButton:
+                await service.loadForButtonClick(
+                  url: searchUrl,
+                  buttonXpath: config.captchaButton,
+                  pluginName: plugin.name,
+                  onVerified: verified.complete,
+                );
+              default:
+                break;
+            }
+            return verified.future;
+          },
+        );
+      } finally {
+        timeout?.cancel();
+        service.dispose();
+      }
+      onVerified(plugin, pageHtml);
+    }, onCancelled: () => onCancelled(plugin), errorMessage: '验证失败，请稍后重试'));
   }
 }
 
@@ -344,7 +286,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
       actions: [
         TextButton(
           style: TextButton.styleFrom(minimumSize: const Size(72, 48)),
-          onPressed: KazumiDialog.dismiss,
+          onPressed: () => KazumiDialog.dismiss(context: context),
           child: const Text('返回来源'),
         ),
         FilledButton(
@@ -463,7 +405,7 @@ class _AutomatedVerifyDialog extends StatelessWidget {
         actions: [
           TextButton(
             style: TextButton.styleFrom(minimumSize: const Size(72, 48)),
-            onPressed: KazumiDialog.dismiss,
+            onPressed: () => KazumiDialog.dismiss(context: context),
             child: const Text('返回来源'),
           ),
         ],
@@ -476,7 +418,9 @@ class _AutomatedVerifyDialog extends StatelessWidget {
 }
 
 class _VerificationCompleteDialog extends StatefulWidget {
-  const _VerificationCompleteDialog({required this.pluginName});
+  const _VerificationCompleteDialog({
+    required this.pluginName,
+  });
 
   final String pluginName;
 
@@ -492,8 +436,9 @@ class _VerificationCompleteDialogState
   @override
   void initState() {
     super.initState();
-    _closeTimer = Timer(
-        const Duration(seconds: 3), () => Navigator.of(context).pop(true));
+    _closeTimer = Timer(const Duration(seconds: 3), () {
+      KazumiDialog.dismiss(context: context, popWith: true);
+    });
   }
 
   @override
@@ -505,20 +450,23 @@ class _VerificationCompleteDialogState
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return _VerifyDialogFrame(
-      pluginName: widget.pluginName,
-      title: '验证通过',
-      description: '即将自动继续检索。',
-      child: Center(
-        child: Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: colors.primaryContainer,
-            shape: BoxShape.circle,
+    return PopScope(
+      canPop: false,
+      child: _VerifyDialogFrame(
+        pluginName: widget.pluginName,
+        title: '验证通过',
+        description: '即将自动继续检索。',
+        child: Center(
+          child: Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.check_rounded,
+                color: colors.onPrimaryContainer, size: 32),
           ),
-          child: Icon(Icons.check_rounded,
-              color: colors.onPrimaryContainer, size: 32),
         ),
       ),
     );

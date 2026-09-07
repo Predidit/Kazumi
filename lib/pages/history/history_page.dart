@@ -175,50 +175,31 @@ class _HistoryCard extends StatefulWidget {
   State<_HistoryCard> createState() => _HistoryCardState();
 }
 
-class _HistoryCardState extends State<_HistoryCard> {
+class _HistoryCardState extends State<_HistoryCard> with KazumiDialogOwner {
   final CollectController _collectController = inject<CollectController>();
   final HistoryPlaybackService _playbackService =
       inject<HistoryPlaybackService>();
-  RuleCancelToken? _playbackCancelToken;
-  bool _opening = false;
   bool _updatingCollect = false;
 
-  @override
-  void dispose() {
-    _playbackCancelToken?.cancel();
-    super.dispose();
-  }
-
   Future<void> _play() async {
-    if (widget.editing || widget.busy || _opening) return;
-    setState(() => _opening = true);
-    final cancelToken = RuleCancelToken();
-    _playbackCancelToken = cancelToken;
-    KazumiDialog.showLoading(
-      msg: '获取中',
-      barrierDismissible: isDesktop(),
-      onDismiss: cancelToken.cancel,
-    );
-    try {
-      final result = await _playbackService.open(
-        widget.history,
-        cancelToken: cancelToken,
+    if (widget.editing || widget.busy || dialogs.isRunning) return;
+    await dialogs.run((task) async {
+      final cancelToken = RuleCancelToken();
+      final result = await task.loading(
+        message: '获取中',
+        barrierDismissible: isDesktop(),
+        onCancel: cancelToken.cancel,
+        action: () =>
+            _playbackService.open(widget.history, cancelToken: cancelToken),
       );
-      if (!mounted || cancelToken.isCancelled) return;
-      KazumiDialog.dismiss();
       switch (result) {
         case HistoryPlaybackReady(:final args):
-          context.pushNamed('/video/', arguments: args);
+          task.withContext(
+              (context) => context.pushNamed('/video/', arguments: args));
         case HistoryPlaybackUnavailable(:final reason):
           KazumiDialog.showToast(message: reason);
       }
-    } catch (_) {
-      if (!mounted || cancelToken.isCancelled) return;
-      KazumiDialog.dismiss();
-      KazumiDialog.showToast(message: '暂时无法继续播放，请稍后重试');
-    } finally {
-      if (mounted) setState(() => _opening = false);
-    }
+    }, errorMessage: '暂时无法继续播放，请稍后重试');
   }
 
   Future<void> _changeCollect(CollectType type) async {
@@ -243,7 +224,7 @@ class _HistoryCardState extends State<_HistoryCard> {
         history: widget.history,
         borderRadius: widget.borderRadius,
         editing: widget.editing,
-        busy: widget.busy || _opening,
+        busy: widget.busy || dialogs.isRunning,
         onPlay: _play,
         onDelete: widget.onDelete,
         onDetails: () =>

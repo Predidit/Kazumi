@@ -9,7 +9,6 @@ import 'package:kazumi/services/plugin/rule_engine_models.dart'
 import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/device.dart';
 
-/// Continue-watching card: opens playback, nothing else.
 class RecentWatchCard extends StatefulWidget {
   const RecentWatchCard({super.key, required this.item});
 
@@ -19,43 +18,31 @@ class RecentWatchCard extends StatefulWidget {
   State<RecentWatchCard> createState() => _RecentWatchCardState();
 }
 
-class _RecentWatchCardState extends State<RecentWatchCard> {
+class _RecentWatchCardState extends State<RecentWatchCard>
+    with KazumiDialogOwner {
   static const double _coverWidth = 78;
   static const double _coverHeight = 104;
 
   final HistoryPlaybackService _playbackService =
       inject<HistoryPlaybackService>();
 
-  RuleCancelToken? _cancelToken;
-
-  @override
-  void dispose() {
-    _cancelToken?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _play() async {
-    _cancelToken?.cancel();
-    final cancelToken = RuleCancelToken();
-    _cancelToken = cancelToken;
-    KazumiDialog.showLoading(
-      msg: '获取中',
-      barrierDismissible: isDesktop(),
-      onDismiss: cancelToken.cancel,
-    );
-    final result = await _playbackService.open(
-      widget.item.history,
-      cancelToken: cancelToken,
-    );
-    KazumiDialog.dismiss();
-    if (!mounted) return;
-    switch (result) {
-      case HistoryPlaybackReady(:final args):
-        context.pushNamed('/video/', arguments: args);
-      case HistoryPlaybackUnavailable(:final reason):
-        KazumiDialog.showToast(message: reason);
-    }
-  }
+  Future<void> _play() => dialogs.run((task) async {
+        final cancelToken = RuleCancelToken();
+        final result = await task.loading(
+          message: '获取中',
+          barrierDismissible: isDesktop(),
+          onCancel: cancelToken.cancel,
+          action: () => _playbackService.open(widget.item.history,
+              cancelToken: cancelToken),
+        );
+        switch (result) {
+          case HistoryPlaybackReady(:final args):
+            task.withContext(
+                (context) => context.pushNamed('/video/', arguments: args));
+          case HistoryPlaybackUnavailable(:final reason):
+            KazumiDialog.showToast(message: reason);
+        }
+      }, errorMessage: '暂时无法继续播放，请稍后重试');
 
   @override
   Widget build(BuildContext context) {
@@ -81,8 +68,6 @@ class _RecentWatchCardState extends State<RecentWatchCard> {
                   height: _coverHeight,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    // Titles run one or two lines; splitting the slack keeps
-                    // both cases balanced against the cover height.
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
@@ -184,10 +169,8 @@ class _RecentWatchCardState extends State<RecentWatchCard> {
       ),
       child: Text(
         label,
-        style: Theme.of(context)
-            .textTheme
-            .labelSmall
-            ?.copyWith(color: foreground),
+        style:
+            Theme.of(context).textTheme.labelSmall?.copyWith(color: foreground),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

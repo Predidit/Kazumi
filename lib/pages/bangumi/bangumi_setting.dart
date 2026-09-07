@@ -16,13 +16,13 @@ class BangumiEditorPage extends StatefulWidget {
   State<BangumiEditorPage> createState() => _BangumiEditorPageState();
 }
 
-class _BangumiEditorPageState extends State<BangumiEditorPage> {
+class _BangumiEditorPageState extends State<BangumiEditorPage>
+    with KazumiDialogOwner {
   final TextEditingController bangumiTokenController = TextEditingController();
   bool passwordVisible = false;
   bool isVerifying = false;
   late bool bangumiImmediateSyncToastEnable;
   late int syncPriority;
-  bool syncCollectiblesing = false;
   final MenuController syncPriorityMenuController = MenuController();
 
   @override
@@ -50,6 +50,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   }
 
   Future<void> syncWithProgress() async {
+    if (dialogs.isRunning) return;
     final syncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     if (!syncEnable) {
       KazumiDialog.showToast(message: '请先开启 Bangumi 同步');
@@ -57,46 +58,32 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
     }
 
     final progressDialogKey = GlobalKey<_BangumiSyncProgressDialogState>();
-
-    try {
-      setState(() {
-        syncCollectiblesing = true;
-      });
-
-      KazumiDialog.show(
-        clickMaskDismiss: false,
+    await dialogs.run((task) async {
+      await task.loading(
         builder: (context) =>
             _BangumiSyncProgressDialog(key: progressDialogKey),
-      );
-
-      final bangumi = BangumiSyncService();
-      await bangumi.ping();
-      await bangumi.syncCollectibles(
-        onProgress: (message, current, total) {
-          progressDialogKey.currentState?.update(
-            total > 0 ? '$message ($current/$total)' : message,
-            total > 0 ? (current / total).clamp(0.0, 1.0).toDouble() : null,
+        action: () async {
+          final bangumi = BangumiSyncService();
+          await bangumi.ping();
+          await bangumi.syncCollectibles(
+            onProgress: (message, current, total) {
+              progressDialogKey.currentState?.update(
+                total > 0 ? '$message ($current/$total)' : message,
+                total > 0 ? (current / total).clamp(0.0, 1.0).toDouble() : null,
+              );
+            },
           );
         },
       );
-    } catch (e) {
+    }, onError: (e, _) {
       KazumiDialog.showToast(message: 'Bangumi同步失败 $e');
-    } finally {
-      if (KazumiDialog.observer.hasKazumiDialog) {
-        KazumiDialog.dismiss();
-      }
-      if (mounted) {
-        setState(() {
-          syncCollectiblesing = false;
-        });
-      }
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !syncCollectiblesing,
+      canPop: !dialogs.isRunning,
       child: Scaffold(
         appBar: const SysAppBar(title: Text('Bangumi 配置')),
         body: SingleChildScrollView(
@@ -190,7 +177,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                       ),
                       SettingsTile(
                         leading: Icons.cloud_sync_rounded,
-                        trailing: syncCollectiblesing
+                        trailing: dialogs.isRunning
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,

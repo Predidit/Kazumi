@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
@@ -164,7 +165,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     try {
       final submitted = await widget.onSubmit?.call(result) ?? true;
       if (submitted && mounted) {
-        Navigator.of(context).pop();
+        KazumiDialog.dismiss(context: context);
         return;
       }
     } catch (e, stackTrace) {

@@ -26,84 +26,73 @@ class CollectPage extends StatefulWidget {
   State<CollectPage> createState() => _CollectPageState();
 }
 
-class _CollectPageState extends State<CollectPage> {
+class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   CollectController get collectController => widget.controller;
-  bool _syncing = false;
+  bool get _syncing => dialogs.isRunning;
   final Set<int> _pendingIds = {};
 
   Future<void> _runFullSync({
     required CollectSyncPlan plan,
-  }) async {
-    final progressDialogKey = GlobalKey<_FullSyncProgressDialogState>();
+  }) =>
+      dialogs.run((task) async {
+        final progressDialogKey = GlobalKey<_FullSyncProgressDialogState>();
+        bool webDavSynced = false;
+        bool bangumiSynced = false;
+        bool webDavUploaded = false;
 
-    unawaited(KazumiDialog.show(
-      context: context,
-      clickMaskDismiss: false,
-      builder: (context) => _FullSyncProgressDialog(key: progressDialogKey),
-    ));
-    await WidgetsBinding.instance.endOfFrame;
-    bool webDavSynced = false;
-    bool bangumiSynced = false;
-    bool webDavUploaded = false;
+        await task.loading(
+          builder: (context) => _FullSyncProgressDialog(key: progressDialogKey),
+          action: () async {
+            await WidgetsBinding.instance.endOfFrame;
+            if (plan.shouldSyncWebDavCollectibles) {
+              progressDialogKey.currentState?.update('正在同步 WebDav 收藏...', null);
+              webDavSynced = await collectController.syncCollectibles(
+                  showSuccessToast: false);
+            }
 
-    try {
-      if (plan.shouldSyncWebDavCollectibles) {
-        progressDialogKey.currentState?.update('正在同步 WebDav 收藏...', null);
-        webDavSynced =
-            await collectController.syncCollectibles(showSuccessToast: false);
-      }
+            if (plan.shouldSyncBangumi) {
+              progressDialogKey.currentState
+                  ?.update('准备同步 Bangumi 收藏...', null);
+              bangumiSynced = await collectController.syncCollectiblesBangumi(
+                showSuccessToast: false,
+                onProgress: (message, current, total) {
+                  progressDialogKey.currentState?.update(
+                    total > 0 ? '$message ($current/$total)' : message,
+                    total > 0
+                        ? (current / total).clamp(0.0, 1.0).toDouble()
+                        : null,
+                  );
+                },
+              );
+            }
 
-      if (plan.shouldSyncBangumi) {
-        progressDialogKey.currentState?.update('准备同步 Bangumi 收藏...', null);
-        bangumiSynced = await collectController.syncCollectiblesBangumi(
-          showSuccessToast: false,
-          onProgress: (message, current, total) {
-            progressDialogKey.currentState?.update(
-              total > 0 ? '$message ($current/$total)' : message,
-              total > 0 ? (current / total).clamp(0.0, 1.0).toDouble() : null,
-            );
+            if (plan.shouldUploadWebDavAfterBangumi(
+              webDavSynced: webDavSynced,
+              bangumiSynced: bangumiSynced,
+            )) {
+              progressDialogKey.currentState
+                  ?.update('正在回传最新收藏到 WebDav...', null);
+              webDavUploaded =
+                  await collectController.uploadCollectiblesToWebDav(
+                showSuccessToast: false,
+              );
+            }
           },
         );
-      }
 
-      if (plan.shouldUploadWebDavAfterBangumi(
-        webDavSynced: webDavSynced,
-        bangumiSynced: bangumiSynced,
-      )) {
-        progressDialogKey.currentState?.update('正在回传最新收藏到 WebDav...', null);
-        webDavUploaded = await collectController.uploadCollectiblesToWebDav(
-          showSuccessToast: false,
-        );
-      }
-    } finally {
-      final dialogContext = progressDialogKey.currentContext;
-      if (dialogContext != null && dialogContext.mounted) {
-        final route = ModalRoute.of(dialogContext);
-        if (route != null) {
-          final navigator = Navigator.of(dialogContext);
-          if (route.isCurrent) {
-            navigator.pop();
-          } else {
-            navigator.removeRoute(route);
-          }
-          // The route observer clears stale snackbars at the end of the frame.
-          await WidgetsBinding.instance.endOfFrame;
-        }
-      }
-    }
-
-    final states = [
-      if (plan.shouldSyncWebDavCollectibles)
-        webDavSynced ? 'WebDav 已同步' : 'WebDav 未完成',
-      if (plan.shouldSyncBangumi) bangumiSynced ? 'Bangumi 已同步' : 'Bangumi 未完成',
-      if (plan.shouldUploadWebDavAfterBangumi(
-        webDavSynced: webDavSynced,
-        bangumiSynced: bangumiSynced,
-      ))
-        webDavUploaded ? 'WebDav 已回传最新数据' : 'WebDav 未回传最新数据',
-    ];
-    KazumiDialog.showToast(message: states.join('，'));
-  }
+        final states = [
+          if (plan.shouldSyncWebDavCollectibles)
+            webDavSynced ? 'WebDav 已同步' : 'WebDav 未完成',
+          if (plan.shouldSyncBangumi)
+            bangumiSynced ? 'Bangumi 已同步' : 'Bangumi 未完成',
+          if (plan.shouldUploadWebDavAfterBangumi(
+            webDavSynced: webDavSynced,
+            bangumiSynced: bangumiSynced,
+          ))
+            webDavUploaded ? 'WebDav 已回传最新数据' : 'WebDav 未回传最新数据',
+        ];
+        KazumiDialog.showToast(message: states.join('，'));
+      }, errorMessage: '同步未完成，请稍后重试');
 
   @override
   void initState() {
@@ -135,14 +124,7 @@ class _CollectPageState extends State<CollectPage> {
       KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
       return;
     }
-    setState(() => _syncing = true);
-    try {
-      await _runFullSync(plan: plan);
-    } catch (_) {
-      KazumiDialog.showToast(message: '同步未完成，请稍后重试');
-    } finally {
-      if (mounted) setState(() => _syncing = false);
-    }
+    await _runFullSync(plan: plan);
   }
 
   @override

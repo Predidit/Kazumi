@@ -22,13 +22,6 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
   }
 
-  void onBackPressed(BuildContext context) {
-    if (KazumiDialog.observer.hasKazumiDialog) {
-      KazumiDialog.dismiss();
-      return;
-    }
-  }
-
   Future<void> updateProxyEnable(bool value) async {
     if (value) {
       final proxyConfigured = GStorage.getSetting(SettingsKeys.proxyConfigured);
@@ -49,43 +42,36 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        onBackPressed(context);
-      },
-      child: SettingsDetailScaffold(
-        title: const Text('代理设置'),
-        body: SettingsList(
-          sections: [
-            SettingsSection(
-              title: Text('代理'),
-              tiles: [
-                SettingsTile.switchTile(
-                  leading: Icons.vpn_key_rounded,
-                  onToggle: (value) async {
-                    await updateProxyEnable(value ?? !proxyEnable);
-                  },
-                  title: Text('启用代理'),
-                  description: Text('启用后网络请求将通过代理服务器'),
-                  initialValue: proxyEnable,
-                ),
-                SettingsTile(
-                  leading: Icons.tune_rounded,
-                  onPressed: (_) async {
-                    await context.pushNamed('/settings/proxy/editor');
-                    setState(() {
-                      proxyEnable =
-                          GStorage.getSetting(SettingsKeys.proxyEnable);
-                    });
-                  },
-                  title: Text('代理配置'),
-                  description: Text('配置代理服务器地址和认证信息'),
-                ),
-              ],
-            ),
-          ],
-        ),
+    return SettingsDetailScaffold(
+      title: const Text('代理设置'),
+      body: SettingsList(
+        sections: [
+          SettingsSection(
+            title: Text('代理'),
+            tiles: [
+              SettingsTile.switchTile(
+                leading: Icons.vpn_key_rounded,
+                onToggle: (value) async {
+                  await updateProxyEnable(value ?? !proxyEnable);
+                },
+                title: Text('启用代理'),
+                description: Text('启用后网络请求将通过代理服务器'),
+                initialValue: proxyEnable,
+              ),
+              SettingsTile(
+                leading: Icons.tune_rounded,
+                onPressed: (_) async {
+                  await context.pushNamed('/settings/proxy/editor');
+                  setState(() {
+                    proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
+                  });
+                },
+                title: Text('代理配置'),
+                description: Text('配置代理服务器地址和认证信息'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

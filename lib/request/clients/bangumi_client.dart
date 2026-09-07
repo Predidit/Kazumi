@@ -17,6 +17,7 @@ class BangumiClient {
     String url, {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = false,
+    String? accessToken,
     CancelToken? cancelToken,
   }) async {
     try {
@@ -26,6 +27,7 @@ class BangumiClient {
         options: Options(
           headers: _headers(
             requiresAuth: requiresAuth,
+            accessToken: accessToken,
             url: url,
             method: 'GET',
           ),
@@ -68,14 +70,17 @@ class BangumiClient {
 
   Map<String, dynamic> _headers({
     required bool requiresAuth,
-    String? url,
-    String method = 'GET',
+    String? accessToken,
+    required String url,
+    required String method,
     Object? data,
   }) {
     final headers = <String, dynamic>{...bangumiHTTPHeader};
     final bangumiSyncEnable =
         GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-    final token = GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
+    final token = (accessToken ??
+            GStorage.getSetting<String>(SettingsKeys.bangumiAccessToken))
+        .trim();
     if ((requiresAuth || bangumiSyncEnable) && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -86,7 +91,7 @@ class BangumiClient {
       headers['X-Timestamp'] = timestamp;
       headers['X-Signature'] = generateBangumiMirrorSearchSignature(
         method: method,
-        path: Uri.parse(url!).path,
+        path: Uri.parse(url).path,
         body: body,
         timestamp: timestamp,
       );
@@ -94,10 +99,7 @@ class BangumiClient {
     return headers;
   }
 
-  bool _shouldSignProtectedMirrorRequest(String? url, String method) {
-    if (url == null) {
-      return false;
-    }
+  bool _shouldSignProtectedMirrorRequest(String url, String method) {
     final enableBangumiProxy =
         GStorage.getSetting(SettingsKeys.enableBangumiProxy);
     if (!enableBangumiProxy) {

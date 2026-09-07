@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/services/sync/bangumi_sync_service.dart';
+import 'package:kazumi/bean/settings/bangumi_sync_settings.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
@@ -13,16 +13,15 @@ class WebDavSettingsPage extends StatefulWidget {
   const WebDavSettingsPage({super.key});
 
   @override
-  State<WebDavSettingsPage> createState() => _PlayerSettingsPageState();
+  State<WebDavSettingsPage> createState() => _WebDavSettingsPageState();
 }
 
-class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
+class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
   late bool webDavEnable;
   late bool webDavEnableHistory;
   late bool webDavEnableCollect;
   late bool enableGitProxy;
   late bool enableBangumiProxy;
-  late bool bangumiSyncEnable;
 
   @override
   void initState() {
@@ -32,7 +31,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     webDavEnableCollect = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
     enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
     enableBangumiProxy = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
-    bangumiSyncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
   }
 
   Future<void> syncHistoryWithWebDav() async {
@@ -80,57 +78,10 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
               await GStorage.putSetting(SettingsKeys.enableGitProxy, value);
             },
           ),
-          SettingsSection(
-            title: Text('Bangumi'),
-            tiles: [
-              SettingsTile.switchTile(
-                leading: Icons.sync_rounded,
-                onToggle: (value) async {
-                  final tBangumiEnableSync = value ?? !bangumiSyncEnable;
-                  final bangumi = BangumiSyncService();
-                  if (tBangumiEnableSync == true) {
-                    final token =
-                        GStorage.getSetting(SettingsKeys.bangumiAccessToken)
-                            .trim();
-                    if (token.isEmpty) {
-                      KazumiDialog.showToast(
-                          message: '请先配置 Bangumi 的 Access Token');
-                      return;
-                    } else {
-                      if (!bangumi.initialized) {
-                        try {
-                          await bangumi.init();
-                        } catch (e) {
-                          KazumiDialog.showToast(
-                              message: "Bangumi 初始化失败，请稍后再试");
-                          return;
-                        }
-                      }
-                    }
-                  }
-                  bangumiSyncEnable = tBangumiEnableSync;
-                  await GStorage.putSetting(
-                      SettingsKeys.bangumiSyncEnable, bangumiSyncEnable);
-                  if (!mounted) {
-                    return;
-                  }
-                  setState(() {});
-                },
-                title: Text('Bangumi 同步'),
-                description: Text('与Bangumi自动同步追番状态'),
-                initialValue: bangumiSyncEnable,
-              ),
-              SettingsTile(
-                leading: Icons.tune_rounded,
-                onPressed: (_) async {
-                  await context.pushNamed('/settings/bangumi/');
-                  bangumiSyncEnable =
-                      GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-                  setState(() {});
-                },
-                title: Text('Bangumi 配置'),
-              ),
-            ],
+          BangumiSyncSettings(
+            onConfigure: () async {
+              await context.pushNamed('/settings/bangumi/');
+            },
           ),
           SettingsSection(
             title: Text('WEBDAV'),

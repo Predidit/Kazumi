@@ -522,12 +522,7 @@ class BangumiApi {
     return characterFullItem;
   }
 
-  static Future<String?> getUsername() async {
-    final user = await getCurrentUser();
-    return user?.username;
-  }
-
-  static Future<User?> getCurrentUser() async {
+  static Future<User?> getCurrentUser({String? accessToken}) async {
     try {
       final jsonData = await _client.get(
         ApiEndpoints.formatUrl(
@@ -535,23 +530,18 @@ class BangumiApi {
                 ApiEndpoints.bangumiUsernameByToken,
             []),
         requiresAuth: true,
+        accessToken: accessToken,
       );
       if (jsonData['id'] != null) {
         return User.fromJson(Map<String, dynamic>.from(jsonData));
       }
-    } on NetworkException catch (e) {
-      if (e.statusCode == 401) {
-        KazumiLogger().e('Bangumi token unauthorized, please check your token');
-        throw StateError('Bangumi token 未授权，请检查您的 token');
-      }
-      rethrow;
     } catch (e) {
       KazumiLogger().e('Network: get current user failed', error: e);
+      rethrow;
     }
     return null;
   }
 
-  /// Get the Bangumi collection of the current user
   static Future<List<BangumiCollection>> getBangumiCollectibles({
     List<BangumiCollectionType> includeBangumiTypes = const [
       BangumiCollectionType.planToWatch,
@@ -560,25 +550,17 @@ class BangumiApi {
       BangumiCollectionType.onHold,
       BangumiCollectionType.abandoned,
     ],
-    String? username,
+    required String username,
     int limit = 50,
     void Function(String message, int current, int total)? onProgress,
   }) async {
     final List<BangumiCollection> bangumiCollection = [];
-    final resolvedUsername = username != null && username.isNotEmpty
-        ? username
-        : await getUsername();
     int failedItemCount = 0;
     int progressCurrent = 0;
     int progressTotal = 0;
-    if (resolvedUsername == null) {
-      KazumiLogger().w('get username failed');
-      return [];
-    }
 
     try {
-      final rateLimiter =
-          AsyncRateLimiter(const Duration(milliseconds: 200));
+      final rateLimiter = AsyncRateLimiter(const Duration(milliseconds: 200));
       const int concurrency = 3;
 
       Future<Map> fetchPageData(int offset, int pageLimit) async {
@@ -586,7 +568,7 @@ class BangumiApi {
         final url = ApiEndpoints.formatUrl(
             ApiEndpoints.bangumiAuthAPIMirrorDomain +
                 ApiEndpoints.bangumiGetAllCollections,
-            [resolvedUsername, pageLimit, offset]);
+            [username, pageLimit, offset]);
         final jsonData = await _client.get(
           url,
           requiresAuth: true,
@@ -687,7 +669,8 @@ class BangumiApi {
             progressTotal,
           );
 
-          if (jsonList.length < serverLimit && offset + jsonList.length >= total) {
+          if (jsonList.length < serverLimit &&
+              offset + jsonList.length >= total) {
             offsetsQueue.clear();
             break;
           }
@@ -721,7 +704,6 @@ class BangumiApi {
     return bangumiCollection;
   }
 
-  /// Update the Bangumi collection by ID
   static Future<bool> updateBangumiById(
       int id, Map<String, dynamic> data) async {
     await _writeRateLimiter.acquire();
@@ -759,7 +741,6 @@ class BangumiApi {
     }
   }
 
-  /// Update the Bangumi collection by Type
   static Future<bool> updateBangumiByType(int id, int localType) async {
     final type = CollectType.fromValue(localType).toBangumiCollectionType();
     if (type == null) {
@@ -768,7 +749,6 @@ class BangumiApi {
     return await updateBangumiById(id, {'type': type.value});
   }
 
-  /// update or add Bangumi evaluation by subjectID
   static Future<bool> addOrUpdateBangumiEvaluationBySubjectID(
     int subjectID,
     int localType, {

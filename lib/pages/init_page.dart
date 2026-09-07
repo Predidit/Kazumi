@@ -192,22 +192,20 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _bangumiInit() async {
-    bool bangumiEnable =
-        await GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+    final bangumiEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     if (bangumiEnable) {
-      var bangumi = BangumiSyncService();
+      final bangumi = BangumiSyncService();
       KazumiLogger().i('Bangumi: Starting Bangumi initialization');
       try {
-        await bangumi.init();
+        await bangumi.ping();
       } catch (e) {
-        bangumi.reset();
-        await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, false);
         KazumiLogger().w(
-          'Bangumi: initialization failed, disabling Bangumi sync until user re-enables it',
+          'Bangumi: initialization failed; keeping sync enabled for retry',
           error: e,
         );
         KazumiDialog.showToast(
-          message: '初始化Bangumi失败，已关闭 Bangumi 同步: ${e.toString()}',
+          message:
+              'Bangumi 暂未连接，同步设置已保留：${BangumiSyncService.describeError(e)}',
         );
       }
     }

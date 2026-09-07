@@ -110,11 +110,6 @@ abstract class _CollectController with Store {
       return _BangumiDeleteSyncAction.deleteLocalOnly;
     }
 
-    final bangumi = BangumiSyncService();
-    if (!bangumi.initialized) {
-      return _BangumiDeleteSyncAction.deleteLocalOnly;
-    }
-
     return KazumiDialog.show<_BangumiDeleteSyncAction>(
       clickMaskDismiss: true,
       builder: (context) => AlertDialog(
@@ -166,14 +161,6 @@ abstract class _CollectController with Store {
     }
 
     final bangumi = BangumiSyncService();
-    if (!bangumi.initialized) {
-      KazumiDialog.showToast(message: 'Bangumi 未初始化，同步失败，已取消本次状态修改');
-      KazumiLogger().w(
-        'Bangumi: immediate collect sync skipped because Bangumi is not initialized. '
-        'bangumiId=$bangumiId, type=$localType',
-      );
-      return false;
-    }
     try {
       if (showImmediateSyncToast) {
         KazumiDialog.showToast(message: '正在同步到 Bangumi...');
@@ -192,7 +179,9 @@ abstract class _CollectController with Store {
       }
       return true;
     } catch (e, stackTrace) {
-      KazumiDialog.showToast(message: '同步到 Bangumi 失败，已取消本次状态修改: $e');
+      KazumiDialog.showToast(
+          message:
+              '同步到 Bangumi 失败，已取消本次状态修改：${BangumiSyncService.describeError(e)}');
       KazumiLogger().e(
         'Bangumi: immediate collect sync failed. bangumiId=$bangumiId, type=$localType',
         error: e,
@@ -296,20 +285,10 @@ abstract class _CollectController with Store {
       return false;
     }
 
-    if (!BangumiSyncService().initialized) {
-      _reportSyncError('Bangumi 未连接，请检查令牌', onError);
-      return false;
-    }
-    try {
-      await BangumiSyncService().ping();
-    } catch (e) {
-      _reportSyncError('Bangumi 连接失败，请检查网络或令牌', onError, error: e);
-      return false;
-    }
     try {
       await BangumiSyncService().syncCollectibles(onProgress: onProgress);
     } catch (e) {
-      _reportSyncError('Bangumi 同步失败，请检查连接或令牌', onError, error: e);
+      _reportSyncError(BangumiSyncService.describeError(e), onError, error: e);
       return false;
     }
     loadCollectibles();

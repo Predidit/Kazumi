@@ -5,20 +5,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/content_section.dart';
-import 'package:kazumi/pages/about/about_page.dart';
-import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/pages/plugin_editor/plugin_view_page.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_settings.dart';
-import 'package:kazumi/pages/settings/download_settings.dart';
-import 'package:kazumi/pages/settings/interface_settings.dart';
-import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
-import 'package:kazumi/pages/settings/proxy/proxy_settings_page.dart';
-import 'package:kazumi/pages/settings/storage_settings.dart';
-import 'package:kazumi/pages/settings/sync/sync_settings_page.dart';
-import 'package:kazumi/pages/settings/theme_settings_page.dart';
-import 'package:kazumi/pages/settings/update_settings.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 
 class _SettingsCategory {
@@ -27,14 +14,14 @@ class _SettingsCategory {
     required this.label,
     required this.description,
     required this.icon,
-    required this.builder,
+    required this.path,
   });
 
   final String id;
   final String label;
   final String description;
   final IconData icon;
-  final WidgetBuilder builder;
+  final String path;
 }
 
 class _SettingsGroup {
@@ -44,7 +31,7 @@ class _SettingsGroup {
   final List<_SettingsCategory> categories;
 }
 
-final List<_SettingsGroup> _settingsGroups = [
+const List<_SettingsGroup> _settingsGroups = [
   _SettingsGroup(
     title: '播放',
     categories: [
@@ -53,21 +40,21 @@ final List<_SettingsGroup> _settingsGroups = [
         label: '播放设置',
         description: '解码、渲染与播放行为',
         icon: Icons.display_settings_rounded,
-        builder: (_) => const PlayerSettingsPage(),
+        path: '/settings/player',
       ),
       _SettingsCategory(
         id: 'danmaku',
         label: '弹幕设置',
         description: '弹幕来源与显示效果',
         icon: Icons.subtitles_rounded,
-        builder: (_) => const DanmakuSettingsPage(),
+        path: '/settings/danmaku',
       ),
       _SettingsCategory(
         id: 'keyboard',
         label: '操作设置',
         description: '播放器按键映射',
         icon: Icons.keyboard_rounded,
-        builder: (_) => const KeyboardSettingsPage(),
+        path: '/settings/keyboard',
       ),
     ],
   ),
@@ -79,14 +66,14 @@ final List<_SettingsGroup> _settingsGroups = [
         label: '规则管理',
         description: '番剧资源规则',
         icon: Icons.extension_rounded,
-        builder: (_) => PluginViewPage(controller: inject<PluginsController>()),
+        path: '/settings/plugin',
       ),
       _SettingsCategory(
         id: 'download',
         label: '下载设置',
         description: '并发数与弹幕缓存',
         icon: Icons.downloading_rounded,
-        builder: (_) => const DownloadSettingsPage(),
+        path: '/settings/download-settings',
       ),
     ],
   ),
@@ -98,28 +85,28 @@ final List<_SettingsGroup> _settingsGroups = [
         label: '外观设置',
         description: '主题、配色与字体',
         icon: Icons.palette_rounded,
-        builder: (_) => const ThemeSettingsPage(),
+        path: '/settings/theme',
       ),
       _SettingsCategory(
         id: 'interface',
         label: '界面设置',
         description: '启动、窗口行为与展示信息',
         icon: Icons.pages_rounded,
-        builder: (_) => const InterfaceSettingsPage(),
+        path: '/settings/interface',
       ),
       _SettingsCategory(
         id: 'sync',
         label: '同步设置',
         description: '追番状态与多设备同步',
         icon: Icons.cloud_rounded,
-        builder: (_) => const SyncSettingsPage(),
+        path: '/settings/sync',
       ),
       _SettingsCategory(
         id: 'proxy',
         label: '网络设置',
         description: '访问加速与代理',
         icon: Icons.language_rounded,
-        builder: (_) => const ProxySettingsPage(),
+        path: '/settings/proxy',
       ),
     ],
   ),
@@ -131,248 +118,234 @@ final List<_SettingsGroup> _settingsGroups = [
         label: '更新设置',
         description: '应用与规则更新',
         icon: Icons.update_rounded,
-        builder: (_) => const UpdateSettingsPage(),
+        path: '/settings/update',
       ),
       _SettingsCategory(
         id: 'storage',
         label: '存储与日志',
         description: '图片缓存与错误日志',
         icon: Icons.storage_rounded,
-        builder: (_) => const StorageSettingsPage(),
+        path: '/settings/storage',
       ),
       _SettingsCategory(
         id: 'about',
         label: '关于',
         description: '版本与开源信息',
         icon: Icons.info_outline_rounded,
-        builder: (_) => AboutPage(
-          onCheckUpdate: inject<MyController>().checkUpdate,
-        ),
+        path: '/settings/about',
       ),
     ],
   ),
 ];
 
-// Breakpoint changes use only the rail animation, without a page transition.
-class _InstantTransitionDelegate extends TransitionDelegate<dynamic> {
-  const _InstantTransitionDelegate();
-
-  @override
-  Iterable<RouteTransitionRecord> resolve({
-    required List<RouteTransitionRecord> newPageRouteHistory,
-    required Map<RouteTransitionRecord?, RouteTransitionRecord>
-        locationToExitingPageRoute,
-    required Map<RouteTransitionRecord?, List<RouteTransitionRecord>>
-        pageRouteToPagelessRoutes,
-  }) {
-    final results = <RouteTransitionRecord>[];
-    for (final pageRoute in newPageRouteHistory) {
-      if (pageRoute.isWaitingForEnteringDecision) {
-        pageRoute.markForAdd();
-      }
-      results.add(pageRoute);
-    }
-    for (final exitingPageRoute in locationToExitingPageRoute.values) {
-      if (exitingPageRoute.isWaitingForExitingDecision) {
-        exitingPageRoute.markForComplete();
-        final pagelessRoutes = pageRouteToPagelessRoutes[exitingPageRoute];
-        if (pagelessRoutes != null) {
-          for (final pagelessRoute in pagelessRoutes) {
-            pagelessRoute.markForComplete();
-          }
-        }
-      }
-      results.add(exitingPageRoute);
-    }
-    return results;
+String _categoryPath(String location) {
+  if (location == '/settings' || location == '/settings/') {
+    return '/settings/player';
   }
+  if (location.startsWith('/settings/bangumi') ||
+      location.startsWith('/settings/webdav')) {
+    return '/settings/sync';
+  }
+  for (final group in _settingsGroups) {
+    for (final category in group.categories) {
+      if (location == category.path ||
+          location.startsWith('${category.path}/')) {
+        return category.path;
+      }
+    }
+  }
+  return location;
 }
 
+/// The outlet stays mounted when the window crosses the layout breakpoint.
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({super.key, required this.location});
+
+  final String location;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  static const Duration _paneMotion = Duration(milliseconds: 250);
-  static const double _railWidth = 280;
-  static const ValueKey<String> _listPageKey =
-      ValueKey<String>('settings-list');
+  final _outletKey = GlobalKey<RouterOutletState>();
+  bool _canPopDetail = false;
+  // Root pushes do not change routeState(), so keep this outlet's base local.
+  late String _location = widget.location;
 
-  final GlobalKey<NavigatorState> _detailNavigatorKey =
-      GlobalKey<NavigatorState>();
-
-  _SettingsCategory? _selected;
-
-  bool? _lastTwoPane;
-
-  bool _useTwoPane(BuildContext context) {
-    return MediaQuery.orientationOf(context) == Orientation.landscape &&
-        MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!;
+  @override
+  void didUpdateWidget(covariant SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location) _location = widget.location;
   }
 
-  void _backToCategoryList() {
-    setState(() => _selected = null);
+  void _navigateTo(String path) {
+    _outletKey.currentState!.navigate(path);
+    setState(() => _location = path);
+  }
+
+  void _backToMenu() {
+    final outlet = _outletKey.currentState;
+    if (outlet != null && !outlet.maybePop()) {
+      final location = _location;
+      final category = _categoryPath(location);
+      _navigateTo(location.replaceFirst(RegExp(r'/$'), '') != category &&
+              location != '/settings/' &&
+              location != '/settings'
+          ? category
+          : '/settings/');
+    }
+  }
+
+  void _exitSettings() {
+    if (!context.maybePop()) context.navigate('/tab/my');
   }
 
   @override
   Widget build(BuildContext context) {
-    final twoPane = _useTwoPane(context);
-    // Do not persist the fallback category during a layout change.
-    final shown = _selected ?? _settingsGroups.first.categories.first;
-    final detail = twoPane ? null : _selected;
-    final layoutChanged = _lastTwoPane != null && _lastTwoPane != twoPane;
-    _lastTwoPane = twoPane;
-
-    return NavigatorPopHandler(
-      onPopWithResult: (_) => _detailNavigatorKey.currentState?.maybePop(),
-      child: Navigator(
-        key: _detailNavigatorKey,
-        transitionDelegate: layoutChanged
-            ? const _InstantTransitionDelegate()
-            : const DefaultTransitionDelegate<dynamic>(),
-        onDidRemovePage: (page) {
-          // Keep the selection when layout changes remove the detail route.
-          if (page.key != _listPageKey && !_useTwoPane(context)) {
-            _backToCategoryList();
-          }
+    final location = _location;
+    final isRoot = location == '/settings' || location == '/settings/';
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth > LayoutBreakpoint.compact['width']!;
+      return PopScope(
+        canPop: !_canPopDetail && (wide || isRoot),
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) _backToMenu();
         },
-        pages: [
-          MaterialPage(
-            key: _listPageKey,
-            child: _listScaffold(context, twoPane, shown),
-          ),
-          if (detail != null)
-            MaterialPage(
-              key: ValueKey<String>('settings-detail:${detail.id}'),
-              child: SettingsPaneScope(
-                embedded: false,
-                onBack: _backToCategoryList,
-                child: Builder(builder: detail.builder),
-              ),
+        child: Scaffold(
+          appBar: wide
+              ? SysAppBar(
+                  title: const Text('设置'),
+                  leading: BackButton(onPressed: _exitSettings),
+                )
+              : null,
+          body: SafeArea(
+            top: false,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Keep the outlet at the same tree position on resize.
+                SizedBox(
+                  width: wide ? 280 : 0,
+                  child: Offstage(
+                    offstage: !wide,
+                    child: _SettingsMenu(
+                      wide: true,
+                      location: location,
+                      onSelect: _navigateTo,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: SettingsPaneScope(
+                    embedded: wide,
+                    showBackButton: !isRoot &&
+                        location.replaceFirst(RegExp(r'/$'), '') !=
+                            _categoryPath(location),
+                    onBack: _backToMenu,
+                    child: NotificationListener<NavigationNotification>(
+                      onNotification: (notification) {
+                        if (_canPopDetail != notification.canHandlePop) {
+                          setState(
+                              () => _canPopDetail = notification.canHandlePop);
+                        }
+                        return false;
+                      },
+                      child: RouterOutlet(key: _outletKey),
+                    ),
+                  ),
+                ),
+              ],
             ),
-        ],
-      ),
-    );
+          ),
+        ),
+      );
+    });
   }
+}
 
-  Widget _listScaffold(
-    BuildContext context,
-    bool twoPane,
-    _SettingsCategory shown,
-  ) {
+/// The index route supplies the default detail only in the two-pane layout.
+class SettingsMenuPage extends StatelessWidget {
+  const SettingsMenuPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (SettingsPaneScope.of(context)?.embedded ?? false) {
+      return const PlayerSettingsPage();
+    }
     return Scaffold(
       appBar: SysAppBar(
         title: const Text('设置'),
-        // The nested root route delegates back navigation to the outer navigator.
-        leading: IconButton(
-          onPressed: () => context.maybePop(),
-          icon: const Icon(Icons.arrow_back),
-        ),
+        leading: BackButton(onPressed: () {
+          if (!context.maybePop()) context.navigate('/tab/my');
+        }),
       ),
-      body: SafeArea(
-        top: false,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ClipRect(
-              child: AnimatedAlign(
-                duration: _paneMotion,
-                curve: Curves.easeInOutCubic,
-                alignment: Alignment.centerLeft,
-                widthFactor: twoPane ? 1 : 0,
-                child: SizedBox(
-                  width: _railWidth,
-                  child: _rail(context, shown),
-                ),
-              ),
-            ),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: _paneMotion,
-                switchInCurve: Curves.easeInOutCubic,
-                switchOutCurve: Curves.easeInOutCubic,
-                child: twoPane
-                    ? _detailPane(context, shown)
-                    : KeyedSubtree(
-                        key: const ValueKey<String>('categories'),
-                        child: _singlePaneBody(context),
-                      ),
-              ),
-            ),
-          ],
-        ),
+      body: _SettingsMenu(
+        wide: false,
+        location: '/settings/',
+        onSelect: (path) => context
+            .findAncestorStateOfType<_SettingsPageState>()!
+            ._navigateTo(path),
       ),
     );
   }
+}
 
-  Widget _detailPane(BuildContext context, _SettingsCategory shown) {
-    return Padding(
-      key: ValueKey<String>('pane:${shown.id}'),
-      padding: const EdgeInsets.fromLTRB(8, 0, 12, 0),
-      child: _withoutScrollbar(
-        context,
-        SettingsPaneScope(
-          embedded: true,
-          child: Builder(builder: shown.builder),
-        ),
-      ),
-    );
-  }
+class _SettingsMenu extends StatelessWidget {
+  const _SettingsMenu({
+    required this.wide,
+    required this.location,
+    required this.onSelect,
+  });
 
-  Widget _withoutScrollbar(BuildContext context, Widget child) {
+  final bool wide;
+  final String location;
+  final ValueChanged<String> onSelect;
+
+  String get categoryPath => _categoryPath(location);
+
+  @override
+  Widget build(BuildContext context) {
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: child,
-    );
-  }
-
-  Widget _rail(BuildContext context, _SettingsCategory shown) {
-    return _withoutScrollbar(
-      context,
-      ListView(
-        padding: const EdgeInsets.fromLTRB(4, 0, 0, 12),
+      child: ListView(
+        padding: wide
+            ? const EdgeInsets.fromLTRB(4, 0, 0, 12)
+            : const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          for (final group in _settingsGroups) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 16, 28, 8),
-              child: SectionHeader(title: Text(group.title)),
-            ),
-            for (final category in group.categories)
-              _RailDestination(
-                category: category,
-                selected: category.id == shown.id,
-                onTap: () => setState(() => _selected = category),
+          for (final group in _settingsGroups)
+            if (wide) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 16, 28, 8),
+                child: SectionHeader(title: Text(group.title)),
               ),
-          ],
+              for (final category in group.categories)
+                _RailDestination(
+                  category: category,
+                  selected: categoryPath == category.path ||
+                      categoryPath.startsWith('${category.path}/'),
+                  onTap: () => onSelect(category.path),
+                ),
+            ] else
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: ContentSection.group(
+                  title: group.title,
+                  children: [
+                    for (final category in group.categories)
+                      SettingsCategoryTile(
+                        icon: category.icon,
+                        title: category.label,
+                        description: category.description,
+                        onTap: () => onSelect(category.path),
+                      ),
+                  ],
+                ),
+              ),
         ],
       ),
     );
   }
-
-  Widget _singlePaneBody(BuildContext context) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          for (final group in _settingsGroups)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: ContentSection.group(
-                title: group.title,
-                children: [
-                  for (final category in group.categories)
-                    SettingsCategoryTile(
-                      icon: category.icon,
-                      title: category.label,
-                      description: category.description,
-                      onTap: () => setState(() => _selected = category),
-                    ),
-                ],
-              ),
-            ),
-        ],
-      );
 }
 
 class _RailDestination extends StatelessWidget {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
@@ -24,10 +24,8 @@ class _RendererSettingsState extends State<RendererSettings> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const SysAppBar(
-        title: Text('视频渲染器'),
-      ),
+    return SettingsDetailScaffold(
+      title: const Text('视频渲染器'),
       body: SettingsList(
         sections: [
           SettingsRadioSection<String>(

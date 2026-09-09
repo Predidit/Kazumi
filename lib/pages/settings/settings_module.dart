@@ -26,55 +26,86 @@ import 'package:kazumi/pages/settings/update_settings.dart';
 final settingsModule = createModule(
   path: '/settings',
   register: (c) {
+    c.route(
+      '/',
+      child: (context, state) => SettingsPage(location: state.uri.path),
+      children: (sub) {
+        sub
+          ..route('/',
+              transition: TransitionType.none,
+              child: (context, state) => const SettingsMenuPage())
+          ..route('/sync',
+              transition: TransitionType.none,
+              child: (context, state) => const SyncSettingsPage())
+          ..route('/bangumi/',
+              transition: TransitionType.none,
+              child: (context, state) => const BangumiSyncPage())
+          ..route('/webdav/',
+              transition: TransitionType.none,
+              child: (context, state) => const WebDavSyncPage())
+          ..route('/webdav/editor',
+              transition: TransitionType.none,
+              child: (context, state) => const WebDavServerPage())
+          ..route(
+            '/update',
+            transition: TransitionType.none,
+            child: (context, state) => const UpdateSettingsPage(),
+          )
+          ..route('/storage',
+              transition: TransitionType.none,
+              child: (context, state) => const StorageSettingsPage())
+          ..route('/storage/logs',
+              transition: TransitionType.none,
+              child: (context, state) => const LogsPage())
+          ..route('/theme',
+              transition: TransitionType.none,
+              child: (context, state) => const ThemeSettingsPage())
+          ..route(
+            '/theme/display',
+            transition: TransitionType.none,
+            child: (context, state) => const SetDisplayMode(),
+          )
+          ..route(
+            '/keyboard',
+            transition: TransitionType.none,
+            child: (context, state) => const KeyboardSettingsPage(),
+          )
+          ..route('/player',
+              transition: TransitionType.none,
+              child: (context, state) => const PlayerSettingsPage())
+          ..route(
+            '/player/decoder',
+            transition: TransitionType.none,
+            child: (context, state) => const DecoderSettings(),
+          )
+          ..route(
+            '/player/renderer',
+            transition: TransitionType.none,
+            child: (context, state) => const RendererSettings(),
+          )
+          ..route(
+            '/interface',
+            transition: TransitionType.none,
+            child: (context, state) => const InterfaceSettingsPage(),
+          )
+          ..module(proxyModule)
+          ..route(
+            '/player/super',
+            transition: TransitionType.none,
+            child: (context, state) => const SuperResolutionSettings(),
+          )
+          ..module(aboutModule)
+          ..module(pluginModule)
+          ..module(danmakuModule)
+          ..route(
+            '/download-settings',
+            transition: TransitionType.none,
+            child: (context, state) => const DownloadSettingsPage(),
+          );
+      },
+    );
     c
-      ..route('/', child: (context, state) => const SettingsPage())
-      ..route('/sync', child: (context, state) => const SyncSettingsPage())
-      ..route('/bangumi/', child: (context, state) => const BangumiSyncPage())
-      ..route('/webdav/', child: (context, state) => const WebDavSyncPage())
-      ..route('/webdav/editor',
-          child: (context, state) => const WebDavServerPage())
-      ..route(
-        '/update',
-        child: (context, state) => const UpdateSettingsPage(),
-      )
-      ..route('/storage',
-          child: (context, state) => const StorageSettingsPage())
-      ..route('/storage/logs', child: (context, state) => const LogsPage())
-      ..route('/theme', child: (context, state) => const ThemeSettingsPage())
-      ..route(
-        '/theme/display',
-        child: (context, state) => const SetDisplayMode(),
-      )
-      ..route(
-        '/keyboard',
-        child: (context, state) => const KeyboardSettingsPage(),
-      )
-      ..route('/player', child: (context, state) => const PlayerSettingsPage())
-      ..route(
-        '/player/decoder',
-        child: (context, state) => const DecoderSettings(),
-      )
-      ..route(
-        '/player/renderer',
-        child: (context, state) => const RendererSettings(),
-      )
-      ..route(
-        '/interface',
-        child: (context, state) => const InterfaceSettingsPage(),
-      )
-      ..module(proxyModule)
-      ..route(
-        '/player/super',
-        child: (context, state) => const SuperResolutionSettings(),
-      )
-      ..module(aboutModule)
-      ..module(pluginModule)
       ..module(historyModule)
-      ..module(danmakuModule)
-      ..module(downloadModule)
-      ..route(
-        '/download-settings',
-        child: (context, state) => const DownloadSettingsPage(),
-      );
+      ..module(downloadModule);
   },
 );

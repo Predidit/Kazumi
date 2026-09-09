@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
@@ -89,8 +89,8 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const SysAppBar(title: Text('代理配置')),
+    return SettingsDetailScaffold(
+      title: const Text('代理配置'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Center(

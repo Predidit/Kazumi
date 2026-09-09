@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -69,8 +70,8 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('屏幕帧率设置')),
+    return SettingsDetailScaffold(
+      title: const Text('屏幕帧率设置'),
       body: (modes.isEmpty)
           ? const LoadingIndicator()
           : SettingsList(

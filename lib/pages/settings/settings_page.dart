@@ -159,7 +159,9 @@ String _categoryPath(String location) {
 
 /// The outlet stays mounted when the window crosses the layout breakpoint.
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({super.key, required this.location});
+
+  final String location;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -168,13 +170,26 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final _outletKey = GlobalKey<RouterOutletState>();
   bool _canPopDetail = false;
+  // Root pushes do not change routeState(), so keep this outlet's base local.
+  late String _location = widget.location;
+
+  @override
+  void didUpdateWidget(covariant SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location) _location = widget.location;
+  }
+
+  void _navigateTo(String path) {
+    _outletKey.currentState!.navigate(path);
+    setState(() => _location = path);
+  }
 
   void _backToMenu() {
     final outlet = _outletKey.currentState;
     if (outlet != null && !outlet.maybePop()) {
-      final location = context.routeState(listen: false).uri.path;
+      final location = _location;
       final category = _categoryPath(location);
-      outlet.navigate(location.replaceFirst(RegExp(r'/$'), '') != category &&
+      _navigateTo(location.replaceFirst(RegExp(r'/$'), '') != category &&
               location != '/settings/' &&
               location != '/settings'
           ? category
@@ -188,7 +203,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final location = context.routeState().uri.path;
+    final location = _location;
     final isRoot = location == '/settings' || location == '/settings/';
     return LayoutBuilder(builder: (context, constraints) {
       final wide = constraints.maxWidth > LayoutBreakpoint.compact['width']!;
@@ -217,8 +232,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: _SettingsMenu(
                       wide: true,
                       location: location,
-                      onSelect: (path) =>
-                          _outletKey.currentState!.navigate(path),
+                      onSelect: _navigateTo,
                     ),
                   ),
                 ),
@@ -269,7 +283,9 @@ class SettingsMenuPage extends StatelessWidget {
       body: _SettingsMenu(
         wide: false,
         location: '/settings/',
-        onSelect: (path) => context.navigate(path),
+        onSelect: (path) => context
+            .findAncestorStateOfType<_SettingsPageState>()!
+            ._navigateTo(path),
       ),
     );
   }

@@ -28,7 +28,7 @@ final settingsModule = createModule(
   register: (c) {
     c.route(
       '/',
-      child: (context, state) => const SettingsPage(),
+      child: (context, state) => SettingsPage(location: state.uri.path),
       children: (sub) {
         sub
           ..route('/',

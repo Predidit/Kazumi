@@ -35,6 +35,8 @@ class _SearchPageState extends State<SearchPage> {
   final _input = TextEditingController();
   final _inputFocus = FocusNode();
   final _scroll = ScrollController();
+  // Preserve the input subtree when the header moves in or out of the scroll view.
+  final _searchHeaderKey = GlobalKey();
   String? _submittedQuery;
   bool _managingHistory = false;
 
@@ -166,6 +168,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _header() => Padding(
+        key: _searchHeaderKey,
         padding: EdgeInsets.only(top: _hasSearched ? 8 : 24, bottom: 16),
         child: _searchField(),
       );

@@ -257,9 +257,6 @@ class _SearchPageState extends State<SearchPage> {
     final failed = _controller.isTimeOut;
     final submitted = SearchParser(_submittedQuery!).toFilterState();
     final summary = _filterSummary(submitted);
-    final textScale = MediaQuery.textScalerOf(context);
-    final columns = math.max(2, (width / 180).floor());
-    final cardWidth = (width - (columns - 1) * 12) / columns;
 
     return [
       SliverToBoxAdapter(
@@ -331,18 +328,7 @@ class _SearchPageState extends State<SearchPage> {
           ],
         ))
       else
-        SliverGrid.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 20,
-              mainAxisExtent: cardWidth / 0.7 +
-                  textScale.scale(40) +
-                  textScale.scale(18) +
-                  20),
-          itemCount: items.length,
-          itemBuilder: (_, index) => _SearchResultCard(item: items[index]),
-        ),
+        _SearchResultGrid(items: items, width: width),
       if (allItems.isNotEmpty || !failed)
         SliverToBoxAdapter(
             child: Padding(

@@ -67,10 +67,70 @@ class _SearchSortMenu extends StatelessWidget {
   }
 }
 
+class _SearchResultGrid extends StatelessWidget {
+  const _SearchResultGrid({required this.items, required this.width});
+
+  final List<BangumiItem> items;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final titleStyle = textTheme.titleSmall!
+        .copyWith(fontWeight: FontWeight.w600, height: 1.4);
+
+    double textHeight(String text, TextStyle style) {
+      // Scale font sizes before measuring; accessibility scaling can be nonlinear.
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+        locale: Localizations.maybeLocaleOf(context),
+      )..layout();
+      final height = painter.height.ceilToDouble();
+      painter.dispose();
+      return height;
+    }
+
+    final titleHeight = textHeight('番剧\n番剧', titleStyle);
+    final metadataHeight = math.max(_SearchResultCard.ratingIconSize,
+        textHeight('0.0 0000', textTheme.labelMedium!));
+    final columns = math.max(2, (width / 180).floor());
+    final cardWidth = (width - (columns - 1) * 12) / columns;
+
+    return SliverGrid.builder(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 20,
+          mainAxisExtent: cardWidth / _SearchResultCard.coverAspectRatio +
+              titleHeight +
+              metadataHeight +
+              _SearchResultCard.titleSpacing +
+              _SearchResultCard.metadataSpacing +
+              6),
+      itemCount: items.length,
+      itemBuilder: (_, index) => _SearchResultCard(
+          item: items[index], titleHeight: titleHeight, titleStyle: titleStyle),
+    );
+  }
+}
+
 class _SearchResultCard extends StatelessWidget {
-  const _SearchResultCard({required this.item});
+  const _SearchResultCard({
+    required this.item,
+    required this.titleHeight,
+    required this.titleStyle,
+  });
+
+  static const coverAspectRatio = 0.7;
+  static const titleSpacing = 10.0;
+  static const metadataSpacing = 4.0;
+  static const ratingIconSize = 14.0;
 
   final BangumiItem item;
+  final double titleHeight;
+  final TextStyle titleStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +148,7 @@ class _SearchResultCard extends StatelessWidget {
             ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: AspectRatio(
-                  aspectRatio: 0.7,
+                  aspectRatio: coverAspectRatio,
                   child: LayoutBuilder(
                       builder: (_, constraints) => NetworkImgLayer(
                             src: item.images['large'] ??
@@ -98,21 +158,20 @@ class _SearchResultCard extends StatelessWidget {
                             height: constraints.maxHeight,
                           )),
                 )),
-            const SizedBox(height: 10),
+            const SizedBox(height: titleSpacing),
             SizedBox(
-                height: MediaQuery.textScalerOf(context).scale(40),
+                height: titleHeight,
                 child: Text(
                   title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w600, height: 1.4),
+                  style: titleStyle,
                 )),
-            const SizedBox(height: 4),
+            const SizedBox(height: metadataSpacing),
             Row(children: [
               if (item.ratingScore > 0) ...[
                 Icon(Icons.star_rounded,
-                    size: 14, color: theme.colorScheme.primary),
+                    size: ratingIconSize, color: theme.colorScheme.primary),
                 const SizedBox(width: 3),
                 Text(item.ratingScore.toStringAsFixed(1),
                     style: theme.textTheme.labelMedium),

@@ -165,32 +165,47 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final _outletKey = GlobalKey<RouterOutletState>();
-  bool _canPopDetail = false;
-  // Root pushes do not change routeState(), so keep this outlet's base local.
+  Object? _categoryNavigation;
+  // Nested pushes do not update the root route state.
   late String _location = _normalizePath(widget.location);
 
-  bool get _isRoot => _location == '/settings';
   String get _selectedCategoryPath => _categoryPath(_location);
-  bool get _isSecondaryRoute => !_isRoot && _location != _selectedCategoryPath;
+  bool get _isSecondaryRoute =>
+      _location != '/settings' && _location != _selectedCategoryPath;
 
   @override
   void didUpdateWidget(covariant SettingsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.location != widget.location) {
+      _categoryNavigation = null;
       _location = _normalizePath(widget.location);
     }
   }
 
-  void _navigateTo(String path) {
+  void _replaceCategory(String path) {
+    _categoryNavigation = null;
     _outletKey.currentState!.navigate(path);
     setState(() => _location = _normalizePath(path));
   }
 
-  void _backToParent() {
-    final outlet = _outletKey.currentState;
-    if (outlet != null && !outlet.maybePop()) {
-      _navigateTo(_isSecondaryRoute ? _selectedCategoryPath : '/settings/');
-    }
+  Future<void> _pushCategory(String path) async {
+    if (_categoryNavigation != null) return;
+    final navigation = Object();
+    final previousLocation = _location;
+    _categoryNavigation = navigation;
+    setState(() => _location = _normalizePath(path));
+    await _outletKey.currentState!.push<void>(path);
+    // Ignore completions from history replaced by a rail selection.
+    if (!mounted || _categoryNavigation != navigation) return;
+    setState(() {
+      _categoryNavigation = null;
+      _location = previousLocation;
+    });
+  }
+
+  void _goBack() {
+    if (_outletKey.currentState?.maybePop() ?? false) return;
+    _exitSettings();
   }
 
   void _exitSettings() {
@@ -201,11 +216,8 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       final wide = constraints.maxWidth > LayoutBreakpoint.compact['width']!;
-      return PopScope(
-        canPop: !_canPopDetail && (wide || _isRoot),
-        onPopInvokedWithResult: (didPop, result) {
-          if (!didPop) _backToParent();
-        },
+      return NavigatorPopHandler<Object?>(
+        onPopWithResult: (_) => _goBack(),
         child: Scaffold(
           appBar: wide
               ? SysAppBar(
@@ -226,7 +238,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: _SettingsMenu(
                       wide: true,
                       selectedPath: _selectedCategoryPath,
-                      onSelect: _navigateTo,
+                      onSelect: _replaceCategory,
                     ),
                   ),
                 ),
@@ -234,20 +246,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: SettingsPaneScope(
                     embedded: wide,
                     showBackButton: _isSecondaryRoute,
-                    onBack: _backToParent,
+                    onBack: _goBack,
                     child: NotificationListener<_SettingsCategorySelected>(
                       onNotification: (notification) {
-                        _navigateTo(notification.path);
+                        _pushCategory(notification.path);
                         return true;
                       },
-                      child: NotificationListener<NavigationNotification>(
-                        onNotification: (notification) {
-                          if (_canPopDetail != notification.canHandlePop) {
-                            setState(() =>
-                                _canPopDetail = notification.canHandlePop);
-                          }
-                          return false;
-                        },
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
+                          pageTransitionsTheme: settingsPageTransitionsTheme,
+                        ),
                         child: RouterOutlet(key: _outletKey),
                       ),
                     ),

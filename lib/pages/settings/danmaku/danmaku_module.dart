@@ -6,12 +6,9 @@ final danmakuModule = createModule(
   path: '/danmaku',
   register: (c) {
     c
-      ..route('/',
-          transition: TransitionType.none,
-          child: (context, state) => const DanmakuSettingsPage())
+      ..route('/', child: (context, state) => const DanmakuSettingsPage())
       ..route(
         '/shield',
-        transition: TransitionType.none,
         child: (context, state) => const DanmakuShieldSettings(),
       );
   },

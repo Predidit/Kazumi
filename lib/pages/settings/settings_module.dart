@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/about/about_module.dart';
 import 'package:kazumi/pages/download/download_page_module.dart';
@@ -22,6 +23,7 @@ import 'package:kazumi/pages/settings/sync/webdav_server_page.dart';
 import 'package:kazumi/pages/settings/sync/webdav_sync_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/settings/update_settings.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
 
 final settingsModule = createModule(
   path: '/settings',
@@ -31,67 +33,47 @@ final settingsModule = createModule(
       child: (context, state) => SettingsPage(location: state.uri.path),
       children: (sub) {
         sub
-          ..route('/',
-              transition: TransitionType.none,
-              child: (context, state) => const SettingsIndexPage())
-          ..route('/sync',
-              transition: TransitionType.none,
-              child: (context, state) => const SyncSettingsPage())
+          ..route('/', child: (context, state) => const SettingsIndexPage())
+          ..route('/sync', child: (context, state) => const SyncSettingsPage())
           ..route('/bangumi/',
-              transition: TransitionType.none,
               child: (context, state) => const BangumiSyncPage())
-          ..route('/webdav/',
-              transition: TransitionType.none,
-              child: (context, state) => const WebDavSyncPage())
+          ..route('/webdav/', child: (context, state) => const WebDavSyncPage())
           ..route('/webdav/editor',
-              transition: TransitionType.none,
               child: (context, state) => const WebDavServerPage())
           ..route(
             '/update',
-            transition: TransitionType.none,
             child: (context, state) => const UpdateSettingsPage(),
           )
           ..route('/storage',
-              transition: TransitionType.none,
               child: (context, state) => const StorageSettingsPage())
-          ..route('/storage/logs',
-              transition: TransitionType.none,
-              child: (context, state) => const LogsPage())
+          ..route('/storage/logs', child: (context, state) => const LogsPage())
           ..route('/theme',
-              transition: TransitionType.none,
               child: (context, state) => const ThemeSettingsPage())
           ..route(
             '/theme/display',
-            transition: TransitionType.none,
             child: (context, state) => const SetDisplayMode(),
           )
           ..route(
             '/keyboard',
-            transition: TransitionType.none,
             child: (context, state) => const KeyboardSettingsPage(),
           )
           ..route('/player',
-              transition: TransitionType.none,
               child: (context, state) => const PlayerSettingsPage())
           ..route(
             '/player/decoder',
-            transition: TransitionType.none,
             child: (context, state) => const DecoderSettings(),
           )
           ..route(
             '/player/renderer',
-            transition: TransitionType.none,
             child: (context, state) => const RendererSettings(),
           )
           ..route(
             '/interface',
-            transition: TransitionType.none,
             child: (context, state) => const InterfaceSettingsPage(),
           )
           ..module(proxyModule)
           ..route(
             '/player/super',
-            transition: TransitionType.none,
             child: (context, state) => const SuperResolutionSettings(),
           )
           ..module(aboutModule)
@@ -99,12 +81,20 @@ final settingsModule = createModule(
           ..module(danmakuModule)
           ..route(
             '/download-settings',
-            transition: TransitionType.none,
             child: (context, state) => const DownloadSettingsPage(),
           );
       },
     );
     c
+      // Root route: the license browser must cover the settings shell.
+      ..route(
+        '/about/license',
+        child: (context, state) => const LicensePage(
+          applicationName: 'Kazumi',
+          applicationVersion: ApiEndpoints.version,
+          applicationLegalese: 'Kazumi · GNU General Public License v3.0',
+        ),
+      )
       ..module(historyModule)
       ..module(downloadModule);
   },

@@ -6,11 +6,7 @@ final proxyModule = createModule(
   path: '/proxy',
   register: (c) {
     c
-      ..route('/',
-          transition: TransitionType.none,
-          child: (context, state) => const ProxySettingsPage())
-      ..route('/editor',
-          transition: TransitionType.none,
-          child: (context, state) => const ProxyEditorPage());
+      ..route('/', child: (context, state) => const ProxySettingsPage())
+      ..route('/editor', child: (context, state) => const ProxyEditorPage());
   },
 );

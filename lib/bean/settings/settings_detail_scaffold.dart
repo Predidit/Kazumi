@@ -45,6 +45,7 @@ class SettingsDetailScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scope = SettingsPaneScope.of(context);
+    final PreferredSizeWidget appBar;
 
     if (scope != null && scope.embedded) {
       final paneLeading = leading ??
@@ -52,28 +53,21 @@ class SettingsDetailScaffold extends StatelessWidget {
                   (ModalRoute.of(context)?.impliesAppBarDismissal ?? false))
               ? BackButton(onPressed: scope.onBack)
               : null);
-      return Scaffold(
+      appBar = AppBar(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          scrolledUnderElevation: 0,
-          automaticallyImplyLeading: false,
-          toolbarHeight: 64,
-          titleSpacing:
-              paneLeading == null ? 24 : NavigationToolbar.kMiddleSpacing,
-          leading: paneLeading,
-          title: title,
-          titleTextStyle: Theme.of(context).textTheme.headlineSmall,
-          actions: actions,
-        ),
-        body: body,
-        floatingActionButton: floatingActionButton,
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+        toolbarHeight: 64,
+        titleSpacing:
+            paneLeading == null ? 24 : NavigationToolbar.kMiddleSpacing,
+        leading: paneLeading,
+        title: title,
+        titleTextStyle: Theme.of(context).textTheme.headlineSmall,
+        actions: actions,
       );
-    }
-
-    final onBack = scope?.onBack;
-    return Scaffold(
-      appBar: SysAppBar(
+    } else {
+      final onBack = scope?.onBack;
+      appBar = SysAppBar(
         title: title,
         actions: actions,
         leading: leading ??
@@ -83,7 +77,12 @@ class SettingsDetailScaffold extends StatelessWidget {
                     onPressed: onBack,
                     icon: const Icon(Icons.arrow_back),
                   )),
-      ),
+      );
+    }
+
+    // Routed panes must paint an opaque surface for page transitions.
+    return Scaffold(
+      appBar: appBar,
       body: body,
       floatingActionButton: floatingActionButton,
     );

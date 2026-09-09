@@ -468,8 +468,8 @@ abstract class _PlayerPlaybackController with Store {
         return await _discardIfNotCurrent(candidate);
       }
 
-      if (cachePolicy.networkForced) {
-        KazumiDialog.showToast(message: '正在使用移动数据，已临时启用低内存模式以减少缓存');
+      if (cachePolicy.networkAutomatic) {
+        KazumiDialog.showToast(message: '移动数据下已自动开启低内存模式，可在播放设置中改为始终关闭');
       }
 
       return player;

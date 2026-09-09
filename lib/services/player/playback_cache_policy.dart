@@ -2,68 +2,63 @@ import 'dart:async';
 
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/metered_network_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/player/low_memory_mode.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:media_kit/media_kit.dart';
 
-/// Owns the demuxer cache size of the player returned by [currentPlayer].
-///
-/// [PlayerConfiguration] seeds the size so a failed write degrades to the right
-/// value instead of the media_kit default; [apply] is authoritative.
 class PlaybackCachePolicy {
   PlaybackCachePolicy({
-    required this.isLocalPlayback,
-    required this.currentPlayer,
-  });
+    required bool Function() isLocalPlayback,
+    required Player? Function() currentPlayer,
+  })  : _isLocalPlayback = isLocalPlayback,
+        _currentPlayer = currentPlayer;
 
   static const int _lowMemoryBufferSize = 2 * 1024 * 1024;
   static const int _defaultBufferSize = 1500 * 1024 * 1024;
 
-  final bool Function() isLocalPlayback;
-  final Player? Function() currentPlayer;
+  final bool Function() _isLocalPlayback;
+  final Player? Function() _currentPlayer;
   final AsyncSerialQueue _writes = AsyncSerialQueue();
 
-  bool _watching = false;
+  StreamSubscription<void>? _settingsSubscription;
 
-  bool get _userEnabled =>
-      GStorage.getSetting<bool>(SettingsKeys.lowMemoryMode);
+  bool get networkAutomatic =>
+      LowMemoryMode.current == LowMemoryMode.auto &&
+      !_isLocalPlayback() &&
+      MeteredNetworkService.isMetered;
 
-  /// Temporary override; local playback is exempt because it costs no data.
-  bool get networkForced =>
-      !_userEnabled && !isLocalPlayback() && MeteredNetworkService.isMetered;
-
-  int get bufferSize =>
-      _userEnabled || networkForced ? _lowMemoryBufferSize : _defaultBufferSize;
+  int get bufferSize => LowMemoryMode.current.isEnabled(
+        isMetered: MeteredNetworkService.isMetered,
+        isLocalPlayback: _isLocalPlayback(),
+      )
+          ? _lowMemoryBufferSize
+          : _defaultBufferSize;
 
   void startWatching() {
-    if (_watching) {
+    if (_settingsSubscription != null) {
       return;
     }
-    _watching = true;
-    MeteredNetworkService.listenable.addListener(_onNetworkChanged);
+    _settingsSubscription = LowMemoryMode.watch().listen((_) => _onChanged());
+    MeteredNetworkService.listenable.addListener(_onChanged);
   }
 
   void stopWatching() {
-    if (!_watching) {
-      return;
-    }
-    _watching = false;
-    MeteredNetworkService.listenable.removeListener(_onNetworkChanged);
+    MeteredNetworkService.listenable.removeListener(_onChanged);
+    unawaited(_settingsSubscription?.cancel());
+    _settingsSubscription = null;
   }
 
-  /// Waits for initialization so the seed cannot land after this write. That
-  /// wait stays outside the queue, where an unresolved one would stall every
-  /// later write.
   Future<void> apply() async {
-    final player = currentPlayer();
+    final player = _currentPlayer();
     if (player == null) {
       return;
     }
     try {
       final pp = player.platform as NativePlayer;
+      // A stale player's initialization must not block its replacement's writes.
       await pp.waitForPlayerInitialization;
       await _writes.run(() async {
-        if (!identical(currentPlayer(), player)) {
+        if (!identical(_currentPlayer(), player)) {
           return;
         }
         final size = bufferSize.toString();
@@ -78,7 +73,7 @@ class PlaybackCachePolicy {
     }
   }
 
-  void _onNetworkChanged() {
+  void _onChanged() {
     unawaited(apply());
   }
 }

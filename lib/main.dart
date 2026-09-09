@@ -91,7 +91,7 @@ void main() async {
   if (Platform.isWindows) {
     SystemProxyService.init();
   }
-  MeteredNetworkService.init();
+  await MeteredNetworkService.refresh();
   ProxyManager.applyProxy();
   runApp(
     ModularApp(

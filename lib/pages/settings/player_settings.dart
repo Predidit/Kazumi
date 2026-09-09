@@ -5,7 +5,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
-import 'package:kazumi/services/network/metered_network_service.dart';
+import 'package:kazumi/pages/settings/low_memory_mode_settings.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
@@ -30,7 +30,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool hAenable;
   late bool androidEnableOpenSLES;
   late bool androidAutoEnterPIP;
-  late bool lowMemoryMode;
   late bool playResume;
   late bool showPlayerError;
   late bool privateMode;
@@ -51,18 +50,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   void initState() {
     super.initState();
     _loadSettingsFromStorage();
-    MeteredNetworkService.listenable.addListener(_onMeteredNetworkChanged);
-  }
-
-  @override
-  void dispose() {
-    MeteredNetworkService.listenable.removeListener(_onMeteredNetworkChanged);
-    super.dispose();
-  }
-
-  void _onMeteredNetworkChanged() {
-    if (!mounted) return;
-    setState(() {});
   }
 
   void _loadSettingsFromStorage() {
@@ -78,7 +65,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         GStorage.getSetting<bool>(SettingsKeys.androidEnableOpenSLES);
     androidAutoEnterPIP =
         GStorage.getSetting<bool>(SettingsKeys.androidAutoEnterPIP);
-    lowMemoryMode = GStorage.getSetting<bool>(SettingsKeys.lowMemoryMode);
     playResume = GStorage.getSetting<bool>(SettingsKeys.playResume);
     privateMode = GStorage.getSetting<bool>(SettingsKeys.privateMode);
     showPlayerError = GStorage.getSetting<bool>(SettingsKeys.showPlayerError);
@@ -292,22 +278,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text('选择视频输出方式'),
                 ),
               ],
-              SettingsTile.switchTile(
-                leading: Icons.data_saver_on_rounded,
-                enabled: !MeteredNetworkService.isMetered,
-                onToggle: (value) async {
-                  lowMemoryMode = value ?? !lowMemoryMode;
-                  await GStorage.putSetting<bool>(
-                      SettingsKeys.lowMemoryMode, lowMemoryMode);
-                  setState(() {});
-                },
-                title: Text('低内存模式'),
-                description: Text(MeteredNetworkService.isMetered
-                    ? '移动网络下已自动启用'
-                    : '禁用高级缓存以减少内存占用'),
-                // Effective state, not the stored one, which stays untouched.
-                initialValue: lowMemoryMode || MeteredNetworkService.isMetered,
-              ),
+              const LowMemoryModeSettingsTile(),
               if (Platform.isAndroid) ...[
                 SettingsTile.switchTile(
                   leading: Icons.graphic_eq_rounded,

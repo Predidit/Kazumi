@@ -341,6 +341,11 @@ class GStorage {
     await _setting.put(key.name, value);
   }
 
+  static Stream<void> watchSettings(Iterable<SettingKey<Object?>> keys) {
+    final names = keys.map((key) => key.name).toSet();
+    return _setting.watch().where((event) => names.contains(event.key)).map((_) {});
+  }
+
   static List<String> getStringListSettingByName(
     String key, {
     List<String> defaultValue = const [],

@@ -99,7 +99,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
                 setState(() {});
               },
               title: Text('显示评分'),
-              description: Text('关闭后将在概览中隐藏评分信息'),
+              description: Text('关闭后隐藏概览和番剧列表中的评分信息'),
               initialValue: showRating,
             ),
           ]),

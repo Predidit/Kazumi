@@ -4,11 +4,13 @@ class _CollectLibraryCard extends StatelessWidget {
   const _CollectLibraryCard({
     super.key,
     required this.entry,
+    required this.showRating,
     required this.onOpen,
     required this.onChangeType,
   });
 
   final CollectedBangumi entry;
+  final bool showRating;
   final VoidCallback onOpen;
   final ValueChanged<CollectType>? onChangeType;
 
@@ -22,7 +24,8 @@ class _CollectLibraryCard extends StatelessWidget {
     final airDate = DateTime.tryParse(item.airDate);
     final metadata = [
       if (airDate != null) '${airDate.year} 年',
-      if (item.ratingScore > 0) '${item.ratingScore.toStringAsFixed(1)} 分',
+      if (showRating && item.ratingScore > 0)
+        '${item.ratingScore.toStringAsFixed(1)} 分',
     ];
 
     return Material(
@@ -31,7 +34,7 @@ class _CollectLibraryCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // Keep the menu outside the card's focus and pointer subtree.
+          // Isolate menu focus and taps from card navigation.
           Positioned.fill(
             child: Semantics(
               button: true,

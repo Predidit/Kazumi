@@ -13,12 +13,14 @@ class CollectLibraryView extends StatefulWidget {
   const CollectLibraryView({
     super.key,
     required this.entries,
+    required this.showRating,
     required this.onOpen,
     required this.onChangeType,
     required this.canEdit,
   });
 
   final List<CollectedBangumi> entries;
+  final bool showRating;
   final ValueChanged<BangumiItem> onOpen;
   final void Function(BangumiItem, CollectType) onChangeType;
   final bool Function(BangumiItem) canEdit;
@@ -362,6 +364,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
   Widget _card(CollectedBangumi entry) => _CollectLibraryCard(
         key: ValueKey('collect-${entry.bangumiItem.id}'),
         entry: entry,
+        showRating: widget.showRating,
         onOpen: () => widget.onOpen(entry.bangumiItem),
         onChangeType: widget.canEdit(entry.bangumiItem)
             ? (type) => widget.onChangeType(entry.bangumiItem, type)

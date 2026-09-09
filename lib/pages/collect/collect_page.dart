@@ -128,6 +128,7 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
         child: Observer(
           builder: (context) => CollectLibraryView(
             entries: collectController.collectibles.toList(),
+            showRating: GStorage.getSetting(SettingsKeys.showRating),
             canEdit: (item) =>
                 !_syncDialogOpen && !_pendingIds.contains(item.id),
             onOpen: (item) => context.pushNamed('/info/', arguments: item),

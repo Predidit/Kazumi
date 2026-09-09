@@ -68,10 +68,15 @@ class _SearchSortMenu extends StatelessWidget {
 }
 
 class _SearchResultGrid extends StatelessWidget {
-  const _SearchResultGrid({required this.items, required this.width});
+  const _SearchResultGrid({
+    required this.items,
+    required this.width,
+    required this.showRating,
+  });
 
   final List<BangumiItem> items;
   final double width;
+  final bool showRating;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +85,7 @@ class _SearchResultGrid extends StatelessWidget {
         .copyWith(fontWeight: FontWeight.w600, height: 1.4);
 
     double textHeight(String text, TextStyle style) {
-      // Scale font sizes before measuring; accessibility scaling can be nonlinear.
+      // Measure with nonlinear accessibility scaling.
       final painter = TextPainter(
         text: TextSpan(text: text, style: style),
         textDirection: Directionality.of(context),
@@ -111,7 +116,10 @@ class _SearchResultGrid extends StatelessWidget {
               6),
       itemCount: items.length,
       itemBuilder: (_, index) => _SearchResultCard(
-          item: items[index], titleHeight: titleHeight, titleStyle: titleStyle),
+          item: items[index],
+          showRating: showRating,
+          titleHeight: titleHeight,
+          titleStyle: titleStyle),
     );
   }
 }
@@ -119,6 +127,7 @@ class _SearchResultGrid extends StatelessWidget {
 class _SearchResultCard extends StatelessWidget {
   const _SearchResultCard({
     required this.item,
+    required this.showRating,
     required this.titleHeight,
     required this.titleStyle,
   });
@@ -129,6 +138,7 @@ class _SearchResultCard extends StatelessWidget {
   static const ratingIconSize = 14.0;
 
   final BangumiItem item;
+  final bool showRating;
   final double titleHeight;
   final TextStyle titleStyle;
 
@@ -169,7 +179,7 @@ class _SearchResultCard extends StatelessWidget {
                 )),
             const SizedBox(height: metadataSpacing),
             Row(children: [
-              if (item.ratingScore > 0) ...[
+              if (showRating && item.ratingScore > 0) ...[
                 Icon(Icons.star_rounded,
                     size: ratingIconSize, color: theme.colorScheme.primary),
                 const SizedBox(width: 3),

@@ -96,9 +96,7 @@ final settingsModule = createModule(
           )
           ..module(aboutModule)
           ..module(pluginModule)
-          ..module(historyModule)
           ..module(danmakuModule)
-          ..module(downloadModule)
           ..route(
             '/download-settings',
             transition: TransitionType.none,
@@ -106,5 +104,8 @@ final settingsModule = createModule(
           );
       },
     );
+    c
+      ..module(historyModule)
+      ..module(downloadModule);
   },
 );

@@ -13,18 +13,21 @@ final pluginModule = createModule(
     c
       ..route(
         '/',
+        transition: TransitionType.none,
         child: (context, state) => PluginViewPage(
           controller: inject<PluginsController>(),
         ),
       )
       ..route(
         '/shop',
+        transition: TransitionType.none,
         child: (context, state) => PluginShopPage(
           controller: inject<PluginsController>(),
         ),
       )
       ..route(
         '/test',
+        transition: TransitionType.none,
         child: (context, state) {
           final plugin = state.arguments;
           if (plugin is! Plugin) {
@@ -35,6 +38,7 @@ final pluginModule = createModule(
       )
       ..route(
         '/editor',
+        transition: TransitionType.none,
         child: (context, state) {
           final plugin = state.arguments;
           if (plugin is! Plugin) {

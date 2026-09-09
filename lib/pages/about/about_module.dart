@@ -11,13 +11,17 @@ final aboutModule = createModule(
     c
       ..route(
         '/',
+        transition: TransitionType.none,
         child: (context, state) => AboutPage(
           onCheckUpdate: inject<MyController>().checkUpdate,
         ),
       )
-      ..route('/credits', child: (context, state) => const CreditsPage())
+      ..route('/credits',
+          transition: TransitionType.none,
+          child: (context, state) => const CreditsPage())
       ..route(
         '/license',
+        transition: TransitionType.none,
         child: (context, state) => const LicensePage(
           applicationName: 'Kazumi',
           applicationVersion: ApiEndpoints.version,

@@ -7,6 +7,7 @@ final historyModule = createModule(
   register: (c) {
     c.route(
       '/',
+      transition: TransitionType.none,
       child: (context, state) => HistoryPage(
         controller: inject<HistoryController>(),
       ),

@@ -7,6 +7,7 @@ final downloadModule = createModule(
   register: (c) {
     c.route(
       '/',
+      transition: TransitionType.none,
       child: (context, state) => DownloadPage(
         controller: inject<DownloadController>(),
       ),

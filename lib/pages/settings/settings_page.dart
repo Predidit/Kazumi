@@ -10,14 +10,12 @@ import 'package:kazumi/utils/constants.dart';
 
 class _SettingsCategory {
   const _SettingsCategory({
-    required this.id,
     required this.label,
     required this.description,
     required this.icon,
     required this.path,
   });
 
-  final String id;
   final String label;
   final String description;
   final IconData icon;
@@ -36,21 +34,18 @@ const List<_SettingsGroup> _settingsGroups = [
     title: '播放',
     categories: [
       _SettingsCategory(
-        id: 'player',
         label: '播放设置',
         description: '解码、渲染与播放行为',
         icon: Icons.display_settings_rounded,
         path: '/settings/player',
       ),
       _SettingsCategory(
-        id: 'danmaku',
         label: '弹幕设置',
         description: '弹幕来源与显示效果',
         icon: Icons.subtitles_rounded,
         path: '/settings/danmaku',
       ),
       _SettingsCategory(
-        id: 'keyboard',
         label: '操作设置',
         description: '播放器按键映射',
         icon: Icons.keyboard_rounded,
@@ -62,14 +57,12 @@ const List<_SettingsGroup> _settingsGroups = [
     title: '资源',
     categories: [
       _SettingsCategory(
-        id: 'plugin',
         label: '规则管理',
         description: '番剧资源规则',
         icon: Icons.extension_rounded,
         path: '/settings/plugin',
       ),
       _SettingsCategory(
-        id: 'download',
         label: '下载设置',
         description: '并发数与弹幕缓存',
         icon: Icons.downloading_rounded,
@@ -81,28 +74,24 @@ const List<_SettingsGroup> _settingsGroups = [
     title: '应用',
     categories: [
       _SettingsCategory(
-        id: 'theme',
         label: '外观设置',
         description: '主题、配色与字体',
         icon: Icons.palette_rounded,
         path: '/settings/theme',
       ),
       _SettingsCategory(
-        id: 'interface',
         label: '界面设置',
         description: '启动、窗口行为与展示信息',
         icon: Icons.pages_rounded,
         path: '/settings/interface',
       ),
       _SettingsCategory(
-        id: 'sync',
         label: '同步设置',
         description: '追番状态与多设备同步',
         icon: Icons.cloud_rounded,
         path: '/settings/sync',
       ),
       _SettingsCategory(
-        id: 'proxy',
         label: '网络设置',
         description: '访问加速与代理',
         icon: Icons.language_rounded,
@@ -114,21 +103,18 @@ const List<_SettingsGroup> _settingsGroups = [
     title: '其他',
     categories: [
       _SettingsCategory(
-        id: 'update',
         label: '更新设置',
         description: '应用与规则更新',
         icon: Icons.update_rounded,
         path: '/settings/update',
       ),
       _SettingsCategory(
-        id: 'storage',
         label: '存储与日志',
         description: '图片缓存与错误日志',
         icon: Icons.storage_rounded,
         path: '/settings/storage',
       ),
       _SettingsCategory(
-        id: 'about',
         label: '关于',
         description: '版本与开源信息',
         icon: Icons.info_outline_rounded,
@@ -138,18 +124,23 @@ const List<_SettingsGroup> _settingsGroups = [
   ),
 ];
 
+String _normalizePath(String path) =>
+    path.endsWith('/') ? path.substring(0, path.length - 1) : path;
+
+bool _isWithinPath(String location, String path) =>
+    location == path || location.startsWith('$path/');
+
 String _categoryPath(String location) {
-  if (location == '/settings' || location == '/settings/') {
+  if (location == '/settings') {
     return '/settings/player';
   }
-  if (location.startsWith('/settings/bangumi') ||
-      location.startsWith('/settings/webdav')) {
+  if (_isWithinPath(location, '/settings/bangumi') ||
+      _isWithinPath(location, '/settings/webdav')) {
     return '/settings/sync';
   }
   for (final group in _settingsGroups) {
     for (final category in group.categories) {
-      if (location == category.path ||
-          location.startsWith('${category.path}/')) {
+      if (_isWithinPath(location, category.path)) {
         return category.path;
       }
     }
@@ -157,7 +148,12 @@ String _categoryPath(String location) {
   return location;
 }
 
-/// The outlet stays mounted when the window crosses the layout breakpoint.
+class _SettingsCategorySelected extends Notification {
+  const _SettingsCategorySelected(this.path);
+
+  final String path;
+}
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key, required this.location});
 
@@ -171,29 +167,29 @@ class _SettingsPageState extends State<SettingsPage> {
   final _outletKey = GlobalKey<RouterOutletState>();
   bool _canPopDetail = false;
   // Root pushes do not change routeState(), so keep this outlet's base local.
-  late String _location = widget.location;
+  late String _location = _normalizePath(widget.location);
+
+  bool get _isRoot => _location == '/settings';
+  String get _selectedCategoryPath => _categoryPath(_location);
+  bool get _isSecondaryRoute => !_isRoot && _location != _selectedCategoryPath;
 
   @override
   void didUpdateWidget(covariant SettingsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.location != widget.location) _location = widget.location;
+    if (oldWidget.location != widget.location) {
+      _location = _normalizePath(widget.location);
+    }
   }
 
   void _navigateTo(String path) {
     _outletKey.currentState!.navigate(path);
-    setState(() => _location = path);
+    setState(() => _location = _normalizePath(path));
   }
 
-  void _backToMenu() {
+  void _backToParent() {
     final outlet = _outletKey.currentState;
     if (outlet != null && !outlet.maybePop()) {
-      final location = _location;
-      final category = _categoryPath(location);
-      _navigateTo(location.replaceFirst(RegExp(r'/$'), '') != category &&
-              location != '/settings/' &&
-              location != '/settings'
-          ? category
-          : '/settings/');
+      _navigateTo(_isSecondaryRoute ? _selectedCategoryPath : '/settings/');
     }
   }
 
@@ -203,14 +199,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final location = _location;
-    final isRoot = location == '/settings' || location == '/settings/';
     return LayoutBuilder(builder: (context, constraints) {
       final wide = constraints.maxWidth > LayoutBreakpoint.compact['width']!;
       return PopScope(
-        canPop: !_canPopDetail && (wide || isRoot),
+        canPop: !_canPopDetail && (wide || _isRoot),
         onPopInvokedWithResult: (didPop, result) {
-          if (!didPop) _backToMenu();
+          if (!didPop) _backToParent();
         },
         child: Scaffold(
           appBar: wide
@@ -231,7 +225,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     offstage: !wide,
                     child: _SettingsMenu(
                       wide: true,
-                      location: location,
+                      selectedPath: _selectedCategoryPath,
                       onSelect: _navigateTo,
                     ),
                   ),
@@ -239,19 +233,23 @@ class _SettingsPageState extends State<SettingsPage> {
                 Expanded(
                   child: SettingsPaneScope(
                     embedded: wide,
-                    showBackButton: !isRoot &&
-                        location.replaceFirst(RegExp(r'/$'), '') !=
-                            _categoryPath(location),
-                    onBack: _backToMenu,
-                    child: NotificationListener<NavigationNotification>(
+                    showBackButton: _isSecondaryRoute,
+                    onBack: _backToParent,
+                    child: NotificationListener<_SettingsCategorySelected>(
                       onNotification: (notification) {
-                        if (_canPopDetail != notification.canHandlePop) {
-                          setState(
-                              () => _canPopDetail = notification.canHandlePop);
-                        }
-                        return false;
+                        _navigateTo(notification.path);
+                        return true;
                       },
-                      child: RouterOutlet(key: _outletKey),
+                      child: NotificationListener<NavigationNotification>(
+                        onNotification: (notification) {
+                          if (_canPopDetail != notification.canHandlePop) {
+                            setState(() =>
+                                _canPopDetail = notification.canHandlePop);
+                          }
+                          return false;
+                        },
+                        child: RouterOutlet(key: _outletKey),
+                      ),
                     ),
                   ),
                 ),
@@ -264,9 +262,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-/// The index route supplies the default detail only in the two-pane layout.
-class SettingsMenuPage extends StatelessWidget {
-  const SettingsMenuPage({super.key});
+class SettingsIndexPage extends StatelessWidget {
+  const SettingsIndexPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -282,10 +279,7 @@ class SettingsMenuPage extends StatelessWidget {
       ),
       body: _SettingsMenu(
         wide: false,
-        location: '/settings/',
-        onSelect: (path) => context
-            .findAncestorStateOfType<_SettingsPageState>()!
-            ._navigateTo(path),
+        onSelect: (path) => _SettingsCategorySelected(path).dispatch(context),
       ),
     );
   }
@@ -294,15 +288,13 @@ class SettingsMenuPage extends StatelessWidget {
 class _SettingsMenu extends StatelessWidget {
   const _SettingsMenu({
     required this.wide,
-    required this.location,
+    this.selectedPath,
     required this.onSelect,
   });
 
   final bool wide;
-  final String location;
+  final String? selectedPath;
   final ValueChanged<String> onSelect;
-
-  String get categoryPath => _categoryPath(location);
 
   @override
   Widget build(BuildContext context) {
@@ -322,8 +314,7 @@ class _SettingsMenu extends StatelessWidget {
               for (final category in group.categories)
                 _RailDestination(
                   category: category,
-                  selected: categoryPath == category.path ||
-                      categoryPath.startsWith('${category.path}/'),
+                  selected: selectedPath == category.path,
                   onTap: () => onSelect(category.path),
                 ),
             ] else

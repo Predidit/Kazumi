@@ -12,15 +12,7 @@ class DecoderSettings extends StatefulWidget {
 }
 
 class _DecoderSettingsState extends State<DecoderSettings> {
-  late final ValueNotifier<String> decoder = ValueNotifier<String>(
-    GStorage.getSetting<String>(SettingsKeys.hardwareDecoder),
-  );
-
-  @override
-  void dispose() {
-    decoder.dispose();
-    super.dispose();
-  }
+  late String _decoder = GStorage.getSetting(SettingsKeys.hardwareDecoder);
 
   @override
   Widget build(BuildContext context) {
@@ -30,13 +22,13 @@ class _DecoderSettingsState extends State<DecoderSettings> {
         sections: [
           SettingsRadioSection<String>(
             title: Text('选择不受支持的解码器将回退到软件解码'),
-            groupValue: decoder.value,
+            groupValue: _decoder,
             onChanged: (String? value) {
               if (value != null) {
                 GStorage.putSetting<String>(
                     SettingsKeys.hardwareDecoder, value);
                 setState(() {
-                  decoder.value = value;
+                  _decoder = value;
                 });
               }
             },

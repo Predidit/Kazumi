@@ -20,12 +20,6 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   DisplayMode? active;
   DisplayMode? preferred;
 
-  final ValueNotifier<int> page = ValueNotifier<int>(0);
-  late final PageController controller = PageController()
-    ..addListener(() {
-      page.value = controller.page!.round();
-    });
-
   @override
   void initState() {
     super.initState();
@@ -59,13 +53,6 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
       f = modes.firstWhere((e) => e.toString() == value);
     }
     return f;
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    page.dispose();
-    super.dispose();
   }
 
   @override

@@ -1,27 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
-/// Tells a settings detail page how the settings page is hosting it.
-///
-/// The scope wraps the settings outlet, including pushed detail routes.
-/// Pages outside that outlet can still render as standalone routes.
 class SettingsPaneScope extends InheritedWidget {
   const SettingsPaneScope({
     super.key,
     required this.embedded,
-    this.showBackButton = false,
-    this.onBack,
+    required this.showBackButton,
+    required this.onBack,
     required super.child,
   });
 
-  /// Rendered as the right pane; the tab rail owns navigation.
   final bool embedded;
-
-  /// A directly opened secondary route also needs a way back to its category.
   final bool showBackButton;
-
-  /// Rendered as a single-pane detail; back returns to the category list.
-  final VoidCallback? onBack;
+  final VoidCallback onBack;
 
   static SettingsPaneScope? of(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<SettingsPaneScope>();

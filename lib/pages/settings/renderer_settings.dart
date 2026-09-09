@@ -12,15 +12,8 @@ class RendererSettings extends StatefulWidget {
 }
 
 class _RendererSettingsState extends State<RendererSettings> {
-  late final ValueNotifier<String> renderer = ValueNotifier<String>(
-    GStorage.getSetting<String>(SettingsKeys.androidVideoRenderer),
-  );
-
-  @override
-  void dispose() {
-    renderer.dispose();
-    super.dispose();
-  }
+  late String _renderer =
+      GStorage.getSetting(SettingsKeys.androidVideoRenderer);
 
   @override
   Widget build(BuildContext context) {
@@ -30,13 +23,13 @@ class _RendererSettingsState extends State<RendererSettings> {
         sections: [
           SettingsRadioSection<String>(
             title: Text('选择合适的渲染器以获得最佳播放体验'),
-            groupValue: renderer.value,
+            groupValue: _renderer,
             onChanged: (String? value) {
               if (value != null) {
                 GStorage.putSetting<String>(
                     SettingsKeys.androidVideoRenderer, value);
                 setState(() {
-                  renderer.value = value;
+                  _renderer = value;
                 });
               }
             },

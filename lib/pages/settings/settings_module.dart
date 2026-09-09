@@ -33,7 +33,7 @@ final settingsModule = createModule(
         sub
           ..route('/',
               transition: TransitionType.none,
-              child: (context, state) => const SettingsMenuPage())
+              child: (context, state) => const SettingsIndexPage())
           ..route('/sync',
               transition: TransitionType.none,
               child: (context, state) => const SyncSettingsPage())

@@ -1,30 +1,30 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/services/player/external_playback_launcher.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
-import 'package:kazumi/pages/player/controller/player_seek_controller.dart';
-import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_panel_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
+import 'package:kazumi/pages/player/controller/player_seek_controller.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/shaders/shader_asset_service.dart';
-import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
+import 'package:kazumi/services/player/external_playback_launcher.dart';
+import 'package:kazumi/services/shaders/shader_asset_service.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/async_session.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:media_kit/media_kit.dart';
 
 export 'package:kazumi/pages/player/controller/player_models.dart';
 
-class PlayerController implements Disposable {
+class PlayerController {
   PlayerController(
     this.shaderAssetService,
     DownloadController downloadController,
@@ -110,7 +110,6 @@ class PlayerController implements Disposable {
     unawaited(GStorage.putSetting<bool>(SettingsKeys.playerMuted, muted));
   }
 
-  /// 在音量被主动调高（手势 / 按键 / 滚轮）时退出静音状态。
   void _clearMuteIfNeeded(double value) {
     if (muted && value > 0) {
       muted = false;
@@ -370,16 +369,11 @@ class PlayerController implements Disposable {
     }
   }
 
-  @override
   void dispose() {
     beginShutdown();
   }
 
-  /// Starts the idempotent player shutdown without blocking route navigation.
-  ///
-  /// Native media and audio-session cleanup may finish after the route is
-  /// removed. Immediate ownership detachment happens synchronously before this
-  /// method returns.
+  /// Detaches ownership immediately; native cleanup may outlive the route.
   void beginShutdown() {
     _initializations.close();
     if (_shutdownFuture != null) {

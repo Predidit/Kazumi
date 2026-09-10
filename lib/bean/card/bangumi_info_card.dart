@@ -1,15 +1,18 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:kazumi/bean/widget/collect_button.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-// 视频卡片 - 水平布局
 class BangumiInfoCardV extends StatefulWidget {
+  final CollectController collectController;
+
   const BangumiInfoCardV({
+    required this.collectController,
     super.key,
     required this.bangumiItem,
     required this.isLoading,
@@ -41,7 +44,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
             child: BarChart(
               duration: Duration(milliseconds: 80),
               BarChartData(
-                // alignment: BarChartAlignment.spaceEvenly,
                 borderData: FlBorderData(show: false),
                 gridData: FlGridData(show: false),
                 barTouchData: BarTouchData(
@@ -89,7 +91,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             BorderRadius.vertical(top: Radius.circular(5)),
                       )
                     ],
-                    // showingTooltipIndicators: [0],
                   ),
                 ),
                 titlesData: FlTitlesData(
@@ -190,7 +191,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                   : '*** 人评分:',
                             ),
                             if (widget.isLoading)
-                              // Skeleton Loader 占位符
                               Text(
                                 '10.0 ********',
                                 style: TextStyle(
@@ -250,6 +250,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                           width: 120,
                           height: 40,
                           child: CollectButton.extend(
+                            controller: widget.collectController,
                             bangumiItem: widget.bangumiItem,
                           ),
                         ),

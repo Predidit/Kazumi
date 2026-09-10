@@ -1,11 +1,11 @@
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:flutter/material.dart';
-
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/connected_tabs.dart';
 import 'package:kazumi/bean/widget/content_section.dart';
+import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings_sheet.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_time_offset_sheet.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -18,6 +18,7 @@ enum _DanmakuSettingsDestination {
 
 Future<void> showDanmakuSettingsSheet({
   required BuildContext context,
+  required MyController myController,
   required DanmakuController danmakuController,
   required VoidCallback onUpdateDanmakuSpeed,
   VoidCallback? onTimelineOffsetChanged,
@@ -37,7 +38,8 @@ Future<void> showDanmakuSettingsSheet({
   await showAdaptiveBottomSheet<void>(
     context: context,
     builder: (context) => switch (destination) {
-      _DanmakuSettingsDestination.shield => const DanmakuShieldSettingsSheet(),
+      _DanmakuSettingsDestination.shield =>
+        DanmakuShieldSettingsSheet(controller: myController),
       _DanmakuSettingsDestination.timeOffset => DanmakuTimeOffsetSheet(
           onTimelineOffsetChanged: onTimelineOffsetChanged,
         ),

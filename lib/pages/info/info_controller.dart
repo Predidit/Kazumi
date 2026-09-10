@@ -1,18 +1,20 @@
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
 import 'package:kazumi/modules/bangumi/bangumi_review.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
-import 'package:mobx/mobx.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
+import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/async_session.dart';
+import 'package:mobx/mobx.dart';
 
 part 'info_controller.g.dart';
+
+enum InfoLoadStatus { idle, loading, loaded, failed }
 
 class InfoController = _InfoController with _$InfoController;
 
@@ -20,10 +22,45 @@ abstract class _InfoController with Store {
   _InfoController(this.collectController);
 
   final CollectController collectController;
-  late BangumiItem bangumiItem;
+  final _lifetime = AsyncSessionOwner();
+  final _infoRequests = AsyncSessionOwner();
+  final _commentRequests = AsyncSessionOwner();
+  final _characterRequests = AsyncSessionOwner();
+  final _staffRequests = AsyncSessionOwner();
+  final _relationRequests = AsyncSessionOwner();
+  late AsyncSession _subject;
+  bool _isFillingInterestUserProfile = false;
+  int _commentsOffset = 0;
 
-  @observable
-  bool isLoading = false;
+  @readonly
+  late BangumiItem _bangumiItem;
+
+  @readonly
+  InfoLoadStatus _infoStatus = InfoLoadStatus.idle;
+
+  @readonly
+  InfoLoadStatus _commentsStatus = InfoLoadStatus.idle;
+
+  @readonly
+  InfoLoadStatus _charactersStatus = InfoLoadStatus.idle;
+
+  @readonly
+  InfoLoadStatus _staffStatus = InfoLoadStatus.idle;
+
+  @readonly
+  InfoLoadStatus _relationsStatus = InfoLoadStatus.idle;
+
+  @readonly
+  List<CommentItem> _commentsList = const [];
+
+  @readonly
+  List<CharacterItem> _characterList = const [];
+
+  @readonly
+  List<StaffFullItem> _staffList = const [];
+
+  @readonly
+  List<BangumiRelation> _relationList = const [];
 
   @observable
   var pluginSearchResponseList = ObservableList<PluginSearchResponse>();
@@ -31,265 +68,224 @@ abstract class _InfoController with Store {
   @observable
   var pluginSearchStatus = ObservableMap<String, PluginSearchStatus>();
 
-  @observable
-  var commentsList = ObservableList<CommentItem>();
-
-  @observable
-  var characterList = ObservableList<CharacterItem>();
-
-  @observable
-  var staffList = ObservableList<StaffFullItem>();
-
-  @observable
-  var relationList = ObservableList<BangumiRelation>();
-
-  @observable
-  bool relationsIsLoading = false;
-
-  @observable
-  bool relationsQueryTimeout = false;
-
-  @observable
-  bool relationsHasLoaded = false;
-
-  int _relationRequestGeneration = 0;
-
-  bool _isFillingInterestUserProfile = false;
-
-  int _commentsOffset = 0;
-
-  void clearComments() {
-    commentsList.clear();
+  @action
+  void initialize(BangumiItem item) {
+    _subject = _lifetime.begin();
+    for (final owner in _requests) {
+      owner.cancel();
+    }
+    _bangumiItem = item;
     _commentsOffset = 0;
+    _isFillingInterestUserProfile = false;
+    _infoStatus = _commentsStatus = _charactersStatus =
+        _staffStatus = _relationsStatus = InfoLoadStatus.idle;
+    _commentsList = const [];
+    _characterList = const [];
+    _staffList = const [];
+    _relationList = const [];
+    pluginSearchResponseList.clear();
+    pluginSearchStatus.clear();
   }
 
-  Future<bool> fillInterestUserProfileIfNeeded() async {
-    final interest = bangumiItem.interest;
-    if (interest == null || interest.hasUserProfile) {
-      return false;
+  Iterable<AsyncSessionOwner> get _requests => [
+        _infoRequests,
+        _commentRequests,
+        _characterRequests,
+        _staffRequests,
+        _relationRequests,
+      ];
+
+  void dispose() {
+    _lifetime.close();
+    for (final owner in _requests) {
+      owner.close();
     }
-    if (_isFillingInterestUserProfile) {
-      return false;
+  }
+
+  @action
+  Future<void> loadInfo() async {
+    if (_lifetime.isClosed) return;
+    final request = _infoRequests.begin();
+    _infoStatus = InfoLoadStatus.loading;
+    try {
+      final value = await BangumiApi.getBangumiInfoByID(_bangumiItem.id);
+      if (request.isStale) return;
+      if (value == null) throw StateError('Missing subject details');
+      final previousInterest = _bangumiItem.interest;
+      // Preserve identity and image URLs used by the active Hero flight.
+      _bangumiItem = _bangumiItem.copy()
+        ..summary = value.summary
+        ..tags = value.tags
+        ..rank = value.rank
+        ..airDate = value.airDate
+        ..airWeekday = value.airWeekday
+        ..alias = value.alias
+        ..ratingScore = value.ratingScore
+        ..votes = value.votes
+        ..votesCount = value.votesCount
+        ..info = value.info
+        ..interest = previousInterest?.hasUserProfile == true
+            ? value.interest?.copyWithUser(user: previousInterest!.user)
+            : value.interest;
+      _infoStatus = InfoLoadStatus.loaded;
+      await collectController.updateLocalCollect(_bangumiItem);
+    } catch (error) {
+      if (request.isStale) return;
+      _infoStatus = InfoLoadStatus.failed;
+      KazumiLogger().e('Info: failed to load details', error: error);
     }
+  }
+
+  @action
+  Future<void> loadComments({bool loadMore = false}) =>
+      _loadComments(loadMore: loadMore);
+
+  @action
+  Future<void> _loadComments(
+      {bool loadMore = false, bool silent = false}) async {
+    if (_lifetime.isClosed ||
+        (_commentsStatus == InfoLoadStatus.loading && !silent)) {
+      return;
+    }
+    final request = _commentRequests.begin();
+    _commentsStatus = InfoLoadStatus.loading;
+    try {
+      final value = await BangumiApi.getBangumiCommentsByID(_bangumiItem.id,
+          offset: loadMore ? _commentsOffset : 0);
+      if (request.isStale) return;
+      _commentsOffset =
+          (loadMore ? _commentsOffset : 0) + value.commentList.length;
+      _commentsList = List.unmodifiable([
+        if (loadMore) ..._commentsList,
+        ...value.commentList,
+      ]);
+      _removeCurrentUserFromPublicComments();
+      _commentsStatus = InfoLoadStatus.loaded;
+    } catch (error) {
+      if (request.isStale) return;
+      _commentsStatus = InfoLoadStatus.failed;
+      KazumiLogger().e('Info: failed to load comments', error: error);
+    }
+  }
+
+  @action
+  Future<void> loadCharacters() async {
+    if (_lifetime.isClosed || _charactersStatus == InfoLoadStatus.loading) {
+      return;
+    }
+    final request = _characterRequests.begin();
+    _charactersStatus = InfoLoadStatus.loading;
+    try {
+      final value = await BangumiApi.getCharatersByBangumiID(_bangumiItem.id);
+      if (request.isStale) return;
+      const order = {'主角': 1, '配角': 2, '客串': 3};
+      final characters = value.charactersList.toList()
+        ..sort((a, b) =>
+            (order[a.relation] ?? 4).compareTo(order[b.relation] ?? 4));
+      _characterList = List.unmodifiable(characters);
+      _charactersStatus = InfoLoadStatus.loaded;
+    } catch (error) {
+      if (request.isStale) return;
+      _charactersStatus = InfoLoadStatus.failed;
+      KazumiLogger().e('Info: failed to load characters', error: error);
+    }
+  }
+
+  @action
+  Future<void> loadStaff() async {
+    if (_lifetime.isClosed || _staffStatus == InfoLoadStatus.loading) return;
+    final request = _staffRequests.begin();
+    _staffStatus = InfoLoadStatus.loading;
+    try {
+      final value = await BangumiApi.getBangumiStaffByID(_bangumiItem.id);
+      if (request.isStale) return;
+      _staffList = List.unmodifiable(value.data);
+      _staffStatus = InfoLoadStatus.loaded;
+    } catch (error) {
+      if (request.isStale) return;
+      _staffStatus = InfoLoadStatus.failed;
+      KazumiLogger().e('Info: failed to load staff', error: error);
+    }
+  }
+
+  @action
+  Future<void> loadRelations() async {
+    if (_lifetime.isClosed || _relationsStatus == InfoLoadStatus.loading) {
+      return;
+    }
+    final request = _relationRequests.begin();
+    _relationsStatus = InfoLoadStatus.loading;
+    try {
+      final relations = await resolveRelatedAnimeChain(
+        currentSubjectId: _bangumiItem.id,
+        fetchRelations: BangumiApi.getBangumiRelationsByID,
+      );
+      if (request.isStale) return;
+      _relationList = List.unmodifiable(relations);
+      _relationsStatus = InfoLoadStatus.loaded;
+    } catch (error) {
+      if (request.isStale) return;
+      _relationsStatus = InfoLoadStatus.failed;
+      KazumiLogger().e('Info: failed to load relations', error: error);
+    }
+  }
+
+  @action
+  Future<void> fillInterestUserProfileIfNeeded() async {
+    if (_lifetime.isClosed ||
+        _isFillingInterestUserProfile ||
+        _bangumiItem.interest == null ||
+        _bangumiItem.interest!.hasUserProfile) {
+      return;
+    }
+    final subject = _subject;
     _isFillingInterestUserProfile = true;
     try {
       final user = await BangumiApi.getCurrentUser();
-      if (user == null) {
-        return false;
-      }
-      bangumiItem.interest = interest.copyWithUser(user: user);
-      await collectController.updateLocalCollect(bangumiItem);
-      return true;
-    } catch (e) {
+      if (subject.isStale || user == null) return;
+      _bangumiItem = _bangumiItem.copy()
+        ..interest = _bangumiItem.interest?.copyWithUser(user: user);
+      _removeCurrentUserFromPublicComments();
+      await collectController.updateLocalCollect(_bangumiItem);
+    } catch (error) {
       KazumiLogger()
-          .e('InfoController: failed to fill interest user profile', error: e);
-      return false;
+          .e('Info: failed to fill interest user profile', error: error);
     } finally {
-      _isFillingInterestUserProfile = false;
+      if (subject.isActive) _isFillingInterestUserProfile = false;
     }
   }
 
   void _removeCurrentUserFromPublicComments() {
-    final interest = bangumiItem.interest;
-    if (interest == null) return;
-    final userId = interest.user?.id;
+    final userId = _bangumiItem.interest?.user?.id;
     if (userId == null) return;
-    commentsList.removeWhere((item) => item.user.id == userId);
-  }
-
-  Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
-    isLoading = true;
-    try {
-      await _updateBangumiInfoByID(id, type: type);
-    } finally {
-      isLoading = false;
-    }
-  }
-
-  Future<void> refreshBangumiInfoByID(int id) async {
-    await _updateBangumiInfoByID(id, type: "update");
-  }
-
-  Future<void> _updateBangumiInfoByID(int id, {required String type}) async {
-    final value = await BangumiApi.getBangumiInfoByID(id);
-    if (value == null) {
-      return;
-    }
-    if (type == "init") {
-      bangumiItem = value;
-    } else {
-      bangumiItem.summary = value.summary;
-      bangumiItem.tags = value.tags;
-      bangumiItem.rank = value.rank;
-      bangumiItem.airDate = value.airDate;
-      bangumiItem.airWeekday = value.airWeekday;
-      bangumiItem.alias = value.alias;
-      bangumiItem.ratingScore = value.ratingScore;
-      bangumiItem.votes = value.votes;
-      bangumiItem.votesCount = value.votesCount;
-      final incomingInterest = value.interest;
-      final previousInterest = bangumiItem.interest;
-      if (incomingInterest == null) {
-        bangumiItem.interest = null;
-      } else if (previousInterest == null || !previousInterest.hasUserProfile) {
-        bangumiItem.interest = incomingInterest;
-      } else {
-        bangumiItem.interest =
-            incomingInterest.copyWithUser(user: previousInterest.user);
-      }
-    }
-    await collectController.updateLocalCollect(bangumiItem);
-  }
-
-  Future<void> queryBangumiCommentsByID(int id, {bool refresh = true}) async {
-    await _updateBangumiCommentsByID(
-      id,
-      refresh: refresh,
-      clearBeforeFetch: true,
-    );
-  }
-
-  Future<void> _updateBangumiCommentsByID(
-    int id, {
-    required bool refresh,
-    required bool clearBeforeFetch,
-  }) async {
-    if (refresh) {
-      if (clearBeforeFetch) {
-        clearComments();
-      }
-    }
-    final offset = refresh ? 0 : _commentsOffset;
-    await BangumiApi.getBangumiCommentsByID(id, offset: offset).then((value) {
-      if (refresh && !clearBeforeFetch) {
-        commentsList = ObservableList<CommentItem>.of(value.commentList);
-      } else {
-        commentsList.addAll(value.commentList);
-      }
-      _commentsOffset = refresh
-          ? value.commentList.length
-          : _commentsOffset + value.commentList.length;
-      _removeCurrentUserFromPublicComments();
-    });
-    KazumiLogger().i(
-        'InfoController: loaded comments list length ${commentsList.length}, offset $_commentsOffset');
-  }
-
-  Future<void> refreshBangumiCommentsSilently(int id) async {
-    if (commentsList.isEmpty) {
-      return;
-    }
-    await _updateBangumiCommentsByID(
-      id,
-      refresh: true,
-      clearBeforeFetch: false,
-    );
-  }
-
-  Future<void> queryBangumiCharactersByID(int id) async {
-    characterList.clear();
-    await BangumiApi.getCharatersByBangumiID(id).then((value) {
-      characterList.addAll(value.charactersList);
-    });
-    Map<String, int> relationValue = {
-      '主角': 1,
-      '配角': 2,
-      '客串': 3,
-    };
-
-    try {
-      characterList.sort((a, b) {
-        int valueA = relationValue[a.relation] ?? 4;
-        int valueB = relationValue[b.relation] ?? 4;
-        return valueA.compareTo(valueB);
-      });
-    } catch (e) {
-      KazumiDialog.showToast(message: '$e');
-    }
-    KazumiLogger().i(
-        'InfoController: loaded character list length ${characterList.length}');
-  }
-
-  Future<void> queryBangumiStaffsByID(int id) async {
-    staffList.clear();
-    await BangumiApi.getBangumiStaffByID(id).then((value) {
-      staffList.addAll(value.data);
-    });
-    KazumiLogger()
-        .i('InfoController: loaded staff list length ${staffList.length}');
+    _commentsList = List.unmodifiable(
+        _commentsList.where((item) => item.user.id != userId));
   }
 
   @action
-  void clearRelations() {
-    _relationRequestGeneration++;
-    relationList = ObservableList<BangumiRelation>();
-    relationsIsLoading = false;
-    relationsQueryTimeout = false;
-    relationsHasLoaded = false;
-  }
-
-  bool get canLoadRelations =>
-      !relationsHasLoaded && !relationsIsLoading && !relationsQueryTimeout;
-
-  @action
-  Future<void> queryBangumiRelationsByID(int id) async {
-    if (relationsIsLoading) return;
-
-    final requestGeneration = ++_relationRequestGeneration;
-    relationsIsLoading = true;
-    relationsQueryTimeout = false;
-    relationsHasLoaded = false;
-    try {
-      final relations = await resolveRelatedAnimeChain(
-        currentSubjectId: id,
-        fetchRelations: BangumiApi.getBangumiRelationsByID,
+  Future<bool> rateBangumi(BangumiReview review) async {
+    if (_lifetime.isClosed) return false;
+    final subject = _subject;
+    final id = _bangumiItem.id;
+    final updated = await collectController.submitReview(id, review,
+        isCurrent: () => subject.isActive);
+    if (subject.isStale || !updated) return false;
+    _infoRequests.cancel();
+    _infoStatus = InfoLoadStatus.idle;
+    _bangumiItem = _bangumiItem.copy()
+      ..interest = BangumiInterest.mergeLocalSubmission(
+        previous: _bangumiItem.interest,
+        rate: review.score,
+        comment: review.comment,
+        tags: review.tags,
       );
-      if (!_isCurrentRelationRequest(requestGeneration, id)) {
-        return;
-      }
-      relationList = ObservableList<BangumiRelation>.of(relations);
-      relationsHasLoaded = true;
-      KazumiLogger().i(
-        'InfoController: loaded related anime list length ${relationList.length}',
-      );
-    } catch (_) {
-      if (_isCurrentRelationRequest(requestGeneration, id)) {
-        relationsQueryTimeout = true;
-        rethrow;
-      }
-    } finally {
-      if (_isCurrentRelationRequest(requestGeneration, id)) {
-        relationsIsLoading = false;
-      }
-    }
-  }
-
-  bool _isCurrentRelationRequest(int requestGeneration, int subjectId) =>
-      requestGeneration == _relationRequestGeneration &&
-      bangumiItem.id == subjectId;
-
-  Future<bool> rateBangumi(BangumiReview review,
-      {required int localType}) async {
-    final updated = await BangumiApi.addOrUpdateBangumiEvaluationBySubjectID(
-      bangumiItem.id,
-      localType,
-      comment: review.comment,
-      rate: review.score,
-      tags: review.tags,
-    );
-    if (!updated) return false;
-
-    bangumiItem.interest = BangumiInterest.mergeLocalSubmission(
-      previous: bangumiItem.interest,
-      rate: review.score,
-      comment: review.comment,
-      tags: review.tags,
-    );
-    await collectController.updateLocalCollect(bangumiItem);
+    await collectController.updateLocalCollect(_bangumiItem);
+    if (subject.isStale) return true;
     await fillInterestUserProfileIfNeeded();
+    if (subject.isStale) return true;
     _removeCurrentUserFromPublicComments();
-    await refreshBangumiCommentsSilently(bangumiItem.id);
-    await refreshBangumiInfoByID(bangumiItem.id);
+    if (_commentsList.isNotEmpty) await _loadComments(silent: true);
+    if (subject.isActive) await loadInfo();
     return true;
   }
 }

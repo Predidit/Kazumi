@@ -152,7 +152,7 @@ class _SearchResultCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-          onTap: () => context.pushNamed('/info/', arguments: item),
+          onTap: () => context.push(infoLocation(item.id), extra: item),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             ClipRRect(

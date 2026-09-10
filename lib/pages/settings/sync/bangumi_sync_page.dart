@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
 import 'package:kazumi/pages/settings/sync/sync_settings_widgets.dart';
+import 'package:kazumi/services/collection/collection_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum _BangumiAction { verify, connect, sync }
 
 class BangumiSyncPage extends StatefulWidget {
-  const BangumiSyncPage({super.key});
+  const BangumiSyncPage({super.key, required this.collection});
+
+  final CollectionService collection;
 
   @override
   State<BangumiSyncPage> createState() => _BangumiSyncPageState();
@@ -22,6 +25,7 @@ class BangumiSyncPage extends StatefulWidget {
 class _BangumiSyncPageState extends State<BangumiSyncPage> {
   final _tokenController = TextEditingController();
   final _bangumi = BangumiSyncService();
+  CollectionService get _collection => widget.collection;
   bool _passwordVisible = false;
   _BangumiAction? _action;
   String? _tokenError;
@@ -108,7 +112,7 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
   }
 
   Future<void> _sync() async {
-    if (_busy) return;
+    if (_busy || _collection.activity.hasPending) return;
     if (_tokenController.text.trim() !=
         GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim()) {
       setState(() {
@@ -124,7 +128,7 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
       _message = '正在连接 Bangumi…';
     });
     try {
-      await _bangumi.syncCollectibles(
+      await _collection.syncBangumi(
         onProgress: (message, current, total) {
           if (!mounted) return;
           setState(() {
@@ -172,11 +176,18 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                   ),
                   _accountCard(configured),
                   _syncControls(configured, enabled),
-                  StateActionButton(
-                    onPressed: enabled && configured && !_busy ? _sync : null,
-                    text: _action == _BangumiAction.sync ? '正在同步追番…' : '立即同步追番',
-                    icon: Icons.sync_rounded,
-                  ),
+                  Observer(builder: (_) {
+                    final collectionBusy = _collection.activity.hasPending;
+                    return StateActionButton(
+                      onPressed:
+                          enabled && configured && !_busy && !collectionBusy
+                              ? _sync
+                              : null,
+                      text:
+                          _action == _BangumiAction.sync ? '正在同步追番…' : '立即同步追番',
+                      icon: Icons.sync_rounded,
+                    );
+                  }),
                   if (message != null)
                     SyncFeedback(
                       message: message,

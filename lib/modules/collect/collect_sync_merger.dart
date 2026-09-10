@@ -27,11 +27,9 @@ class BangumiUploadMutation {
 class BangumiLocalMutation {
   const BangumiLocalMutation({
     required this.collectible,
-    required this.changeAction,
   });
 
   final CollectedBangumi collectible;
-  final int changeAction;
 }
 
 class BangumiCollectiblesMergePlan {
@@ -162,7 +160,6 @@ class CollectSyncMerger {
       for (final id in remoteOnlyIds)
         BangumiLocalMutation(
           collectible: _fromBangumiCollection(remoteMap[id]!),
-          changeAction: 1,
         ),
     ];
 
@@ -179,7 +176,6 @@ class CollectSyncMerger {
         conflictLocalUpdates.add(
           BangumiLocalMutation(
             collectible: _fromBangumiCollection(remoteMap[id]!),
-            changeAction: 2,
           ),
         );
       }
@@ -196,7 +192,6 @@ class CollectSyncMerger {
           conflictLocalUpdates.add(
             BangumiLocalMutation(
               collectible: _fromBangumiCollection(remoteMap[id]!),
-              changeAction: 2,
             ),
           );
         }

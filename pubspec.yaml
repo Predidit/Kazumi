@@ -13,7 +13,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  flutter_modular: ^7.1.0
+  # 18.x detects material_ui apps, while this app uses flutter/material.dart.
+  go_router: ^17.5.0
+  auto_injector: ^2.2.0
   mobx: ^2.6.0
   flutter_mobx: ^2.3.0
   dio: ^5.11.0

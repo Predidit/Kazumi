@@ -33,15 +33,15 @@ abstract class _TimelineController with Store {
 
   @observable
   late bool notShowAbandonedBangumis =
-      _collectRepository.getTimelineNotShowAbandonedBangumis();
+      GStorage.getSetting(SettingsKeys.timelineNotShowAbandonedBangumis);
 
   @observable
   late bool notShowWatchedBangumis =
-      _collectRepository.getTimelineNotShowWatchedBangumis();
+      GStorage.getSetting(SettingsKeys.timelineNotShowWatchedBangumis);
 
   @observable
   late bool onlyShowWatchingBangumis =
-      _collectRepository.getTimelineOnlyShowWatchingBangumis();
+      GStorage.getSetting(SettingsKeys.timelineOnlyShowWatchingBangumis);
 
   @readonly
   TimelineSort _sort = TimelineSort.popularity;
@@ -117,19 +117,28 @@ abstract class _TimelineController with Store {
   @action
   Future<void> setNotShowAbandonedBangumis(bool value) async {
     notShowAbandonedBangumis = value;
-    await _collectRepository.updateTimelineNotShowAbandonedBangumis(value);
+    await _saveFilter(SettingsKeys.timelineNotShowAbandonedBangumis, value);
   }
 
   @action
   Future<void> setNotShowWatchedBangumis(bool value) async {
     notShowWatchedBangumis = value;
-    await _collectRepository.updateTimelineNotShowWatchedBangumis(value);
+    await _saveFilter(SettingsKeys.timelineNotShowWatchedBangumis, value);
   }
 
   @action
   Future<void> setOnlyShowWatchingBangumis(bool value) async {
     onlyShowWatchingBangumis = value;
-    await _collectRepository.updateTimelineOnlyShowWatchingBangumis(value);
+    await _saveFilter(SettingsKeys.timelineOnlyShowWatchingBangumis, value);
+  }
+
+  Future<void> _saveFilter(SettingKey<bool> key, bool value) async {
+    try {
+      await GStorage.putSetting(key, value);
+    } catch (error, stackTrace) {
+      KazumiLogger().e('Timeline: failed to save filter ${key.name}',
+          error: error, stackTrace: stackTrace);
+    }
   }
 
   Set<int> loadWatchingBangumiIds() {

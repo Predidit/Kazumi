@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:flutter_modular/flutter_modular.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
@@ -9,13 +9,21 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/history/history_list_view.dart';
 import 'package:kazumi/pages/history/history_record_tile.dart';
+import 'package:kazumi/routing/media_location.dart';
 import 'package:kazumi/services/player/history_playback_service.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
 import 'package:kazumi/utils/device.dart';
 
 class HistoryPage extends StatefulWidget {
-  const HistoryPage({super.key, required this.controller});
+  final CollectController collectController;
+  final HistoryPlaybackService playbackService;
+
+  const HistoryPage(
+      {required this.collectController,
+      required this.playbackService,
+      super.key,
+      required this.controller});
 
   final HistoryController controller;
 
@@ -27,12 +35,6 @@ class _HistoryPageState extends State<HistoryPage> {
   bool _editing = false;
   bool _clearing = false;
   final Set<String> _deleting = {};
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.init();
-  }
 
   Future<void> _deleteHistory(History history) async {
     if (_clearing || _deleting.contains(history.key)) return;
@@ -142,6 +144,8 @@ class _HistoryPageState extends State<HistoryPage> {
               entries: entries,
               editing: _editing,
               itemBuilder: (history, borderRadius) => _HistoryCard(
+                collectController: widget.collectController,
+                playbackService: widget.playbackService,
                 history: history,
                 borderRadius: borderRadius,
                 editing: _editing,
@@ -157,7 +161,12 @@ class _HistoryPageState extends State<HistoryPage> {
 }
 
 class _HistoryCard extends StatefulWidget {
+  final CollectController collectController;
+  final HistoryPlaybackService playbackService;
+
   const _HistoryCard({
+    required this.collectController,
+    required this.playbackService,
     required this.history,
     required this.onDelete,
     required this.editing,
@@ -176,10 +185,8 @@ class _HistoryCard extends StatefulWidget {
 }
 
 class _HistoryCardState extends State<_HistoryCard> with KazumiDialogOwner {
-  final CollectController _collectController = inject<CollectController>();
-  final HistoryPlaybackService _playbackService =
-      inject<HistoryPlaybackService>();
-  bool _updatingCollect = false;
+  CollectController get _collectController => widget.collectController;
+  HistoryPlaybackService get _playbackService => widget.playbackService;
 
   Future<void> _play() async {
     if (widget.editing || widget.busy || dialogs.isRunning) return;
@@ -194,8 +201,8 @@ class _HistoryCardState extends State<_HistoryCard> with KazumiDialogOwner {
       );
       switch (result) {
         case HistoryPlaybackReady(:final args):
-          task.withContext(
-              (context) => context.pushNamed('/video/', arguments: args));
+          task.withContext((context) =>
+              context.push(VideoLocation.fromArgs(args).location, extra: args));
         case HistoryPlaybackUnavailable(:final reason):
           KazumiDialog.showToast(message: reason);
       }
@@ -203,23 +210,16 @@ class _HistoryCardState extends State<_HistoryCard> with KazumiDialogOwner {
   }
 
   Future<void> _changeCollect(CollectType type) async {
-    if (_updatingCollect) return;
-    setState(() => _updatingCollect = true);
-    try {
-      await _collectController.addCollect(widget.history.bangumiItem,
-          type: type.value);
-    } catch (_) {
-      KazumiDialog.showToast(message: '修改收藏状态失败，请稍后重试');
-    } finally {
-      if (mounted) setState(() => _updatingCollect = false);
+    if (_collectController.activity.blocks(widget.history.bangumiItem.id)) {
+      return;
     }
+    await _collectController.addCollect(widget.history.bangumiItem,
+        type: type.value);
   }
 
   @override
   Widget build(BuildContext context) {
     return Observer(builder: (context) {
-      // getCollectType reads storage, so track the observable list explicitly.
-      _collectController.collectibles.length;
       return HistoryRecordTile(
         history: widget.history,
         borderRadius: widget.borderRadius,
@@ -227,11 +227,15 @@ class _HistoryCardState extends State<_HistoryCard> with KazumiDialogOwner {
         busy: widget.busy,
         onPlay: _play,
         onDelete: widget.onDelete,
-        onDetails: () =>
-            context.pushNamed('/info/', arguments: widget.history.bangumiItem),
+        onDetails: () => context.push(
+            infoLocation(widget.history.bangumiItem.id),
+            extra: widget.history.bangumiItem),
         collectType: CollectType.fromValue(
             _collectController.getCollectType(widget.history.bangumiItem)),
-        onChangeCollect: _updatingCollect ? null : _changeCollect,
+        onChangeCollect:
+            _collectController.activity.blocks(widget.history.bangumiItem.id)
+                ? null
+                : _changeCollect,
       );
     });
   }

@@ -10,6 +10,7 @@ import 'package:kazumi/request/apis/plugin_catalog_api.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
+import 'package:kazumi/utils/async_session.dart';
 import 'package:kazumi/utils/async_single_flight.dart';
 import 'package:kazumi/utils/version.dart';
 
@@ -82,7 +83,7 @@ abstract class _PluginsController with Store {
   final AsyncSerialQueue _mutations = AsyncSerialQueue();
   Map<String, PluginHTTPItem> _pluginCatalogByName = const {};
   DateTime? _pluginCatalogRefreshedAt;
-  int _optimisticReorderRevision = 0;
+  final _reorders = AsyncSessionOwner();
 
   // Reuse a recent catalog across startup, the rule list, and the rule shop.
   // Explicit refresh actions always bypass this window.
@@ -281,12 +282,12 @@ abstract class _PluginsController with Store {
     final plugin = pluginList.removeAt(oldIndex);
     pluginList.insert(newIndex, plugin);
     final jsonData = jsonEncode(_pluginListToJson());
-    final revision = ++_optimisticReorderRevision;
+    final reorder = _reorders.begin();
     return _mutations.run(() async {
       try {
         await _writePluginsJson(jsonData);
       } catch (error, stackTrace) {
-        if (revision == _optimisticReorderRevision) {
+        if (reorder.isActive) {
           pluginList
             ..clear()
             ..addAll(previous);

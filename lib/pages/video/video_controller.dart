@@ -1,31 +1,31 @@
 import 'dart:async';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/repositories/download_repository.dart';
-import 'package:kazumi/services/download/download_manager.dart';
-import 'package:kazumi/services/video_source/services.dart';
+
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:mobx/mobx.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
+import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/modules/roads/road_module.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/pages/video/video_playback_args.dart';
+import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/services/download/download_manager.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/platform/display_mode_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/video_source/services.dart';
+import 'package:kazumi/utils/async_session.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
 import 'package:kazumi/utils/media.dart';
-import 'package:kazumi/utils/async_session.dart';
-import 'package:kazumi/services/platform/display_mode_service.dart';
+import 'package:mobx/mobx.dart';
+import 'package:window_manager/window_manager.dart';
 
 part 'video_controller.g.dart';
 
@@ -56,7 +56,7 @@ class VideoEpisodeSelection {
   }
 }
 
-abstract class _VideoPageController with Store implements Disposable {
+abstract class _VideoPageController with Store {
   _VideoPageController(
     this.historyController,
     this.downloadRepository,
@@ -69,9 +69,7 @@ abstract class _VideoPageController with Store implements Disposable {
   @observable
   var episodeCommentsList = ObservableList<EpisodeCommentItem>();
 
-  // Resolution state machine: [_beginEpisodeSwitch] enters the loading state;
-  // [_finishLoading] and [_failLoading] are the only terminal transitions.
-  // [_errorMessage] is non-null only in the failed state.
+  // Only _finishLoading and _failLoading terminate episode switches.
   @readonly
   bool _loading = true;
 
@@ -105,9 +103,7 @@ abstract class _VideoPageController with Store implements Disposable {
   @observable
   bool isCommentsAscending = false;
 
-  // Playback, automatic danmaku loading, and comment loading have separate
-  // owners. Manual danmaku selection can cancel auto danmaku without touching
-  // playback; comment refreshes never cancel playback.
+  // Keep playback, automatic danmaku, and comment cancellation independent.
   final AsyncSessionOwner _playbackSessions = AsyncSessionOwner();
   final AsyncSessionOwner _danmakuSessions = AsyncSessionOwner();
   final AsyncSessionOwner _commentSessions = AsyncSessionOwner();
@@ -153,8 +149,6 @@ abstract class _VideoPageController with Store implements Disposable {
   Stream<String> get logStream => _logStreamController.stream;
 
   StreamSubscription<String>? _logSubscription;
-
-  /// Applies the route arguments exactly once, from [VideoPage.initState].
   @action
   void applyPlaybackArgs(VideoPlaybackArgs args) {
     switch (args) {
@@ -378,16 +372,12 @@ abstract class _VideoPageController with Store implements Disposable {
     return resolvedEpisode?.danmakuEpisodeNumber ?? selection.episode;
   }
 
-  /// Resets pre-switch state as a single transaction so observers see one
-  /// notification instead of one per field.
   @action
   void _beginEpisodeSwitch(VideoEpisodeSelection selection) {
     final targetCommentsEpisode = commentEpisodeForSelection(selection);
     selectedEpisode = selection;
     playingEpisode = null;
-    // The comments sheet only re-queries when [commentsEpisode] changes, so
-    // resetting comment state here without changing it would blank the sheet
-    // permanently.
+    // The comments sheet reloads only when commentsEpisode changes.
     if (targetCommentsEpisode != commentsEpisode) {
       commentsEpisode = targetCommentsEpisode;
       _resetEpisodeComments();
@@ -741,8 +731,6 @@ abstract class _VideoPageController with Store implements Disposable {
     );
   }
 
-  /// Called by Modular when the '/video' route scope is disposed.
-  @override
   void dispose() {
     _playbackSessions.cancel();
     _danmakuSessions.cancel();
@@ -857,10 +845,7 @@ class EpisodeRef {
   final String displayTitle;
   final String pageUrl;
 
-  /// Episode sort number.
-  /// - Online: parsed from [displayTitle] via [extractEpisodeNumber];
-  ///   null when unparsable.
-  /// - Offline: always the download record's episodeNumber.
+  /// Parsed online episode number, or the offline record number.
   final int? sortNumber;
   final int historyEpisodeNumber;
   final int danmakuEpisodeNumber;

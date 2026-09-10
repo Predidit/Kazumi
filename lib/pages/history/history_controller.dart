@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/history_repository.dart';
@@ -8,18 +10,23 @@ part 'history_controller.g.dart';
 class HistoryController = _HistoryController with _$HistoryController;
 
 abstract class _HistoryController with Store {
-  _HistoryController(this._historyRepository);
+  _HistoryController(this._historyRepository) {
+    _reload();
+    _subscription = _historyRepository.changes.listen((_) => _reload());
+  }
 
   final IHistoryRepository _historyRepository;
 
-  @observable
-  ObservableList<History> histories = ObservableList<History>();
+  late final StreamSubscription<void> _subscription;
 
-  void init() {
-    final temp = _historyRepository.getAllHistories();
-    histories.clear();
-    histories.addAll(temp);
+  @readonly
+  List<History> _histories = const [];
+
+  void _reload() {
+    _histories = List.unmodifiable(_historyRepository.getAllHistories());
   }
+
+  void dispose() => _subscription.cancel();
 
   Future<void> updateHistory(
     PlaybackHistoryIdentity identity,
@@ -31,7 +38,6 @@ abstract class _HistoryController with Store {
       progress: progress,
       duration: duration,
     );
-    init();
   }
 
   Progress? lastWatching(
@@ -62,11 +68,9 @@ abstract class _HistoryController with Store {
 
   Future<void> deleteHistory(History history) async {
     await _historyRepository.deleteHistory(history);
-    init();
   }
 
   Future<void> clearAll() async {
     await _historyRepository.clearAllHistories();
-    histories.clear();
   }
 }

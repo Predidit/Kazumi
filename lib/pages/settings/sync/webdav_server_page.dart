@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/bean/widget/tonal_card.dart';
@@ -157,7 +155,7 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
                 SyncFeedback(message: _message!, error: _failed, busy: _busy),
               if (_message != null && !_busy && !_failed)
                 TextButton(
-                  onPressed: () => context.maybePop(),
+                  onPressed: () => Navigator.of(context).maybePop(),
                   child: const Text('返回同步设置'),
                 ),
             ],

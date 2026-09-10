@@ -1,12 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-
+import 'package:go_router/go_router.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
-import 'package:kazumi/pages/plugin_editor/rule_management_widgets.dart';
 import 'package:kazumi/pages/plugin_editor/editor_form_widgets.dart';
+import 'package:kazumi/pages/plugin_editor/rule_management_widgets.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/api_rule_config.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -407,7 +406,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   void _testRule() {
     final editedPlugin = _tryBuildEditedPlugin();
     if (editedPlugin == null) return;
-    context.pushNamed('/settings/plugin/test', arguments: editedPlugin);
+    context.push('/settings/plugin/test', extra: editedPlugin);
   }
 
   Future<void> _save() async {

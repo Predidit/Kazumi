@@ -6,12 +6,15 @@ import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/modules/history/history_sync.dart';
 import 'package:kazumi/repositories/history_repository.dart';
-import 'package:kazumi/services/storage/history_storage_coordinator.dart';
+import 'package:kazumi/services/storage/history_storage.dart';
 
 void main() {
   late Directory tempDir;
   late Box<History> historiesBox;
+  late Box<dynamic> journal;
+  late HistoryStorage storage;
   late bool privateMode;
 
   setUpAll(() async {
@@ -19,11 +22,15 @@ void main() {
     Hive.init(tempDir.path);
     _registerAdapters();
     historiesBox = await Hive.openBox<History>('histories');
+    journal = await Hive.openBox<dynamic>('journal');
   });
 
   setUp(() async {
     privateMode = false;
     await historiesBox.clear();
+    await journal.clear();
+    storage = HistoryStorage(historiesBox, journal, deviceId: 'test');
+    await storage.initialize();
   });
 
   tearDownAll(() async {
@@ -36,11 +43,8 @@ void main() {
   group('HistoryRepository source metadata', () {
     test('keeps online source isolated from offline history', () async {
       final repository = HistoryRepository(
-        historiesBox: historiesBox,
+        storage: storage,
         privateModeReader: () => privateMode,
-        progressSyncAppender: _noopHistorySync,
-        deleteSyncAppender: _noopDeleteSync,
-        clearSyncAppender: _noopClearSync,
       );
       final item = _item(1);
 
@@ -102,11 +106,8 @@ void main() {
     test('does not overwrite existing online source with an empty value',
         () async {
       final repository = HistoryRepository(
-        historiesBox: historiesBox,
+        storage: storage,
         privateModeReader: () => privateMode,
-        progressSyncAppender: _noopHistorySync,
-        deleteSyncAppender: _noopDeleteSync,
-        clearSyncAppender: _noopClearSync,
       );
       final item = _item(2);
 
@@ -153,11 +154,8 @@ void main() {
     test('does not record history when private mode is enabled', () async {
       privateMode = true;
       final repository = HistoryRepository(
-        historiesBox: historiesBox,
+        storage: storage,
         privateModeReader: () => privateMode,
-        progressSyncAppender: _noopHistorySync,
-        deleteSyncAppender: _noopDeleteSync,
-        clearSyncAppender: _noopClearSync,
       );
       final item = _item(3);
 
@@ -181,11 +179,8 @@ void main() {
     test('stores zero progress when position is near the end of the video',
         () async {
       final repository = HistoryRepository(
-        historiesBox: historiesBox,
+        storage: storage,
         privateModeReader: () => privateMode,
-        progressSyncAppender: _noopHistorySync,
-        deleteSyncAppender: _noopDeleteSync,
-        clearSyncAppender: _noopClearSync,
       );
       final item = _item(5);
       final identity = PlaybackHistoryIdentity.online(
@@ -225,67 +220,30 @@ void main() {
       );
     });
 
-    test('serializes repository writes with snapshot reconciliation', () async {
-      final appendStarted = Completer<void>();
-      final allowAppendToFinish = Completer<void>();
-      final repository = HistoryRepository(
-        historiesBox: historiesBox,
-        privateModeReader: () => privateMode,
-        progressSyncAppender: ({
-          required history,
-          required episode,
-          required road,
-          required progressMs,
-          required updatedAt,
-        }) async {
-          appendStarted.complete();
-          await allowAppendToFinish.future;
-        },
-        deleteSyncAppender: _noopDeleteSync,
-        clearSyncAppender: _noopClearSync,
-      );
-      final item = _item(4);
-
-      final update = repository.updateHistory(
-        identity: PlaybackHistoryIdentity.online(
-          bangumiItem: item,
-          pluginName: 'plugin',
-          episodeNumber: 1,
-          episodeTitle: 'EP1',
-          road: 0,
-          onlineBangumiSrc: 'https://example.com/source',
-          episodePageUrl: '/online/1',
-        ),
-        progress: const Duration(seconds: 10),
-      );
-      await appendStarted.future;
-
-      var reconciliationStarted = false;
-      final reconciliation = HistoryStorageCoordinator().run(() async {
-        reconciliationStarted = true;
+    test('serializes outbox export with snapshot reconciliation', () async {
+      final repository =
+          HistoryRepository(storage: storage, privateModeReader: () => false);
+      await repository.clearAllHistories();
+      final started = Completer<void>();
+      final release = Completer<void>();
+      final export = repository.flushSyncEvents((events) async {
+        started.complete();
+        await release.future;
       });
+      await started.future;
+      var reconciled = false;
+      final reconciliation = repository
+          .reconcileSyncSnapshot(HistorySyncSnapshot.empty())
+          .then((_) => reconciled = true);
       await Future<void>.delayed(Duration.zero);
-      expect(reconciliationStarted, isFalse);
-
-      allowAppendToFinish.complete();
-      await update;
+      expect(reconciled, isFalse);
+      release.complete();
+      await export;
       await reconciliation;
-      expect(reconciliationStarted, isTrue);
+      expect(reconciled, isTrue);
     });
   });
 }
-
-Future<void> _noopHistorySync({
-  required History history,
-  required int episode,
-  required int road,
-  required int progressMs,
-  required int updatedAt,
-}) async {}
-
-Future<void> _noopDeleteSync(History history) async {}
-
-Future<void> _noopClearSync() async {}
 
 void _registerAdapters() {
   if (!Hive.isAdapterRegistered(1)) {

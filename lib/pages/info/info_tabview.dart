@@ -1,20 +1,22 @@
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/pages/info/info_comments_view.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kazumi/bean/card/character_card.dart';
-import 'package:kazumi/bean/card/staff_card.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:skeletonizer/skeletonizer.dart';
+import 'package:kazumi/bean/card/staff_card.dart';
+import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
-import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
+import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/pages/info/info_comments_view.dart';
+import 'package:kazumi/routing/media_location.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
@@ -171,7 +173,7 @@ class _InfoTabViewState extends State<InfoTabView> {
                     onPressed: () {
                       final tagName = Uri.encodeComponent(
                           widget.bangumiItem.tags[index].name);
-                      context.pushNamed('/search/$tagName');
+                      context.push('/search/$tagName');
                     },
                   );
                 }).toList(),
@@ -545,7 +547,7 @@ class _RelatedBangumiCardH extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          context.pushNamed('/info/', arguments: bangumiItem);
+          context.push(infoLocation(bangumiItem.id), extra: bangumiItem);
         },
         child: Padding(
           padding: const EdgeInsets.all(8),

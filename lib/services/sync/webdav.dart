@@ -1,15 +1,16 @@
 import 'dart:io';
-import 'package:webdav_client/webdav_client.dart' as webdav;
-import 'package:path_provider/path_provider.dart';
+
 import 'package:kazumi/modules/history/history_sync.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/repositories/collect_repository.dart';
+import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/collect/collect_change_module.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/history_sync_service.dart';
 import 'package:kazumi/services/sync/webdav_remote_file_commit.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:kazumi/utils/async_single_flight.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:webdav_client/webdav_client.dart' as webdav;
 
 class WebDav {
   static const String _syncRootPath = '/kazumiSync';
@@ -82,12 +83,10 @@ class WebDav {
     return _webDavOperationQueue.run(action);
   }
 
-  Future<void> _updateBox(String boxName) async {
-    var directory = await getApplicationSupportDirectory();
-    final localFilePath = '${directory.path}/hive/$boxName.hive';
+  Future<void> _uploadCollectionFile(String boxName, List<int> bytes) async {
     final tempFilePath = '${webDavLocalTempDirectory.path}/$boxName.tmp';
     final webDavPath = '$_syncRootPath/$boxName.tmp';
-    await File(localFilePath).copy(tempFilePath);
+    await File(tempFilePath).writeAsBytes(bytes, flush: true);
     await _publishRemoteFile(
       sourceFilePath: tempFilePath,
       destinationPath: webDavPath,
@@ -109,17 +108,13 @@ class WebDav {
     });
   }
 
-  Future<void> updateCollectibles() async {
-    try {
-      await _runWebDavExclusive(() async {
-        await _updateBox('collectibles');
-        if (GStorage.collectChanges.isNotEmpty) {
-          await _updateBox('collectchanges');
-        }
-      });
-    } catch (e) {
-      KazumiLogger().e('WebDav: update collectibles failed', error: e);
-      rethrow;
+  Future<void> updateCollectibles(ICollectRepository repository) =>
+      _runWebDavExclusive(() => _uploadCollectibles(repository));
+
+  Future<void> _uploadCollectibles(ICollectRepository repository) async {
+    final files = await repository.exportSyncFiles();
+    for (final entry in files.entries) {
+      await _uploadCollectionFile(entry.key, entry.value);
     }
   }
 
@@ -132,24 +127,17 @@ class WebDav {
     await client.read2File('$_syncRootPath/$fileName', existingFile.path);
   }
 
-  Future<void> syncCollectibles() async {
-    return _runWebDavExclusive(_syncCollectibles);
-  }
+  Future<void> syncCollectibles(ICollectRepository repository) =>
+      _runWebDavExclusive(() => _syncCollectibles(repository));
 
-  Future<void> _syncCollectibles() async {
-    List<CollectedBangumi> remoteCollectibles = [];
-    List<CollectedBangumiChange> remoteChanges = [];
-
+  Future<void> _syncCollectibles(ICollectRepository repository) async {
     final files = await client.readDir(_syncRootPath);
     final collectiblesExists =
         files.any((file) => file.name == 'collectibles.tmp');
     final changesExists =
         files.any((file) => file.name == 'collectchanges.tmp');
     if (!collectiblesExists && !changesExists) {
-      await _updateBox('collectibles');
-      if (GStorage.collectChanges.isNotEmpty) {
-        await _updateBox('collectchanges');
-      }
+      await _uploadCollectibles(repository);
       return;
     }
 
@@ -169,32 +157,22 @@ class WebDav {
     if (downloadFutures.isNotEmpty) {
       await Future.wait(downloadFutures);
     }
-    try {
-      if (collectiblesExists) {
-        remoteCollectibles = await GStorage.getCollectiblesFromFile(
-            '${webDavLocalTempDirectory.path}/collectibles.tmp');
-      }
-      if (changesExists) {
-        remoteChanges = await GStorage.getCollectChangesFromFile(
-            '${webDavLocalTempDirectory.path}/collectchanges.tmp');
-      }
-    } catch (e) {
-      KazumiLogger().e('WebDav: get collectibles failed', error: e);
-      throw Exception('WebDav: get collectibles from file failed');
-    }
-    if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
-      await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);
-    }
-    await _updateBox('collectibles');
-    if (GStorage.collectChanges.isNotEmpty) {
-      await _updateBox('collectchanges');
-    }
+    await repository.mergeSyncFiles(
+      itemsPath: collectiblesExists
+          ? '${webDavLocalTempDirectory.path}/collectibles.tmp'
+          : null,
+      changesPath: changesExists
+          ? '${webDavLocalTempDirectory.path}/collectchanges.tmp'
+          : null,
+    );
+    await _uploadCollectibles(repository);
   }
 
   Future<void> _syncHistory() async {
     await _ensureHistoryStorage();
     final historySync = HistorySyncService();
-    final deviceId = await historySync.getDeviceId();
+    final historyRepository = HistoryRepository();
+    final deviceId = historyRepository.syncDeviceId;
     final runDirectory = await _createHistorySyncRunDirectory();
 
     try {
@@ -213,12 +191,13 @@ class WebDav {
           downloads.eventFiles.isEmpty) {
         importedLegacyHistory = await _tryImportLegacyHistory(runDirectory);
         if (importedLegacyHistory) {
-          remoteSnapshot = await historySync.buildSnapshotFromLocal();
+          remoteSnapshot = await historyRepository.readSyncSnapshot();
         }
       }
 
       final snapshotInitialized =
           GStorage.getSetting(SettingsKeys.historySyncSnapshotInitialized);
+      await historyRepository.flushSyncEvents(historySync.appendEvents);
       final localBatch = await historySync.prepareLocalLogs(
         runDirectory: runDirectory,
         forceCheckpoint: snapshotInitialized != true ||
@@ -235,11 +214,12 @@ class WebDav {
       final mergedFromFiles = await historySync.mergeEventFiles(
         snapshot: mergedRemoteSnapshot,
         eventFiles: localBatch.files,
-        inMemoryEvents: await historySync.buildLocalStateEvents(),
+        inMemoryEvents:
+            (await historyRepository.readSyncSnapshot()).events.toList(),
         tolerateMalformedLines: true,
       );
 
-      final mergedSnapshot = await historySync.reconcileAndApplySnapshot(
+      final mergedSnapshot = await historyRepository.reconcileSyncSnapshot(
         mergedFromFiles,
       );
 
@@ -259,6 +239,7 @@ class WebDav {
           true,
         );
       } else {
+        await historyRepository.flushSyncEvents(historySync.appendEvents);
         final uploadFile =
             await historySync.copyActiveLogForUpload(runDirectory);
         if (uploadFile != null) {
@@ -553,7 +534,9 @@ class WebDav {
     }
 
     try {
-      await GStorage.patchHistory(existingFile.path);
+      await HistoryRepository().reconcileSyncSnapshot(
+          HistorySyncSnapshot.fromHistories(
+              await GStorage.getHistoriesFromFile(existingFile.path)));
       KazumiLogger().i('WebDav: imported legacy history backup');
       return true;
     } catch (e, stackTrace) {

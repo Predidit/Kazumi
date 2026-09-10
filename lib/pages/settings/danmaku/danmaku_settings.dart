@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
 
 class DanmakuSettingsPage extends StatefulWidget {
@@ -199,7 +199,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
               SettingsTile(
                 leading: Icons.block_rounded,
                 onPressed: (_) {
-                  context.pushNamed('/settings/danmaku/shield');
+                  context.push('/settings/danmaku/shield');
                 },
                 title: Text('关键词屏蔽'),
               ),

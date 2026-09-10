@@ -1,11 +1,11 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:window_manager/window_manager.dart';
 
 class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double? toolbarHeight;
@@ -52,7 +52,6 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       acs.addAll(actions!);
     }
     if (isDesktop()) {
-      // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
       if (!showWindowButton()) {
         acs.add(CloseButton(onPressed: () => windowManager.close()));
       }
@@ -86,7 +85,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
                     requireOffset: needTopOffset,
                     child: IconButton(
                       onPressed: () {
-                        context.maybePop();
+                        Navigator.of(context).maybePop();
                       },
                       icon: Icon(Icons.arrow_back),
                     ),
@@ -113,8 +112,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
-    // macOS needs to add 22(macOS title bar height)
-    // to default toolbar height to build appbar like normal
+    // Reserve the native macOS title bar when window buttons are visible.
     if (Platform.isMacOS && needTopOffset && showWindowButton()) {
       if (toolbarHeight != null) {
         return Size.fromHeight(toolbarHeight! + 22);

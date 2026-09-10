@@ -6,11 +6,13 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/repositories/collect_crud_repository.dart';
+import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/request/clients/bangumi_client.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_exception.dart';
+import 'package:kazumi/services/collection/collection_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:logger/logger.dart';
@@ -36,7 +38,7 @@ void main() {
     await GStorage.putSetting(SettingsKeys.bangumiAccessToken, 'saved-token');
     await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
     await GStorage.putSetting(SettingsKeys.enableBangumiProxy, false);
-    await GStorage.collectibles.clear();
+    await GStorage.collection.replace([], []);
     DioFactory.reset();
     adapter = _BangumiAdapter();
     DioFactory.apiDio.httpClientAdapter = adapter;
@@ -196,7 +198,7 @@ void main() {
     await expectLater(bangumi.ping(), throwsA(isA<NetworkException>()));
     adapter.respond =
         (request) async => request.method == 'POST' ? _json({}) : _user();
-    expect(await bangumi.syncCollectibleWhenIdle(123, 1), isTrue);
+    expect(await bangumi.updateCollectible(123, 1), isTrue);
     expect(adapter.requests.last.method, 'POST');
     expect(bangumi.initialized, isTrue);
     expect(bangumi.lastError, isNull);
@@ -207,13 +209,19 @@ void main() {
     adapter.respond = (request) async => request.uri.path == '/v0/me'
         ? _user()
         : _json({'data': [], 'total': 0, 'limit': 50});
-    final errors = <String>[];
-    final controller = CollectController(CollectCrudRepository());
-    expect(
-        await controller.syncCollectiblesBangumi(
-            onProgress: (message, current, total) {}, onError: errors.add),
-        isTrue);
-    expect(errors, isEmpty);
+    final updates = <CollectSyncUpdate>[];
+    final service = CollectionService(CollectRepository());
+    addTearDown(service.dispose);
+    final controller = CollectController(service);
+    addTearDown(controller.dispose);
+    await controller.syncAll(
+        const CollectSyncPlan(
+          webDavEnabled: false,
+          webDavCollectiblesEnabled: false,
+          bangumiEnabled: true,
+        ),
+        onUpdate: updates.add);
+    expect(updates.last.status, CollectSyncStatus.succeeded);
     expect(bangumi.initialized, isTrue);
   });
 
@@ -227,7 +235,9 @@ void main() {
     final connecting = bangumi.ping();
     await started.future;
     final disabling = bangumi.setEnabled(false);
-    final syncing = expectLater(bangumi.syncCollectibles(), throwsStateError);
+    final service = CollectionService(CollectRepository());
+    addTearDown(service.dispose);
+    final syncing = expectLater(service.syncBangumi(), throwsStateError);
     response.complete(_user());
     await Future.wait([connecting, disabling, syncing]);
     expect(GStorage.getSetting(SettingsKeys.bangumiSyncEnable), isFalse);

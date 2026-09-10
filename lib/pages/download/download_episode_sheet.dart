@@ -1,21 +1,22 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:scrollview_observer/scrollview_observer.dart';
-
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:scrollview_observer/scrollview_observer.dart';
 
 class DownloadEpisodeSheet extends StatefulWidget {
+  final DownloadController downloadController;
+
   final int road;
   final VideoPageController videoPageController;
 
   const DownloadEpisodeSheet({
+    required this.downloadController,
     super.key,
     required this.road,
     required this.videoPageController,
@@ -27,7 +28,7 @@ class DownloadEpisodeSheet extends StatefulWidget {
 
 class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
   VideoPageController get videoPageController => widget.videoPageController;
-  final DownloadController downloadController = inject<DownloadController>();
+  DownloadController get downloadController => widget.downloadController;
   final GridObserverController _observerController = GridObserverController();
 
   final Set<int> _selectedEpisodes = {};

@@ -5,11 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:flutter_modular/flutter_modular.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as path;
-import 'package:url_launcher/url_launcher.dart';
-
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
@@ -18,6 +15,8 @@ import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/search/image_search_module.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
+import 'package:path/path.dart' as path;
+import 'package:url_launcher/url_launcher.dart';
 
 part 'image_search_widgets.dart';
 
@@ -197,9 +196,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
   Future<void> _openExternal(Uri uri) async {
     try {
       if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
-    } catch (_) {
-      // Fall through to the shared error message.
-    }
+    } catch (_) {}
     if (!mounted) return;
     KazumiDialog.showToast(context: context, message: '暂时无法打开链接，请稍后再试');
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-
+import 'package:go_router/go_router.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/pages/settings/sync/sync_settings_widgets.dart';
@@ -31,7 +30,7 @@ class SyncSettingsPage extends StatefulWidget {
 
 class _SyncSettingsPageState extends State<SyncSettingsPage> {
   Future<void> _open(String route) async {
-    await context.pushNamed(route);
+    await context.push(route);
     if (mounted) setState(() {});
   }
 
@@ -75,7 +74,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                 ? _SyncStatus.enabled
                                 : _SyncStatus.disabled,
                 action: hasToken ? '管理追番同步' : '连接 Bangumi',
-                onPressed: () => _open('/settings/bangumi/'),
+                onPressed: () => _open('/settings/bangumi'),
               ),
               _SyncServiceCard(
                 title: '多设备同步',
@@ -93,7 +92,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                             : _SyncStatus.contentRequired
                         : _SyncStatus.disabled,
                 action: hasServer ? '管理多设备同步' : '设置 WebDAV',
-                onPressed: () => _open('/settings/webdav/'),
+                onPressed: () => _open('/settings/webdav'),
               ),
             ];
             return SyncPageBody(

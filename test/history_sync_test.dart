@@ -706,6 +706,49 @@ void main() {
     });
   });
 
+  group('HistorySyncSnapshot', () {
+    test('snapshot replay preserves legacy shared progress and watch event IDs',
+        () {
+      final history = _history(1);
+      final version =
+          HistorySyncVersion.of(updatedAt: 1000, eventId: 'legacy:1');
+      final snapshot = HistorySyncSnapshot(generatedAt: 1000, histories: [
+        history
+      ], itemVersions: {
+        history.key: version
+      }, progressVersions: {
+        history.key: {1: version}
+      }, deletedVersions: {});
+      final merger = HistorySyncStreamMerger(HistorySyncSnapshot.empty())
+        ..addAll(snapshot.events);
+      final result = merger.snapshot();
+      expect(result.histories.single.progresses[1]!.progress.inSeconds, 10);
+      expect(result.histories.single.lastSrc, '/source');
+      expect(result.itemVersions, snapshot.itemVersions);
+      expect(result.progressVersions, snapshot.progressVersions);
+    });
+
+    test('snapshot merge preserves newer watches when applying an older clear',
+        () {
+      final remote = HistorySyncSnapshot.fromHistories([_history(1, at: 3000)]);
+      final local = HistorySyncMerger.merge(
+          snapshot: HistorySyncSnapshot.empty(),
+          events: [
+            HistorySyncEvent.clearAll(
+                deviceId: 'local', seq: 1, updatedAt: 2000)
+          ]);
+      for (final merged in [
+        HistorySyncMerger.mergeSnapshots(remote, local),
+        HistorySyncMerger.mergeSnapshots(local, remote),
+        HistorySyncMerger.merge(snapshot: remote, events: local.events)
+      ]) {
+        expect(merged.histories.map((h) => h.bangumiItem.id), [1]);
+        expect(merged.clearVersion, local.clearVersion);
+        expect(merged.itemVersions, remote.itemVersions);
+      }
+    });
+  });
+
   group('HistorySyncCodec', () {
     test('round-trips events through json lines', () {
       final events = [
@@ -763,7 +806,7 @@ void main() {
       );
 
       final events =
-          HistorySyncService.buildStateEventsFromHistories([history]);
+          HistorySyncSnapshot.fromHistories([history]).events.toList();
 
       expect(events, hasLength(2));
       final progressEvent = events.singleWhere(
@@ -937,8 +980,8 @@ void main() {
       // instead of being re-skipped on every following sync.
       final repairedContent = await activeFile.readAsString();
       expect(repairedContent, isNot(contains('truncated')));
-      expect(HistorySyncCodec.eventsFromJsonLines(repairedContent),
-          hasLength(2));
+      expect(
+          HistorySyncCodec.eventsFromJsonLines(repairedContent), hasLength(2));
     });
 
     test('upload copy returns null when log has no valid events', () async {
@@ -1253,6 +1296,10 @@ List<HistorySyncEvent> _upsertPair({
     ),
   ];
 }
+
+History _history(int id, {int at = 1000}) => History(_item(id), 1, 'plugin',
+    DateTime.fromMillisecondsSinceEpoch(at), '/source', 'EP1')
+  ..progresses[1] = Progress(1, 0, 10000, updatedAtMs: at);
 
 BangumiItem _item(int id) {
   return BangumiItem(

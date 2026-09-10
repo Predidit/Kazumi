@@ -231,55 +231,6 @@ class HistorySyncSnapshot {
   final Map<String, String> deletedVersions;
   final String? clearVersion;
 
-  Iterable<HistorySyncEvent> get events sync* {
-    HistorySyncEvent event(String version, HistorySyncOp op,
-        {String? key, History? history, Progress? progress}) {
-      final separator = version.indexOf('|');
-      return HistorySyncEvent(
-        eventId: version.substring(separator + 1),
-        deviceId: 'snapshot',
-        seq: 0,
-        op: op,
-        updatedAt: int.parse(version.substring(0, separator)),
-        entityKey: key ?? history?.key,
-        bangumiItem: history?.bangumiItem,
-        adapterName: history?.adapterName,
-        episode: progress?.episode ?? history?.lastWatchEpisode,
-        road: progress?.road,
-        progressMs: progress?.progress.inMilliseconds,
-        lastSrc: op == HistorySyncOp.upsertWatchState ? history?.lastSrc : null,
-        lastWatchEpisodeName: op == HistorySyncOp.upsertWatchState
-            ? history?.lastWatchEpisodeName
-            : null,
-        entryKind: history?.entryKind,
-        episodePageUrl: history?.episodePageUrl,
-        carriesWatchState: op == HistorySyncOp.upsertWatchState,
-      );
-    }
-
-    if (clearVersion case final version?) {
-      yield event(version, HistorySyncOp.clearAll);
-    }
-    for (final entry in deletedVersions.entries) {
-      yield event(entry.value, HistorySyncOp.deleteHistory, key: entry.key);
-    }
-    for (final history in histories) {
-      for (final progress in history.progresses.values) {
-        final version = progressVersions[history.key]?[progress.episode] ??
-            HistorySyncVersion.of(
-                updatedAt: progress.effectiveUpdatedAtMs(history.lastWatchTime),
-                eventId: 'local-import:${history.key}:${progress.episode}');
-        yield event(version, HistorySyncOp.upsertProgress,
-            history: history, progress: progress);
-      }
-      final version = itemVersions[history.key] ??
-          HistorySyncVersion.of(
-              updatedAt: history.lastWatchTime.millisecondsSinceEpoch,
-              eventId: 'local-import:${history.key}');
-      yield event(version, HistorySyncOp.upsertWatchState, history: history);
-    }
-  }
-
   factory HistorySyncSnapshot.empty() {
     return HistorySyncSnapshot(
       generatedAt: DateTime.now().millisecondsSinceEpoch,
@@ -405,8 +356,8 @@ class HistorySyncState {
     final histories = <String, History>{};
     final keyMap = <String, String>{};
     for (final history in snapshot.histories) {
-      histories[history.key] = history.copy()
-        ..entryKind = HistoryEntryKind.normalize(history.entryKind);
+      history.entryKind = HistoryEntryKind.normalize(history.entryKind);
+      histories[history.key] = history;
       keyMap[history.key] = history.key;
       if (history.entryKind == HistoryEntryKind.online) {
         keyMap[History.legacyKey(history.adapterName, history.bangumiItem)] =
@@ -614,20 +565,11 @@ class HistorySyncState {
     if (!_isNewerThanClear(event.version)) {
       return;
     }
-    final survivors = toSnapshot()
-        .events
-        .where((existing) =>
-            HistorySyncVersion.compare(existing.version, event.version) > 0)
-        .toList()
-      ..sort((a, b) => HistorySyncVersion.compare(a.version, b.version));
     histories.clear();
     itemVersions.clear();
     progressVersions.clear();
     deletedVersions.clear();
     clearVersion = event.version;
-    for (final survivor in survivors) {
-      apply(survivor);
-    }
   }
 
   bool _isNewerThanClear(String version) {
@@ -710,15 +652,6 @@ class HistorySyncState {
 }
 
 class HistorySyncMerger {
-  static HistorySyncSnapshot mergeSnapshots(
-    HistorySyncSnapshot first,
-    HistorySyncSnapshot second,
-  ) =>
-      merge(
-        snapshot: HistorySyncSnapshot.empty(),
-        events: [...first.events, ...second.events],
-      );
-
   static HistorySyncSnapshot merge({
     required HistorySyncSnapshot snapshot,
     required Iterable<HistorySyncEvent> events,
@@ -735,7 +668,12 @@ class HistorySyncMerger {
   HistorySyncMerger._();
 }
 
-// Retain the latest event per slot, then sort to make file order irrelevant.
+/// Incrementally reduces history events without retaining the full stream.
+///
+/// Only the latest last-write-wins event for each progress slot, watch state,
+/// delete tombstone, and global clear is retained. The bounded set is sorted
+/// when materializing a snapshot so results stay identical even when files
+/// arrive in a different order.
 class HistorySyncStreamMerger {
   HistorySyncStreamMerger(HistorySyncSnapshot snapshot) : _snapshot = snapshot;
 
@@ -781,7 +719,7 @@ class HistorySyncStreamMerger {
     final uniqueEvents = <String, HistorySyncEvent>{};
     final clearEvent = _clearEvent;
     if (clearEvent != null) {
-      uniqueEvents['${clearEvent.eventId}:${clearEvent.op.value}'] = clearEvent;
+      uniqueEvents[clearEvent.eventId] = clearEvent;
     }
     for (final events in [
       _deleteEvents.values,
@@ -789,7 +727,7 @@ class HistorySyncStreamMerger {
       _progressEvents.values,
     ]) {
       for (final event in events) {
-        uniqueEvents['${event.eventId}:${event.op.value}'] = event;
+        uniqueEvents[event.eventId] = event;
       }
     }
     final sortedEvents = uniqueEvents.values.toList()
@@ -813,6 +751,8 @@ class HistorySyncStreamMerger {
     }
   }
 
+  /// Callers must run [_validate] first: upsert events always carry
+  /// [HistorySyncEvent.adapterName] and [HistorySyncEvent.bangumiItem].
   String _upsertEntityKey(HistorySyncEvent event) {
     return History.scopedKey(
       event.adapterName!,

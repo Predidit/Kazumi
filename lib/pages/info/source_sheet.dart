@@ -5,11 +5,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
@@ -19,13 +19,11 @@ import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/routing/media_location.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/plugin/captcha_verification_service.dart';
 import 'package:kazumi/services/plugin/plugin_search_service.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
-import 'package:kazumi/utils/async_session.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -34,12 +32,7 @@ part 'source_captcha_flow.dart';
 part 'source_sheet_view.dart';
 
 class SourceSheet extends StatefulWidget {
-  final PluginsController pluginsController;
-
-  const SourceSheet(
-      {required this.pluginsController,
-      super.key,
-      required this.infoController});
+  const SourceSheet({super.key, required this.infoController});
 
   final InfoController infoController;
 
@@ -48,9 +41,8 @@ class SourceSheet extends StatefulWidget {
 }
 
 class _SourceSheetState extends State<SourceSheet> with KazumiDialogOwner {
-  CollectController get _collectController =>
-      widget.infoController.collectController;
-  PluginsController get _pluginsController => widget.pluginsController;
+  final CollectController _collectController = inject<CollectController>();
+  final PluginsController _pluginsController = inject<PluginsController>();
   final Map<String, String> _sourceKeywords = {};
 
   late final String _keyword;
@@ -138,16 +130,15 @@ class _SourceSheetState extends State<SourceSheet> with KazumiDialogOwner {
             plugin.queryChapterRoads(searchItem.src, cancelToken: cancelToken),
       );
       if (roads.isEmpty) throw ChapterErrorException(plugin.name);
-      final args = OnlineVideoPlaybackArgs(
-        bangumiItem: widget.infoController.bangumiItem,
-        plugin: plugin,
-        title: searchItem.name,
-        src: searchItem.src,
-        roads: roads,
-      );
-      task.withContext((context) => context.push(
-            VideoLocation.fromArgs(args).location,
-            extra: args,
+      task.withContext((context) => context.pushNamed(
+            '/video/',
+            arguments: OnlineVideoPlaybackArgs(
+              bangumiItem: widget.infoController.bangumiItem,
+              plugin: plugin,
+              title: searchItem.name,
+              src: searchItem.src,
+              roads: roads,
+            ),
           ));
     }, onError: (error, stackTrace) {
       KazumiLogger().w('SourceSheet: failed to query playlist', error: error);

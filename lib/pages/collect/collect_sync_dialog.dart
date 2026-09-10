@@ -7,33 +7,30 @@ import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 
 enum CollectSyncDestination { webDavSettings, bangumiSettings }
 
-extension on CollectSyncStep {
-  String get _title => switch (this) {
-        CollectSyncStep.webDav => 'WebDAV 收藏',
-        CollectSyncStep.bangumi => 'Bangumi 状态',
-        CollectSyncStep.upload => '回传 WebDAV',
-      };
+enum CollectSyncStep {
+  webDav('WebDAV 收藏', '合并本地与云端收藏', Icons.cloud_sync_rounded),
+  bangumi('Bangumi 状态', '同步追番状态', Icons.bookmarks_rounded),
+  upload('回传 WebDAV', '上传合并后的收藏', Icons.cloud_upload_rounded);
 
-  String get _description => switch (this) {
-        CollectSyncStep.webDav => '合并本地与云端收藏',
-        CollectSyncStep.bangumi => '同步追番状态',
-        CollectSyncStep.upload => '上传合并后的收藏',
-      };
+  const CollectSyncStep(this._title, this._description, this._icon);
 
-  IconData get _icon => switch (this) {
-        CollectSyncStep.webDav => Icons.cloud_sync_rounded,
-        CollectSyncStep.bangumi => Icons.bookmarks_rounded,
-        CollectSyncStep.upload => Icons.cloud_upload_rounded,
-      };
+  final String _title;
+  final String _description;
+  final IconData _icon;
 
   CollectSyncDestination get _settings => switch (this) {
-        CollectSyncStep.bangumi => CollectSyncDestination.bangumiSettings,
-        _ => CollectSyncDestination.webDavSettings,
+        bangumi => CollectSyncDestination.bangumiSettings,
+        webDav || upload => CollectSyncDestination.webDavSettings,
       };
 }
 
-typedef CollectSyncOperation = Future<void> Function(
-    ValueChanged<CollectSyncUpdate> onUpdate);
+typedef CollectSyncOperation = Future<bool> Function(
+  CollectSyncStep step, {
+  required ValueChanged<String> onError,
+  required void Function(String message, int current, int total) onProgress,
+});
+
+enum _StepStatus { waiting, running, succeeded, failed, skipped }
 
 enum _SyncPhase { ready, running, finished }
 
@@ -41,7 +38,7 @@ class _StepState {
   _StepState(this.step);
 
   final CollectSyncStep step;
-  CollectSyncStatus status = CollectSyncStatus.waiting;
+  _StepStatus status = _StepStatus.waiting;
   String? message;
   double? progress;
 }
@@ -69,15 +66,21 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
   bool get _running => _phase == _SyncPhase.running;
   bool get _finished => _phase == _SyncPhase.finished;
 
-  List<_StepState> _createSteps() =>
-      widget.plan.steps.map(_StepState.new).toList();
+  List<_StepState> _createSteps() => [
+        if (widget.plan.shouldSyncWebDavCollectibles)
+          _StepState(CollectSyncStep.webDav),
+        if (widget.plan.shouldSyncBangumi) _StepState(CollectSyncStep.bangumi),
+        if (widget.plan.shouldSyncWebDavCollectibles &&
+            widget.plan.shouldSyncBangumi)
+          _StepState(CollectSyncStep.upload),
+      ];
 
   // Removed routes can stay mounted until their exit animation ends.
   bool get _active => mounted && (ModalRoute.of(context)?.isActive ?? false);
   bool get _hasFailure =>
-      _steps.any((step) => step.status == CollectSyncStatus.failed);
+      _steps.any((step) => step.status == _StepStatus.failed);
   bool get _hasSuccess =>
-      _steps.any((step) => step.status == CollectSyncStatus.succeeded);
+      _steps.any((step) => step.status == _StepStatus.succeeded);
 
   Future<void> _start() async {
     if (_running || !widget.plan.canSync) return;
@@ -85,15 +88,54 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
       _steps = _createSteps();
       _phase = _SyncPhase.running;
     });
-    await widget.onSync((update) {
+    for (final state in _steps) {
+      if (!_active) return;
+      if (state.step == CollectSyncStep.upload &&
+          !widget.plan.shouldUploadWebDavAfterBangumi(
+            webDavSynced: _steps.any((s) =>
+                s.step == CollectSyncStep.webDav &&
+                s.status == _StepStatus.succeeded),
+            bangumiSynced: _steps.any((s) =>
+                s.step == CollectSyncStep.bangumi &&
+                s.status == _StepStatus.succeeded),
+          )) {
+        setState(() {
+          state.status = _StepStatus.skipped;
+          state.message = '前两步未全部完成';
+        });
+        continue;
+      }
+      setState(() {
+        state.status = _StepStatus.running;
+        state.message = '正在连接…';
+      });
+      bool succeeded = false;
+      String? failure;
+      try {
+        succeeded = await widget.onSync(
+          state.step,
+          onError: (message) => failure = message,
+          onProgress: (message, current, total) {
+            if (!_active || state.status != _StepStatus.running) return;
+            setState(() {
+              state.message =
+                  total > 0 ? '$message · $current / $total' : message;
+              state.progress = total > 0
+                  ? (current / total).clamp(0.0, 1.0).toDouble()
+                  : null;
+            });
+          },
+        );
+      } catch (_) {
+        failure ??= '连接中断，请检查网络或设置';
+      }
       if (!_active) return;
       setState(() {
-        final state = _steps.firstWhere((state) => state.step == update.step);
-        state.status = update.status;
-        state.message = update.message;
-        state.progress = update.progress;
+        state.status = succeeded ? _StepStatus.succeeded : _StepStatus.failed;
+        state.message = succeeded ? null : failure ?? '请检查网络或同步设置';
+        state.progress = null;
       });
-    });
+    }
     if (!_active) return;
     setState(() => _phase = _SyncPhase.finished);
   }
@@ -109,8 +151,7 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
   String? get _description {
     if (!widget.plan.canSync) return '选择同步服务';
     if (_running) {
-      final current =
-          _steps.indexWhere((s) => s.status == CollectSyncStatus.running);
+      final current = _steps.indexWhere((s) => s.status == _StepStatus.running);
       return '第 ${current + 1} / ${_steps.length} 步 · 请保持应用开启';
     }
     if (!_finished) return '同步全部收藏分类';
@@ -279,9 +320,9 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
   Widget _stepRow(_StepState state, int index) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final active = state.status == CollectSyncStatus.running;
-    final failed = state.status == CollectSyncStatus.failed;
-    final detail = state.status == CollectSyncStatus.waiting
+    final active = state.status == _StepStatus.running;
+    final failed = state.status == _StepStatus.failed;
+    final detail = state.status == _StepStatus.waiting
         ? (_running ? null : state.step._description)
         : state.message;
     final foreground = failed
@@ -290,16 +331,16 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
             ? colors.onSecondaryContainer
             : colors.onSurface;
     final statusLabel = switch (state.status) {
-      CollectSyncStatus.waiting => _running ? '等待中' : '第 ${index + 1} 步',
-      CollectSyncStatus.running => '同步中',
-      CollectSyncStatus.succeeded => '已完成',
-      CollectSyncStatus.failed => '未完成',
-      CollectSyncStatus.skipped => '已跳过',
+      _StepStatus.waiting => _running ? '等待中' : '第 ${index + 1} 步',
+      _StepStatus.running => '同步中',
+      _StepStatus.succeeded => '已完成',
+      _StepStatus.failed => '未完成',
+      _StepStatus.skipped => '已跳过',
     };
     final icon = switch (state.status) {
-      CollectSyncStatus.succeeded => Icons.check_circle_rounded,
-      CollectSyncStatus.failed => Icons.error_outline_rounded,
-      CollectSyncStatus.skipped => Icons.remove_circle_outline_rounded,
+      _StepStatus.succeeded => Icons.check_circle_rounded,
+      _StepStatus.failed => Icons.error_outline_rounded,
+      _StepStatus.skipped => Icons.remove_circle_outline_rounded,
       _ => state.step._icon,
     };
     return Semantics(

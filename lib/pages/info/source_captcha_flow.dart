@@ -194,7 +194,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
   String? _imageError;
   String? _inputError;
   bool _submitting = false;
-  final _images = AsyncSessionOwner();
+  int _imageRevision = 0;
 
   @override
   void initState() {
@@ -205,7 +205,6 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
 
   @override
   void dispose() {
-    _images.close();
     _loadTimer?.cancel();
     _imageSub.cancel();
     _inputController.dispose();
@@ -215,7 +214,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
 
   Future<void> _receiveImage(String? data) async {
     if (!mounted || data == null || _submitting) return;
-    final image = _images.begin();
+    final revision = ++_imageRevision;
     Uint8List? bytes;
     try {
       bytes = base64Decode(data.split(',').last);
@@ -224,7 +223,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
     } catch (_) {
       bytes = null;
     }
-    if (image.isStale) return;
+    if (!mounted || revision != _imageRevision) return;
     _loadTimer?.cancel();
     setState(() {
       _imageBytes = bytes;
@@ -234,7 +233,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
 
   Future<void> _reload() async {
     if (_submitting) return;
-    final image = _images.begin();
+    final revision = ++_imageRevision;
     _loadTimer?.cancel();
     setState(() {
       _imageBytes = null;
@@ -249,7 +248,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
     try {
       await widget.onReload();
     } catch (_) {
-      if (image.isStale) return;
+      if (!mounted || revision != _imageRevision) return;
       _loadTimer?.cancel();
       setState(() => _imageError = '验证码加载失败');
     }

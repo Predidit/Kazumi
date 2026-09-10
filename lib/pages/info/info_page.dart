@@ -3,7 +3,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:window_manager/window_manager.dart';
+
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
@@ -16,17 +19,12 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:window_manager/window_manager.dart';
 
 class InfoPage extends StatefulWidget {
-  final PluginsController pluginsController;
-
   const InfoPage({
-    required this.pluginsController,
     super.key,
     required this.inputBangumiItem,
     required this.infoController,
@@ -55,17 +53,119 @@ class _InfoPageState extends State<InfoPage>
   late final TabController infoTabController;
   late final bool showRating;
 
+  bool commentsIsLoading = false;
+  bool charactersIsLoading = false;
+  bool commentsQueryTimeout = false;
+  bool commentsHasLoaded = false;
+  bool charactersQueryTimeout = false;
+  bool charactersIsEmpty = false;
+  bool staffIsLoading = false;
+  bool staffQueryTimeout = false;
+  bool staffIsEmpty = false;
   bool _showBangumiInfoSkeleton = false;
 
   bool get _isShowingBangumiInfoSkeleton =>
-      infoController.infoStatus == InfoLoadStatus.loading ||
-      _showBangumiInfoSkeleton;
+      infoController.isLoading || _showBangumiInfoSkeleton;
 
   bool _needsBangumiInfoRefresh(BangumiItem bangumiItem) {
     final votesCount = bangumiItem.votesCount;
     final missingVoteDistribution =
         votesCount.isEmpty || bangumiItem.votes <= 0 || votesCount.length < 10;
     return bangumiItem.summary == '' || missingVoteDistribution;
+  }
+
+  Future<void> loadCharacters() async {
+    if (charactersIsLoading) return;
+    setState(() {
+      charactersIsLoading = true;
+      charactersQueryTimeout = false;
+      charactersIsEmpty = false;
+    });
+    try {
+      await infoController
+          .queryBangumiCharactersByID(infoController.bangumiItem.id);
+      if (mounted) {
+        setState(() {
+          charactersIsLoading = false;
+          if (infoController.characterList.isEmpty) {
+            charactersIsEmpty = true;
+          }
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load characters', error: e);
+      if (mounted) {
+        setState(() {
+          charactersIsLoading = false;
+          charactersQueryTimeout = true;
+        });
+      }
+    }
+  }
+
+  Future<void> loadStaff() async {
+    if (staffIsLoading) return;
+    setState(() {
+      staffIsLoading = true;
+      staffQueryTimeout = false;
+      staffIsEmpty = false;
+    });
+    try {
+      await infoController
+          .queryBangumiStaffsByID(infoController.bangumiItem.id);
+      if (mounted) {
+        setState(() {
+          staffIsLoading = false;
+          if (infoController.staffList.isEmpty) {
+            staffIsEmpty = true;
+          }
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load staff', error: e);
+      if (mounted) {
+        setState(() {
+          staffIsLoading = false;
+          staffQueryTimeout = true;
+        });
+      }
+    }
+  }
+
+  Future<void> loadRelations() async {
+    try {
+      await infoController
+          .queryBangumiRelationsByID(infoController.bangumiItem.id);
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load relations', error: e);
+    }
+  }
+
+  Future<void> loadMoreComments({bool loadMore = false}) async {
+    if (commentsIsLoading) return;
+    setState(() {
+      commentsIsLoading = true;
+      commentsQueryTimeout = false;
+    });
+    try {
+      await infoController.queryBangumiCommentsByID(
+          infoController.bangumiItem.id,
+          refresh: !loadMore);
+      if (mounted) {
+        setState(() {
+          commentsIsLoading = false;
+          commentsHasLoaded = true;
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load comments', error: e);
+      if (mounted) {
+        setState(() {
+          commentsIsLoading = false;
+          commentsQueryTimeout = true;
+        });
+      }
+    }
   }
 
   Future<void> _openReviewEditor() async {
@@ -87,10 +187,12 @@ class _InfoPageState extends State<InfoPage>
       context: context,
       builder: (context) => RatingReviewDialog(
         bangumiItem: infoController.bangumiItem,
-        onSubmit: (review) => infoController.rateBangumi(review),
+        onSubmit: (review) =>
+            infoController.rateBangumi(review, localType: localType),
       ),
     );
     if (submitted == true && mounted) {
+      setState(() {});
       KazumiDialog.showToast(
         context: context,
         message: editing ? '吐槽已更新' : '吐槽已发表',
@@ -101,7 +203,12 @@ class _InfoPageState extends State<InfoPage>
   @override
   void initState() {
     super.initState();
-    infoController.initialize(widget.inputBangumiItem);
+    infoController.bangumiItem = widget.inputBangumiItem;
+    infoController.characterList.clear();
+    infoController.clearComments();
+    infoController.staffList.clear();
+    infoController.clearRelations();
+    infoController.pluginSearchResponseList.clear();
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
       _showBangumiInfoSkeleton = true;
       _loadBangumiInfo();
@@ -116,42 +223,76 @@ class _InfoPageState extends State<InfoPage>
     if (index == 1) {
       onCommentsTabSelected();
     }
-    if (index == 2 && infoController.charactersStatus == InfoLoadStatus.idle) {
-      infoController.loadCharacters();
+    if (index == 2 &&
+        infoController.characterList.isEmpty &&
+        !charactersIsLoading &&
+        !charactersIsEmpty &&
+        !charactersQueryTimeout) {
+      loadCharacters();
     }
-    if (index == 3 && infoController.relationsStatus == InfoLoadStatus.idle) {
-      infoController.loadRelations();
+    if (index == 3 && infoController.canLoadRelations) {
+      loadRelations();
     }
-    if (index == 4 && infoController.staffStatus == InfoLoadStatus.idle) {
-      infoController.loadStaff();
+    if (index == 4 &&
+        infoController.staffList.isEmpty &&
+        !staffIsLoading &&
+        !staffIsEmpty &&
+        !staffQueryTimeout) {
+      loadStaff();
     }
   }
 
   Future<void> onCommentsTabSelected() async {
-    final token = GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
-    if (token.isNotEmpty) {
-      await infoController.fillInterestUserProfileIfNeeded();
+    final interest = infoController.bangumiItem.interest;
+    final token =
+        GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
+    if (interest != null && token.isNotEmpty) {
+      final updated = await infoController.fillInterestUserProfileIfNeeded();
       if (!mounted) return;
+      if (updated) {
+        setState(() {});
+      }
     }
-    if (infoController.commentsStatus == InfoLoadStatus.idle) {
-      infoController.loadComments();
+    if (infoController.commentsList.isEmpty &&
+        !commentsIsLoading &&
+        !commentsHasLoaded &&
+        !commentsQueryTimeout) {
+      loadMoreComments();
     }
   }
 
   @override
   void dispose() {
     infoTabController.removeListener(onInfoTabChanged);
+    infoController.characterList.clear();
+    infoController.clearComments();
+    infoController.staffList.clear();
+    infoController.clearRelations();
+    infoController.pluginSearchResponseList.clear();
     infoTabController.dispose();
     super.dispose();
   }
 
   Future<void> _loadBangumiInfo() async {
     final loadingStartedAt = DateTime.now();
-    await infoController.loadInfo();
-    if (!mounted) return;
-    await _waitForMinimumBangumiInfoLoadingDuration(loadingStartedAt);
-    if (mounted) {
-      setState(() => _showBangumiInfoSkeleton = false);
+    try {
+      // Attach metadata without replacing rendered image URLs.
+      await infoController.queryBangumiInfoByID(
+        infoController.bangumiItem.id,
+        type: 'attach',
+      );
+    } catch (e) {
+      KazumiLogger()
+          .e('InfoPage: failed to query bangumi info by ID', error: e);
+    } finally {
+      if (mounted) {
+        await _waitForMinimumBangumiInfoLoadingDuration(loadingStartedAt);
+      }
+      if (mounted) {
+        setState(() {
+          _showBangumiInfoSkeleton = false;
+        });
+      }
     }
   }
 
@@ -193,11 +334,7 @@ class _InfoPageState extends State<InfoPage>
                 leading: EmbeddedNativeControlArea(
                   child: IconButton(
                     onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/tab/popular');
-                      }
+                      context.maybePop();
                     },
                     icon: Icon(Icons.arrow_back),
                   ),
@@ -206,7 +343,6 @@ class _InfoPageState extends State<InfoPage>
                   if (innerBoxIsScrolled)
                     EmbeddedNativeControlArea(
                       child: CollectButton(
-                        controller: infoController.collectController,
                         bangumiItem: infoController.bangumiItem,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -270,8 +406,6 @@ class _InfoPageState extends State<InfoPage>
                                 padding: const EdgeInsets.fromLTRB(
                                     16, kToolbarHeight, 16, 0),
                                 child: BangumiInfoCardV(
-                                  collectController:
-                                      infoController.collectController,
                                   bangumiItem: infoController.bangumiItem,
                                   isLoading: showBangumiInfoSkeleton,
                                   showRating: showRating,
@@ -301,37 +435,25 @@ class _InfoPageState extends State<InfoPage>
           return InfoTabView(
             tabController: infoTabController,
             bangumiItem: infoController.bangumiItem,
-            commentsQueryTimeout:
-                infoController.commentsStatus == InfoLoadStatus.failed,
-            commentsHasLoaded:
-                infoController.commentsStatus == InfoLoadStatus.loaded ||
-                    infoController.commentsList.isNotEmpty,
-            charactersQueryTimeout:
-                infoController.charactersStatus == InfoLoadStatus.failed,
-            charactersIsEmpty:
-                infoController.charactersStatus == InfoLoadStatus.loaded &&
-                    infoController.characterList.isEmpty,
-            staffQueryTimeout:
-                infoController.staffStatus == InfoLoadStatus.failed,
-            staffIsEmpty: infoController.staffStatus == InfoLoadStatus.loaded &&
-                infoController.staffList.isEmpty,
-            loadMoreComments: infoController.loadComments,
-            loadCharacters: infoController.loadCharacters,
-            loadStaff: infoController.loadStaff,
+            commentsQueryTimeout: commentsQueryTimeout,
+            commentsHasLoaded: commentsHasLoaded,
+            charactersQueryTimeout: charactersQueryTimeout,
+            charactersIsEmpty: charactersIsEmpty,
+            staffQueryTimeout: staffQueryTimeout,
+            staffIsEmpty: staffIsEmpty,
+            loadMoreComments: loadMoreComments,
+            loadCharacters: loadCharacters,
+            loadStaff: loadStaff,
             commentsList: infoController.commentsList.toList(growable: false),
-            commentsIsLoading:
-                infoController.commentsStatus == InfoLoadStatus.loading,
+            commentsIsLoading: commentsIsLoading,
             onWriteReview: _openReviewEditor,
             characterList: infoController.characterList,
             staffList: infoController.staffList,
             relationList: infoController.relationList,
-            relationsIsLoading:
-                infoController.relationsStatus == InfoLoadStatus.loading,
-            relationsQueryTimeout:
-                infoController.relationsStatus == InfoLoadStatus.failed,
-            relationsHasLoaded:
-                infoController.relationsStatus == InfoLoadStatus.loaded,
-            loadRelations: infoController.loadRelations,
+            relationsIsLoading: infoController.relationsIsLoading,
+            relationsQueryTimeout: infoController.relationsQueryTimeout,
+            relationsHasLoaded: infoController.relationsHasLoaded,
+            loadRelations: loadRelations,
             isLoading: showBangumiInfoSkeleton,
           );
         }),
@@ -343,9 +465,7 @@ class _InfoPageState extends State<InfoPage>
             context: context,
             maxHeightFactor: 0.88,
             builder: (context) {
-              return SourceSheet(
-                  pluginsController: widget.pluginsController,
-                  infoController: infoController);
+              return SourceSheet(infoController: infoController);
             },
           );
         },

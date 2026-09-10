@@ -61,26 +61,6 @@ class BangumiItem {
     this.interest,
   });
 
-  BangumiItem copy() => BangumiItem(
-        id: id,
-        type: type,
-        name: name,
-        nameCn: nameCn,
-        summary: summary,
-        airDate: airDate,
-        airWeekday: airWeekday,
-        rank: rank,
-        images: images,
-        tags: tags,
-        alias: alias,
-        ratingScore: ratingScore,
-        votes: votes,
-        votesCount: votesCount,
-        info: info,
-        metaTags: metaTags,
-        interest: interest,
-      );
-
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
     List<String> parseBangumiAliases(Map<String, dynamic> jsonData) {
       if (jsonData.containsKey('infobox') && jsonData['infobox'] is List) {

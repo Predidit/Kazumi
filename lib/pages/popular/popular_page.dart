@@ -1,19 +1,18 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:go_router/go_router.dart';
-import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
-import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/bean/widget/custom_dropdown_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
+import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
-import 'package:window_manager/window_manager.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({
@@ -31,6 +30,7 @@ class _PopularPageState extends State<PopularPage> {
   late final ScrollController scrollController;
   PopularController get popularController => widget.controller;
 
+  // Key used to position the dropdown menu for the tag selector
   final GlobalKey selectorKey = GlobalKey();
 
   @override
@@ -105,6 +105,11 @@ class _PopularPageState extends State<PopularPage> {
                             popularController.queryBangumiByTag();
                           }
                         },
+                        onSettingsReturned: () {
+                          if (mounted) {
+                            setState(() {});
+                          }
+                        },
                       ),
                     ),
                   );
@@ -137,8 +142,11 @@ class _PopularPageState extends State<PopularPage> {
       padding: const EdgeInsets.all(8),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          // 行间距
           mainAxisSpacing: StyleString.cardSpace - 2,
+          // 列间距
           crossAxisSpacing: StyleString.cardSpace,
+          // 列数
           crossAxisCount: crossCount,
           mainAxisExtent:
               MediaQuery.of(context).size.width / crossCount / 0.65 +
@@ -177,6 +185,7 @@ class _PopularPageState extends State<PopularPage> {
                   ((constraints.maxHeight - kToolbarHeight) /
                           (maxExtent - kToolbarHeight))
                       .clamp(0.0, 1.0));
+              // 字重收缩后为 w500，展开时为 w700
               final fontWeight = t < 0.5 ? FontWeight.w700 : FontWeight.w500;
               final fontSize = lerpDouble(28, 20, t)!;
               return Align(
@@ -226,14 +235,14 @@ class _PopularPageState extends State<PopularPage> {
       if (MediaQuery.of(context).orientation == Orientation.portrait)
         IconButton(
           tooltip: '搜索',
-          onPressed: () => context.push('/search'),
+          onPressed: () => context.pushNamed('/search/'),
           icon: const Icon(Icons.search),
         ),
     ];
     actions.add(
       IconButton(
         tooltip: '历史记录',
-        onPressed: () => context.push('/settings/history'),
+        onPressed: () => context.pushNamed('/settings/history/'),
         icon: const Icon(Icons.history),
       ),
     );
@@ -252,7 +261,9 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   Future<void> showTagMenu() async {
-    // Anchor the menu without PopupMenuButton's text-size flicker.
+    // Calculate the position of the button manually to position the dropdown menu.
+    // Using CustomDropdownMenu instead of PopupMenuButton to avoid flickering issues
+    // and to support different font sizes in the button and menu items.
     final RenderBox renderBox =
         selectorKey.currentContext!.findRenderObject() as RenderBox;
     final Offset offset = renderBox.localToGlobal(Offset.zero);

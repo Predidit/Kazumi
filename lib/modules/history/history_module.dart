@@ -138,22 +138,6 @@ class History {
   String toString() {
     return 'Adapter: $adapterName, anime: ${bangumiItem.name}';
   }
-
-  History copy() => History(
-        bangumiItem,
-        lastWatchEpisode,
-        adapterName,
-        lastWatchTime,
-        lastSrc,
-        lastWatchEpisodeName,
-        entryKind: entryKind,
-        episodePageUrl: episodePageUrl,
-      )..progresses = {
-          for (final entry in progresses.entries)
-            entry.key: Progress(entry.value.episode, entry.value.road,
-                entry.value.progress.inMilliseconds,
-                updatedAtMs: entry.value.updatedAtMs),
-        };
 }
 
 @HiveType(typeId: 2)

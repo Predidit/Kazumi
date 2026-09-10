@@ -1,43 +1,34 @@
 import 'dart:async';
 import 'dart:io';
-
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/bean/widget/play_pause_icon.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:kazumi/pages/player/player_adjustment_hud.dart';
+import 'package:kazumi/pages/player/danmaku_destination_sheet.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
-import 'package:kazumi/pages/player/danmaku_destination_sheet.dart';
-import 'package:kazumi/pages/player/player_adjustment_hud.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:flutter/services.dart';
 import 'package:kazumi/services/player/remote.dart';
-import 'package:kazumi/services/player/timed_shutdown_service.dart';
+import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
+import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:kazumi/services/player/timed_shutdown_service.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/format.dart';
 
 class PlayerItemPanel extends StatefulWidget {
-  final CollectController collectController;
-  final MyController myController;
-  final DownloadController downloadController;
-
   const PlayerItemPanel({
-    required this.collectController,
-    required this.myController,
-    required this.downloadController,
     super.key,
     required this.playerController,
     required this.videoPageController,
@@ -100,7 +91,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   late final VideoPageController videoPageController =
       widget.videoPageController;
   late final PlayerController playerController;
-  DownloadController get downloadController => widget.downloadController;
+  final DownloadController downloadController = inject<DownloadController>();
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
   PlayerPanelHold? _danmakuTextFieldHold;
@@ -714,7 +705,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 IconButton(
                                   onPressed: () {
                                     showDanmakuSettingsSheet(
-                                      myController: widget.myController,
                                       context: context,
                                       danmakuController: playerController
                                           .danmaku.canvasController,
@@ -752,7 +742,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       IconButton(
                         onPressed: () {
                           showDanmakuSettingsSheet(
-                            myController: widget.myController,
                             context: context,
                             danmakuController:
                                 playerController.danmaku.canvasController,
@@ -1010,7 +999,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   ),
                 ),
               PlayerPanelHoldCollectButton(
-                collectController: widget.collectController,
                 acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                 bangumiItem: videoPageController.bangumiItem,
               ),

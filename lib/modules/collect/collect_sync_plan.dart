@@ -1,17 +1,3 @@
-enum CollectSyncStep { webDav, bangumi, upload }
-
-enum CollectSyncStatus { waiting, running, succeeded, failed, skipped }
-
-class CollectSyncUpdate {
-  const CollectSyncUpdate(this.step, this.status,
-      {this.message, this.progress});
-
-  final CollectSyncStep step;
-  final CollectSyncStatus status;
-  final String? message;
-  final double? progress;
-}
-
 class CollectSyncPlan {
   const CollectSyncPlan({
     required this.webDavEnabled,
@@ -27,13 +13,6 @@ class CollectSyncPlan {
       webDavEnabled && webDavCollectiblesEnabled;
 
   bool get shouldSyncBangumi => bangumiEnabled;
-
-  List<CollectSyncStep> get steps => [
-        if (shouldSyncWebDavCollectibles) CollectSyncStep.webDav,
-        if (shouldSyncBangumi) CollectSyncStep.bangumi,
-        if (shouldSyncWebDavCollectibles && shouldSyncBangumi)
-          CollectSyncStep.upload,
-      ];
 
   bool get canSync => shouldSyncWebDavCollectibles || shouldSyncBangumi;
 

@@ -1,6 +1,5 @@
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
-import 'package:kazumi/utils/async_serial_queue.dart';
 
 class _InteractiveSeekSession {
   _InteractiveSeekSession(this.pauseCompleted, this.target);
@@ -29,7 +28,7 @@ class PlayerSeekController {
   final Future<void> Function({bool enableSync}) _play;
   final Future<void> Function(bool enableSync) _onSeekCompleted;
 
-  final _seeks = AsyncSerialQueue();
+  Future<void> _seekTail = Future<void>.value();
   _InteractiveSeekSession? _interactiveSession;
 
   bool get hasActiveInteractiveSeek => _interactiveSession != null;
@@ -47,7 +46,7 @@ class PlayerSeekController {
     _playback.currentPosition = normalizedTarget;
     _danmaku.clearAndInvalidateScheduledDanmakus();
 
-    return _seeks.run(() async {
+    final operation = _seekTail.then((_) async {
       if (!_playback.isCurrentPlayer(player)) {
         return;
       }
@@ -60,6 +59,8 @@ class PlayerSeekController {
         await _onSeekCompleted(enableSync);
       }
     });
+    _seekTail = _settle(operation);
+    return operation;
   }
 
   Future<void> seekBy(
@@ -137,4 +138,12 @@ class PlayerSeekController {
 
   bool _isCurrent(_InteractiveSeekSession session) =>
       identical(_interactiveSession, session);
+
+  Future<void> _settle(Future<void> operation) async {
+    try {
+      await operation;
+    } catch (_) {
+      // The caller receives the error; the queue only needs to remain usable.
+    }
+  }
 }

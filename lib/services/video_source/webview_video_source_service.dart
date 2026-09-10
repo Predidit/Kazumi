@@ -1,16 +1,20 @@
 import 'dart:async';
 
-import 'package:kazumi/services/video_source/video_source_service.dart';
-import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:kazumi/webview/video/video_webview_controller.dart';
+import 'package:kazumi/services/video_source/video_source_service.dart';
 
+/// WebView 视频源解析服务
+///
+/// 使用 WebView 解析视频页面，提取视频源 URL。
+/// WebView 实例在服务生命周期内复用，切换集数时调用 unloadPage 释放页面资源，
+/// 仅在 [dispose] 时才真正销毁 WebView。
 class WebViewVideoSourceService implements IVideoSourceService {
   VideoWebviewController? _webview;
   StreamSubscription? _logSubscription;
 
-  // Each service serializes access to its reusable WebView.
-  final _resolves = AsyncSerialQueue();
-  Future<void>? _disposeFuture;
+  // 单个服务实例持有一个 WebView，因此解析任务按实例串行执行。
+  // 下载并行通过多个服务实例实现。
+  Future<void>? _resolveTail = Future<void>.value();
   _ResolveRequest? _activeRequest;
 
   final StreamController<String> _logController =
@@ -24,7 +28,8 @@ class WebViewVideoSourceService implements IVideoSourceService {
     int offset = 0,
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    if (_disposeFuture != null) {
+    final resolveTail = _resolveTail;
+    if (resolveTail == null) {
       throw const VideoSourceCancelledException();
     }
 
@@ -32,8 +37,8 @@ class WebViewVideoSourceService implements IVideoSourceService {
     final request = _ResolveRequest();
     _activeRequest = request;
 
-    return _resolves.run(
-      () => _runResolve(
+    final resolveFuture = resolveTail.then(
+      (_) => _runResolve(
         request,
         episodeUrl,
         useLegacyParser: useLegacyParser,
@@ -41,6 +46,9 @@ class WebViewVideoSourceService implements IVideoSourceService {
         timeout: timeout,
       ),
     );
+
+    _resolveTail = resolveFuture.then<void>((_) {}, onError: (_) {});
+    return resolveFuture;
   }
 
   Future<VideoSource> _runResolve(
@@ -117,19 +125,19 @@ class WebViewVideoSourceService implements IVideoSourceService {
   }
 
   @override
-  Future<void> dispose() => _disposeFuture ??= _dispose();
-
-  Future<void> _dispose() {
+  Future<void> dispose() async {
+    final resolveTail = _resolveTail;
+    _resolveTail = null;
     cancel();
-    // Release the WebView only after every queued request has settled.
-    return _resolves.run(() async {
-      _activeRequest = null;
-      await _logSubscription?.cancel();
-      _logSubscription = null;
+    await resolveTail;
+    _activeRequest = null;
+    await _logSubscription?.cancel();
+    _logSubscription = null;
+    if (!_logController.isClosed) {
       await _logController.close();
-      await _webview?.dispose();
-      _webview = null;
-    });
+    }
+    await _webview?.dispose();
+    _webview = null;
   }
 }
 

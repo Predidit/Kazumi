@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/routing/media_location.dart';
 import 'package:kazumi/utils/device.dart';
 
+// 视频卡片 - 垂直布局
 class BangumiCardV extends StatelessWidget {
   const BangumiCardV({
     super.key,
@@ -33,7 +33,7 @@ class BangumiCardV extends StatelessWidget {
               );
               return;
             }
-            context.push(infoLocation(bangumiItem.id), extra: bangumiItem);
+            context.pushNamed('/info/', arguments: bangumiItem);
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

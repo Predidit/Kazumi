@@ -1,56 +1,47 @@
 import 'dart:async';
 import 'dart:io';
-
-import 'package:canvas_danmaku/canvas_danmaku.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
-import 'package:kazumi/modules/danmaku/danmaku_module.dart';
-import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
-import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
-import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:kazumi/pages/player/player_keyboard_shortcuts.dart';
+import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/player_pointer_interaction.dart';
 import 'package:kazumi/pages/player/player_screenshot_feedback_overlay.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/pages/player/syncplay_sheet.dart';
-import 'package:kazumi/pages/player/video_details_sheet.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/request/apis/danmaku_api.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/sync/webdav.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:canvas_danmaku/canvas_danmaku.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/player/video_details_sheet.dart';
+import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/request/apis/danmaku_api.dart';
+import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
+import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
+import 'package:kazumi/modules/danmaku/danmaku_module.dart';
+import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
+import 'package:kazumi/pages/player/player_item_surface.dart';
+import 'package:mobx/mobx.dart' as mobx;
+import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:saver_gallery/saver_gallery.dart';
+import 'package:kazumi/services/player/audio_controller.dart';
+import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
 import 'package:kazumi/services/platform/player_menu_service.dart';
-import 'package:kazumi/services/player/audio_controller.dart';
-import 'package:kazumi/services/player/pip_utils.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/sync/webdav.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/device.dart';
-import 'package:mobx/mobx.dart' as mobx;
-import 'package:saver_gallery/saver_gallery.dart';
-import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
-import 'package:window_manager/window_manager.dart';
 
 class PlayerItem extends StatefulWidget {
-  final CollectController collectController;
-  final MyController myController;
-  final DownloadController downloadController;
-
   const PlayerItem({
-    required this.collectController,
-    required this.myController,
-    required this.downloadController,
     super.key,
     required this.playerController,
     required this.videoPageController,
@@ -89,9 +80,8 @@ class _PlayerItemState extends State<PlayerItem>
   late final PlayerController playerController;
   late final VideoPageController videoPageController =
       widget.videoPageController;
-  HistoryController get historyController =>
-      videoPageController.historyController;
-  MyController get myController => widget.myController;
+  final HistoryController historyController = inject<HistoryController>();
+  final MyController myController = inject<MyController>();
   AudioController get _audioController => playerController.audioController;
   late final Map<String, PlayerShortcutAction> keyboardActions;
   late final Map<String, PlayerLongPressShortcutActions>
@@ -124,6 +114,7 @@ class _PlayerItemState extends State<PlayerItem>
   late bool backgroundPlayback;
   late bool brightnessVolumeGesture;
 
+  // Auto-hide delay in milliseconds.
   late int playerControllerLayerDisappearTime;
 
   Timer? hideTimer;
@@ -1126,16 +1117,11 @@ class _PlayerItemState extends State<PlayerItem>
           !videoPageController.loading &&
           historyIdentity != null &&
           historyIdentity.canRecord) {
-        unawaited(historyController
-            .updateHistory(
+        historyController.updateHistory(
           historyIdentity,
           playerController.playback.playerPosition,
           duration: playerController.playback.playerDuration,
-        )
-            .catchError((Object error, StackTrace stackTrace) {
-          KazumiLogger().e('Player: failed to save history',
-              error: error, stackTrace: stackTrace);
-        }));
+        );
       }
       final playingSelection = videoPageController.playbackEpisode;
       final playingRoadData =
@@ -1404,6 +1390,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   void dispose() {
+    // The route-scoped PlayerController owns playback disposal.
     _fullscreenListener();
     _playerSizeListener();
     WidgetsBinding.instance.removeObserver(this);
@@ -1584,9 +1571,6 @@ class _PlayerItemState extends State<PlayerItem>
                         ? const SizedBox.shrink()
                         : (_needsFullPanel(context))
                             ? PlayerItemPanel(
-                                collectController: widget.collectController,
-                                myController: myController,
-                                downloadController: widget.downloadController,
                                 playerController: playerController,
                                 videoPageController: videoPageController,
                                 onBackPressed: widget.onBackPressed,
@@ -1618,8 +1602,6 @@ class _PlayerItemState extends State<PlayerItem>
                                 skipOP: skipOP,
                               )
                             : SmallestPlayerItemPanel(
-                                collectController: widget.collectController,
-                                myController: myController,
                                 playerController: playerController,
                                 videoPageController: videoPageController,
                                 onBackPressed: widget.onBackPressed,

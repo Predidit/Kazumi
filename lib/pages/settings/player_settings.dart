@@ -1,16 +1,15 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
-import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/settings/low_memory_mode_settings.dart';
-import 'package:kazumi/services/player/pip_utils.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/utils/device.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
@@ -264,7 +263,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
               SettingsTile(
                 leading: Icons.developer_board_rounded,
                 onPressed: (_) async {
-                  await context.push('/settings/player/decoder');
+                  await context.pushNamed('/settings/player/decoder');
                 },
                 title: Text('硬件解码器'),
                 description: Text('仅在硬件解码启用时生效'),
@@ -273,7 +272,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 SettingsTile(
                   leading: Icons.tv_rounded,
                   onPressed: (_) async {
-                    await context.push('/settings/player/renderer');
+                    await context.pushNamed('/settings/player/renderer');
                   },
                   title: Text('视频渲染器'),
                   description: Text('选择视频输出方式'),
@@ -298,7 +297,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
               SettingsTile(
                 leading: Icons.auto_awesome_rounded,
                 onPressed: (_) async {
-                  context.push('/settings/player/super');
+                  context.pushNamed('/settings/player/super');
                 },
                 title: Text('超分辨率'),
               ),

@@ -1,113 +1,206 @@
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/collect/collect_activity.dart';
-import 'package:kazumi/modules/collect/collect_change_module.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
-import 'package:kazumi/services/storage/collect_transactions.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
+/// 收藏数据访问接口
+///
+/// 提供收藏相关的数据访问抽象，解耦业务逻辑与数据存储
 abstract class ICollectRepository {
-  Stream<void> get changes;
-  List<CollectedBangumi> getAllCollectibles();
-  CollectedBangumi? getCollectible(int id);
-  Future<int> getCollectType(int id);
-  Future<void> addCollectible(BangumiItem bangumiItem, int type);
-  Future<void> updateCollectible(BangumiItem bangumiItem);
-  Future<void> deleteCollectible(int id);
-  List<BangumiItem> getFavorites();
-  Future<void> clearFavorites();
-  CollectActivity get activity;
-  Stream<CollectActivity> get activityChanges;
-  Future<T> transaction<T>(Future<T> Function() action,
-      {int? itemId, bool sync = false});
-  Future<List<CollectedBangumi>> readForSync();
-  Future<void> putSyncedCollectible(CollectedBangumi item);
-  Future<void> mergeSyncFiles({String? itemsPath, String? changesPath});
-  Future<Map<String, List<int>>> exportSyncFiles();
-
+  /// 根据收藏类型获取番剧ID集合
+  ///
+  /// [type] 收藏类型
+  /// 返回符合条件的番剧ID集合
   Set<int> getBangumiIdsByType(CollectType type);
+
+  /// 批量获取多种类型的番剧ID集合
+  ///
+  /// [types] 收藏类型列表
+  /// 返回符合条件的番剧ID集合（并集）
+  Set<int> getBangumiIdsByTypes(List<CollectType> types);
+
+  // ========== 搜索页过滤器设置 ==========
+
+  /// 获取搜索页"不显示已看过番剧"设置
+
+  /// 更新搜索页"不显示已看过番剧"设置
+
+  /// 获取搜索页"不显示已抛弃番剧"设置
+
+  /// 更新搜索页"不显示已抛弃番剧"设置
+
+  // ========== 时间表页过滤器设置 ==========
+
+  /// 获取时间表页"不显示已抛弃番剧"设置
+  bool getTimelineNotShowAbandonedBangumis();
+
+  /// 更新时间表页"不显示已抛弃番剧"设置
+  Future<void> updateTimelineNotShowAbandonedBangumis(bool value);
+
+  /// 获取时间表页"不显示已看过番剧"设置
+  bool getTimelineNotShowWatchedBangumis();
+
+  /// 更新时间表页"不显示已看过番剧"设置
+  Future<void> updateTimelineNotShowWatchedBangumis(bool value);
+
+  /// 获取时间表页"只显示在看的番剧"设置
+  bool getTimelineOnlyShowWatchingBangumis();
+
+  /// 更新时间表页"只显示在看的番剧"设置
+  Future<void> updateTimelineOnlyShowWatchingBangumis(bool value);
+
+  // ========== 其他设置 ==========
+
+  /// 获取隐私模式设置
+  bool getPrivateMode();
 }
 
+/// 收藏数据访问实现类
+///
+/// 基于Hive实现的收藏数据访问层
 class CollectRepository implements ICollectRepository {
-  final _storage = GStorage.collection;
-  final _favorites = GStorage.favorites;
+  final _collectiblesBox = GStorage.collectibles;
 
   @override
-  Stream<void> get changes => _storage.changes;
-
-  @override
-  List<CollectedBangumi> getAllCollectibles() => _storage.snapshot;
-
-  @override
-  CollectedBangumi? getCollectible(int id) {
-    for (final item in _storage.snapshot) {
-      if (item.bangumiItem.id == id) return item;
-    }
-    return null;
-  }
-
-  @override
-  Future<int> getCollectType(int id) => _storage.readType(id);
-
-  @override
-  Future<void> addCollectible(BangumiItem bangumiItem, int type) =>
-      _storage.put(CollectedBangumi(bangumiItem, DateTime.now(), type));
-
-  @override
-  Future<void> updateCollectible(BangumiItem bangumiItem) =>
-      _storage.updateMetadata(bangumiItem);
-
-  @override
-  Future<void> deleteCollectible(int id) => _storage.delete(id);
-
-  @override
-  List<BangumiItem> getFavorites() => _favorites.values.toList();
-
-  @override
-  Future<void> clearFavorites() async {
-    await _favorites.clear();
-    await _favorites.flush();
-  }
-
-  final _transactions = CollectTransactions();
-
-  @override
-  CollectActivity get activity => _transactions.activity;
-
-  @override
-  Stream<CollectActivity> get activityChanges => _transactions.activityChanges;
-
-  @override
-  Future<T> transaction<T>(Future<T> Function() action,
-          {int? itemId, bool sync = false}) =>
-      _transactions.run(action, itemId: itemId, sync: sync);
-
-  @override
-  Future<List<CollectedBangumi>> readForSync() => _storage.read();
-
-  @override
-  Future<void> putSyncedCollectible(CollectedBangumi item) =>
-      _storage.put(item);
-
-  @override
-  Future<void> mergeSyncFiles({String? itemsPath, String? changesPath}) async {
-    final items = itemsPath == null
-        ? <CollectedBangumi>[]
-        : await GStorage.getCollectiblesFromFile(itemsPath);
-    final changes = changesPath == null
-        ? <CollectedBangumiChange>[]
-        : await GStorage.getCollectChangesFromFile(changesPath);
-    if (items.isNotEmpty || changes.isNotEmpty) {
-      await _storage.merge(items, changes);
+  Set<int> getBangumiIdsByType(CollectType type) {
+    try {
+      return _collectiblesBox.values
+          .where((item) => item.type == type.value)
+          .map<int>((item) => item.bangumiItem.id)
+          .toSet();
+    } catch (e) {
+      KazumiLogger().w(
+        'GStorage: get bangumi IDs by type failed. type=${type.label}',
+        error: e,
+      );
+      return <int>{};
     }
   }
 
   @override
-  Future<Map<String, List<int>>> exportSyncFiles() => _storage.exportFiles();
+  Set<int> getBangumiIdsByTypes(List<CollectType> types) {
+    try {
+      final typeValues = types.map((t) => t.value).toSet();
+      return _collectiblesBox.values
+          .where((item) => typeValues.contains(item.type))
+          .map<int>((item) => item.bangumiItem.id)
+          .toSet();
+    } catch (e) {
+      KazumiLogger().w(
+        'GStorage: get bangumi IDs by types failed. types=${types.map((t) => t.label).join(", ")}',
+        error: e,
+      );
+      return <int>{};
+    }
+  }
+
+  // ========== 搜索页过滤器设置实现 ==========
+
+  // ========== 时间表页过滤器设置实现 ==========
 
   @override
-  Set<int> getBangumiIdsByType(CollectType type) => _storage.snapshot
-      .where((item) => item.type == type.value)
-      .map((item) => item.bangumiItem.id)
-      .toSet();
+  bool getTimelineNotShowAbandonedBangumis() {
+    try {
+      final value =
+          GStorage.getSetting(SettingsKeys.timelineNotShowAbandonedBangumis);
+      return value;
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: get timeline not show abandoned bangumis setting failed, using default false',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
+  @override
+  Future<void> updateTimelineNotShowAbandonedBangumis(bool value) async {
+    try {
+      await GStorage.putSetting(
+          SettingsKeys.timelineNotShowAbandonedBangumis, value);
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: update timeline not show abandoned bangumis setting failed. value=$value',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  @override
+  bool getTimelineNotShowWatchedBangumis() {
+    try {
+      final value =
+          GStorage.getSetting(SettingsKeys.timelineNotShowWatchedBangumis);
+      return value;
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: get timeline not show watched bangumis setting failed, using default false',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
+  @override
+  Future<void> updateTimelineNotShowWatchedBangumis(bool value) async {
+    try {
+      await GStorage.putSetting(
+          SettingsKeys.timelineNotShowWatchedBangumis, value);
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: update timeline not show watched bangumis setting failed. value=$value',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  @override
+  bool getTimelineOnlyShowWatchingBangumis() {
+    try {
+      final value =
+          GStorage.getSetting(SettingsKeys.timelineOnlyShowWatchingBangumis);
+      return value;
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: get timeline only show watching bangumis setting failed, using default false',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
+  @override
+  Future<void> updateTimelineOnlyShowWatchingBangumis(bool value) async {
+    try {
+      await GStorage.putSetting(
+          SettingsKeys.timelineOnlyShowWatchingBangumis, value);
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: update timeline only show watching bangumis setting failed. value=$value',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  // ========== 其他设置实现 ==========
+
+  @override
+  bool getPrivateMode() {
+    try {
+      final value = GStorage.getSetting(SettingsKeys.privateMode);
+      return value;
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: get private mode setting failed, using default false',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
 }

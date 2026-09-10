@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
 
 /// A one-shot lease that keeps the player panel visible until released.
 class PlayerPanelHold {
@@ -25,7 +24,8 @@ class PlayerPanelHold {
   }
 }
 
-/// Releases the panel hold when the hover/menu widget unmounts.
+/// Binds a hover/menu widget lifecycle to a panel hold so callers do not manage
+/// counters or menu identities by hand.
 class PlayerPanelHoldMouseRegion extends StatefulWidget {
   const PlayerPanelHoldMouseRegion({
     super.key,
@@ -145,10 +145,7 @@ class _PlayerPanelHoldMenuAnchorState extends State<PlayerPanelHoldMenuAnchor> {
 }
 
 class PlayerPanelHoldCollectButton extends StatefulWidget {
-  final CollectController collectController;
-
   const PlayerPanelHoldCollectButton({
-    required this.collectController,
     super.key,
     required this.acquirePlayerPanelHold,
     required this.bangumiItem,
@@ -189,7 +186,6 @@ class _PlayerPanelHoldCollectButtonState
   @override
   Widget build(BuildContext context) {
     return CollectButton(
-      controller: widget.collectController,
       bangumiItem: widget.bangumiItem,
       color: widget.color,
       onOpen: _acquireHold,

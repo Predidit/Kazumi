@@ -116,7 +116,7 @@ packages:
     source: hosted
     version: "2.0.3"
   auto_injector:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: auto_injector
       sha256: "81815294ad9a512e294d97819bdbeccc7f93f18daeceac321e0c046a6f25eeb1"
@@ -582,6 +582,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
+  flutter_modular:
+    dependency: "direct main"
+    description:
+      name: flutter_modular
+      sha256: "04b924a79e17ec897aa40886a46f27954ee0194e4601a006bdba3cb2be65e180"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.1.0"
   flutter_native_splash:
     dependency: "direct dev"
     description:
@@ -648,14 +656,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.3"
-  go_router:
-    dependency: "direct main"
-    description:
-      name: go_router
-      sha256: d7a3576cb312649eaa51f2356450aed686085fb58fcdebda5b359aa951eef7ea
-      url: "https://pub.dev"
-    source: hosted
-    version: "17.5.0"
   graphs:
     dependency: transitive
     description:

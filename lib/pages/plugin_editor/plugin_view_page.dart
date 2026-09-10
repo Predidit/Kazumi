@@ -6,12 +6,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/pages/plugin_editor/rule_dialogs.dart';
@@ -78,9 +78,10 @@ class _PluginViewPageState extends State<PluginViewPage> {
     if (!mounted || source == null) return;
     switch (source) {
       case RuleAddSource.catalog:
-        context.push('/settings/plugin/shop');
+        context.pushNamed('/settings/plugin/shop');
       case RuleAddSource.create:
-        context.push('/settings/plugin/editor', extra: Plugin.fromTemplate());
+        context.pushNamed('/settings/plugin/editor',
+            arguments: Plugin.fromTemplate());
       case RuleAddSource.clipboard:
         String? initialValue;
         try {
@@ -267,7 +268,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                 style: FilledButton.styleFrom(
                                     minimumSize: const Size(120, 48)),
                                 onPressed: () =>
-                                    context.push('/settings/plugin/shop'),
+                                    context.pushNamed('/settings/plugin/shop'),
                                 icon: const Icon(Icons.travel_explore_rounded),
                                 label: const Text('规则仓库')),
                           ],
@@ -355,8 +356,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                             actions: [
                               if (all.isEmpty)
                                 StateActionButton.tonal(
-                                    onPressed: () =>
-                                        context.push('/settings/plugin/shop'),
+                                    onPressed: () => context
+                                        .pushNamed('/settings/plugin/shop'),
                                     icon: Icons.travel_explore_rounded,
                                     text: '浏览规则仓库')
                               else
@@ -386,8 +387,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           if (_selecting) {
                             _toggleSelection(plugin.name);
                           } else {
-                            context.push('/settings/plugin/editor',
-                                extra: plugin);
+                            context.pushNamed('/settings/plugin/editor',
+                                arguments: plugin);
                           }
                         },
                         onLongPress: () => setState(() {
@@ -460,13 +461,13 @@ class _PluginViewPageState extends State<PluginViewPage> {
         menuChildren: [
           MenuItemButton(
               leadingIcon: const Icon(Icons.edit_outlined),
-              onPressed: () =>
-                  context.push('/settings/plugin/editor', extra: plugin),
+              onPressed: () => context.pushNamed('/settings/plugin/editor',
+                  arguments: plugin),
               child: const Text('编辑规则')),
           MenuItemButton(
               leadingIcon: const Icon(Icons.bug_report_outlined),
               onPressed: () =>
-                  context.push('/settings/plugin/test', extra: plugin),
+                  context.pushNamed('/settings/plugin/test', arguments: plugin),
               child: const Text('测试规则')),
           MenuItemButton(
               leadingIcon: const Icon(Icons.sync_rounded),

@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:mobx/mobx.dart' as mobx;
+import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
+import 'package:window_manager/window_manager.dart';
+
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -11,10 +15,9 @@ import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/media_error_widget.dart';
 import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
-import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/player/player_item.dart';
@@ -27,27 +30,21 @@ import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
-import 'package:mobx/mobx.dart' as mobx;
-import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
-import 'package:window_manager/window_manager.dart';
 
 class VideoPage extends StatefulWidget {
-  final CollectController collectController;
-  final MyController myController;
-
   const VideoPage({
-    required this.collectController,
-    required this.myController,
     super.key,
     required this.args,
     required this.playerController,
     required this.videoPageController,
+    required this.historyController,
     required this.downloadController,
   });
 
   final VideoPlaybackArgs args;
   final PlayerController playerController;
   final VideoPageController videoPageController;
+  final HistoryController historyController;
   final DownloadController downloadController;
 
   @override
@@ -60,6 +57,7 @@ class _VideoPageState extends State<VideoPage>
   VideoPageController get videoPageController => widget.videoPageController;
   bool _didInitializePlayback = false;
   bool _isClosing = false;
+  HistoryController get historyController => widget.historyController;
   DownloadController get downloadController => widget.downloadController;
   late bool playResume;
   bool showDebugLog = false;
@@ -204,19 +202,10 @@ class _VideoPageState extends State<VideoPage>
   void _initOnlineMode() {
     videoPageController.historyOffset = 0;
 
-    final progress = videoPageController.historyController.lastWatching(
+    var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
-    final args = widget.args as OnlineVideoPlaybackArgs;
-    if (args.episode != null && args.road != null) {
-      videoPageController.resetEpisodeState(
-          episode: args.episode!, road: args.road!);
-      if (playResume &&
-          progress?.episode == args.episode &&
-          progress?.road == args.road) {
-        videoPageController.historyOffset = progress!.progress.inSeconds;
-      }
-    } else if (progress != null) {
+    if (progress != null) {
       if (videoPageController.roadList.length > progress.road) {
         if (videoPageController.roadList[progress.road].data.length >=
             progress.episode) {
@@ -268,6 +257,7 @@ class _VideoPageState extends State<VideoPage>
       _logSubscription?.cancel();
     } catch (_) {}
     _pipModeListener();
+    // Modular disposes the controller and its log subscription with the route.
     if (!isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
@@ -446,11 +436,7 @@ class _VideoPageState extends State<VideoPage>
     if (!context.mounted) {
       return;
     }
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go('/tab/popular');
-    }
+    context.pop();
   }
 
   void pauseForTimedShutdown() {
@@ -704,9 +690,6 @@ class _VideoPageState extends State<VideoPage>
           child: playerController.playback.loading
               ? Container()
               : PlayerItem(
-                  collectController: widget.collectController,
-                  myController: widget.myController,
-                  downloadController: downloadController,
                   playerController: playerController,
                   videoPageController: videoPageController,
                   toggleMenu: _toggleTabBodyAnimated,
@@ -769,7 +752,6 @@ class _VideoPageState extends State<VideoPage>
           onDownload: (road) => showAdaptiveBottomSheet<void>(
             context: context,
             builder: (context) => DownloadEpisodeSheet(
-              downloadController: downloadController,
               road: road,
               videoPageController: videoPageController,
             ),

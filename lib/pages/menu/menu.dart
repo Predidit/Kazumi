@@ -1,29 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/menu/route_visibility.dart';
-import 'package:kazumi/pages/menu/tab_locations.dart';
+import 'package:kazumi/pages/router.dart';
 
 class ScaffoldMenu extends StatefulWidget {
-  const ScaffoldMenu({
-    super.key,
-    required this.selectedIndex,
-    required this.child,
-  });
-
-  final int selectedIndex;
-  final Widget child;
+  const ScaffoldMenu({super.key});
 
   @override
   State<ScaffoldMenu> createState() => _ScaffoldMenu();
 }
 
 class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
+  final _outletKey = GlobalKey<RouterOutletState>();
   DateTime? _lastExitPromptAt;
 
+  /// The shell sits at the bottom of the root stack and stays mounted while
+  /// other pages cover it, so it publishes that state for its subtree.
   bool _isCovered = false;
 
   @override
@@ -56,14 +52,23 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
 
   void _selectDestination(int index) {
     _lastExitPromptAt = null;
-    if (index == widget.selectedIndex) {
+    final currentIndex =
+        menu.indexForPath(context.routeState(listen: false).uri.path);
+    if (index == currentIndex) {
       return;
     }
-    context.go(tabLocations[index]);
+    _outletKey.currentState?.navigate('/tab${menu.getPath(index)}/');
   }
 
   void _handleSystemBack(BuildContext context) {
-    if (widget.selectedIndex != 0) {
+    if (_outletKey.currentState?.maybePop() ?? false) {
+      _lastExitPromptAt = null;
+      return;
+    }
+
+    final currentIndex =
+        menu.indexForPath(context.routeState(listen: false).uri.path);
+    if (currentIndex != 0) {
       _selectDestination(0);
       return;
     }
@@ -83,7 +88,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    final selectedIndex = widget.selectedIndex;
+    final selectedIndex = menu.indexForPath(context.routeState().uri.path);
     return RouteVisibility(
       isCovered: _isCovered,
       child: PopScope(
@@ -108,7 +113,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
     Widget child = NotificationListener<NavigationNotification>(
       // A non-poppable outlet must not override the shell's PopScope state.
       onNotification: (notification) => !notification.canHandlePop,
-      child: widget.child,
+      child: RouterOutlet(key: _outletKey),
     );
     if (borderRadius != null) {
       child = ClipRRect(borderRadius: borderRadius, child: child);
@@ -170,7 +175,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
               leading: FloatingActionButton(
                 elevation: 0,
                 heroTag: null,
-                onPressed: () => context.push('/search'),
+                onPressed: () => context.pushNamed('/search/'),
                 child: const Icon(Icons.search),
               ),
               labelType: NavigationRailLabelType.selected,

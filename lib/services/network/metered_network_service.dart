@@ -3,14 +3,13 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/utils/async_session.dart';
 
 class MeteredNetworkService {
   MeteredNetworkService._();
 
   static final ValueNotifier<bool> _metered = ValueNotifier<bool>(false);
   static StreamSubscription<List<ConnectivityResult>>? _subscription;
-  static final _queries = AsyncSessionOwner();
+  static int _revision = 0;
 
   static bool get _supported =>
       defaultTargetPlatform == TargetPlatform.android ||
@@ -22,16 +21,16 @@ class MeteredNetworkService {
 
   static Future<void> refresh() async {
     if (!_supported) return;
-    final query = _queries.begin();
+    final revision = ++_revision;
     try {
       // Reset event deduplication after missed background network changes.
       final previous = _subscription;
       _subscription = null;
       await previous?.cancel();
-      if (query.isStale) return;
+      if (revision != _revision) return;
       _subscription = Connectivity().onConnectivityChanged.listen(
         (results) {
-          _queries.cancel();
+          _revision++;
           _apply(results);
         },
         onError: (Object error) {
@@ -42,7 +41,7 @@ class MeteredNetworkService {
           .checkConnectivity()
           .timeout(const Duration(seconds: 3));
       // Discard queries superseded by a refresh or a network event.
-      if (query.isActive) {
+      if (revision == _revision) {
         _apply(results);
       }
     } catch (error) {

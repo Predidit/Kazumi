@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
@@ -101,7 +102,8 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
                     leading: Icons.receipt_long_rounded,
                     title: const Text('错误日志'),
                     trailing: const Icon(Icons.chevron_right_rounded),
-                    onPressed: (_) => context.push('/settings/storage/logs'),
+                    onPressed: (_) =>
+                        context.pushNamed('/settings/storage/logs'),
                   ),
                 ],
               ),

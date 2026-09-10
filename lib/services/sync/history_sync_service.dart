@@ -3,10 +3,14 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/history_storage_coordinator.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
-import 'package:path_provider/path_provider.dart';
 
 class HistorySyncService {
   static const int checkpointLogThresholdBytes = 1024 * 1024;
@@ -26,7 +30,57 @@ class HistorySyncService {
 
   final Future<Directory> Function() _applicationSupportDirectoryProvider;
   final AsyncSerialQueue _localLogQueue = AsyncSerialQueue();
+  final AsyncSerialQueue _sequenceQueue = AsyncSerialQueue();
   int _captureSequence = 0;
+
+  Future<String> getDeviceId() async {
+    return _sequenceQueue.run(() async {
+      final existing = GStorage.getSetting(SettingsKeys.historySyncDeviceId);
+      if (existing.isNotEmpty) {
+        return existing;
+      }
+      final deviceId = HistorySyncDevice.generateDeviceId();
+      await GStorage.putSetting(SettingsKeys.historySyncDeviceId, deviceId);
+      return deviceId;
+    });
+  }
+
+  Future<void> appendUpsertProgress({
+    required History history,
+    required int episode,
+    required int road,
+    required int progressMs,
+    int? updatedAt,
+  }) async {
+    final deviceId = await getDeviceId();
+    final effectiveUpdatedAt =
+        updatedAt ?? history.lastWatchTime.millisecondsSinceEpoch;
+    final progressSeq = await _nextSeq();
+    final watchStateSeq = await _nextSeq();
+    final events = [
+      HistorySyncEvent.upsertProgress(
+        deviceId: deviceId,
+        seq: progressSeq,
+        history: history,
+        episode: episode,
+        road: road,
+        progressMs: progressMs,
+        updatedAt: effectiveUpdatedAt,
+      ),
+      HistorySyncEvent.upsertWatchState(
+        deviceId: deviceId,
+        seq: watchStateSeq,
+        history: history,
+        episode: episode,
+        updatedAt: effectiveUpdatedAt,
+      ),
+    ];
+    await appendEvents(events);
+  }
+
+  Future<void> appendEvent(HistorySyncEvent event) async {
+    await appendEvents([event]);
+  }
 
   Future<void> appendEvents(Iterable<HistorySyncEvent> events) async {
     final content = HistorySyncCodec.eventsToJsonLines(events);
@@ -37,14 +91,128 @@ class HistorySyncService {
       final file = await localChangeLogFile();
       await file.parent.create(recursive: true);
       await file.writeAsString(
-        '\n$content',
+        content,
         mode: FileMode.append,
         flush: true,
       );
     });
   }
 
-  // Rotation preserves concurrent appends until the remote checkpoint commits.
+  Future<void> appendDeleteHistory(History history) async {
+    final event = HistorySyncEvent.deleteHistory(
+      deviceId: await getDeviceId(),
+      seq: await _nextSeq(),
+      entityKey: history.key,
+      updatedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+    await appendEvent(event);
+  }
+
+  Future<void> appendClearAll() async {
+    final event = HistorySyncEvent.clearAll(
+      deviceId: await getDeviceId(),
+      seq: await _nextSeq(),
+      updatedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+    await appendEvent(event);
+  }
+
+  Future<HistorySyncSnapshot> buildSnapshotFromLocal() {
+    return HistoryStorageCoordinator().run(() async {
+      return HistorySyncSnapshot.fromHistories(
+        GStorage.histories.values.toList(),
+      );
+    });
+  }
+
+  Future<List<HistorySyncEvent>> buildLocalStateEvents() {
+    return HistoryStorageCoordinator().run(() async {
+      return buildStateEventsFromHistories(GStorage.histories.values);
+    });
+  }
+
+  static List<HistorySyncEvent> buildStateEventsFromHistories(
+    Iterable<History> histories,
+  ) {
+    final events = <HistorySyncEvent>[];
+    for (final history in histories) {
+      history.entryKind = HistoryEntryKind.normalize(history.entryKind);
+      for (final progress in history.progresses.values) {
+        final updatedAt = progress.effectiveUpdatedAtMs(history.lastWatchTime);
+        events.add(
+          HistorySyncEvent(
+            eventId:
+                'local-state:${history.key}:${progress.episode}:${progress.road}',
+            deviceId: 'local-state',
+            seq: 0,
+            op: HistorySyncOp.upsertProgress,
+            updatedAt: updatedAt,
+            entityKey: history.key,
+            bangumiItem: history.bangumiItem,
+            adapterName: history.adapterName,
+            episode: progress.episode,
+            road: progress.road,
+            progressMs: progress.progress.inMilliseconds,
+            lastSrc: history.lastSrc,
+            lastWatchEpisodeName: history.lastWatchEpisodeName,
+            entryKind: history.entryKind,
+            episodePageUrl: history.episodePageUrl,
+          ),
+        );
+      }
+      events.add(
+        HistorySyncEvent(
+          eventId: 'local-state:${history.key}:watch-state',
+          deviceId: 'local-state',
+          seq: 0,
+          op: HistorySyncOp.upsertWatchState,
+          updatedAt: history.lastWatchTime.millisecondsSinceEpoch,
+          entityKey: history.key,
+          bangumiItem: history.bangumiItem,
+          adapterName: history.adapterName,
+          episode: history.lastWatchEpisode,
+          lastSrc: history.lastSrc,
+          lastWatchEpisodeName: history.lastWatchEpisodeName,
+          entryKind: history.entryKind,
+          episodePageUrl: history.episodePageUrl,
+          carriesWatchState: true,
+        ),
+      );
+    }
+    return events;
+  }
+
+  Future<HistorySyncSnapshot> reconcileAndApplySnapshot(
+    HistorySyncSnapshot snapshot,
+  ) {
+    return HistoryStorageCoordinator().run(() async {
+      final reconciled = HistorySyncMerger.merge(
+        snapshot: snapshot,
+        events: buildStateEventsFromHistories(GStorage.histories.values),
+      );
+      await _applySnapshotToLocal(reconciled);
+      return reconciled;
+    });
+  }
+
+  Future<void> _applySnapshotToLocal(HistorySyncSnapshot snapshot) async {
+    final historiesByKey = {
+      for (final history in snapshot.histories) history.key: history,
+    };
+    final staleKeys = GStorage.histories.keys
+        .where((key) => !historiesByKey.containsKey(key))
+        .toList();
+
+    if (historiesByKey.isNotEmpty) {
+      await GStorage.histories.putAll(historiesByKey);
+    }
+    if (staleKeys.isNotEmpty) {
+      await GStorage.histories.deleteAll(staleKeys);
+    }
+    await GStorage.histories.flush();
+  }
+
+  /// Rotate active logs for concurrent appends; retain pending files until sync commits.
   Future<HistorySyncLogBatch> prepareLocalLogs({
     required Directory runDirectory,
     required bool forceCheckpoint,
@@ -99,6 +267,7 @@ class HistorySyncService {
     });
   }
 
+  /// Sanitize the upload and active log so corrupt lines do not keep propagating.
   Future<File?> copyActiveLogForUpload(Directory runDirectory) {
     return _localLogQueue.run(() async {
       final activeFile = await localChangeLogFile();
@@ -128,7 +297,7 @@ class HistorySyncService {
     });
   }
 
-  // The log queue prevents appends during replacement.
+  /// Requires [_localLogQueue] to prevent appends during replacement.
   Future<void> _repairActiveLog(File activeFile, File sanitizedFile) async {
     try {
       final tempFile = File('${activeFile.path}.repair');
@@ -165,6 +334,7 @@ class HistorySyncService {
     return HistorySyncSnapshot.fromJson(json);
   }
 
+  /// Optionally skip malformed lines while logging each failure.
   Future<HistorySyncSnapshot> mergeEventFiles({
     required HistorySyncSnapshot snapshot,
     required Iterable<File> eventFiles,
@@ -190,7 +360,7 @@ class HistorySyncService {
     );
   }
 
-  // Reject malformed remote files as a whole without losing other devices' events.
+  /// Merge each remote file atomically so one invalid log cannot block other devices.
   Future<HistorySyncSnapshot> mergeRemoteEventFiles({
     required HistorySyncSnapshot snapshot,
     required Iterable<File> eventFiles,
@@ -234,6 +404,33 @@ class HistorySyncService {
   Future<File> localChangeLogFile() async {
     final directory = await _applicationSupportDirectoryProvider();
     return File('${directory.path}/webdavTemp/history.local.jsonl');
+  }
+
+  Future<int> _nextSeq() async {
+    return _sequenceQueue.run(() async {
+      final value = GStorage.getSetting(SettingsKeys.historySyncSequence);
+      final next = value + 1;
+      await GStorage.putSetting(SettingsKeys.historySyncSequence, next);
+      return next;
+    });
+  }
+
+  Future<void> appendSafely(Future<void> Function() append) async {
+    final webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
+    final historySyncEnable =
+        GStorage.getSetting(SettingsKeys.webDavEnableHistory);
+    if (webDavEnable != true || historySyncEnable != true) {
+      return;
+    }
+    try {
+      await append();
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'HistorySync: failed to append local change',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<List<File>> _pendingLocalLogFiles(Directory directory) async {
@@ -344,6 +541,7 @@ Future<Map<String, int>> _sanitizeEventLogCopy({
   return Isolate.run(() => _copyValidEventLines(request));
 }
 
+// Drop corrupt lines before other devices can quarantine the entire log.
 Future<Map<String, int>> _copyValidEventLines(
   Map<String, String> request,
 ) async {

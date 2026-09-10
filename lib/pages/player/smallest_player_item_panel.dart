@@ -1,37 +1,29 @@
 import 'dart:io';
-
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/bean/widget/play_pause_icon.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
-import 'package:kazumi/pages/player/player_adjustment_hud.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:flutter/services.dart';
 import 'package:kazumi/services/player/remote.dart';
-import 'package:kazumi/services/player/timed_shutdown_service.dart';
+import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/format.dart';
 
 class SmallestPlayerItemPanel extends StatefulWidget {
-  final CollectController collectController;
-  final MyController myController;
-
   const SmallestPlayerItemPanel({
-    required this.collectController,
-    required this.myController,
     super.key,
     required this.playerController,
     required this.videoPageController,
@@ -330,7 +322,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
         Positioned(
           top: 25,
           child: Observer(builder: (context) {
-            // Hidden HUDs must not observe playback ticks.
+            // PlayerSeekHud latches values only while visible, so skipping the
+            // position reads when hidden keeps the 1s tick from rebuilding this.
             final visible = playerController.panel.showSeekTime;
             return PlayerSeekHud(
               visible: visible,
@@ -426,7 +419,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             playerController.playOrPause();
           },
         ),
-        // Keep playback ticks inside the progress and time observers.
+        // Position reads stay inside these narrow Observers so the 1s progress
+        // tick rebuilds only the bar and time text, not the whole bottom bar.
         Expanded(
           child: Observer(builder: (context) {
             return ProgressBar(
@@ -494,6 +488,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     if (videoPageController.isPip) {
                       await PipUtils.exitDesktopPIPWindow();
                     } else {
+                      // Size the PiP window to the video aspect ratio to
+                      // avoid letterboxing.
                       await PipUtils.enterDesktopPIPWindow(
                         width: playerController.debug.playerWidth,
                         height: playerController.debug.playerHeight,
@@ -509,7 +505,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     const Icon(Icons.picture_in_picture, color: Colors.white)),
           _buildDanmakuToggleButton(context),
           PlayerPanelHoldCollectButton(
-            collectController: widget.collectController,
             acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
             bangumiItem: videoPageController.bangumiItem,
           ),
@@ -664,7 +659,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
               MenuItemButton(
                 onPressed: () {
                   showDanmakuSettingsSheet(
-                    myController: widget.myController,
                     context: context,
                     danmakuController:
                         playerController.danmaku.canvasController,

@@ -1,32 +1,26 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/download/background_download_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/platform/platform_environment_service.dart';
-import 'package:kazumi/services/platform/windows_shortcut.dart';
-import 'package:kazumi/services/shaders/shader_asset_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/shaders/shader_asset_service.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
+import 'package:kazumi/services/download/background_download_service.dart';
+import 'package:kazumi/services/platform/windows_shortcut.dart';
+import 'package:kazumi/services/platform/platform_environment_service.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
+import 'package:kazumi/navigation.dart';
 
 class InitPage extends StatefulWidget {
-  final VoidCallback onReady;
-  final VoidCallback onNeedsOnboarding;
-
   const InitPage({
-    required this.onReady,
-    required this.onNeedsOnboarding,
     super.key,
     required this.pluginsController,
     required this.collectController,
@@ -78,11 +72,17 @@ class _InitPageState extends State<InitPage> {
     if (!mounted) {
       return;
     }
+    // First launch: no installed rules yet, hand over to the onboarding flow.
+    // OnboardingPage takes care of navigating to the default page and
+    // triggering the auto update check afterwards.
     if (pluginsController.pluginList.isEmpty) {
-      widget.onNeedsOnboarding();
+      context.navigate('/onboarding');
       return;
     }
 
+    if (!mounted) {
+      return;
+    }
     final updateController = myController;
     unawaited(runStartupUpdateCheck(
       isEnabled: () => GStorage.getSetting(SettingsKeys.autoUpdate),
@@ -90,7 +90,7 @@ class _InitPageState extends State<InitPage> {
         await updateController.checkUpdate(type: 'auto');
       },
     ));
-    widget.onReady();
+    _startDefaultPage();
   }
 
   void _setupBackgroundDownloadNavigation() {
@@ -101,9 +101,9 @@ class _InitPageState extends State<InitPage> {
         try {
           final navigationContext = rootNavigatorKey.currentContext;
           if (navigationContext == null || !navigationContext.mounted) return;
-          final path = GoRouter.of(navigationContext).state.uri.path;
-          if (path == '/settings/download') return;
-          navigationContext.push('/settings/download');
+          final path = navigationContext.routeState(listen: false).uri.path;
+          if (path.contains('/download')) return;
+          navigationContext.pushNamed('/settings/download/');
         } catch (e) {
           KazumiLogger()
               .w('InitPage: failed to navigate to download page', error: e);
@@ -142,6 +142,16 @@ class _InitPageState extends State<InitPage> {
     };
   }
 
+  void _startDefaultPage() {
+    final defaultStartupPage =
+        GStorage.getSetting(SettingsKeys.defaultStartupPage);
+    if (!mounted) {
+      return;
+    }
+    context.navigate(defaultStartupPage);
+  }
+
+  // migrate collect from old version (favorites)
   Future<void> _migrateStorage() async {
     await collectController.migrateCollect();
   }

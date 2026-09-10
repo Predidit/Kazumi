@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/content_section.dart';
-import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -124,6 +124,9 @@ const List<_SettingsGroup> _settingsGroups = [
   ),
 ];
 
+String _normalizePath(String path) =>
+    path.endsWith('/') ? path.substring(0, path.length - 1) : path;
+
 bool _isWithinPath(String location, String path) =>
     location == path || location.startsWith('$path/');
 
@@ -152,14 +155,7 @@ class _SettingsCategorySelected extends Notification {
 }
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage(
-      {super.key,
-      required this.location,
-      required this.navigatorKey,
-      required this.child});
-
-  final GlobalKey<NavigatorState> navigatorKey;
-  final Widget child;
+  const SettingsPage({super.key, required this.location});
 
   final String location;
 
@@ -168,47 +164,52 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _isExiting = false;
-  bool _isReplacing = false;
+  final _outletKey = GlobalKey<RouterOutletState>();
+  Object? _categoryNavigation;
+  // Nested pushes do not update the root route state.
+  late String _location = _normalizePath(widget.location);
 
-  String get _selectedCategoryPath => _categoryPath(widget.location);
+  String get _selectedCategoryPath => _categoryPath(_location);
   bool get _isSecondaryRoute =>
-      widget.location != '/settings' &&
-      widget.location != _selectedCategoryPath;
+      _location != '/settings' && _location != _selectedCategoryPath;
 
-  Future<void> _replaceCategory(String path) async {
-    if (_isReplacing || path == widget.location) return;
-    _isReplacing = true;
-    final navigator = widget.navigatorKey.currentState!;
-    if (navigator.canPop()) {
-      navigator.popUntil((route) => route.isFirst);
-      await WidgetsBinding.instance.endOfFrame;
-      if (!mounted) return;
+  @override
+  void didUpdateWidget(covariant SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location) {
+      _categoryNavigation = null;
+      _location = _normalizePath(widget.location);
     }
-    context.pushReplacement(path);
-    _isReplacing = false;
+  }
+
+  void _replaceCategory(String path) {
+    _categoryNavigation = null;
+    _outletKey.currentState!.navigate(path);
+    setState(() => _location = _normalizePath(path));
+  }
+
+  Future<void> _pushCategory(String path) async {
+    if (_categoryNavigation != null) return;
+    final navigation = Object();
+    final previousLocation = _location;
+    _categoryNavigation = navigation;
+    setState(() => _location = _normalizePath(path));
+    await _outletKey.currentState!.push<void>(path);
+    // Ignore completions from history replaced by a rail selection.
+    if (!mounted || _categoryNavigation != navigation) return;
+    setState(() {
+      _categoryNavigation = null;
+      _location = previousLocation;
+    });
   }
 
   void _goBack() {
-    final navigator = widget.navigatorKey.currentState;
-    if (navigator != null && navigator.canPop()) {
-      navigator.pop();
-    } else {
-      _exitSettings();
-    }
+    if (_outletKey.currentState?.maybePop() ?? false) return;
+    _exitSettings();
   }
 
-  Future<void> _exitSettings() async {
-    if (_isExiting) return;
-    _isExiting = true;
-    final navigator = widget.navigatorKey.currentState;
-    if (navigator != null && navigator.canPop()) {
-      navigator.popUntil((route) => route.isFirst);
-      // Let the shell receive the updated matches before popping it.
-      await WidgetsBinding.instance.endOfFrame;
-      if (!mounted) return;
-    }
-    _popSettings(context);
+  void _exitSettings() {
+    if (!context.maybePop()) context.navigate('/tab/my');
   }
 
   @override
@@ -248,14 +249,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     onBack: _goBack,
                     child: NotificationListener<_SettingsCategorySelected>(
                       onNotification: (notification) {
-                        context.push(notification.path);
+                        _pushCategory(notification.path);
                         return true;
                       },
                       child: Theme(
                         data: Theme.of(context).copyWith(
                           pageTransitionsTheme: settingsPageTransitionsTheme,
                         ),
-                        child: widget.child,
+                        child: RouterOutlet(key: _outletKey),
                       ),
                     ),
                   ),
@@ -281,7 +282,7 @@ class SettingsIndexPage extends StatelessWidget {
       appBar: SysAppBar(
         title: const Text('设置'),
         leading: BackButton(onPressed: () {
-          _popSettings(context);
+          if (!context.maybePop()) context.navigate('/tab/my');
         }),
       ),
       body: _SettingsMenu(
@@ -394,14 +395,5 @@ class _RailDestination extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-void _popSettings(BuildContext context) {
-  final navigator = rootNavigatorKey.currentState;
-  if (navigator != null && navigator.canPop()) {
-    navigator.pop();
-  } else {
-    context.go('/tab/my');
   }
 }

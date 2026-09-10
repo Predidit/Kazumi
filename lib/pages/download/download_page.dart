@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_widgets.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/routing/media_location.dart';
 import 'package:kazumi/utils/format.dart';
 
 class DownloadPage extends StatefulWidget {
@@ -244,17 +244,38 @@ class _DownloadPageState extends State<DownloadPage> {
       return;
     }
 
-    final args = OfflineVideoPlaybackArgs.fromRecord(
-      record: record,
-      episode: episode,
-      downloadedEpisodes: downloadController.getCompletedEpisodes(
-        record.bangumiId,
-        record.pluginName,
-      ),
+    final bangumiItem = BangumiItem(
+      id: record.bangumiId,
+      type: 2,
+      name: record.bangumiName,
+      nameCn: record.bangumiName,
+      summary: '',
+      airDate: '',
+      airWeekday: 0,
+      rank: 0,
+      images: {'large': record.bangumiCover},
+      tags: [],
+      alias: [],
+      ratingScore: 0.0,
+      votes: 0,
+      votesCount: [],
+      info: '',
     );
-    context.push(
-      VideoLocation.fromArgs(args).location,
-      extra: args,
+
+    final downloadedEpisodes = downloadController.getCompletedEpisodes(
+      record.bangumiId,
+      record.pluginName,
+    );
+
+    context.pushNamed(
+      '/video/',
+      arguments: OfflineVideoPlaybackArgs(
+        bangumiItem: bangumiItem,
+        pluginName: record.pluginName,
+        episodeNumber: episode.episodeNumber,
+        road: episode.road,
+        downloadedEpisodes: downloadedEpisodes,
+      ),
     );
   }
 

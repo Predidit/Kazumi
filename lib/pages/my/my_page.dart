@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/menu/route_visibility.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/my/my_space_view.dart';
-import 'package:kazumi/pages/settings/settings_navigation.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key, required this.controller});
@@ -50,25 +50,18 @@ class _MyPageState extends State<MyPage> {
     }
   }
 
-  void _open(MyDestination destination) {
-    final location = switch (destination) {
-      MyDestination.theme => '/settings/theme',
-      MyDestination.player => '/settings/player',
-      MyDestination.danmaku => '/settings/danmaku',
-      MyDestination.rules => '/settings/plugin',
-      MyDestination.history => '/settings/history',
-      MyDestination.downloads => '/settings/download',
-      MyDestination.sync => '/settings/sync',
-      MyDestination.storage => '/settings/storage',
-      MyDestination.about => '/settings/about',
-    };
-    if (destination == MyDestination.history ||
-        destination == MyDestination.downloads) {
-      context.push(location);
-    } else {
-      openSettings(context, location);
-    }
-  }
+  void _open(MyDestination destination) =>
+      context.pushNamed(switch (destination) {
+        MyDestination.theme => '/settings/theme',
+        MyDestination.player => '/settings/player',
+        MyDestination.danmaku => '/settings/danmaku/',
+        MyDestination.rules => '/settings/plugin/',
+        MyDestination.history => '/settings/history/',
+        MyDestination.downloads => '/settings/download/',
+        MyDestination.sync => '/settings/sync',
+        MyDestination.storage => '/settings/storage',
+        MyDestination.about => '/settings/about/',
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +80,7 @@ class _MyPageState extends State<MyPage> {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: MySettingsButton(
-              onTap: () => openSettings(context),
+              onTap: () => context.pushNamed('/settings/'),
             ),
           ),
         ],

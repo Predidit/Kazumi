@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void _showMessage(BuildContext context, String message) {
   KazumiDialog.showToast(context: context, message: message);
@@ -73,8 +74,9 @@ class AboutLinkTile extends StatelessWidget {
     return Semantics(
       link: _url != null,
       child: InkWell(
-        onTap: () =>
-            _url != null ? openAboutLink(context, _url) : context.push(_route!),
+        onTap: () => _url != null
+            ? openAboutLink(context, _url)
+            : context.pushNamed(_route!),
         onHighlightChanged: SplitListRow.pressReporterOf(context),
         child: Padding(
           padding: const EdgeInsets.all(16),

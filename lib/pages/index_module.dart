@@ -46,7 +46,7 @@ final tabModule = createModule(
       ..addSingleton<TimelineController>(TimelineController.new)
       ..route(
         '/',
-        child: (context, state) => const IndexPage(),
+        child: (context, state) => IndexPage(location: state.uri.path),
         transition: _tabTransition,
         children: (sub) {
           sub

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/my/watch_stats.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
 
@@ -478,21 +479,17 @@ class MySettingsButton extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Tooltip(
       message: '全部设置',
-      child: _ExpressiveAction(
-        color: colors.surfaceContainerHigh,
-        foreground: colors.onSurface,
-        onTap: onTap,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.tune_rounded, size: 20),
-              SizedBox(width: 8),
-              Text('设置'),
-            ],
+      child: FilledButton.tonalIcon(
+        style: StateActionButton.styleOf(context).copyWith(
+          backgroundColor: WidgetStatePropertyAll(colors.surfaceContainerHigh),
+          foregroundColor: WidgetStatePropertyAll(colors.onSurface),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           ),
         ),
+        onPressed: onTap,
+        icon: const Icon(Icons.tune_rounded, size: 20),
+        label: const Text('设置'),
       ),
     );
   }

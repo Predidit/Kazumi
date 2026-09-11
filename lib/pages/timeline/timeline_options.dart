@@ -28,16 +28,18 @@ class _TimelineOptionsButton extends StatelessWidget {
     final scaler = MediaQuery.textScalerOf(context);
     final compact =
         availableWidth < scaler.scale(16) * 22 || scaler.scale(14) > 28;
-    const style = ButtonStyle(
-      minimumSize: WidgetStatePropertyAll(Size(48, 48)),
-      visualDensity: VisualDensity.standard,
+    final style = StateActionButton.styleOf(context).copyWith(
+      minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
     );
     final summary = '${sort.label}，'
         '${filterCount > 0 ? '已启用 $filterCount 项筛选' : '未启用筛选'}';
     final icon = Badge(
       isLabelVisible: filterCount > 0,
       label: Text('$filterCount'),
-      child: const Icon(Icons.tune_rounded),
+      child: const Icon(Icons.tune_rounded, size: 20),
     );
     return Semantics(
       label: _timelineOptionsTitle,
@@ -48,17 +50,13 @@ class _TimelineOptionsButton extends StatelessWidget {
       child: Tooltip(
         message: '$_timelineOptionsTitle：$summary',
         child: compact
-            ? IconButton.filledTonal(
+            ? FilledButton.tonal(
                 style: style,
                 onPressed: onPressed,
-                icon: icon,
+                child: icon,
               )
             : FilledButton.tonalIcon(
-                style: style.copyWith(
-                  padding: const WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                ),
+                style: style,
                 onPressed: onPressed,
                 icon: icon,
                 label: Text(sort.label, maxLines: 1),

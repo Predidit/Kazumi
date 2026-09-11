@@ -70,9 +70,8 @@ class StateActionButton extends StatelessWidget {
   final String? reserveText;
   final bool _tonal;
 
-  @override
-  Widget build(BuildContext context) {
-    final style = ButtonStyle(
+  static ButtonStyle styleOf(BuildContext context) {
+    return ButtonStyle(
       minimumSize: const WidgetStatePropertyAll(Size(64, 48)),
       padding: const WidgetStatePropertyAll(
           EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
@@ -84,11 +83,15 @@ class StateActionButton extends StatelessWidget {
           ? Duration.zero
           : const Duration(milliseconds: 200),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final button = _tonal ? FilledButton.tonalIcon : FilledButton.icon;
     final label = Text(text, textAlign: TextAlign.center);
     return button(
       onPressed: onPressed,
-      style: style,
+      style: styleOf(context),
       icon: icon == null ? null : Icon(icon, size: 20),
       label: reserveText == null
           ? label

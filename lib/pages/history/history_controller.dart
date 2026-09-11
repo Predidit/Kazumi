@@ -34,6 +34,18 @@ abstract class _HistoryController with Store {
     init();
   }
 
+  History? getHistory(
+    BangumiItem bangumiItem,
+    String adapterName, {
+    String entryKind = HistoryEntryKind.online,
+  }) {
+    return _historyRepository.getHistory(
+      adapterName,
+      bangumiItem,
+      entryKind: entryKind,
+    );
+  }
+
   Progress? lastWatching(
     BangumiItem bangumiItem,
     String adapterName, {

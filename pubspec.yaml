@@ -20,6 +20,7 @@ dependencies:
   cookie_jar: ^4.0.9
   crypto: ^3.0.6
   connectivity_plus: ^6.0.5
+  universal_gamepad: 1.5.8
 
   path_provider: ^2.1.5
   hive_ce: ^2.16.0

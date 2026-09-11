@@ -138,6 +138,7 @@ class _SearchPageState extends State<SearchPage> {
       builder: (context, value, child) => SearchBar(
         controller: _input,
         focusNode: _inputFocus,
+        autoFocus: true,
         hintText: '搜索番剧名称',
         textInputAction: TextInputAction.search,
         constraints: const BoxConstraints(minHeight: 64),

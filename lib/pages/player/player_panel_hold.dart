@@ -43,6 +43,59 @@ class PlayerPanelHoldMouseRegion extends StatefulWidget {
       _PlayerPanelHoldMouseRegionState();
 }
 
+/// Keeps the controls visible while a keyboard or gamepad focus is inside.
+class PlayerPanelHoldFocus extends StatefulWidget {
+  const PlayerPanelHoldFocus({
+    super.key,
+    required this.acquirePlayerPanelHold,
+    required this.onFocusChanged,
+    required this.child,
+  });
+
+  final PlayerPanelHold Function() acquirePlayerPanelHold;
+  final ValueChanged<bool> onFocusChanged;
+  final Widget child;
+
+  @override
+  State<PlayerPanelHoldFocus> createState() => _PlayerPanelHoldFocusState();
+}
+
+class _PlayerPanelHoldFocusState extends State<PlayerPanelHoldFocus> {
+  PlayerPanelHold? _hold;
+
+  @override
+  void dispose() {
+    _releaseHold();
+    super.dispose();
+  }
+
+  void _handleFocusChanged(bool hasFocus) {
+    widget.onFocusChanged(hasFocus);
+    if (hasFocus) {
+      if (_hold?.isReleased != false) {
+        _hold = widget.acquirePlayerPanelHold();
+      }
+      return;
+    }
+    _releaseHold();
+  }
+
+  void _releaseHold() {
+    _hold?.release();
+    _hold = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: _handleFocusChanged,
+      child: widget.child,
+    );
+  }
+}
+
 class _PlayerPanelHoldMouseRegionState
     extends State<PlayerPanelHoldMouseRegion> {
   PlayerPanelHold? _hold;

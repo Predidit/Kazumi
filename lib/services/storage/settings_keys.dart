@@ -2,6 +2,7 @@ import 'package:kazumi/services/player/syncplay_endpoint.dart';
 
 enum SettingGroup {
   player,
+  input,
   danmaku,
   theme,
   interface,
@@ -56,6 +57,21 @@ class SettingsKeys {
     _SettingBoxKey.searchEnhanceEnable,
     true,
     group: SettingGroup.misc,
+  );
+  static const gamepadEnabled = SettingKey<bool>(
+    'gamepadEnabled',
+    true,
+    group: SettingGroup.input,
+  );
+  static const gamepadStickDeadZone = SettingKey<double>(
+    'gamepadStickDeadZone',
+    0.5,
+    group: SettingGroup.input,
+  );
+  static const gamepadRepeatDelay = SettingKey<int>(
+    'gamepadRepeatDelay',
+    250,
+    group: SettingGroup.input,
   );
   static const autoUpdate = SettingKey<bool>(
     _SettingBoxKey.autoUpdate,
@@ -532,6 +548,9 @@ class SettingsKeys {
     hAenable,
     hardwareDecoder,
     searchEnhanceEnable,
+    gamepadEnabled,
+    gamepadStickDeadZone,
+    gamepadRepeatDelay,
     autoUpdate,
     checkPluginUpdateOnStartup,
     alwaysOntop,

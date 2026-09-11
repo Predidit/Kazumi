@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/content_section.dart';
+import 'package:kazumi/bean/widget/gamepad_navigation.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -38,8 +39,12 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   String originalValue = '';
 
   late Map<String, List<String>> shortcuts;
+  late bool gamepadEnabled;
+  late double gamepadStickDeadZone;
+  late int gamepadRepeatDelay;
 
   final FocusNode focusNode = FocusNode();
+  FocusNode? _focusBeforeListening;
 
   bool get isListening => listeningFunction != null && listeningIndex != null;
 
@@ -48,6 +53,10 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     super.initState();
     // Repair persisted placeholders and keep at least one binding per action.
     shortcuts = {};
+    gamepadEnabled = GStorage.getSetting(SettingsKeys.gamepadEnabled);
+    gamepadStickDeadZone =
+        GStorage.getSetting(SettingsKeys.gamepadStickDeadZone);
+    gamepadRepeatDelay = GStorage.getSetting(SettingsKeys.gamepadRepeatDelay);
     for (final key in defaultShortcuts.keys) {
       final stored = GStorage.getStringListSettingByName(
         'shortcut_$key',
@@ -91,9 +100,14 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     listeningFunction = null;
     listeningIndex = null;
     originalValue = '';
+    _restoreFocusAfterListening();
   }
 
   void beginListening(String func, int index) {
+    final currentFocus = FocusManager.instance.primaryFocus;
+    if (currentFocus != null && currentFocus != focusNode) {
+      _focusBeforeListening = currentFocus;
+    }
     originalValue = shortcuts[func]![index];
     shortcuts[func]![index] = '...';
     listeningFunction = func;
@@ -102,6 +116,19 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     Future.delayed(const Duration(milliseconds: 50), () {
       if (!mounted) return;
       focusNode.requestFocus();
+    });
+  }
+
+  void _restoreFocusAfterListening() {
+    final previousFocus = _focusBeforeListening;
+    _focusBeforeListening = null;
+    if (!mounted || previousFocus == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          previousFocus.context != null &&
+          previousFocus.canRequestFocus) {
+        previousFocus.requestFocus();
+      }
     });
   }
 
@@ -131,6 +158,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       originalValue = '';
     });
     GStorage.putStringListSettingByName('shortcut_$func', shortcuts[func]!);
+    _restoreFocusAfterListening();
 
     return true;
   }
@@ -180,8 +208,76 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
         shortcuts[func] = defaultShortcuts[func]?.toList() ?? [];
         GStorage.putStringListSettingByName('shortcut_$func', shortcuts[func]!);
       }
+      gamepadEnabled = SettingsKeys.gamepadEnabled.defaultValue;
+      gamepadStickDeadZone = SettingsKeys.gamepadStickDeadZone.defaultValue;
+      gamepadRepeatDelay = SettingsKeys.gamepadRepeatDelay.defaultValue;
     });
-    KazumiDialog.showToast(message: '已恢复默认快捷键');
+    _restoreFocusAfterListening();
+    GStorage.putSetting(SettingsKeys.gamepadEnabled, gamepadEnabled);
+    GStorage.putSetting(
+      SettingsKeys.gamepadStickDeadZone,
+      gamepadStickDeadZone,
+    );
+    GStorage.putSetting(SettingsKeys.gamepadRepeatDelay, gamepadRepeatDelay);
+    _configureGamepadService();
+    KazumiDialog.showToast(message: '已恢复默认操作设置');
+  }
+
+  void _configureGamepadService() {
+    GamepadNavigationScope.maybeServiceOf(context)?.configure(
+      enabled: gamepadEnabled,
+      stickDeadZone: gamepadStickDeadZone,
+      initialRepeatDelay: Duration(milliseconds: gamepadRepeatDelay),
+    );
+  }
+
+  void _setGamepadEnabled(bool value) {
+    setState(() => gamepadEnabled = value);
+    GStorage.putSetting(SettingsKeys.gamepadEnabled, value);
+    _configureGamepadService();
+  }
+
+  void _setGamepadDeadZone(double value, {required bool persist}) {
+    setState(() => gamepadStickDeadZone = value);
+    if (persist) {
+      GStorage.putSetting(SettingsKeys.gamepadStickDeadZone, value);
+    }
+    _configureGamepadService();
+  }
+
+  void _setGamepadRepeatDelay(int value, {required bool persist}) {
+    setState(() => gamepadRepeatDelay = value);
+    if (persist) {
+      GStorage.putSetting(SettingsKeys.gamepadRepeatDelay, value);
+    }
+    _configureGamepadService();
+  }
+
+  Widget _withGamepadAdjustment({
+    required Widget child,
+    required VoidCallback decrease,
+    required VoidCallback increase,
+  }) {
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        GamepadNavigateIntent: CallbackAction<GamepadNavigateIntent>(
+          onInvoke: (intent) {
+            switch (intent.direction) {
+              case TraversalDirection.left:
+                decrease();
+              case TraversalDirection.right:
+                increase();
+              case TraversalDirection.up:
+              case TraversalDirection.down:
+                FocusManager.instance.primaryFocus
+                    ?.focusInDirection(intent.direction);
+            }
+            return null;
+          },
+        ),
+      },
+      child: child,
+    );
   }
 
   List<_ShortcutGroup> get displayGroups {
@@ -217,11 +313,16 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
         ),
       ],
       body: FocusScope(
-        autofocus: true,
+        // Keep the scope for shortcut-capture event bubbling, but do not let
+        // it claim primary focus from the settings rail on page entry.
+        autofocus: false,
         child: Focus(
           focusNode: focusNode,
-          autofocus: true,
-          canRequestFocus: true,
+          // This node only records a shortcut while the user is editing a
+          // binding. It must never win the page's initial focus: doing so
+          // hides the settings rail from spatial gamepad traversal.
+          autofocus: false,
+          canRequestFocus: false,
           skipTraversal: true,
           descendantsAreFocusable: true,
           onKeyEvent: (node, event) {
@@ -238,6 +339,12 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: _buildGamepadCard(),
+                ),
+              ),
               Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1000),
@@ -262,6 +369,131 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGamepadCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    const bindings = <String>[
+      'A 确认',
+      'B 返回',
+      'X 弹幕',
+      'Y 控制栏 / 页面操作',
+      'LB / RB 快退快进',
+      'LT / RT 上下集',
+      'Start 播放暂停',
+      'View 侧栏',
+    ];
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 24),
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          SwitchListTile(
+            secondary: const Icon(Icons.sports_esports_rounded),
+            title: const Text('启用手柄操作'),
+            subtitle: const Text('支持方向键、摇杆、面键、肩键与扳机'),
+            value: gamepadEnabled,
+            onChanged: _setGamepadEnabled,
+          ),
+          const Divider(height: 1),
+          ListTile(
+            enabled: gamepadEnabled,
+            title: const Text('摇杆死区'),
+            subtitle: _withGamepadAdjustment(
+              decrease: () => _setGamepadDeadZone(
+                (gamepadStickDeadZone - 0.05).clamp(0.15, 0.75).toDouble(),
+                persist: true,
+              ),
+              increase: () => _setGamepadDeadZone(
+                (gamepadStickDeadZone + 0.05).clamp(0.15, 0.75).toDouble(),
+                persist: true,
+              ),
+              child: Slider(
+                value: gamepadStickDeadZone,
+                min: 0.15,
+                max: 0.75,
+                divisions: 12,
+                label: '${(gamepadStickDeadZone * 100).round()}%',
+                onChanged: gamepadEnabled
+                    ? (value) => _setGamepadDeadZone(value, persist: false)
+                    : null,
+                onChangeEnd: gamepadEnabled
+                    ? (value) => _setGamepadDeadZone(value, persist: true)
+                    : null,
+              ),
+            ),
+            trailing: Text('${(gamepadStickDeadZone * 100).round()}%'),
+          ),
+          ListTile(
+            enabled: gamepadEnabled,
+            title: const Text('长按重复延迟'),
+            subtitle: _withGamepadAdjustment(
+              decrease: () => _setGamepadRepeatDelay(
+                (gamepadRepeatDelay - 50).clamp(250, 800).toInt(),
+                persist: true,
+              ),
+              increase: () => _setGamepadRepeatDelay(
+                (gamepadRepeatDelay + 50).clamp(250, 800).toInt(),
+                persist: true,
+              ),
+              child: Slider(
+                value: gamepadRepeatDelay.toDouble(),
+                min: 250,
+                max: 800,
+                divisions: 11,
+                label: '$gamepadRepeatDelay ms',
+                onChanged: gamepadEnabled
+                    ? (value) => _setGamepadRepeatDelay(
+                          value.round(),
+                          persist: false,
+                        )
+                    : null,
+                onChangeEnd: gamepadEnabled
+                    ? (value) => _setGamepadRepeatDelay(
+                          value.round(),
+                          persist: true,
+                        )
+                    : null,
+              ),
+            ),
+            trailing: Text('$gamepadRepeatDelay ms'),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '默认映射',
+                    style: textTheme.labelLarge
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final binding in bindings)
+                        Chip(
+                          visualDensity: VisualDensity.compact,
+                          label: Text(binding),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

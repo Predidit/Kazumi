@@ -101,7 +101,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   late final PlayerController playerController;
   final DownloadController downloadController = inject<DownloadController>();
   final TextEditingController textController = TextEditingController();
-  final FocusNode textFieldFocus = FocusNode();
+  final FocusNode textFieldFocus =
+      FocusNode(skipTraversal: true, debugLabel: 'Danmaku text field');
   PlayerPanelHold? _danmakuTextFieldHold;
 
   String? cachedSvgString;

@@ -54,6 +54,11 @@ class PlayerItem extends StatefulWidget {
     required this.changeEpisode,
     required this.onBackPressed,
     required this.keyboardFocus,
+    required this.playerPanelScopeNode,
+    required this.topBarScopeNode,
+    required this.sideTabScopeNode,
+    required this.isSideTabOpen,
+    required this.onCloseSideTab,
     required this.pauseForTimedShutdown,
     this.disableAnimations = false,
   });
@@ -67,6 +72,14 @@ class PlayerItem extends StatefulWidget {
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
   final FocusNode keyboardFocus;
+  // Traversal scopes owned by the video page. The panel scope keeps panel
+  // navigation contained; the top bar scope is the explicit exit target
+  // when navigation leaves the top edge of the panel.
+  final FocusScopeNode playerPanelScopeNode;
+  final FocusScopeNode topBarScopeNode;
+  final FocusScopeNode sideTabScopeNode;
+  final bool Function() isSideTabOpen;
+  final VoidCallback onCloseSideTab;
   final bool disableAnimations;
   final VoidCallback pauseForTimedShutdown;
 
@@ -139,8 +152,6 @@ class _PlayerItemState extends State<PlayerItem>
   int _interactiveSeekGeneration = 0;
   bool _interactiveSeekWasPlaying = false;
   bool _playerPanelHasFocus = false;
-  final FocusScopeNode _panelFocusScopeNode =
-      FocusScopeNode(debugLabel: 'Player controls');
 
   late final AnimationController _panelVisibilityController;
   late final AnimationController _screenshotFeedbackController;
@@ -1627,7 +1638,6 @@ class _PlayerItemState extends State<PlayerItem>
     mouseScrollerTimer?.cancel();
     _adjustmentHudHideTimer?.cancel();
     _interactiveSeekRecoveryTimer?.cancel();
-    _panelFocusScopeNode.dispose();
     _panelVisibilityController.dispose();
     _screenshotFeedbackController.dispose();
     _disposePlayerMenu();
@@ -1749,6 +1759,15 @@ class _PlayerItemState extends State<PlayerItem>
     if (playerController.panel.lockPanel) {
       return;
     }
+    // The episode side tab sits in its own focus scope on the right. A right
+    // press moves into it before the panel claims the direction, so the list
+    // is reachable without cycling through every player control first.
+    if (widget.isSideTabOpen() &&
+        direction == TraversalDirection.right &&
+        !_playerPanelHasFocus) {
+      focusFirstGamepadControl(widget.sideTabScopeNode);
+      return;
+    }
     // Navigation only moves between on-screen buttons. When the controls are
     // hidden the stick reveals them and focuses the first button instead of
     // seeking or changing the volume.
@@ -1758,7 +1777,17 @@ class _PlayerItemState extends State<PlayerItem>
     }
     if (!invokeGamepadControlDirection(direction)) {
       final focused = FocusManager.instance.primaryFocus;
-      focused?.focusInDirection(direction);
+      final moved = focused?.focusInDirection(direction) ?? false;
+      if (!moved && direction == TraversalDirection.up) {
+        // Directional traversal is confined to the nearest focus scope,
+        // so focus at the top edge of the panel can never reach the top
+        // bar on its own; hand it over explicitly.
+        focusFirstGamepadControl(widget.topBarScopeNode);
+      } else if (!moved &&
+          direction == TraversalDirection.right &&
+          widget.isSideTabOpen()) {
+        focusFirstGamepadControl(widget.sideTabScopeNode);
+      }
     }
   }
 
@@ -1768,7 +1797,7 @@ class _PlayerItemState extends State<PlayerItem>
       if (!mounted) return;
       // Validate the remembered child instead of blindly calling nextFocus,
       // which can silently do nothing after a control was rebuilt away.
-      if (!focusFirstGamepadControl(_panelFocusScopeNode)) {
+      if (!focusFirstGamepadControl(widget.playerPanelScopeNode)) {
         widget.keyboardFocus.requestFocus();
       }
     });
@@ -1776,6 +1805,12 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleGamepadBack() {
+    // The episode side tab is an overlay: dismiss it first, then the player
+    // controls, then leave the page. This mirrors the video page level B.
+    if (widget.isSideTabOpen()) {
+      widget.onCloseSideTab();
+      return;
+    }
     if (_playerPanelHasFocus || playerController.panel.showVideoController) {
       widget.keyboardFocus.requestFocus();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2020,7 +2055,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   _playerPanelHasFocus = hasFocus;
                                 },
                                 child: FocusScope(
-                                  node: _panelFocusScopeNode,
+                                  node: widget.playerPanelScopeNode,
                                   child: _needsFullPanel(context)
                                       ? PlayerItemPanel(
                                           playerController: playerController,

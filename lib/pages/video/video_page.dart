@@ -12,6 +12,7 @@ import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/bean/widget/gamepad_navigation.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/media_error_widget.dart';
 import 'package:kazumi/modules/download/download_module.dart';
@@ -65,6 +66,15 @@ class _VideoPageState extends State<VideoPage>
   StreamSubscription<String>? _logSubscription;
   final FocusNode keyboardFocus =
       FocusNode(debugLabel: 'Video player shortcut scope');
+  // Owns the player panel traversal scope shared with PlayerItem, plus the
+  // top bar scope. Joystick directional traversal never leaves the nearest
+  // focus scope, so the two scopes hand focus to each other explicitly.
+  final FocusScopeNode playerPanelScopeNode =
+      FocusScopeNode(debugLabel: 'Player controls');
+  final FocusScopeNode topBarScopeNode =
+      FocusScopeNode(debugLabel: 'Video top bar');
+  final FocusScopeNode sideTabScopeNode =
+      FocusScopeNode(debugLabel: 'Episode side tab');
 
   final _episodePanelKey = GlobalKey<EpisodeSelectionPanelState>();
   late AnimationController animation;
@@ -265,6 +275,9 @@ class _VideoPageState extends State<VideoPage>
     }
     DisplayModeService.unlockScreenRotation();
     keyboardFocus.dispose();
+    playerPanelScopeNode.dispose();
+    topBarScopeNode.dispose();
+    sideTabScopeNode.dispose();
     tabController.dispose();
     TimedShutdownService().cancel();
     super.dispose();
@@ -333,6 +346,63 @@ class _VideoPageState extends State<VideoPage>
     keyboardFocus.requestFocus();
   }
 
+  // Entered from the top bar via joystick down. Directional traversal never
+  // leaves a focus scope on its own, so the top bar hands focus over
+  // explicitly; the panel hold acquired by the focused control keeps the
+  // controls visible.
+  void _enterPlayerPanel() {
+    playerController.panel.showVideoController = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) focusFirstGamepadControl(playerPanelScopeNode);
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  // The episode side tab is a sibling focus scope. Directional traversal stays
+  // inside the nearest scope, so the player and the tab hand focus to each
+  // other explicitly instead of trying to cross scopes with the joystick.
+  bool get _sideTabVisible =>
+      _isSideTabLayout &&
+      videoPageController.showTabBody &&
+      !videoPageController.isPip;
+
+  bool _enterSideTabIfOpen() {
+    if (!_sideTabVisible) {
+      return false;
+    }
+    return focusFirstGamepadControl(sideTabScopeNode);
+  }
+
+  void _handleSideTabNavigate(TraversalDirection direction) {
+    if (!invokeGamepadControlDirection(direction)) {
+      FocusManager.instance.primaryFocus?.focusInDirection(direction);
+    }
+    // The sidebar is a self-contained second-level menu: the stick must never
+    // hand the pending selection to the player underneath. Only B returns to
+    // the parent level (and closes the tab). If traversal somehow leaves the
+    // scope, pull the selection back.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_sideTabVisible) return;
+      if (!sideTabScopeNode.hasFocus) {
+        focusFirstGamepadControl(sideTabScopeNode);
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  // Page-level fallback used while the player widget is not mounted yet (for
+  // example while the stream is still loading) and focus sits outside the
+  // top bar, panel, or side tab scopes.
+  void _handlePageNavigate(TraversalDirection direction) {
+    if (direction == TraversalDirection.right && _enterSideTabIfOpen()) {
+      return;
+    }
+    if (invokeGamepadControlDirection(direction)) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.focusInDirection(direction);
+  }
+
   void _toggleTabBodyAnimated() {
     if (_tabBodyTargetVisible) {
       _closeTabBodyAnimated();
@@ -350,12 +420,23 @@ class _VideoPageState extends State<VideoPage>
     _setTabBodyVisible(false, animated: false);
   }
 
+  // Opening the episode sidebar makes it the active second-level menu, so the
+  // selection moves straight into it instead of staying on the player.
+  void _focusSideTabOnOpen() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_sideTabVisible) return;
+      focusFirstGamepadControl(sideTabScopeNode);
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
   void _setTabBodyVisible(bool visible, {required bool animated}) {
     _tabBodyTargetVisible = visible;
     final int animationRun = ++_tabBodyAnimationRun;
 
     if (visible) {
-      if (!videoPageController.showTabBody) {
+      final wasHidden = !videoPageController.showTabBody;
+      if (wasHidden) {
         animation.value = 0.0;
         videoPageController.showTabBody = true;
       }
@@ -363,6 +444,9 @@ class _VideoPageState extends State<VideoPage>
         animation.forward(from: animation.value);
       } else {
         animation.value = 1.0;
+      }
+      if (wasHidden || !sideTabScopeNode.hasFocus) {
+        _focusSideTabOnOpen();
       }
       return;
     }
@@ -445,6 +529,14 @@ class _VideoPageState extends State<VideoPage>
     }
   }
 
+  void _selectRelativeTab(int offset) {
+    final target = (tabController.index + offset).clamp(
+      0,
+      tabController.length - 1,
+    );
+    tabController.animateTo(target);
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isLandscape = _windowIsLandscape;
@@ -455,87 +547,173 @@ class _VideoPageState extends State<VideoPage>
       }
       _syncTabBodyAnimationAfterLayout();
     });
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
-        onBackPressed(context);
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        GamepadBackIntent: CallbackAction<GamepadBackIntent>(
+          onInvoke: (_) {
+            // Mirror the side tab display condition: while the episode tab
+            // covers the page, B dismisses it before leaving the page.
+            if (_sideTabVisible) {
+              _closeTabBodyAnimated();
+            } else {
+              onBackPressed(context);
+            }
+            return null;
+          },
+        ),
+        GamepadNavigateIntent: CallbackAction<GamepadNavigateIntent>(
+          onInvoke: (intent) {
+            _handlePageNavigate(intent.direction);
+            return null;
+          },
+        ),
+        GamepadViewIntent: CallbackAction<GamepadViewIntent>(
+          onInvoke: (_) {
+            _toggleTabBodyAnimated();
+            return null;
+          },
+        ),
+        GamepadMenuIntent: CallbackAction<GamepadMenuIntent>(
+          onInvoke: (_) {
+            unawaited(playerController.playOrPause());
+            return null;
+          },
+        ),
+        GamepadPreviousSecondarySectionIntent:
+            CallbackAction<GamepadPreviousSecondarySectionIntent>(
+          onInvoke: (_) {
+            _selectRelativeTab(-1);
+            return null;
+          },
+        ),
+        GamepadNextSecondarySectionIntent:
+            CallbackAction<GamepadNextSecondarySectionIntent>(
+          onInvoke: (_) {
+            _selectRelativeTab(1);
+            return null;
+          },
+        ),
       },
-      child: Observer(builder: (context) {
-        final bool isPip = videoPageController.isPip;
-        final bool videoFillsWindow = isLandscape || isPip;
-        return Scaffold(
-          appBar: null,
-          body: SafeArea(
-              top: !videoPageController.isFullscreen && !isPip,
-              bottom: false,
-              left: !videoPageController.isFullscreen && !isPip,
-              right: !videoPageController.isFullscreen && !isPip,
-              child: Stack(
-                alignment: Alignment.centerRight,
-                children: [
-                  Column(
-                    children: [
-                      Flexible(
-                        flex: videoFillsWindow ? 1 : 0,
-                        child: Container(
-                          color: Colors.black,
-                          height: videoFillsWindow
-                              ? MediaQuery.sizeOf(context).height
-                              : MediaQuery.sizeOf(context).width * 9 / 16,
-                          width: MediaQuery.sizeOf(context).width,
-                          child: Focus(
-                            focusNode: keyboardFocus,
-                            autofocus: true,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (didPop) {
+            return;
+          }
+          onBackPressed(context);
+        },
+        child: Observer(builder: (context) {
+          final bool isPip = videoPageController.isPip;
+          final bool videoFillsWindow = isLandscape || isPip;
+          return Scaffold(
+            appBar: null,
+            body: SafeArea(
+                top: !videoPageController.isFullscreen && !isPip,
+                bottom: false,
+                left: !videoPageController.isFullscreen && !isPip,
+                right: !videoPageController.isFullscreen && !isPip,
+                child: Stack(
+                  alignment: Alignment.centerRight,
+                  children: [
+                    Column(
+                      children: [
+                        Flexible(
+                          flex: videoFillsWindow ? 1 : 0,
+                          child: Container(
+                            color: Colors.black,
+                            height: videoFillsWindow
+                                ? MediaQuery.sizeOf(context).height
+                                : MediaQuery.sizeOf(context).width * 9 / 16,
+                            width: MediaQuery.sizeOf(context).width,
+                            // The player area owns the single keyboardFocus
+                            // attachment inside PlayerItem. Attaching the same
+                            // node here too reparents it to itself as soon as
+                            // joystick focus moves, crashing with
+                            // 'child != this'.
                             child: playerBody,
                           ),
                         ),
-                      ),
-                      if (!videoFillsWindow) Expanded(child: tabBody),
-                    ],
-                  ),
-                  if (isLandscape &&
-                      videoPageController.showTabBody &&
-                      !isPip) ...[
-                    if (disableAnimations) ...[
-                      sideTabMask,
-                      sideTabBody,
-                    ] else ...[
-                      FadeTransition(
-                        opacity: _maskOpacityAnimation,
-                        child: sideTabMask,
-                      ),
-                      SlideTransition(
-                        position: _rightOffsetAnimation,
-                        child: sideTabBody,
-                      ),
+                        if (!videoFillsWindow) Expanded(child: tabBody),
+                      ],
+                    ),
+                    if (isLandscape &&
+                        videoPageController.showTabBody &&
+                        !isPip) ...[
+                      if (disableAnimations) ...[
+                        sideTabMask,
+                        sideTabBody,
+                      ] else ...[
+                        FadeTransition(
+                          opacity: _maskOpacityAnimation,
+                          child: sideTabMask,
+                        ),
+                        SlideTransition(
+                          position: _rightOffsetAnimation,
+                          child: sideTabBody,
+                        ),
+                      ],
                     ],
                   ],
-                ],
-              )),
-        );
-      }),
+                )),
+          );
+        }),
+      ),
     );
   }
 
   Widget get sideTabBody {
-    return SizedBox(
-      height: MediaQuery.sizeOf(context).height,
-      width: (!isDesktop() && !isTablet())
-          ? MediaQuery.sizeOf(context).height
-          : (MediaQuery.sizeOf(context).width / 3 > 420
-              ? 420
-              : MediaQuery.sizeOf(context).width / 3),
-      child: Material(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadiusDirectional.only(
-          topStart: Radius.circular(28),
-          bottomStart: Radius.circular(28),
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        GamepadNavigateIntent: CallbackAction<GamepadNavigateIntent>(
+          onInvoke: (intent) {
+            _handleSideTabNavigate(intent.direction);
+            return null;
+          },
         ),
-        clipBehavior: Clip.antiAlias,
-        child: (isDesktop() || isTablet()) ? tabBody : episodePanel,
+        // The episode sidebar is a second-level menu. While it owns focus its
+        // own mapping applies, and player or shell commands must not leak
+        // through to the video playing underneath. View is the sidebar's own
+        // toggle, so it closes the tab instead.
+        GamepadViewIntent: CallbackAction<GamepadViewIntent>(
+          onInvoke: (_) {
+            _closeTabBodyAnimated();
+            return null;
+          },
+        ),
+        GamepadMenuIntent:
+            CallbackAction<GamepadMenuIntent>(onInvoke: (_) => null),
+        GamepadContextActionIntent:
+            CallbackAction<GamepadContextActionIntent>(onInvoke: (_) => null),
+        GamepadSecondaryActionIntent:
+            CallbackAction<GamepadSecondaryActionIntent>(onInvoke: (_) => null),
+        GamepadPreviousSectionIntent:
+            CallbackAction<GamepadPreviousSectionIntent>(onInvoke: (_) => null),
+        GamepadNextSectionIntent:
+            CallbackAction<GamepadNextSectionIntent>(onInvoke: (_) => null),
+        GamepadLeftStickClickIntent:
+            CallbackAction<GamepadLeftStickClickIntent>(onInvoke: (_) => null),
+        GamepadRightStickClickIntent:
+            CallbackAction<GamepadRightStickClickIntent>(onInvoke: (_) => null),
+      },
+      child: FocusScope(
+        node: sideTabScopeNode,
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height,
+          width: (!isDesktop() && !isTablet())
+              ? MediaQuery.sizeOf(context).height
+              : (MediaQuery.sizeOf(context).width / 3 > 420
+                  ? 420
+                  : MediaQuery.sizeOf(context).width / 3),
+          child: Material(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadiusDirectional.only(
+              topStart: Radius.circular(28),
+              bottomStart: Radius.circular(28),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: (isDesktop() || isTablet()) ? tabBody : episodePanel,
+          ),
+        ),
       ),
     );
   }
@@ -632,52 +810,84 @@ class _VideoPageState extends State<VideoPage>
                     right: 0,
                     child: EmbeddedNativeControlArea(
                       requireOffset: !videoPageController.isFullscreen,
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.white),
-                            onPressed: () => onBackPressed(context),
-                          ),
-                          const Expanded(
-                              child: dtb.DragToMoveArea(
-                                  child: SizedBox(height: 40))),
-                          IconButton(
-                            icon: const Icon(Icons.refresh_outlined,
-                                color: Colors.white),
-                            onPressed: () {
-                              changeEpisode(
-                                  videoPageController.selectedEpisode.episode,
-                                  currentRoad:
-                                      videoPageController.selectedEpisode.road);
+                      // The top bar owns its own traversal scope so panel
+                      // navigation cannot land here by accident; down hands
+                      // focus back to the player panel explicitly, while the
+                      // other directions keep the default in-scope traversal.
+                      child: Actions(
+                        actions: <Type, Action<Intent>>{
+                          GamepadNavigateIntent:
+                              CallbackAction<GamepadNavigateIntent>(
+                            onInvoke: (intent) {
+                              if (intent.direction == TraversalDirection.down) {
+                                _enterPlayerPanel();
+                                return null;
+                              }
+                              if (intent.direction ==
+                                      TraversalDirection.right &&
+                                  _enterSideTabIfOpen()) {
+                                // The side tab is a sibling scope. While the
+                                // player panel is not mounted (still loading)
+                                // this is the only way to reach it.
+                                return null;
+                              }
+                              FocusManager.instance.primaryFocus
+                                  ?.focusInDirection(intent.direction);
+                              return null;
                             },
                           ),
-                          Visibility(
-                            visible: MediaQuery.sizeOf(context).width >
-                                MediaQuery.sizeOf(context).height,
-                            child: IconButton(
-                              onPressed: () {
-                                _toggleTabBodyAnimated();
-                              },
-                              icon: Icon(
-                                _tabBodyTargetVisible
-                                    ? Icons.menu_open
-                                    : Icons.menu_open_outlined,
-                                color: Colors.white,
+                        },
+                        child: FocusScope(
+                          node: topBarScopeNode,
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back,
+                                    color: Colors.white),
+                                onPressed: () => onBackPressed(context),
                               ),
-                            ),
+                              const Expanded(
+                                  child: dtb.DragToMoveArea(
+                                      child: SizedBox(height: 40))),
+                              IconButton(
+                                icon: const Icon(Icons.refresh_outlined,
+                                    color: Colors.white),
+                                onPressed: () {
+                                  changeEpisode(
+                                      videoPageController
+                                          .selectedEpisode.episode,
+                                      currentRoad: videoPageController
+                                          .selectedEpisode.road);
+                                },
+                              ),
+                              Visibility(
+                                visible: MediaQuery.sizeOf(context).width >
+                                    MediaQuery.sizeOf(context).height,
+                                child: IconButton(
+                                  onPressed: () {
+                                    _toggleTabBodyAnimated();
+                                  },
+                                  icon: Icon(
+                                    _tabBodyTargetVisible
+                                        ? Icons.menu_open
+                                        : Icons.menu_open_outlined,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                    showDebugLog
+                                        ? Icons.bug_report
+                                        : Icons.bug_report_outlined,
+                                    color: Colors.white),
+                                onPressed: () {
+                                  switchDebugConsole();
+                                },
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: Icon(
-                                showDebugLog
-                                    ? Icons.bug_report
-                                    : Icons.bug_report_outlined,
-                                color: Colors.white),
-                            onPressed: () {
-                              switchDebugConsole();
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -698,6 +908,14 @@ class _VideoPageState extends State<VideoPage>
                   changeEpisode: changeEpisode,
                   onBackPressed: onBackPressed,
                   keyboardFocus: keyboardFocus,
+                  playerPanelScopeNode: playerPanelScopeNode,
+                  topBarScopeNode: topBarScopeNode,
+                  sideTabScopeNode: sideTabScopeNode,
+                  isSideTabOpen: () =>
+                      _isSideTabLayout &&
+                      videoPageController.showTabBody &&
+                      !videoPageController.isPip,
+                  onCloseSideTab: _closeTabBodyAnimated,
                   disableAnimations: disableAnimations,
                   pauseForTimedShutdown: pauseForTimedShutdown,
                 ),

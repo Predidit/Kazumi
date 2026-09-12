@@ -1,13 +1,6 @@
+import 'package:kazumi/pages/player/controller/interactive_seek_lifecycle.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
-
-class _InteractiveSeekSession {
-  _InteractiveSeekSession(this.pauseCompleted, this.target);
-
-  final Future<void> pauseCompleted;
-  Duration target;
-  Future<bool>? commit;
-}
 
 class PlayerSeekController {
   PlayerSeekController({
@@ -29,9 +22,18 @@ class PlayerSeekController {
   final Future<void> Function(bool enableSync) _onSeekCompleted;
 
   Future<void> _seekTail = Future<void>.value();
-  _InteractiveSeekSession? _interactiveSession;
+  late final InteractiveSeekLifecycle _interactiveSeek =
+      InteractiveSeekLifecycle(
+    readPosition: () => _playback.currentPosition,
+    isPlaying: () => _playback.playing,
+    writePreview: (position) => _playback.currentPosition = position,
+    normalize: _normalize,
+    pause: () => _pause(enableSync: false),
+    seek: seekTo,
+    play: () => _play(enableSync: false),
+  );
 
-  bool get hasActiveInteractiveSeek => _interactiveSession != null;
+  bool get hasActiveInteractiveSeek => _interactiveSeek.hasActiveSession;
 
   Future<void> seekTo(
     Duration target, {
@@ -73,55 +75,23 @@ class PlayerSeekController {
       );
 
   void beginInteractiveSeek() {
-    _interactiveSession = _InteractiveSeekSession(
-      _pause(enableSync: false),
-      _playback.currentPosition,
-    );
+    _interactiveSeek.begin();
   }
 
   bool updateInteractiveSeek(Duration target) {
-    final session = _interactiveSession;
-    if (session == null) {
-      return false;
-    }
-    session.target = _normalize(target);
-    _playback.currentPosition = session.target;
-    return true;
+    return _interactiveSeek.update(target);
   }
 
   Future<bool> commitInteractiveSeek() {
-    final session = _interactiveSession;
-    if (session == null) {
-      return Future<bool>.value(false);
-    }
-    return session.commit ??= _commitInteractiveSeek(session);
+    return _interactiveSeek.commit();
+  }
+
+  Future<bool> cancelInteractiveSeek() {
+    return _interactiveSeek.cancel();
   }
 
   void invalidateInteractiveSeek() {
-    _interactiveSession = null;
-  }
-
-  Future<bool> _commitInteractiveSeek(
-    _InteractiveSeekSession session,
-  ) async {
-    try {
-      await session.pauseCompleted;
-      if (!_isCurrent(session)) {
-        return false;
-      }
-
-      await seekTo(session.target);
-      if (!_isCurrent(session)) {
-        return false;
-      }
-
-      await _play(enableSync: false);
-      return _isCurrent(session);
-    } finally {
-      if (_isCurrent(session)) {
-        _interactiveSession = null;
-      }
-    }
+    _interactiveSeek.invalidate();
   }
 
   Duration _normalize(Duration target) {
@@ -135,9 +105,6 @@ class PlayerSeekController {
     }
     return Duration(milliseconds: milliseconds);
   }
-
-  bool _isCurrent(_InteractiveSeekSession session) =>
-      identical(_interactiveSession, session);
 
   Future<void> _settle(Future<void> operation) async {
     try {

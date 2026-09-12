@@ -266,26 +266,30 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                             ...colorThemes.map(
                               (e) {
                                 final index = colorThemes.indexOf(e);
-                                return GestureDetector(
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(12),
                                   onTap: () {
                                     index == 0
                                         ? resetTheme()
                                         : setTheme(e['color']);
                                     KazumiDialog.dismiss();
                                   },
-                                  child: Column(
-                                    children: [
-                                      PaletteCard(
-                                        color: e['color'],
-                                        selected: (e['color']
-                                                    .value
-                                                    .toRadixString(16) ==
-                                                defaultThemeColor ||
-                                            (defaultThemeColor == 'default' &&
-                                                index == 0)),
-                                      ),
-                                      Text(e['label']),
-                                    ],
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4),
+                                    child: Column(
+                                      children: [
+                                        PaletteCard(
+                                          color: e['color'],
+                                          selected: (e['color']
+                                                      .value
+                                                      .toRadixString(16) ==
+                                                  defaultThemeColor ||
+                                              (defaultThemeColor == 'default' &&
+                                                  index == 0)),
+                                        ),
+                                        Text(e['label']),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },

@@ -33,6 +33,10 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.handleFullscreen,
     required this.enterAndroidPictureInPicture,
     required this.handleProgressBarDragStart,
+    required this.handleProgressBarPointerDown,
+    required this.handleProgressBarPointerUp,
+    required this.handleProgressBarPointerCancel,
+    required this.handleProgressBarDragUpdate,
     required this.handleProgressBarSeek,
     required this.handleSuperResolutionChange,
     required this.panelVisibilityController,
@@ -56,6 +60,10 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() handleFullscreen;
   final Future<void> Function() enterAndroidPictureInPicture;
   final VoidCallback handleProgressBarDragStart;
+  final ValueChanged<int> handleProgressBarPointerDown;
+  final ValueChanged<int> handleProgressBarPointerUp;
+  final ValueChanged<int> handleProgressBarPointerCancel;
+  final ValueChanged<Duration> handleProgressBarDragUpdate;
   final Future<void> Function(Duration duration) handleProgressBarSeek;
   final Future<void> Function(SuperResolutionMode mode)
       handleSuperResolutionChange;
@@ -423,17 +431,25 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
         // tick rebuilds only the bar and time text, not the whole bottom bar.
         Expanded(
           child: Observer(builder: (context) {
-            return ProgressBar(
-              thumbRadius: 8,
-              thumbGlowRadius: 18,
-              timeLabelLocation: TimeLabelLocation.none,
-              progress: playerController.playback.currentPosition,
-              buffered: playerController.playback.buffer,
-              total: playerController.playback.duration,
-              onSeek: widget.handleProgressBarSeek,
-              onDragStart: (_) => widget.handleProgressBarDragStart(),
-              onDragUpdate: (details) => playerController.seeking
-                  .updateInteractiveSeek(details.timeStamp),
+            return Listener(
+              onPointerDown: (event) =>
+                  widget.handleProgressBarPointerDown(event.pointer),
+              onPointerUp: (event) =>
+                  widget.handleProgressBarPointerUp(event.pointer),
+              onPointerCancel: (event) =>
+                  widget.handleProgressBarPointerCancel(event.pointer),
+              child: ProgressBar(
+                thumbRadius: 8,
+                thumbGlowRadius: 18,
+                timeLabelLocation: TimeLabelLocation.none,
+                progress: playerController.playback.currentPosition,
+                buffered: playerController.playback.buffer,
+                total: playerController.playback.duration,
+                onSeek: widget.handleProgressBarSeek,
+                onDragStart: (_) => widget.handleProgressBarDragStart(),
+                onDragUpdate: (details) =>
+                    widget.handleProgressBarDragUpdate(details.timeStamp),
+              ),
             );
           }),
         ),

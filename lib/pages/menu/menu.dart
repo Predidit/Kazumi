@@ -6,6 +6,7 @@ import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/menu/route_visibility.dart';
 import 'package:kazumi/pages/router.dart';
+import 'package:kazumi/bean/widget/gamepad_navigation.dart';
 
 class ScaffoldMenu extends StatefulWidget {
   const ScaffoldMenu({super.key, required this.location});
@@ -26,6 +27,12 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   bool _isCovered = false;
 
   @override
+  void initState() {
+    super.initState();
+    GamepadNavigationScope.onSectionFallback = _handleGlobalSectionSwitch;
+  }
+
+  @override
   void didUpdateWidget(covariant ScaffoldMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.location != widget.location) {
@@ -44,6 +51,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
 
   @override
   void dispose() {
+    GamepadNavigationScope.onSectionFallback = null;
     rootRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -72,6 +80,11 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
     setState(() => _selectedIndex = index);
   }
 
+  // The shell owns its selection even while another page covers it.
+  void _handleGlobalSectionSwitch(int offset) {
+    _selectDestination((_selectedIndex + offset) % menu.menuList.length);
+  }
+
   void _handleSystemBack(BuildContext context) {
     if (_outletKey.currentState?.maybePop() ?? false) {
       _lastExitPromptAt = null;
@@ -98,21 +111,84 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    return RouteVisibility(
-      isCovered: _isCovered,
-      child: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) {
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        GamepadBackIntent: CallbackAction<GamepadBackIntent>(
+          onInvoke: (_) {
             _handleSystemBack(context);
-          }
-        },
-        child: OrientationBuilder(
-          builder: (context, orientation) {
-            return orientation == Orientation.portrait
-                ? _bottomMenu(context, _selectedIndex)
-                : _sideMenu(context, _selectedIndex);
+            return null;
           },
+        ),
+        GamepadPreviousSectionIntent:
+            CallbackAction<GamepadPreviousSectionIntent>(
+          onInvoke: (_) {
+            _handleGlobalSectionSwitch(-1);
+            return null;
+          },
+        ),
+        GamepadNextSectionIntent: CallbackAction<GamepadNextSectionIntent>(
+          onInvoke: (_) {
+            _handleGlobalSectionSwitch(1);
+            return null;
+          },
+        ),
+        GamepadContextActionIntent: CallbackAction<GamepadContextActionIntent>(
+          onInvoke: (_) {
+            // The search page owns Y while its input is focused. The shell's
+            // action is still in the ancestor tree, so inspect both the
+            // focused route and the root route state before opening another
+            // search route. This also covers nested tab paths such as
+            // /tab/my/search, which are not equal to /search.
+            final focusedContext = FocusManager.instance.primaryFocus?.context;
+            final navigationContext = rootNavigatorKey.currentContext;
+            final paths = <String>[];
+            for (final candidate in [
+              focusedContext,
+              navigationContext,
+              context
+            ]) {
+              if (candidate == null) continue;
+              try {
+                paths.add(candidate.routeState(listen: false).uri.path);
+              } catch (_) {
+                // A focused platform view can sit outside Modular's route
+                // scope; the other candidates still provide the route.
+              }
+            }
+            bool isSearchPath(String path) =>
+                path == '/search' ||
+                path.endsWith('/search') ||
+                path.contains('/search/');
+            if (paths.any(isSearchPath)) {
+              return null;
+            }
+            context.pushNamed('/search/');
+            return null;
+          },
+        ),
+        GamepadMenuIntent: CallbackAction<GamepadMenuIntent>(
+          onInvoke: (_) {
+            context.pushNamed('/settings/');
+            return null;
+          },
+        ),
+      },
+      child: RouteVisibility(
+        isCovered: _isCovered,
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) {
+              _handleSystemBack(context);
+            }
+          },
+          child: OrientationBuilder(
+            builder: (context, orientation) {
+              return orientation == Orientation.portrait
+                  ? _bottomMenu(context, _selectedIndex)
+                  : _sideMenu(context, _selectedIndex);
+            },
+          ),
         ),
       ),
     );

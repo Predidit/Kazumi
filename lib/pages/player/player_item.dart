@@ -39,6 +39,9 @@ import 'package:kazumi/services/player/audio_controller.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
 import 'package:kazumi/services/platform/player_menu_service.dart';
+import 'package:kazumi/bean/widget/gamepad_navigation.dart';
+
+enum _InteractiveSeekSource { progressBar, surface }
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
@@ -51,6 +54,11 @@ class PlayerItem extends StatefulWidget {
     required this.changeEpisode,
     required this.onBackPressed,
     required this.keyboardFocus,
+    required this.playerPanelScopeNode,
+    required this.topBarScopeNode,
+    required this.sideTabScopeNode,
+    required this.isSideTabOpen,
+    required this.onCloseSideTab,
     required this.pauseForTimedShutdown,
     this.disableAnimations = false,
   });
@@ -64,6 +72,14 @@ class PlayerItem extends StatefulWidget {
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
   final FocusNode keyboardFocus;
+  // Traversal scopes owned by the video page. The panel scope keeps panel
+  // navigation contained; the top bar scope is the explicit exit target
+  // when navigation leaves the top edge of the panel.
+  final FocusScopeNode playerPanelScopeNode;
+  final FocusScopeNode topBarScopeNode;
+  final FocusScopeNode sideTabScopeNode;
+  final bool Function() isSideTabOpen;
+  final VoidCallback onCloseSideTab;
   final bool disableAnimations;
   final VoidCallback pauseForTimedShutdown;
 
@@ -77,6 +93,8 @@ class _PlayerItemState extends State<PlayerItem>
         WidgetsBindingObserver,
         TickerProviderStateMixin,
         KazumiDialogOwner {
+  static const Duration _interactiveSeekRecoveryTimeout = Duration(seconds: 5);
+
   late final PlayerController playerController;
   late final VideoPageController videoPageController =
       widget.videoPageController;
@@ -124,8 +142,16 @@ class _PlayerItemState extends State<PlayerItem>
   final Set<PlayerPanelHold> _playerPanelHolds = <PlayerPanelHold>{};
   int _openPlayerMenuCount = 0;
   PlayerPanelHold? _progressBarDragHold;
+  Timer? _interactiveSeekRecoveryTimer;
+  int? _progressBarPointer;
   PointerDeviceKind? _lastTapPointerKind;
   PointerDeviceKind? _lastDoubleTapPointerKind;
+  Duration _surfaceSeekStartPosition = Duration.zero;
+  double _surfaceSeekCumulativeDx = 0;
+  _InteractiveSeekSource? _interactiveSeekSource;
+  int _interactiveSeekGeneration = 0;
+  bool _interactiveSeekWasPlaying = false;
+  bool _playerPanelHasFocus = false;
 
   late final AnimationController _panelVisibilityController;
   late final AnimationController _screenshotFeedbackController;
@@ -151,6 +177,12 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _abortInteractiveSeek(resumePlayback: false);
+    }
     if (state == AppLifecycleState.paused && !backgroundPlayback) {
       // Suspend before awaiting pause so a later resume wins; pause alone keeps prefetching.
       final suspend = playerController.playback.setPrefetchSuspended(true);
@@ -667,6 +699,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleFullscreenChange(BuildContext context) async {
+    _abortInteractiveSeek();
     playerController.panel.lockPanel = false;
     _releasePlayerPanelHolds();
     playerController.danmaku.canvasController.clear();
@@ -676,43 +709,242 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void handleProgressBarDragStart() {
-    _beginInteractiveSeek();
+    if (!_beginInteractiveSeek(_InteractiveSeekSource.progressBar)) {
+      return;
+    }
     _syncAudioServiceState();
     _progressBarDragHold = acquirePlayerPanelHold();
   }
 
-  Future<void> handleProgressBarSeek(Duration duration) async {
-    if (!playerController.seeking.updateInteractiveSeek(duration)) {
-      await playerController.seek(duration);
+  void handleProgressBarDragUpdate(Duration duration) {
+    if (_interactiveSeekSource != _InteractiveSeekSource.progressBar) {
       return;
     }
-    await _commitInteractiveSeek();
+    if (playerController.seeking.updateInteractiveSeek(duration)) {
+      _armInteractiveSeekRecovery();
+    }
   }
 
-  void _beginInteractiveSeek() {
-    _progressBarDragHold?.release();
-    _progressBarDragHold = null;
+  Future<void> handleProgressBarSeek(Duration duration) async {
+    if (_interactiveSeekSource == _InteractiveSeekSource.surface) {
+      return;
+    }
+    if (playerController.seeking.hasActiveInteractiveSeek) {
+      // An onSeek arriving again while commit is pending must not seek twice.
+      if (playerController.seeking.updateInteractiveSeek(duration)) {
+        await _commitInteractiveSeek();
+      }
+      return;
+    }
+    final generation = _interactiveSeekGeneration;
+    try {
+      await playerController.seek(duration);
+    } finally {
+      if (mounted && generation == _interactiveSeekGeneration) {
+        _clearInteractiveSeekUi();
+      }
+    }
+  }
+
+  bool _beginInteractiveSeek(_InteractiveSeekSource source) {
+    if (playerController.seeking.hasActiveInteractiveSeek) {
+      return false;
+    }
     playerTimer?.cancel();
+    _interactiveSeekGeneration++;
+    _interactiveSeekSource = source;
+    _interactiveSeekWasPlaying = playerController.playback.playing;
     playerController.seeking.beginInteractiveSeek();
+    if (!playerController.seeking.hasActiveInteractiveSeek) {
+      _interactiveSeekSource = null;
+      return false;
+    }
+    _armInteractiveSeekRecovery();
+    return true;
+  }
+
+  void _armInteractiveSeekRecovery() {
+    _interactiveSeekRecoveryTimer?.cancel();
+    _interactiveSeekRecoveryTimer = Timer(
+      _interactiveSeekRecoveryTimeout,
+      _abortInteractiveSeek,
+    );
   }
 
   Future<void> _commitInteractiveSeek() async {
+    final generation = _interactiveSeekGeneration;
     var completed = false;
     try {
       completed = await playerController.seeking.commitInteractiveSeek();
     } catch (e) {
       KazumiLogger().e('PlayerController: interactive seek failed', error: e);
+    } finally {
+      if (mounted && generation == _interactiveSeekGeneration) {
+        _clearInteractiveSeekUi(syncAudioService: completed);
+      }
     }
-    if (!mounted ||
-        (!completed && playerController.seeking.hasActiveInteractiveSeek)) {
+  }
+
+  Future<void> _cancelInteractiveSeek() async {
+    final generation = _interactiveSeekGeneration;
+    var completed = false;
+    try {
+      completed = await playerController.seeking.cancelInteractiveSeek();
+    } catch (e) {
+      KazumiLogger().e(
+        'PlayerController: interactive seek cancellation failed',
+        error: e,
+      );
+    } finally {
+      if (mounted && generation == _interactiveSeekGeneration) {
+        _clearInteractiveSeekUi(syncAudioService: completed);
+      }
+    }
+  }
+
+  void _beginSurfaceInteractiveSeek() {
+    if (!_beginInteractiveSeek(_InteractiveSeekSource.surface)) {
       return;
     }
+    _surfaceSeekStartPosition = playerController.playback.currentPosition;
+    _surfaceSeekCumulativeDx = 0;
+    playerController.panel.seekDirection = 0;
+    playerController.panel.showSeekTime = true;
+  }
+
+  void _updateSurfaceInteractiveSeek(
+    BuildContext context,
+    DragUpdateDetails details,
+  ) {
+    if (!playerController.seeking.hasActiveInteractiveSeek) {
+      return;
+    }
+    _surfaceSeekCumulativeDx += details.delta.dx;
+    final target = horizontalDragSeekTarget(
+      initialPosition: _surfaceSeekStartPosition,
+      videoDuration: playerController.playback.duration,
+      cumulativeDeltaX: _surfaceSeekCumulativeDx,
+      surfaceWidth: MediaQuery.sizeOf(context).width,
+    );
+    playerController.panel.seekDirection = interactiveSeekDirection(
+      initialPosition: _surfaceSeekStartPosition,
+      target: target,
+    );
+    if (playerController.seeking.updateInteractiveSeek(target)) {
+      _armInteractiveSeekRecovery();
+    }
+  }
+
+  void _finishSurfaceSeekHud() {
+    playerController.panel.showSeekTime = false;
+    playerController.panel.seekDirection = 0;
+    _surfaceSeekCumulativeDx = 0;
+  }
+
+  void _commitSurfaceInteractiveSeek() {
+    _finishSurfaceSeekHud();
+    if (_interactiveSeekSource == _InteractiveSeekSource.surface &&
+        playerController.seeking.hasActiveInteractiveSeek) {
+      unawaited(_commitInteractiveSeek());
+    }
+  }
+
+  void _cancelSurfaceInteractiveSeek() {
+    _finishSurfaceSeekHud();
+    if (_interactiveSeekSource == _InteractiveSeekSource.surface &&
+        playerController.seeking.hasActiveInteractiveSeek) {
+      unawaited(_cancelInteractiveSeek());
+    }
+  }
+
+  void _handleProgressBarPointerDown(int pointer) {
+    _progressBarPointer ??= pointer;
+  }
+
+  void _handleProgressBarPointerUp(int pointer) {
+    if (_progressBarPointer == pointer) {
+      _progressBarPointer = null;
+    }
+  }
+
+  void _handleProgressBarPointerCancel(int pointer) {
+    if (_progressBarPointer != pointer) {
+      return;
+    }
+    _progressBarPointer = null;
+    if (_interactiveSeekSource == _InteractiveSeekSource.progressBar) {
+      unawaited(_cancelInteractiveSeek());
+    }
+  }
+
+  void _clearInteractiveSeekUi({bool syncAudioService = false}) {
+    _interactiveSeekGeneration++;
+    _interactiveSeekRecoveryTimer?.cancel();
+    _interactiveSeekRecoveryTimer = null;
+    _progressBarPointer = null;
     _progressBarDragHold?.release();
     _progressBarDragHold = null;
-    if (completed) {
+    _interactiveSeekSource = null;
+    _interactiveSeekWasPlaying = false;
+    _finishSurfaceSeekHud();
+    if (syncAudioService) {
       _syncAudioServiceState();
     }
     _restartPlayerTimer();
+  }
+
+  void _abortInteractiveSeek({bool resumePlayback = true}) {
+    if (!playerController.seeking.hasActiveInteractiveSeek &&
+        _interactiveSeekSource == null) {
+      return;
+    }
+    final shouldResume = _interactiveSeekWasPlaying;
+    playerController.seeking.invalidateInteractiveSeek();
+    if (mounted) {
+      _clearInteractiveSeekUi();
+    }
+    if (shouldResume && resumePlayback) {
+      unawaited(
+        playerController.play(enableSync: false).catchError((_) {}),
+      );
+    }
+  }
+
+  void _updateSurfaceVerticalDrag(
+    BuildContext context,
+    DragUpdateDetails details,
+  ) {
+    if (!brightnessVolumeGesture) {
+      return;
+    }
+    final double totalWidth = MediaQuery.sizeOf(context).width;
+    final double totalHeight = MediaQuery.sizeOf(context).height;
+    final double tapPosition = details.localPosition.dx;
+    final double sectionWidth = totalWidth / 2;
+    final double delta = details.delta.dy;
+
+    if (tapPosition < sectionWidth) {
+      playerController.panel.brightnessSeeking = true;
+      _showBrightnessAdjustmentHud();
+      final double level = totalHeight * 2;
+      final double brightness =
+          playerController.panel.brightness - delta / level;
+      final double result = brightness.clamp(0.0, 1.0);
+      setBrightness(result);
+      playerController.panel.brightness = result;
+    } else {
+      _showVolumeAdjustmentHud();
+      if (!playerController.panel.volumeSeeking) {
+        playerController.panel.volumeSeeking = true;
+        playerController.playback.invalidatePreciseVolume();
+      }
+      final double baseVolume = playerController.playback.preciseVolume >= 0
+          ? playerController.playback.preciseVolume
+          : playerController.playback.volume;
+      final double level = totalHeight * 0.03;
+      final double volume = baseVolume - delta / level;
+      playerController.setVolumeDuringGesture(volume);
+    }
   }
 
   void _restartPlayerTimer() {
@@ -1283,6 +1515,11 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   @override
+  void onWindowBlur() {
+    _abortInteractiveSeek();
+  }
+
+  @override
   void onWindowRestore() {
     playerController.danmaku.canvasController.clear();
   }
@@ -1400,6 +1637,7 @@ class _PlayerItemState extends State<PlayerItem>
     hideTimer?.cancel();
     mouseScrollerTimer?.cancel();
     _adjustmentHudHideTimer?.cancel();
+    _interactiveSeekRecoveryTimer?.cancel();
     _panelVisibilityController.dispose();
     _screenshotFeedbackController.dispose();
     _disposePlayerMenu();
@@ -1411,322 +1649,508 @@ class _PlayerItemState extends State<PlayerItem>
     super.dispose();
   }
 
+  Map<Type, Action<Intent>> get _gamepadActions => <Type, Action<Intent>>{
+        GamepadActivateIntent: CallbackAction<GamepadActivateIntent>(
+          onInvoke: (_) {
+            _handleGamepadActivate();
+            return null;
+          },
+        ),
+        GamepadNavigateIntent: CallbackAction<GamepadNavigateIntent>(
+          onInvoke: (intent) {
+            _handleGamepadNavigate(intent.direction);
+            return null;
+          },
+        ),
+        GamepadBackIntent: CallbackAction<GamepadBackIntent>(
+          onInvoke: (_) {
+            _handleGamepadBack();
+            return null;
+          },
+        ),
+        GamepadSecondaryActionIntent:
+            CallbackAction<GamepadSecondaryActionIntent>(
+          onInvoke: (_) {
+            handleDanmaku();
+            return null;
+          },
+        ),
+        GamepadContextActionIntent: CallbackAction<GamepadContextActionIntent>(
+          onInvoke: (_) {
+            if (playerController.panel.showVideoController) {
+              hideVideoController();
+            } else {
+              showVideoController();
+            }
+            return null;
+          },
+        ),
+        GamepadPreviousSectionIntent:
+            CallbackAction<GamepadPreviousSectionIntent>(
+          onInvoke: (_) {
+            _handleGamepadSeek(-1);
+            return null;
+          },
+        ),
+        GamepadNextSectionIntent: CallbackAction<GamepadNextSectionIntent>(
+          onInvoke: (_) {
+            _handleGamepadSeek(1);
+            return null;
+          },
+        ),
+        GamepadPreviousSecondarySectionIntent:
+            CallbackAction<GamepadPreviousSecondarySectionIntent>(
+          onInvoke: (_) {
+            handlePreNextEpisode('prev');
+            return null;
+          },
+        ),
+        GamepadNextSecondarySectionIntent:
+            CallbackAction<GamepadNextSecondarySectionIntent>(
+          onInvoke: (_) {
+            handlePreNextEpisode('next');
+            return null;
+          },
+        ),
+        GamepadMenuIntent: CallbackAction<GamepadMenuIntent>(
+          onInvoke: (_) {
+            unawaited(playerController.playOrPause());
+            showVideoController();
+            return null;
+          },
+        ),
+        GamepadViewIntent: CallbackAction<GamepadViewIntent>(
+          onInvoke: (_) {
+            widget.toggleMenu();
+            return null;
+          },
+        ),
+        GamepadLeftStickClickIntent:
+            CallbackAction<GamepadLeftStickClickIntent>(
+          onInvoke: (_) {
+            unawaited(handleShortcutVolumeChange('mute'));
+            return null;
+          },
+        ),
+        GamepadRightStickClickIntent:
+            CallbackAction<GamepadRightStickClickIntent>(
+          onInvoke: (_) {
+            _toggleGamepadPlaybackSpeed();
+            return null;
+          },
+        ),
+      };
+
+  // A confirms the control the stick selected. It is never bound to a media
+  // action directly (no fullscreen or play/pause shortcut); when nothing is
+  // selected yet it reveals the controls so the next press can confirm.
+  void _handleGamepadActivate() {
+    if (_playerPanelHasFocus) {
+      final focusContext = FocusManager.instance.primaryFocus?.context;
+      if (focusContext != null) {
+        Actions.maybeInvoke(focusContext, const ActivateIntent());
+      }
+      return;
+    }
+    _focusPlayerPanel();
+  }
+
+  void _handleGamepadNavigate(TraversalDirection direction) {
+    if (playerController.panel.lockPanel) {
+      return;
+    }
+    // The episode side tab sits in its own focus scope on the right. A right
+    // press moves into it before the panel claims the direction, so the list
+    // is reachable without cycling through every player control first.
+    if (widget.isSideTabOpen() &&
+        direction == TraversalDirection.right &&
+        !_playerPanelHasFocus) {
+      focusFirstGamepadControl(widget.sideTabScopeNode);
+      return;
+    }
+    // Navigation only moves between on-screen buttons. When the controls are
+    // hidden the stick reveals them and focuses the first button instead of
+    // seeking or changing the volume.
+    if (!playerController.panel.showVideoController || !_playerPanelHasFocus) {
+      _focusPlayerPanel();
+      return;
+    }
+    if (!invokeGamepadControlDirection(direction)) {
+      final focused = FocusManager.instance.primaryFocus;
+      final moved = focused?.focusInDirection(direction) ?? false;
+      if (!moved && direction == TraversalDirection.up) {
+        // Directional traversal is confined to the nearest focus scope,
+        // so focus at the top edge of the panel can never reach the top
+        // bar on its own; hand it over explicitly.
+        focusFirstGamepadControl(widget.topBarScopeNode);
+      } else if (!moved &&
+          direction == TraversalDirection.right &&
+          widget.isSideTabOpen()) {
+        focusFirstGamepadControl(widget.sideTabScopeNode);
+      }
+    }
+  }
+
+  void _focusPlayerPanel() {
+    showVideoController(restartHideTimer: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Validate the remembered child instead of blindly calling nextFocus,
+      // which can silently do nothing after a control was rebuilt away.
+      if (!focusFirstGamepadControl(widget.playerPanelScopeNode)) {
+        widget.keyboardFocus.requestFocus();
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  void _handleGamepadBack() {
+    // The episode side tab is an overlay: dismiss it first, then the player
+    // controls, then leave the page. This mirrors the video page level B.
+    if (widget.isSideTabOpen()) {
+      widget.onCloseSideTab();
+      return;
+    }
+    if (_playerPanelHasFocus || playerController.panel.showVideoController) {
+      widget.keyboardFocus.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          hideVideoController();
+        }
+      });
+      return;
+    }
+    widget.onBackPressed(context);
+  }
+
+  void _handleGamepadSeek(int direction) {
+    final seconds = playerController.playback.arrowKeySkipTime * direction;
+    unawaited(_seekWithPlayerTimer(
+      () => playerController.seekBy(Duration(seconds: seconds)),
+    ));
+  }
+
+  void _toggleGamepadPlaybackSpeed() {
+    final current = playerController.playback.playerSpeed;
+    final target =
+        (current - longPressPlaySpeed).abs() < 0.01 ? 1.0 : longPressPlaySpeed;
+    unawaited(setPlaybackSpeed(target));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Observer(
-      builder: (context) {
-        return ClipRect(
-          child: Container(
-            color: Colors.black,
-            child: MouseRegion(
-              cursor: (videoPageController.isFullscreen &&
-                      !playerController.panel.showVideoController)
-                  ? SystemMouseCursors.none
-                  : SystemMouseCursors.basic,
-              onHover: (PointerEvent pointerEvent) {
-                // Android taps can emit hover events.
-                if (isDesktop()) {
-                  if (pointerEvent.position.dy > 50 &&
-                      pointerEvent.position.dy <
-                          MediaQuery.of(context).size.height - 70) {
-                    showVideoController();
-                  } else {
-                    if (!playerController.panel.showVideoController) {
-                      _panelVisibilityController.forward();
-                      playerController.panel.showVideoController = true;
+    return Actions(
+      actions: _gamepadActions,
+      child: Focus(
+        focusNode: widget.keyboardFocus,
+        autofocus: true,
+        child: Observer(
+          builder: (context) {
+            final enableSurfaceVerticalDrag =
+                shouldEnablePlayerSurfaceVerticalDrag(isDesktop: isDesktop());
+            return ClipRect(
+              child: Container(
+                color: Colors.black,
+                child: MouseRegion(
+                  cursor: (videoPageController.isFullscreen &&
+                          !playerController.panel.showVideoController)
+                      ? SystemMouseCursors.none
+                      : SystemMouseCursors.basic,
+                  onHover: (PointerEvent pointerEvent) {
+                    // Android taps can emit hover events.
+                    if (isDesktop()) {
+                      if (pointerEvent.position.dy > 50 &&
+                          pointerEvent.position.dy <
+                              MediaQuery.of(context).size.height - 70) {
+                        showVideoController();
+                      } else {
+                        if (!playerController.panel.showVideoController) {
+                          _panelVisibilityController.forward();
+                          playerController.panel.showVideoController = true;
+                        }
+                      }
                     }
-                  }
-                }
-              },
-              child: Listener(
-                onPointerSignal: (pointerSignal) {
-                  if (pointerSignal is PointerScrollEvent) {
-                    _handleMouseScroller();
-                    final scrollDelta = pointerSignal.scrollDelta;
-                    final double volume =
-                        playerController.playback.volume - scrollDelta.dy / 60;
-                    playerController.setVolume(volume);
-                  }
-                },
-                child: SizedBox(
-                  height: videoPageController.isFullscreen ||
-                          videoPageController.isPip
-                      ? (MediaQuery.of(context).size.height)
-                      : (MediaQuery.of(context).size.width * 9.0 / (16.0)),
-                  width: MediaQuery.of(context).size.width,
-                  child: Stack(alignment: Alignment.center, children: [
-                    PlayerKeyboardShortcuts(
-                      focusScopeNode: widget.keyboardFocus,
-                      actions: keyboardActions,
-                      longPressActions: keyboardLongPressActions,
-                      isBlocked: () => _openPlayerMenuCount > 0,
-                    ),
-                    Center(
-                      key: _videoSurfaceKey,
-                      child: PlayerItemSurface(
-                        playerController: playerController,
-                      ),
-                    ),
-                    (playerController.playback.isBuffering ||
-                            videoPageController.loading)
-                        ? const Positioned.fill(
-                            child: Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
-                        : Container(),
-                    GestureDetector(
-                      onTapDown: (details) {
-                        _lastTapPointerKind = details.kind;
-                      },
-                      onTap: () {
-                        _handleTap(_lastTapPointerKind);
-                        _lastTapPointerKind = null;
-                      },
-                      onTapCancel: () {
-                        _lastTapPointerKind = null;
-                      },
-                      onDoubleTapDown: (playerController.panel.lockPanel)
-                          ? null
-                          : (details) {
-                              _lastDoubleTapPointerKind = details.kind;
-                            },
-                      onDoubleTap: (playerController.panel.lockPanel)
-                          ? null
-                          : () {
-                              _handleDoubleTap(
-                                _lastDoubleTapPointerKind ??
-                                    _lastTapPointerKind,
-                              );
-                              _lastDoubleTapPointerKind = null;
-                              _lastTapPointerKind = null;
-                            },
-                      onLongPressStart: (_) {
-                        if (playerController.panel.lockPanel) {
-                          return;
-                        }
-                        setState(() {
-                          playerController.panel.showPlaySpeed = true;
-                        });
-                        lastPlayerSpeed = playerController.playback.playerSpeed;
-                        setPlaybackSpeed(longPressPlaySpeed);
-                      },
-                      onLongPressEnd: (_) {
-                        if (playerController.panel.lockPanel) {
-                          return;
-                        }
-                        setState(() {
-                          playerController.panel.showPlaySpeed = false;
-                        });
-                        setPlaybackSpeed(lastPlayerSpeed);
-                      },
-                      child: Container(
-                        color: Colors.transparent,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
+                  },
+                  child: Listener(
+                    onPointerSignal: (pointerSignal) {
+                      if (pointerSignal is PointerScrollEvent) {
+                        _handleMouseScroller();
+                        final scrollDelta = pointerSignal.scrollDelta;
+                        final double volume = playerController.playback.volume -
+                            scrollDelta.dy / 60;
+                        playerController.setVolume(volume);
+                      }
+                    },
+                    child: SizedBox(
                       height: videoPageController.isFullscreen ||
                               videoPageController.isPip
-                          ? MediaQuery.sizeOf(context).height
-                          : (MediaQuery.sizeOf(context).width * 9 / 16),
-                      child: DanmakuScreen(
-                        key: _danmuKey,
-                        createdController: (DanmakuController e) {
-                          playerController.danmaku.canvasController = e;
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            playerController.updateDanmakuSpeed();
-                          });
-                        },
-                        option: DanmakuOption(
-                          hideTop: _hideTop,
-                          hideScroll: _hideScroll,
-                          hideBottom: _hideBottom,
-                          area: _danmakuArea,
-                          opacity: _opacity,
-                          fontSize: _fontSize,
-                          // Speed scaling is applied after canvas creation.
-                          duration: _danmakuDuration,
-                          lineHeight: _danmakuLineHeight,
-                          strokeWidth: _border ? _danmakuBorderSize : 0.0,
-                          fontWeight: _danmakuFontWeight,
-                          massiveMode: _massiveMode,
-                          fontFamily: _danmakuUseSystemFont
-                              ? null
-                              : customAppFontFamily,
+                          ? (MediaQuery.of(context).size.height)
+                          : (MediaQuery.of(context).size.width * 9.0 / (16.0)),
+                      width: MediaQuery.of(context).size.width,
+                      child: Stack(alignment: Alignment.center, children: [
+                        PlayerKeyboardShortcuts(
+                          focusScopeNode: widget.keyboardFocus,
+                          actions: keyboardActions,
+                          longPressActions: keyboardLongPressActions,
+                          isBlocked: () =>
+                              _openPlayerMenuCount > 0 || _playerPanelHasFocus,
                         ),
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: PlayerScreenshotFeedbackOverlay(
-                        animation: _screenshotFeedbackAnimation,
-                      ),
-                    ),
-                    (Platform.isAndroid &&
-                            (videoPageController.isPip || _pipEnterRequested))
-                        ? const SizedBox.shrink()
-                        : (_needsFullPanel(context))
-                            ? PlayerItemPanel(
-                                playerController: playerController,
-                                videoPageController: videoPageController,
-                                onBackPressed: widget.onBackPressed,
-                                setPlaybackSpeed: setPlaybackSpeed,
-                                showDanmakuSwitch: showDanmakuSwitch,
-                                toggleMenu: widget.toggleMenu,
-                                handleFullscreen: handleFullscreen,
-                                enterAndroidPictureInPicture:
-                                    enterAndroidPictureInPicture,
-                                handleProgressBarDragStart:
-                                    handleProgressBarDragStart,
-                                handleProgressBarSeek: handleProgressBarSeek,
-                                handleSuperResolutionChange:
-                                    handleSuperResolutionChange,
-                                handlePreNextEpisode: handlePreNextEpisode,
-                                panelVisibilityController:
-                                    _panelVisibilityController,
-                                keyboardFocus: widget.keyboardFocus,
-                                acquirePlayerPanelHold: acquirePlayerPanelHold,
-                                onMenuVisibilityChanged:
-                                    _handlePlayerMenuVisibilityChanged,
-                                handleDanmaku: handleDanmaku,
-                                showVideoInfo: showVideoInfo,
-                                showSyncPlayPanel: showSyncPlayPanel,
-                                pauseForTimedShutdown:
-                                    widget.pauseForTimedShutdown,
-                                disableAnimations: widget.disableAnimations,
-                                handleScreenShot: handleScreenshot,
-                                skipOP: skipOP,
+                        Center(
+                          key: _videoSurfaceKey,
+                          child: PlayerItemSurface(
+                            playerController: playerController,
+                          ),
+                        ),
+                        (playerController.playback.isBuffering ||
+                                videoPageController.loading)
+                            ? const Positioned.fill(
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                               )
-                            : SmallestPlayerItemPanel(
-                                playerController: playerController,
-                                videoPageController: videoPageController,
-                                onBackPressed: widget.onBackPressed,
-                                setPlaybackSpeed: setPlaybackSpeed,
-                                showDanmakuSwitch: showDanmakuSwitch,
-                                handleFullscreen: handleFullscreen,
-                                enterAndroidPictureInPicture:
-                                    enterAndroidPictureInPicture,
-                                handleProgressBarDragStart:
-                                    handleProgressBarDragStart,
-                                handleProgressBarSeek: handleProgressBarSeek,
-                                handleSuperResolutionChange:
-                                    handleSuperResolutionChange,
-                                panelVisibilityController:
-                                    _panelVisibilityController,
-                                acquirePlayerPanelHold: acquirePlayerPanelHold,
-                                onMenuVisibilityChanged:
-                                    _handlePlayerMenuVisibilityChanged,
-                                handleDanmaku: handleDanmaku,
-                                showVideoInfo: showVideoInfo,
-                                showSyncPlayPanel: showSyncPlayPanel,
-                                pauseForTimedShutdown:
-                                    widget.pauseForTimedShutdown,
-                                disableAnimations: widget.disableAnimations,
-                                skipOP: skipOP,
-                              ),
-                    Positioned.fill(
-                      left: 16,
-                      top: 25,
-                      right: 15,
-                      bottom: 15,
-                      child: (isDesktop() || playerController.panel.lockPanel)
-                          ? Container()
-                          : GestureDetector(
-                              onHorizontalDragStart: (_) {
-                                playerController.panel.seekDirection = 0;
-                                _beginInteractiveSeek();
-                              },
-                              onHorizontalDragUpdate:
-                                  (DragUpdateDetails details) {
-                                playerController.panel.showSeekTime = true;
-                                if (details.delta.dx != 0) {
-                                  playerController.panel.seekDirection =
-                                      details.delta.dx > 0 ? 1 : -1;
-                                }
-                                final double scale =
-                                    180000 / MediaQuery.sizeOf(context).width;
-                                playerController.seeking.updateInteractiveSeek(
-                                  playerController.playback.currentPosition +
-                                      Duration(
-                                        milliseconds:
-                                            (details.delta.dx * scale).round(),
-                                      ),
-                                );
-                              },
-                              onHorizontalDragEnd: (_) {
-                                playerController.panel.showSeekTime = false;
-                                playerController.panel.seekDirection = 0;
-                                if (playerController
-                                    .seeking.hasActiveInteractiveSeek) {
-                                  unawaited(
-                                    _commitInteractiveSeek(),
+                            : Container(),
+                        GestureDetector(
+                          onTapDown: (details) {
+                            _lastTapPointerKind = details.kind;
+                          },
+                          onTap: () {
+                            _handleTap(_lastTapPointerKind);
+                            _lastTapPointerKind = null;
+                          },
+                          onTapCancel: () {
+                            _lastTapPointerKind = null;
+                          },
+                          onDoubleTapDown: (playerController.panel.lockPanel)
+                              ? null
+                              : (details) {
+                                  _lastDoubleTapPointerKind = details.kind;
+                                },
+                          onDoubleTap: (playerController.panel.lockPanel)
+                              ? null
+                              : () {
+                                  _handleDoubleTap(
+                                    _lastDoubleTapPointerKind ??
+                                        _lastTapPointerKind,
                                   );
-                                }
-                              },
-                              onVerticalDragUpdate:
-                                  (DragUpdateDetails details) async {
-                                if (!brightnessVolumeGesture) {
-                                  return;
-                                }
-                                final double totalWidth =
-                                    MediaQuery.sizeOf(context).width;
-                                final double totalHeight =
-                                    MediaQuery.sizeOf(context).height;
-                                final double tapPosition =
-                                    details.localPosition.dx;
-                                final double sectionWidth = totalWidth / 2;
-                                final double delta = details.delta.dy;
-
-                                if (tapPosition < sectionWidth) {
-                                  playerController.panel.brightnessSeeking =
-                                      true;
-                                  _showBrightnessAdjustmentHud();
-                                  final double level = (totalHeight) * 2;
-                                  final double brightness =
-                                      playerController.panel.brightness -
-                                          delta / level;
-                                  final double result =
-                                      brightness.clamp(0.0, 1.0);
-                                  setBrightness(result);
-                                  playerController.panel.brightness = result;
-                                } else {
-                                  _showVolumeAdjustmentHud();
-                                  if (!playerController.panel.volumeSeeking) {
-                                    playerController.panel.volumeSeeking = true;
-                                    playerController.playback
-                                        .invalidatePreciseVolume();
-                                  }
-                                  final double baseVolume = playerController
-                                              .playback.preciseVolume >=
-                                          0
-                                      ? playerController.playback.preciseVolume
-                                      : playerController.playback.volume;
-                                  final double level = (totalHeight) * 0.03;
-                                  final double volume =
-                                      baseVolume - delta / level;
-                                  playerController
-                                      .setVolumeDuringGesture(volume);
-                                }
-                              },
-                              onVerticalDragEnd: (_) {
-                                _finishAdjustmentGesture();
-                              },
-                              onVerticalDragCancel: () {
-                                _finishAdjustmentGesture();
-                              },
+                                  _lastDoubleTapPointerKind = null;
+                                  _lastTapPointerKind = null;
+                                },
+                          onLongPressStart: (_) {
+                            if (playerController.panel.lockPanel) {
+                              return;
+                            }
+                            setState(() {
+                              playerController.panel.showPlaySpeed = true;
+                            });
+                            lastPlayerSpeed =
+                                playerController.playback.playerSpeed;
+                            setPlaybackSpeed(longPressPlaySpeed);
+                          },
+                          onLongPressEnd: (_) {
+                            if (playerController.panel.lockPanel) {
+                              return;
+                            }
+                            setState(() {
+                              playerController.panel.showPlaySpeed = false;
+                            });
+                            setPlaybackSpeed(lastPlayerSpeed);
+                          },
+                          child: Container(
+                            color: Colors.transparent,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: videoPageController.isFullscreen ||
+                                  videoPageController.isPip
+                              ? MediaQuery.sizeOf(context).height
+                              : (MediaQuery.sizeOf(context).width * 9 / 16),
+                          child: DanmakuScreen(
+                            key: _danmuKey,
+                            createdController: (DanmakuController e) {
+                              playerController.danmaku.canvasController = e;
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                playerController.updateDanmakuSpeed();
+                              });
+                            },
+                            option: DanmakuOption(
+                              hideTop: _hideTop,
+                              hideScroll: _hideScroll,
+                              hideBottom: _hideBottom,
+                              area: _danmakuArea,
+                              opacity: _opacity,
+                              fontSize: _fontSize,
+                              // Speed scaling is applied after canvas creation.
+                              duration: _danmakuDuration,
+                              lineHeight: _danmakuLineHeight,
+                              strokeWidth: _border ? _danmakuBorderSize : 0.0,
+                              fontWeight: _danmakuFontWeight,
+                              massiveMode: _massiveMode,
+                              fontFamily: _danmakuUseSystemFont
+                                  ? null
+                                  : customAppFontFamily,
                             ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: PlayerScreenshotFeedbackOverlay(
+                            animation: _screenshotFeedbackAnimation,
+                          ),
+                        ),
+                        Positioned.fill(
+                          left: 16,
+                          top: 25,
+                          right: 15,
+                          bottom: 15,
+                          child: !shouldEnablePlayerSurfaceSeek(
+                            isDesktop: isDesktop(),
+                            isLinux: Platform.isLinux,
+                            panelLocked: playerController.panel.lockPanel,
+                            videoDuration: playerController.playback.duration,
+                          )
+                              ? Container()
+                              : GestureDetector(
+                                  supportedDevices: playerSurfaceDragDevices(
+                                    isLinux: Platform.isLinux,
+                                  ),
+                                  onHorizontalDragStart: (_) =>
+                                      _beginSurfaceInteractiveSeek(),
+                                  onHorizontalDragUpdate:
+                                      (DragUpdateDetails details) {
+                                    _updateSurfaceInteractiveSeek(
+                                        context, details);
+                                  },
+                                  onHorizontalDragEnd: (_) =>
+                                      _commitSurfaceInteractiveSeek(),
+                                  onHorizontalDragCancel:
+                                      _cancelSurfaceInteractiveSeek,
+                                  onVerticalDragUpdate:
+                                      enableSurfaceVerticalDrag
+                                          ? (details) =>
+                                              _updateSurfaceVerticalDrag(
+                                                context,
+                                                details,
+                                              )
+                                          : null,
+                                  onVerticalDragEnd: enableSurfaceVerticalDrag
+                                      ? (_) => _finishAdjustmentGesture()
+                                      : null,
+                                  onVerticalDragCancel:
+                                      enableSurfaceVerticalDrag
+                                          ? _finishAdjustmentGesture
+                                          : null,
+                                ),
+                        ),
+                        (Platform.isAndroid &&
+                                (videoPageController.isPip ||
+                                    _pipEnterRequested))
+                            ? const SizedBox.shrink()
+                            : PlayerPanelHoldFocus(
+                                acquirePlayerPanelHold: acquirePlayerPanelHold,
+                                onFocusChanged: (hasFocus) {
+                                  _playerPanelHasFocus = hasFocus;
+                                },
+                                child: FocusScope(
+                                  node: widget.playerPanelScopeNode,
+                                  child: _needsFullPanel(context)
+                                      ? PlayerItemPanel(
+                                          playerController: playerController,
+                                          videoPageController:
+                                              videoPageController,
+                                          onBackPressed: widget.onBackPressed,
+                                          setPlaybackSpeed: setPlaybackSpeed,
+                                          showDanmakuSwitch: showDanmakuSwitch,
+                                          toggleMenu: widget.toggleMenu,
+                                          handleFullscreen: handleFullscreen,
+                                          enterAndroidPictureInPicture:
+                                              enterAndroidPictureInPicture,
+                                          handleProgressBarDragStart:
+                                              handleProgressBarDragStart,
+                                          handleProgressBarPointerDown:
+                                              _handleProgressBarPointerDown,
+                                          handleProgressBarPointerUp:
+                                              _handleProgressBarPointerUp,
+                                          handleProgressBarPointerCancel:
+                                              _handleProgressBarPointerCancel,
+                                          handleProgressBarDragUpdate:
+                                              handleProgressBarDragUpdate,
+                                          handleProgressBarSeek:
+                                              handleProgressBarSeek,
+                                          handleSuperResolutionChange:
+                                              handleSuperResolutionChange,
+                                          handlePreNextEpisode:
+                                              handlePreNextEpisode,
+                                          panelVisibilityController:
+                                              _panelVisibilityController,
+                                          keyboardFocus: widget.keyboardFocus,
+                                          acquirePlayerPanelHold:
+                                              acquirePlayerPanelHold,
+                                          onMenuVisibilityChanged:
+                                              _handlePlayerMenuVisibilityChanged,
+                                          handleDanmaku: handleDanmaku,
+                                          showVideoInfo: showVideoInfo,
+                                          showSyncPlayPanel: showSyncPlayPanel,
+                                          pauseForTimedShutdown:
+                                              widget.pauseForTimedShutdown,
+                                          disableAnimations:
+                                              widget.disableAnimations,
+                                          handleScreenShot: handleScreenshot,
+                                          skipOP: skipOP,
+                                        )
+                                      : SmallestPlayerItemPanel(
+                                          playerController: playerController,
+                                          videoPageController:
+                                              videoPageController,
+                                          onBackPressed: widget.onBackPressed,
+                                          setPlaybackSpeed: setPlaybackSpeed,
+                                          showDanmakuSwitch: showDanmakuSwitch,
+                                          handleFullscreen: handleFullscreen,
+                                          enterAndroidPictureInPicture:
+                                              enterAndroidPictureInPicture,
+                                          handleProgressBarDragStart:
+                                              handleProgressBarDragStart,
+                                          handleProgressBarPointerDown:
+                                              _handleProgressBarPointerDown,
+                                          handleProgressBarPointerUp:
+                                              _handleProgressBarPointerUp,
+                                          handleProgressBarPointerCancel:
+                                              _handleProgressBarPointerCancel,
+                                          handleProgressBarDragUpdate:
+                                              handleProgressBarDragUpdate,
+                                          handleProgressBarSeek:
+                                              handleProgressBarSeek,
+                                          handleSuperResolutionChange:
+                                              handleSuperResolutionChange,
+                                          panelVisibilityController:
+                                              _panelVisibilityController,
+                                          acquirePlayerPanelHold:
+                                              acquirePlayerPanelHold,
+                                          onMenuVisibilityChanged:
+                                              _handlePlayerMenuVisibilityChanged,
+                                          handleDanmaku: handleDanmaku,
+                                          showVideoInfo: showVideoInfo,
+                                          showSyncPlayPanel: showSyncPlayPanel,
+                                          pauseForTimedShutdown:
+                                              widget.pauseForTimedShutdown,
+                                          disableAnimations:
+                                              widget.disableAnimations,
+                                          skipOP: skipOP,
+                                        ),
+                                ),
+                              ),
+                      ]),
                     ),
-                  ]),
+                  ),
                 ),
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 }

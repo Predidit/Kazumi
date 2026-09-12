@@ -1675,6 +1675,33 @@ class _PlayerItemState extends State<PlayerItem>
             return null;
           },
         ),
+        GamepadPreviousSectionIntent:
+            CallbackAction<GamepadPreviousSectionIntent>(
+          onInvoke: (_) {
+            _handleGamepadSeek(-1);
+            return null;
+          },
+        ),
+        GamepadNextSectionIntent: CallbackAction<GamepadNextSectionIntent>(
+          onInvoke: (_) {
+            _handleGamepadSeek(1);
+            return null;
+          },
+        ),
+        GamepadPreviousSecondarySectionIntent:
+            CallbackAction<GamepadPreviousSecondarySectionIntent>(
+          onInvoke: (_) {
+            handlePreNextEpisode('prev');
+            return null;
+          },
+        ),
+        GamepadNextSecondarySectionIntent:
+            CallbackAction<GamepadNextSecondarySectionIntent>(
+          onInvoke: (_) {
+            handlePreNextEpisode('next');
+            return null;
+          },
+        ),
         GamepadMenuIntent: CallbackAction<GamepadMenuIntent>(
           onInvoke: (_) {
             unawaited(playerController.playOrPause());
@@ -1685,6 +1712,20 @@ class _PlayerItemState extends State<PlayerItem>
         GamepadViewIntent: CallbackAction<GamepadViewIntent>(
           onInvoke: (_) {
             widget.toggleMenu();
+            return null;
+          },
+        ),
+        GamepadLeftStickClickIntent:
+            CallbackAction<GamepadLeftStickClickIntent>(
+          onInvoke: (_) {
+            unawaited(handleShortcutVolumeChange('mute'));
+            return null;
+          },
+        ),
+        GamepadRightStickClickIntent:
+            CallbackAction<GamepadRightStickClickIntent>(
+          onInvoke: (_) {
+            _toggleGamepadPlaybackSpeed();
             return null;
           },
         ),
@@ -1745,6 +1786,20 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
     widget.onBackPressed(context);
+  }
+
+  void _handleGamepadSeek(int direction) {
+    final seconds = playerController.playback.arrowKeySkipTime * direction;
+    unawaited(_seekWithPlayerTimer(
+      () => playerController.seekBy(Duration(seconds: seconds)),
+    ));
+  }
+
+  void _toggleGamepadPlaybackSpeed() {
+    final current = playerController.playback.playerSpeed;
+    final target =
+        (current - longPressPlaySpeed).abs() < 0.01 ? 1.0 : longPressPlaySpeed;
+    unawaited(setPlaybackSpeed(target));
   }
 
   @override

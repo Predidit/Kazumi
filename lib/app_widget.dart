@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -12,7 +13,9 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/exit_confirmation_dialog.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
+import 'package:kazumi/bean/widget/gamepad_navigation.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/services/platform/gamepad_input_service.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
@@ -30,6 +33,7 @@ class _AppWidgetState extends State<AppWidget>
   bool _isHandlingWindowClose = false;
   bool _didApplyStoredThemeSettings = false;
   Brightness? _lastTitleBarBrightness;
+  late final GamepadInputService _gamepadInputService;
 
   @override
   void initState() {
@@ -37,6 +41,13 @@ class _AppWidgetState extends State<AppWidget>
     trayManager.addListener(this);
     windowManager.addListener(this);
     WidgetsBinding.instance.addObserver(this);
+    _gamepadInputService = GamepadInputService(
+      enabled: GStorage.getSetting(SettingsKeys.gamepadEnabled),
+      stickDeadZone: GStorage.getSetting(SettingsKeys.gamepadStickDeadZone),
+      initialRepeatDelay: Duration(
+        milliseconds: GStorage.getSetting(SettingsKeys.gamepadRepeatDelay),
+      ),
+    );
     _initializePlatformIntegrations();
   }
 
@@ -76,6 +87,7 @@ class _AppWidgetState extends State<AppWidget>
     trayManager.removeListener(this);
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_gamepadInputService.dispose());
     super.dispose();
   }
 
@@ -141,12 +153,38 @@ class _AppWidgetState extends State<AppWidget>
     Color? color,
     ColorScheme? colorScheme,
   }) {
+    final effectiveColorScheme = colorScheme ??
+        ColorScheme.fromSeed(
+          seedColor: color ?? Colors.green,
+          brightness: brightness,
+        );
+    // A controller-driven focus needs to be unmistakable: give every focused
+    // button a solid outline in addition to the overlay tint.
+    WidgetStateProperty<BorderSide?> focusedOutline() =>
+        WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.focused)) {
+            return BorderSide(color: effectiveColorScheme.primary, width: 2);
+          }
+          return BorderSide.none;
+        });
     return ThemeData(
       useMaterial3: true,
       fontFamily: fontFamily,
       brightness: brightness,
-      colorSchemeSeed: color,
-      colorScheme: colorScheme,
+      colorScheme: effectiveColorScheme,
+      focusColor: effectiveColorScheme.primary.withValues(alpha: 0.32),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(side: focusedOutline()),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: ButtonStyle(side: focusedOutline()),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: ButtonStyle(side: focusedOutline()),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: ButtonStyle(side: focusedOutline()),
+      ),
       progressIndicatorTheme: progressIndicatorTheme2024,
       sliderTheme: sliderTheme2024,
       pageTransitionsTheme: pageTransitionsTheme2024,
@@ -303,6 +341,7 @@ class _AppWidgetState extends State<AppWidget>
 
         return MaterialApp.router(
           title: "Kazumi",
+          debugShowCheckedModeBanner: false,
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           supportedLocales: const [
             Locale.fromSubtags(
@@ -315,6 +354,10 @@ class _AppWidgetState extends State<AppWidget>
           themeMode: themeProvider.themeMode,
           scaffoldMessengerKey: rootScaffoldMessengerKey,
           routerConfig: ModularApp.routerConfigOf(context),
+          builder: (context, child) => GamepadNavigationScope(
+            service: _gamepadInputService,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

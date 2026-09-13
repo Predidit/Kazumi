@@ -332,6 +332,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                       return KeyEventResult.ignored;
                     }
                     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                      // Let the settings pane return focus to its category rail.
+                      if (index == 0) return KeyEventResult.ignored;
                       _tvSectionFocusNodes[
                               tvWrappedIndex(index, -1, labels.length)]
                           .requestFocus();

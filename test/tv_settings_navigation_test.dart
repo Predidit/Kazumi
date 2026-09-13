@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/pages/settings/settings_page.dart';
+import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/services/platform/tv_mode.dart';
 
 void main() {
@@ -22,6 +23,43 @@ void main() {
     await Hive.close();
     await temp.delete(recursive: true);
   });
+  testWidgets('real remote guide tabs can return to the settings categories',
+      (tester) async {
+    TvMode.setEnabledForTesting(true);
+    addTearDown(() => TvMode.setEnabledForTesting(false));
+    tester.view.physicalSize = const Size(960, 540);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final module = createModule(register: (c) {
+      c.route('/settings',
+          child: (_, state) => SettingsPage(location: state.uri.path),
+          children: (sub) {
+            sub.route('/keyboard', child: (_, __) => const KeyboardSettingsPage());
+          });
+    });
+    await tester.pumpWidget(ModularApp(
+        module: module,
+        initialRoute: '/settings/keyboard',
+        child: Builder(builder: (context) => MaterialApp.router(
+            routerConfig: ModularApp.routerConfigOf(context)))));
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus?.debugLabel,
+        'TV remote guide section');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus?.debugLabel,
+        'TV custom shortcuts section');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus?.debugLabel,
+        'TV settings category /settings/keyboard');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('TV settings leaves nested pane and selects another category',
       (tester) async {
     TvMode.setEnabledForTesting(true);

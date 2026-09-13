@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 Future<bool> isLowResolution() async {
   if (Platform.isMacOS) {
@@ -28,6 +29,7 @@ bool isDesktop() {
 }
 
 bool isWideScreen() {
+  if (TvMode.enabled) return true;
   final mediaQuery = MediaQueryData.fromView(
     WidgetsBinding.instance.platformDispatcher.views.first,
   );

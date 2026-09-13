@@ -19,10 +19,16 @@ import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/webview_feature_service.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  await TvMode.initialize();
+  if (TvMode.enabled) {
+    FocusManager.instance.highlightStrategy =
+        FocusHighlightStrategy.alwaysTraditional;
+  }
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(

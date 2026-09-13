@@ -115,6 +115,11 @@ class MainActivity: AudioServiceActivity() {
             } else if (call.method == "checkIfInMultiWindowMode") {
                 val isInMultiWindow = checkIfInMultiWindowMode()
                 result.success(isInMultiWindow)
+            } else if (call.method == "isTelevision") {
+                val mode = resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK
+                result.success(mode == Configuration.UI_MODE_TYPE_TELEVISION ||
+                    packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+                    packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION))
             } else if (call.method == "getAndroidSdkVersion") {
                 val sdkVersion = getAndroidSdkVersion()
                 result.success(sdkVersion)

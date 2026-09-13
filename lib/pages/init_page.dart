@@ -166,20 +166,24 @@ class _InitPageState extends State<InitPage> {
 
   Future<void> _webDavInit() async {
     bool webDavEnable = await GStorage.getSetting(SettingsKeys.webDavEnable);
+    bool webDavEnableHistory =
+        await GStorage.getSetting(SettingsKeys.webDavEnableHistory);
     if (webDavEnable) {
       var webDav = WebDav();
       KazumiLogger().i('WebDav: Starting WebDav initialization');
       try {
         await webDav.init();
-        try {
-          await webDav.syncHistory();
-          KazumiLogger().i('WebDav: Completed syncing watch history');
-        } catch (e, stackTrace) {
-          KazumiLogger().w(
-            'WebDav: automatic watch history sync failed',
-            error: e,
-            stackTrace: stackTrace,
-          );
+        if (webDavEnableHistory) {
+          try {
+            await webDav.syncHistory();
+            KazumiLogger().i('WebDav: Completed syncing watch history');
+          } catch (e, stackTrace) {
+            KazumiLogger().w(
+              'WebDav: automatic watch history sync failed',
+              error: e,
+              stackTrace: stackTrace,
+            );
+          }
         }
       } catch (e, stackTrace) {
         KazumiLogger().w(

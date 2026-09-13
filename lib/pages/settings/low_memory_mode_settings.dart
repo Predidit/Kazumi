@@ -4,6 +4,7 @@ import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/services/network/metered_network_service.dart';
 import 'package:kazumi/services/player/low_memory_mode.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 class LowMemoryModeSettingsTile extends StatelessWidget {
   const LowMemoryModeSettingsTile({super.key});
@@ -104,7 +105,10 @@ class _LowMemoryModeDialogState extends State<_LowMemoryModeDialog> {
                   children: [
                     for (final option in LowMemoryMode.values)
                       SettingsTile<LowMemoryMode>.radioTile(
-                        title: Text(option == LowMemoryMode.auto
+                        title: Text(option ==
+                                (TvMode.enabled
+                                    ? LowMemoryMode.always
+                                    : LowMemoryMode.auto)
                             ? '${option.label}（默认）'
                             : option.label),
                         description: Text(option.description),
@@ -116,8 +120,11 @@ class _LowMemoryModeDialogState extends State<_LowMemoryModeDialog> {
               ),
               const SizedBox(height: 16),
               Text(
-                '减少缓存可降低内存占用和额外流量，网络不稳定时可能更容易缓冲。'
-                '\n选择后立即生效并记住选择；跟随网络仅影响在线播放。',
+                TvMode.enabled
+                    ? '始终开启：前向 64 MiB、回退 16 MiB；关闭：256 / 64 MiB。'
+                        '\n跟随网络在计费网络在线播放时使用 2 MiB。此限制只针对压缩包缓存。'
+                    : '减少缓存可降低内存占用和额外流量，网络不稳定时可能更容易缓冲。'
+                        '\n选择后立即生效并记住选择；跟随网络仅影响在线播放。',
                 style: textTheme.bodySmall
                     ?.copyWith(color: colors.onSurfaceVariant),
               ),

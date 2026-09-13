@@ -69,6 +69,8 @@
 
 ## 下载
 
+Android TV 适配使用独立构建，构建方式与回归范围见 [Android TV 说明](static/doc/ANDROID_TV.md)。
+
 通过本页面 [Releases](https://github.com/Predidit/Kazumi/releases/latest) 选项卡下载：
 
 <a href="https://github.com/Predidit/Kazumi/releases">

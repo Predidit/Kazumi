@@ -150,11 +150,13 @@ class PlayerPanelHoldCollectButton extends StatefulWidget {
     required this.acquirePlayerPanelHold,
     required this.bangumiItem,
     this.color = Colors.white,
+    this.focusNode,
   });
 
   final PlayerPanelHold Function() acquirePlayerPanelHold;
   final BangumiItem bangumiItem;
   final Color color;
+  final FocusNode? focusNode;
 
   @override
   State<PlayerPanelHoldCollectButton> createState() =>
@@ -188,6 +190,7 @@ class _PlayerPanelHoldCollectButtonState
     return CollectButton(
       bangumiItem: widget.bangumiItem,
       color: widget.color,
+      focusNode: widget.focusNode,
       onOpen: _acquireHold,
       onClose: _releaseHold,
     );

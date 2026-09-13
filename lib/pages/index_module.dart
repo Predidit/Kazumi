@@ -3,18 +3,22 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
 import 'package:kazumi/pages/collect/collect_module.dart';
+import 'package:kazumi/pages/history/history_module.dart';
 import 'package:kazumi/pages/index_page.dart';
 import 'package:kazumi/pages/info/info_module.dart';
 import 'package:kazumi/pages/init_page.dart';
 import 'package:kazumi/pages/my/my_module.dart';
 import 'package:kazumi/pages/onboarding/onboarding_page.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
+import 'package:kazumi/pages/popular/tv_popular_controller.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 import 'package:kazumi/pages/popular/popular_module.dart';
 import 'package:kazumi/pages/route_error_page.dart';
 import 'package:kazumi/pages/search/search_module.dart';
 import 'package:kazumi/pages/settings/settings_module.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/pages/timeline/timeline_module.dart';
+import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/video/video_module.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -42,7 +46,8 @@ final tabModule = createModule(
   register: (c) {
     c
       // Tab state survives tab switches, but is released with the whole shell.
-      ..addSingleton<PopularController>(PopularController.new)
+      ..addSingleton<PopularController>(
+          () => TvMode.enabled ? TvPopularController() : PopularController())
       ..addSingleton<TimelineController>(TimelineController.new)
       ..route(
         '/',
@@ -58,9 +63,15 @@ final tabModule = createModule(
               child: (context, state) => const SizedBox.shrink(),
             )
             ..module(popularModule)
+            ..module(historyModule)
             ..module(timelineModule)
             ..module(collectModule)
-            ..module(myModule);
+            ..module(myModule)
+            ..route(
+              '/remote-help/',
+              transition: TransitionType.none,
+              child: (context, state) => const KeyboardSettingsPage(),
+            );
         },
       );
   },

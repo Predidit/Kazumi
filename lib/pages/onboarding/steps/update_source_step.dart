@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 class UpdateSourceStep extends StatelessWidget {
   const UpdateSourceStep({
@@ -12,42 +13,54 @@ class UpdateSourceStep extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) => OnboardingStepLayout(
-        leading: const OnboardingStepIcon(
-          icon: Icons.system_update_rounded,
-          shape: OnboardingIconShape.cookie,
-        ),
-        title: '以你的方式更新',
-        subtitle: '选择适合你的更新来源，让 Kazumi 保持最新。',
-        child: RadioGroup<bool>(
-          groupValue: useGithubUpdate,
-          onChanged: (value) {
-            if (value != null) onChanged(value);
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _OptionCard(
-                icon: Icons.rocket_launch_rounded,
-                title: 'GitHub',
-                description: '在应用内检查并获取新版本，适合大多数用户。',
-                value: true,
-                selected: useGithubUpdate,
-                recommended: true,
-              ),
-              const SizedBox(height: 12),
-              _OptionCard(
-                icon: Icons.storefront_rounded,
-                title: 'F-Droid',
-                description: '由 F-Droid 商店管理更新，应用内不再自动检查。',
-                value: false,
-                selected: !useGithubUpdate,
-              ),
-              const OnboardingHint(text: '之后也可以在 关于 → 自动检查更新 中修改。'),
-            ],
-          ),
-        ),
+  Widget build(BuildContext context) {
+    if (TvMode.enabled) {
+      return const OnboardingStepLayout(
+        leading: OnboardingStepIcon(
+            icon: Icons.system_update_rounded,
+            shape: OnboardingIconShape.cookie),
+        title: '更新来源',
+        subtitle: 'TV 版本暂不支持应用内更新',
+        child: OnboardingHint(text: '请通过提供此 TV 安装包的来源获取更新。应用不会自动下载或安装更新。'),
       );
+    }
+    return OnboardingStepLayout(
+      leading: const OnboardingStepIcon(
+        icon: Icons.system_update_rounded,
+        shape: OnboardingIconShape.cookie,
+      ),
+      title: '以你的方式更新',
+      subtitle: '选择适合你的更新来源，让 Kazumi 保持最新。',
+      child: RadioGroup<bool>(
+        groupValue: useGithubUpdate,
+        onChanged: (value) {
+          if (value != null) onChanged(value);
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _OptionCard(
+              icon: Icons.rocket_launch_rounded,
+              title: 'GitHub',
+              description: '在应用内检查并获取新版本，适合大多数用户。',
+              value: true,
+              selected: useGithubUpdate,
+              recommended: true,
+            ),
+            const SizedBox(height: 12),
+            _OptionCard(
+              icon: Icons.storefront_rounded,
+              title: 'F-Droid',
+              description: '由 F-Droid 商店管理更新，应用内不再自动检查。',
+              value: false,
+              selected: !useGithubUpdate,
+            ),
+            const OnboardingHint(text: '之后也可以在 关于 → 自动检查更新 中修改。'),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _OptionCard extends StatelessWidget {

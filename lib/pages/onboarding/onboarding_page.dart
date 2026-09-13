@@ -17,6 +17,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({
@@ -45,6 +46,7 @@ enum _OnboardingStep {
 
 class _OnboardingPageState extends State<OnboardingPage> {
   final _pageController = PageController();
+  final _primaryFocus = FocusNode(debugLabel: 'TV onboarding continue');
   final _steps = [
     _OnboardingStep.welcome,
     if (Platform.isAndroid) _OnboardingStep.updates,
@@ -69,6 +71,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   void dispose() {
+    _primaryFocus.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -119,6 +122,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         curve: Curves.easeInOutCubicEmphasized,
       );
     }
+    if (mounted && TvMode.enabled) _primaryFocus.requestFocus();
   }
 
   Future<bool> _installBundledRules() async {
@@ -185,6 +189,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: Text(_currentIndex == 0 ? '退出' : '上一步'),
       );
       final primary = FilledButton.icon(
+        focusNode: TvMode.enabled ? _primaryFocus : null,
+        autofocus: TvMode.enabled,
         style: FilledButton.styleFrom(
           minimumSize: const Size(176, 56),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

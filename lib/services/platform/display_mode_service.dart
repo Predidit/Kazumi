@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -43,7 +44,9 @@ class DisplayModeService {
         } else {
           await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
         }
-        if (isCompact() && lockOrientation) {
+        if (TvMode.enabled && lockOrientation) {
+          await landscape();
+        } else if (isCompact() && lockOrientation) {
           if (Platform.isAndroid &&
               await PlatformEnvironmentService.isInMultiWindowMode()) {
             return;
@@ -89,6 +92,10 @@ class DisplayModeService {
   }
 
   static Future<void> unlockScreenRotation() async {
+    if (TvMode.enabled) {
+      await landscape();
+      return;
+    }
     await SystemChrome.setPreferredOrientations([]);
   }
 }

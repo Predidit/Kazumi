@@ -14,6 +14,7 @@ import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/crypto.dart';
 import 'package:kazumi/utils/version.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 enum InstallationType {
   windowsMsix,
@@ -129,6 +130,8 @@ class AutoUpdater {
   }
 
   Future<UpdateInfo?> checkForUpdates() async {
+    // Never offer mobile APKs to the TV flavor.
+    if (TvMode.enabled) return null;
     try {
       final data = await _latestRelease();
 
@@ -171,6 +174,7 @@ class AutoUpdater {
   }
 
   Future<void> autoCheckForUpdates() async {
+    if (TvMode.enabled) return;
     final autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
     if (!autoUpdate) return;
 
@@ -185,6 +189,10 @@ class AutoUpdater {
   }
 
   Future<void> manualCheckForUpdates() async {
+    if (TvMode.enabled) {
+      KazumiDialog.showToast(message: 'TV 版本暂不支持应用内更新');
+      return;
+    }
     try {
       final updateInfo = await checkForUpdates();
       if (updateInfo != null) {

@@ -1,3 +1,4 @@
+import 'package:kazumi/services/platform/tv_mode.dart';
 import 'dart:async';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
@@ -510,6 +511,7 @@ abstract class _VideoPageController with Store implements Disposable {
     KazumiLogger().i(
         'VideoPageController: offline episode changed to ${resolvedEpisode.historyEpisodeNumber} (index: ${selection.episode}), path: $localPath');
 
+    final historyIdentity = _playbackHistoryIdentity!;
     final params = PlaybackInitParams(
       videoUrl: localPath,
       offset: resolvedOffset,
@@ -528,6 +530,10 @@ abstract class _VideoPageController with Store implements Disposable {
       coverUrl: bangumiItem.images['large'],
       bangumiName:
           bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
+      onHistoryProgress: TvMode.enabled
+          ? (position, duration) => historyController
+              .updateHistory(historyIdentity, position, duration: duration)
+          : null,
     );
 
     final initialized = await playerController.init(params);
@@ -563,7 +569,9 @@ abstract class _VideoPageController with Store implements Disposable {
         } else {
           playerController.danmaku.applyUnavailableDanmakuLoad(result);
           if (result.isFailed) {
-            KazumiDialog.showToast(message: '弹幕加载失败，可手动检索');
+            KazumiDialog.showToast(
+              message: '弹幕加载失败，可手动检索',
+            );
           }
         }
       }
@@ -620,6 +628,7 @@ abstract class _VideoPageController with Store implements Disposable {
       final bool forceAdBlocker =
           GStorage.getSetting(SettingsKeys.forceAdBlocker);
 
+      final historyIdentity = _playbackHistoryIdentity!;
       final params = PlaybackInitParams(
         videoUrl: source.url,
         offset: source.offset,
@@ -646,6 +655,10 @@ abstract class _VideoPageController with Store implements Disposable {
         bangumiName: bangumiItem.nameCn.isNotEmpty
             ? bangumiItem.nameCn
             : bangumiItem.name,
+        onHistoryProgress: TvMode.enabled
+            ? (position, duration) => historyController
+                .updateHistory(historyIdentity, position, duration: duration)
+            : null,
       );
 
       final initialized = await playerController.init(params);

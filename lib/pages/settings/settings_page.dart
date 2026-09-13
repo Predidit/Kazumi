@@ -1,3 +1,6 @@
+import 'package:flutter/services.dart';
+import 'package:kazumi/bean/widget/tv_focus_scope.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
@@ -164,6 +167,37 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  final _paneFocus = FocusScopeNode(debugLabel: 'TV settings pane');
+  final _railNodes = <String, FocusNode>{};
+
+  FocusNode _railNode(String path) => _railNodes.putIfAbsent(
+      path, () => FocusNode(debugLabel: 'TV settings category $path'));
+
+  @override
+  void dispose() {
+    _paneFocus.dispose();
+    for (final node in _railNodes.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _enterPane() {
+    final previous = _paneFocus.focusedChild;
+    if (previous != null &&
+        previous is! FocusScopeNode &&
+        previous.canRequestFocus) {
+      previous.requestFocus();
+      return;
+    }
+    for (final node in _paneFocus.traversalDescendants) {
+      if (node is! FocusScopeNode && node.canRequestFocus) {
+        node.requestFocus();
+        return;
+      }
+    }
+  }
+
   final _outletKey = GlobalKey<RouterOutletState>();
   Object? _categoryNavigation;
   // Nested pushes do not update the root route state.
@@ -239,24 +273,39 @@ class _SettingsPageState extends State<SettingsPage> {
                       wide: true,
                       selectedPath: _selectedCategoryPath,
                       onSelect: _replaceCategory,
+                      nodeForPath: TvMode.enabled ? _railNode : null,
+                      onEnterPane: _enterPane,
                     ),
                   ),
                 ),
                 Expanded(
-                  child: SettingsPaneScope(
-                    embedded: wide,
-                    showBackButton: _isSecondaryRoute,
-                    onBack: _goBack,
-                    child: NotificationListener<_SettingsCategorySelected>(
-                      onNotification: (notification) {
-                        _pushCategory(notification.path);
-                        return true;
-                      },
-                      child: Theme(
-                        data: Theme.of(context).copyWith(
-                          pageTransitionsTheme: settingsPageTransitionsTheme,
+                  child: TvFocusScope(
+                    node: _paneFocus,
+                    onKeyEvent: (node, event) {
+                      if (TvMode.enabled &&
+                          wide &&
+                          event is KeyDownEvent &&
+                          event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                        _railNode(_selectedCategoryPath).requestFocus();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    child: SettingsPaneScope(
+                      embedded: wide,
+                      showBackButton: _isSecondaryRoute,
+                      onBack: _goBack,
+                      child: NotificationListener<_SettingsCategorySelected>(
+                        onNotification: (notification) {
+                          _pushCategory(notification.path);
+                          return true;
+                        },
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            pageTransitionsTheme: settingsPageTransitionsTheme,
+                          ),
+                          child: RouterOutlet(key: _outletKey),
                         ),
-                        child: RouterOutlet(key: _outletKey),
                       ),
                     ),
                   ),
@@ -298,11 +347,15 @@ class _SettingsMenu extends StatelessWidget {
     required this.wide,
     this.selectedPath,
     required this.onSelect,
+    this.nodeForPath,
+    this.onEnterPane,
   });
 
   final bool wide;
   final String? selectedPath;
   final ValueChanged<String> onSelect;
+  final FocusNode Function(String)? nodeForPath;
+  final VoidCallback? onEnterPane;
 
   @override
   Widget build(BuildContext context) {
@@ -324,6 +377,8 @@ class _SettingsMenu extends StatelessWidget {
                   category: category,
                   selected: selectedPath == category.path,
                   onTap: () => onSelect(category.path),
+                  focusNode: nodeForPath?.call(category.path),
+                  onEnterPane: onEnterPane,
                 ),
             ] else
               Padding(
@@ -352,11 +407,15 @@ class _RailDestination extends StatelessWidget {
     required this.category,
     required this.selected,
     required this.onTap,
+    this.focusNode,
+    this.onEnterPane,
   });
 
   final _SettingsCategory category;
   final bool selected;
   final VoidCallback onTap;
+  final FocusNode? focusNode;
+  final VoidCallback? onEnterPane;
 
   @override
   Widget build(BuildContext context) {
@@ -371,25 +430,38 @@ class _RailDestination extends StatelessWidget {
         color: selected ? colorScheme.secondaryContainer : Colors.transparent,
         borderRadius: BorderRadius.circular(28),
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox(
-            height: 56,
-            child: Row(
-              children: [
-                const SizedBox(width: 16),
-                Icon(category.icon, size: 24, color: foreground),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    category.label,
-                    style: textTheme.labelLarge?.copyWith(color: foreground),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) {
+            if (TvMode.enabled &&
+                event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              onEnterPane?.call();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: InkWell(
+            focusNode: focusNode,
+            onTap: onTap,
+            child: SizedBox(
+              height: 56,
+              child: Row(
+                children: [
+                  const SizedBox(width: 16),
+                  Icon(category.icon, size: 24, color: foreground),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      category.label,
+                      style: textTheme.labelLarge?.copyWith(color: foreground),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-              ],
+                  const SizedBox(width: 12),
+                ],
+              ),
             ),
           ),
         ),

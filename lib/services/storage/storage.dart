@@ -14,6 +14,7 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/storage/history_storage_coordinator.dart';
 
 import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 export 'package:kazumi/services/storage/settings_keys.dart';
 
 class GStorage {
@@ -329,12 +330,12 @@ class GStorage {
     SettingKey<T> key, {
     SettingContext context = const SettingContext(),
   }) {
-    final defaultValue = key.resolveDefault(context);
-    final storedValue = _setting.get(key.name);
-    if (storedValue is T) {
-      return storedValue;
-    }
-    return defaultValue;
+    return key.resolveStored(
+        _setting.get(key.name),
+        SettingContext(
+          compactLayout: context.compactLayout,
+          isTelevision: TvMode.enabled || context.isTelevision,
+        ));
   }
 
   static Future<void> putSetting<T>(SettingKey<T> key, T value) async {

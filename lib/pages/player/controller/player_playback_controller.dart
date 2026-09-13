@@ -1,11 +1,13 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
+import 'package:kazumi/pages/player/controller/player_diagnostics.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -13,6 +15,8 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/player/playback_cache_policy.dart';
+import 'package:kazumi/services/player/playback_history_recorder.dart';
+import 'package:kazumi/services/player/android_video_output.dart';
 import 'package:kazumi/services/player/player_error_mapper.dart';
 import 'package:kazumi/services/player/player_screenshot_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -24,6 +28,7 @@ import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/media.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 part 'player_playback_controller.g.dart';
 
@@ -31,16 +36,44 @@ class PlayerPlaybackController = _PlayerPlaybackController
     with _$PlayerPlaybackController;
 
 final class _OwnedPlayer {
-  _OwnedPlayer(this.player);
+  _OwnedPlayer(this.player, PlaybackProgressWriter? writeHistory)
+      : history = writeHistory == null
+            ? null
+            : PlaybackHistoryRecorder(writeHistory) {
+    if (history != null) {
+      _playingSubscription = player.stream.playing.listen(history!.observePlaying);
+    }
+  }
 
   final Player player;
+  final PlaybackHistoryRecorder? history;
+  StreamSubscription<bool>? _playingSubscription;
+  bool ready = false;
   Future<void>? _disposeFuture;
+
+  Future<void> recordHistory() async {
+    if (!ready || history == null) return;
+    try {
+      final state = player.state;
+      await history!.record(
+          position: state.position,
+          duration: state.duration,
+          playing: state.playing);
+    } catch (error, stackTrace) {
+      KazumiLogger().w('Player: failed to save playback progress',
+          error: error, stackTrace: stackTrace);
+    }
+  }
 
   Future<void> dispose() {
     return _disposeFuture ??= _dispose();
   }
 
   Future<void> _dispose() async {
+    // Capture synchronously before the native player is detached/disposed.
+    final finalHistory = recordHistory();
+    ready = false;
+    await _playingSubscription?.cancel();
     try {
       await player.dispose();
     } catch (error, stackTrace) {
@@ -53,6 +86,7 @@ final class _OwnedPlayer {
         await player.stop();
       } catch (_) {}
     }
+    await finalHistory;
   }
 }
 
@@ -77,6 +111,13 @@ abstract class _PlayerPlaybackController with Store {
 
   _OwnedPlayer? _ownedPlayer;
   Player? get mediaPlayer => _ownedPlayer?.player;
+  Future<void> recordHistory() =>
+      _ownedPlayer?.recordHistory() ?? Future<void>.value();
+
+  void enableHistoryFor(Player player) {
+    if (identical(mediaPlayer, player)) _ownedPlayer!.ready = true;
+  }
+
   VideoController? videoController;
 
   final AsyncSerialQueue _prefetchWrites = AsyncSerialQueue();
@@ -89,6 +130,52 @@ abstract class _PlayerPlaybackController with Store {
   bool playerDebugMode = false;
   int buttonSkipTime = 80;
   int arrowKeySkipTime = 10;
+
+  static const _diagnosticProperties = <String>[
+    'hwdec-current',
+    'hwdec-interop',
+    'current-vo',
+    'current-gpu-context',
+    'video-params/pixelformat',
+    'video-params/hw-pixelformat',
+    'estimated-vf-fps',
+    'current-ao',
+    'audio-params/samplerate',
+    'audio-out-params/samplerate',
+    'avsync',
+    'audio-delay',
+    'total-avsync-change',
+    'mistimed-frame-count',
+    'vo-delayed-frame-count',
+    'vsync-ratio',
+    'demuxer-cache-duration',
+    'frame-drop-count',
+    'decoder-frame-drop-count',
+    'track-list',
+  ];
+
+  Future<PlayerDiagnosticsSnapshot> readDiagnostics() async {
+    final player = mediaPlayer;
+    final properties = <String, String>{};
+    final platform = player?.platform;
+    if (player != null && platform is NativePlayer) {
+      for (final property in _diagnosticProperties) {
+        try {
+          final value = await platform.getProperty(property);
+          if (mediaPlayer != player) break;
+          properties[property] = value;
+        } catch (_) {
+          // mpv properties are intentionally best-effort: some values are
+          // unavailable until the first decoded/rendered frame.
+        }
+      }
+    }
+    return PlayerDiagnosticsSnapshot.fromProperties(
+      properties,
+      hardwareAccelerationEnabled: hAenable,
+      configuredHardwareDecoder: hardwareDecoder,
+    );
+  }
 
   /// 历史记录传入的 offset
   int startOffset = 0;
@@ -275,6 +362,7 @@ abstract class _PlayerPlaybackController with Store {
     required bool Function() canInstall,
     int offset = 0,
     VideoSourceFormat videoSourceFormat = VideoSourceFormat.auto,
+    PlaybackProgressWriter? onHistoryProgress,
   }) async {
     startOffset = offset;
     superResolutionMode = SuperResolutionMode.fromStorageValue(
@@ -299,6 +387,7 @@ abstract class _PlayerPlaybackController with Store {
           adBlocker: adBlockerEnabled,
         ),
       ),
+      onHistoryProgress,
     );
     final player = candidate.player;
     if (!canInstall()) {
@@ -393,14 +482,13 @@ abstract class _PlayerPlaybackController with Store {
           if (!isCurrentPlayer(player)) {
             return await _discardIfNotCurrent(candidate);
           }
-          if (androidSdkVersion >= 34) {
-            videoRenderer = 'gpu-next';
-          } else {
-            videoRenderer = 'gpu';
-          }
-        } else {
-          videoRenderer = androidVideoRenderer;
+          videoRenderer = selectAndroidVideoOutput(
+            configuredOutput: androidVideoRenderer,
+            isTv: TvMode.enabled,
+            androidSdkVersion: androidSdkVersion,
+          );
         }
+        videoRenderer ??= androidVideoRenderer;
       }
 
       if (videoRenderer == 'mediacodec_embed') {

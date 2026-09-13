@@ -1,3 +1,4 @@
+import 'package:kazumi/services/platform/tv_mode.dart';
 // ignore_for_file: library_private_types_in_public_api
 
 import 'package:canvas_danmaku/canvas_danmaku.dart' as canvas;
@@ -83,6 +84,46 @@ class DanmakuTimeline {
   }
 }
 
+/// Tracks source-time seconds already emitted to the canvas.
+///
+/// A wall-clock timer may fire more than once in the same media second during
+/// slow playback, or skip media seconds during faster playback. Small forward
+/// gaps are caught up; seeks and large discontinuities restart at the current
+/// second so old comments are never replayed in bulk.
+class DanmakuTimelineCursor {
+  int? _lastSourceSecond;
+
+  List<int> advance(
+    int? sourceSecond, {
+    int maxCatchUpSeconds = 3,
+  }) {
+    if (sourceSecond == null) {
+      return const [];
+    }
+
+    final previous = _lastSourceSecond;
+    _lastSourceSecond = sourceSecond;
+    if (previous == null || sourceSecond < previous) {
+      return [sourceSecond];
+    }
+    if (sourceSecond == previous) {
+      return const [];
+    }
+
+    final gap = sourceSecond - previous;
+    if (gap > maxCatchUpSeconds) {
+      return [sourceSecond];
+    }
+    return [
+      for (var second = previous + 1; second <= sourceSecond; second++) second
+    ];
+  }
+
+  void reset() {
+    _lastSourceSecond = null;
+  }
+}
+
 abstract class _PlayerDanmakuController with Store {
   _PlayerDanmakuController({
     required this.isLocalPlayback,
@@ -102,6 +143,7 @@ abstract class _PlayerDanmakuController with Store {
 
   int bangumiID = 0;
   int _scheduledDanmakuGeneration = 0;
+  final DanmakuTimelineCursor _timelineCursor = DanmakuTimelineCursor();
 
   int get scheduledDanmakuGeneration => _scheduledDanmakuGeneration;
 
@@ -125,13 +167,30 @@ abstract class _PlayerDanmakuController with Store {
     return danDanmakus[danmakuSecond] ?? const [];
   }
 
+  List<DanmakuEntry> pendingDanmakusForPlaybackPosition(
+    Duration playbackPosition,
+  ) {
+    final sourceSecond = resolveDanmakuSecond(playbackPosition);
+    final seconds = _timelineCursor.advance(sourceSecond);
+    return [
+      for (final second in seconds) ...danDanmakus[second] ?? const [],
+    ];
+  }
+
   @action
   void setDanmakuEnabled(bool value) {
     danmakuOn = value;
   }
 
-  void clearAndInvalidateScheduledDanmakus() {
+  void invalidateScheduledDanmakus({bool resetTimeline = false}) {
     _scheduledDanmakuGeneration++;
+    if (resetTimeline) {
+      _timelineCursor.reset();
+    }
+  }
+
+  void clearAndInvalidateScheduledDanmakus() {
+    if (TvMode.enabled) invalidateScheduledDanmakus(resetTimeline: true);
     canvasController.clear();
   }
 
@@ -157,6 +216,7 @@ abstract class _PlayerDanmakuController with Store {
   @action
   void beginDanmakuLoad() {
     danDanmakus.clear();
+    if (TvMode.enabled) invalidateScheduledDanmakus(resetTimeline: true);
     danmakuLoading = true;
   }
 
@@ -297,6 +357,7 @@ abstract class _PlayerDanmakuController with Store {
   @action
   Future<bool> getDanDanmakuByEpisodeID(int episodeID) async {
     KazumiLogger().i('PlayerController: attempting to get danmaku $episodeID');
+    if (TvMode.enabled) invalidateScheduledDanmakus(resetTimeline: true);
     danmakuLoading = true;
     try {
       danDanmakus.clear();

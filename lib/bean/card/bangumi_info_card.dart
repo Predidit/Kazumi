@@ -9,16 +9,25 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 // 视频卡片 - 水平布局
 class BangumiInfoCardV extends StatefulWidget {
+  static double tvHeaderHeight(BuildContext context) =>
+      300 *
+      (MediaQuery.textScalerOf(context).scale(16) / 16)
+          .clamp(1.0, double.infinity);
+
   const BangumiInfoCardV({
     super.key,
     required this.bangumiItem,
     required this.isLoading,
     required this.showRating,
+    this.tvActions,
   });
 
   final BangumiItem bangumiItem;
   final bool isLoading;
   final bool showRating;
+
+  /// Supplied only by the TV detail page; mobile keeps its original layout.
+  final Widget? tvActions;
 
   @override
   State<BangumiInfoCardV> createState() => _BangumiInfoCardVState();
@@ -36,79 +45,186 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
             '  评分透视:',
           ),
           SizedBox(height: 16),
-          AspectRatio(
-            aspectRatio: 2,
-            child: BarChart(
-              duration: Duration(milliseconds: 80),
-              BarChartData(
-                // alignment: BarChartAlignment.spaceEvenly,
-                borderData: FlBorderData(show: false),
-                gridData: FlGridData(show: false),
-                barTouchData: BarTouchData(
-                  touchCallback: (FlTouchEvent event, barTouchResponse) {
-                    setState(() {
-                      if (!event.isInterestedForInteractions ||
-                          barTouchResponse == null ||
-                          barTouchResponse.spot == null) {
-                        touchedIndex = -1;
-                        return;
-                      }
-                      touchedIndex =
-                          barTouchResponse.spot!.touchedBarGroupIndex;
-                    });
-                  },
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (_) =>
-                        Theme.of(context).colorScheme.inverseSurface,
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      var percentage =
-                          widget.bangumiItem.votesCount[groupIndex] /
-                              widget.bangumiItem.votes *
-                              100;
-                      return BarTooltipItem(
-                        '${percentage.toStringAsFixed(2)}% (${widget.bangumiItem.votesCount[groupIndex]}人)',
-                        TextStyle(
-                            color:
-                                Theme.of(context).colorScheme.onInverseSurface),
-                      );
-                    },
-                  ),
-                ),
-                barGroups: List<BarChartGroupData>.generate(
-                  10,
-                  (i) => BarChartGroupData(
-                    x: i + 1,
-                    barRods: [
-                      BarChartRodData(
-                        toY: widget.bangumiItem.votesCount[i].toDouble(),
-                        color: touchedIndex == i
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).disabledColor,
-                        width: 20,
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(5)),
-                      )
-                    ],
-                    // showingTooltipIndicators: [0],
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      getTitlesWidget: (value, meta) => SideTitleWidget(
-                        meta: meta,
-                        space: 10,
-                        child: Text(value.toInt().toString()),
-                      ),
-                    ),
-                  ),
-                  topTitles: const AxisTitles(),
-                  leftTitles: const AxisTitles(),
-                  rightTitles: const AxisTitles(),
+          if (widget.tvActions != null)
+            Expanded(child: _barChart)
+          else
+            AspectRatio(aspectRatio: 2, child: _barChart),
+        ],
+      ),
+    );
+  }
+
+  Widget get _barChart => BarChart(
+        duration: Duration(milliseconds: 80),
+        BarChartData(
+          // alignment: BarChartAlignment.spaceEvenly,
+          borderData: FlBorderData(show: false),
+          gridData: FlGridData(show: false),
+          barTouchData: BarTouchData(
+            touchCallback: (FlTouchEvent event, barTouchResponse) {
+              setState(() {
+                if (!event.isInterestedForInteractions ||
+                    barTouchResponse == null ||
+                    barTouchResponse.spot == null) {
+                  touchedIndex = -1;
+                  return;
+                }
+                touchedIndex = barTouchResponse.spot!.touchedBarGroupIndex;
+              });
+            },
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) =>
+                  Theme.of(context).colorScheme.inverseSurface,
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                var percentage = widget.bangumiItem.votesCount[groupIndex] /
+                    widget.bangumiItem.votes *
+                    100;
+                return BarTooltipItem(
+                  '${percentage.toStringAsFixed(2)}% (${widget.bangumiItem.votesCount[groupIndex]}人)',
+                  TextStyle(
+                      color: Theme.of(context).colorScheme.onInverseSurface),
+                );
+              },
+            ),
+          ),
+          barGroups: List<BarChartGroupData>.generate(
+            10,
+            (i) => BarChartGroupData(
+              x: i + 1,
+              barRods: [
+                BarChartRodData(
+                  toY: widget.bangumiItem.votesCount[i].toDouble(),
+                  color: touchedIndex == i
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).disabledColor,
+                  width: 20,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(5)),
+                )
+              ],
+              // showingTooltipIndicators: [0],
+            ),
+          ),
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 30,
+                getTitlesWidget: (value, meta) => SideTitleWidget(
+                  meta: meta,
+                  space: 10,
+                  child: Text(value.toInt().toString()),
                 ),
               ),
+            ),
+            topTitles: const AxisTitles(),
+            leftTitles: const AxisTitles(),
+            rightTitles: const AxisTitles(),
+          ),
+        ),
+      );
+
+  Widget _buildTvHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget stat(String label, String value) => Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14)),
+              Text(value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  )),
+            ],
+          ),
+        );
+    return SizedBox(
+      height: BangumiInfoCardV.tvHeaderHeight(context),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 180,
+            height: 277,
+            child: Hero(
+              transitionOnUserGestures: true,
+              flightShuttleBuilder: NetworkImgLayer.heroFlightShuttleBuilder,
+              tag: widget.bangumiItem.id,
+              child: NetworkImgLayer(
+                src: widget.bangumiItem.images['large'] ?? '',
+                width: 180,
+                height: 277,
+                fadeInDuration: Duration.zero,
+                fadeOutDuration: Duration.zero,
+              ),
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.bangumiItem.nameCn.isEmpty
+                      ? widget.bangumiItem.name
+                      : widget.bangumiItem.nameCn,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                // Keep actions outside Skeletonizer so loading never removes
+                // the primary focus target or disables starting a source search.
+                widget.tvActions!,
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 190,
+                        child: Skeletonizer(
+                          enabled: widget.isLoading,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              stat(
+                                  '放送开始:',
+                                  widget.bangumiItem.airDate.isEmpty
+                                      ? '待定'
+                                      : widget.bangumiItem.airDate),
+                              stat(
+                                  widget.showRating
+                                      ? '${widget.bangumiItem.votes} 人评分:'
+                                      : '*** 人评分:',
+                                  widget.showRating
+                                      ? '${widget.bangumiItem.ratingScore}'
+                                      : '***'),
+                              stat(
+                                  'Bangumi Ranked:',
+                                  widget.showRating
+                                      ? '#${widget.bangumiItem.rank}'
+                                      : '***'),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      if (widget.showRating &&
+                          !widget.isLoading &&
+                          widget.bangumiItem.votesCount.length >= 10)
+                        voteBarChart,
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -118,6 +234,12 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.tvActions != null) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 950),
+        child: _buildTvHeader(context),
+      );
+    }
     return Container(
       height: 300,
       constraints: BoxConstraints(maxWidth: 950),

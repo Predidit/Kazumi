@@ -53,6 +53,9 @@ android {
         versionName flutterVersionName
     }
 
+    buildFeatures { buildConfig true }
+    defaultConfig { buildConfigField "boolean", "IS_TV_BUILD", "false" }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
@@ -83,4 +86,9 @@ android.applicationVariants.all { variant ->
             output.versionCodeOverride = variant.versionCode * 10 + abiVersionCode
         }
     }
+}
+
+// Explicit opt-in; normal upstream Android builds keep their original variants.
+if (project.findProperty("kazumiTv") == "true") {
+    apply from: "tv.gradle"
 }

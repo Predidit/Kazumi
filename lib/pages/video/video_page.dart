@@ -30,6 +30,8 @@ import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
+import 'package:kazumi/bean/widget/tv_player_side_panel.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({
@@ -126,7 +128,7 @@ class _VideoPageState extends State<VideoPage>
 
   // Fullscreen and picture-in-picture events can arrive in either order.
   void _syncFullscreenWithWindowShape() {
-    if (isDesktop() || videoPageController.isPip) {
+    if (isDesktop() || TvMode.enabled || videoPageController.isPip) {
       return;
     }
     final bool landscape = _windowIsLandscape;
@@ -312,6 +314,11 @@ class _VideoPageState extends State<VideoPage>
         playerController: playerController);
   }
 
+  void _showEpisodeGuide() {
+    tabController.animateTo(0);
+    _openTabBodyAnimated();
+  }
+
   void _revealCurrentEpisode() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _episodePanelKey.currentState?.revealCurrentEpisode();
@@ -351,6 +358,9 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void _setTabBodyVisible(bool visible, {required bool animated}) {
+    if (TvMode.enabled && visible) {
+      playerController.panel.showVideoController = false;
+    }
     _tabBodyTargetVisible = visible;
     final int animationRun = ++_tabBodyAnimationRun;
 
@@ -412,6 +422,15 @@ class _VideoPageState extends State<VideoPage>
       KazumiDialog.dismiss();
       return;
     }
+    if (TvMode.enabled && videoPageController.showTabBody) {
+      _closeTabBodyAnimated();
+      return;
+    }
+    if (TvMode.enabled && playerController.panel.showVideoController) {
+      playerController.panel.showVideoController = false;
+      keyboardFocus.requestFocus();
+      return;
+    }
     if (videoPageController.isPip && isDesktop()) {
       PipUtils.exitDesktopPIPWindow();
       videoPageController.isPip = false;
@@ -428,15 +447,18 @@ class _VideoPageState extends State<VideoPage>
       await DisplayModeService.exitFullScreen();
       videoPageController.isFullscreen = false;
     }
-    if (_isClosing) {
-      return;
-    }
+    await exitPlayer();
+  }
+
+  Future<void> exitPlayer() async {
+    if (_isClosing) return;
     _isClosing = true;
-    playerController.beginShutdown();
-    if (!context.mounted) {
-      return;
+    if (videoPageController.isFullscreen) {
+      await DisplayModeService.exitFullScreen();
+      videoPageController.isFullscreen = false;
     }
-    context.pop();
+    playerController.beginShutdown();
+    if (mounted) context.pop();
   }
 
   void pauseForTimedShutdown() {
@@ -488,7 +510,18 @@ class _VideoPageState extends State<VideoPage>
                           width: MediaQuery.sizeOf(context).width,
                           child: Focus(
                             focusNode: keyboardFocus,
-                            autofocus: true,
+                            descendantsAreFocusable: !TvMode.enabled ||
+                                !videoPageController.showTabBody,
+                            // This node is the player's global shortcut
+                            // receiver. TV controls may request it explicitly
+                            // while the overlay is hidden, but it must not
+                            // become an invisible stop between visible buttons.
+                            skipTraversal: TvMode.enabled,
+                            // On TV the episode rail owns initial focus while
+                            // it is visible. PlayerItem is mounted later, once
+                            // loading completes, and must not steal that focus.
+                            autofocus: !TvMode.enabled ||
+                                !videoPageController.showTabBody,
                             child: playerBody,
                           ),
                         ),
@@ -521,22 +554,32 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget get sideTabBody {
+    final size = MediaQuery.sizeOf(context);
+    final sideWidth = TvMode.enabled
+        ? (size.width * 0.42).clamp(360.0, 440.0).toDouble()
+        : (!isDesktop() && !isTablet())
+            ? size.height
+            : (size.width / 3 > 420 ? 420.0 : size.width / 3);
     return SizedBox(
       height: MediaQuery.sizeOf(context).height,
-      width: (!isDesktop() && !isTablet())
-          ? MediaQuery.sizeOf(context).height
-          : (MediaQuery.sizeOf(context).width / 3 > 420
-              ? 420
-              : MediaQuery.sizeOf(context).width / 3),
-      child: Material(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadiusDirectional.only(
-          topStart: Radius.circular(28),
-          bottomStart: Radius.circular(28),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: (isDesktop() || isTablet()) ? tabBody : episodePanel,
-      ),
+      width: TvMode.enabled
+          ? sideWidth
+          : (!isDesktop() && !isTablet())
+              ? MediaQuery.sizeOf(context).height
+              : (MediaQuery.sizeOf(context).width / 3 > 420
+                  ? 420
+                  : MediaQuery.sizeOf(context).width / 3),
+      child: TvMode.enabled
+          ? TvPlayerSidePanel(child: tabBody)
+          : Material(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadiusDirectional.only(
+                topStart: Radius.circular(28),
+                bottomStart: Radius.circular(28),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: (isDesktop() || isTablet()) ? tabBody : episodePanel,
+            ),
     );
   }
 
@@ -694,9 +737,11 @@ class _VideoPageState extends State<VideoPage>
                   videoPageController: videoPageController,
                   toggleMenu: _toggleTabBodyAnimated,
                   showMenuImmediately: _showTabBodyImmediately,
+                  showEpisodeGuide: _showEpisodeGuide,
                   hideMenuImmediately: _hideTabBodyImmediately,
                   changeEpisode: changeEpisode,
                   onBackPressed: onBackPressed,
+                  exitPlayer: exitPlayer,
                   keyboardFocus: keyboardFocus,
                   disableAnimations: disableAnimations,
                   pauseForTimedShutdown: pauseForTimedShutdown,
@@ -764,7 +809,7 @@ class _VideoPageState extends State<VideoPage>
     final int episodeNum = videoPageController.commentsEpisode;
 
     return ColoredBox(
-      color: colors.surface,
+      color: TvMode.enabled ? Colors.transparent : colors.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -1,0 +1,11 @@
+// Used only with --flavor tv --android-project-arg=kazumiTv=true.
+android {
+    flavorDimensions "device"
+    productFlavors {
+        tv {
+            dimension "device"
+            applicationIdSuffix ".tv"
+            buildConfigField "boolean", "IS_TV_BUILD", "true"
+        }
+    }
+}

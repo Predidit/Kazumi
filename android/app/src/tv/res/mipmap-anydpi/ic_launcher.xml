@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original TV fork mark; also used by notification plugins. GPL-3.0. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#16251B" android:pathData="M0,0h108v108h-108z" />
+    <path android:fillColor="#B3DCA4" android:pathData="M18,25h72v50h-72zM35,82h38v5h-38z" />
+    <path android:fillColor="#16251B" android:pathData="M23,30h62v40h-62z" />
+    <path android:fillColor="#B3DCA4" android:pathData="M45,38l22,12l-22,12z" />
+</vector>

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -8,6 +9,7 @@ import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/history/history_list_view.dart';
+import 'package:kazumi/pages/history/tv_history_grid.dart';
 import 'package:kazumi/pages/history/history_record_tile.dart';
 import 'package:kazumi/services/player/history_playback_service.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
@@ -138,17 +140,22 @@ class _HistoryPageState extends State<HistoryPage> {
           body: SafeArea(
             top: false,
             bottom: false,
-            child: HistoryListView(
-              entries: entries,
-              editing: _editing,
-              itemBuilder: (history, borderRadius) => _HistoryCard(
-                history: history,
-                borderRadius: borderRadius,
-                editing: _editing,
-                busy: _clearing || _deleting.contains(history.key),
-                onDelete: () => _deleteHistory(history),
-              ),
-            ),
+            child: TvMode.enabled
+                ? TvHistoryGrid(
+                    entries: entries,
+                    editing: _editing,
+                    onDelete: _deleteHistory)
+                : HistoryListView(
+                    entries: entries,
+                    editing: _editing,
+                    itemBuilder: (history, borderRadius) => _HistoryCard(
+                      history: history,
+                      borderRadius: borderRadius,
+                      editing: _editing,
+                      busy: _clearing || _deleting.contains(history.key),
+                      onDelete: () => _deleteHistory(history),
+                    ),
+                  ),
           ),
         ),
       );

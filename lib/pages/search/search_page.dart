@@ -17,6 +17,9 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/search_parser.dart';
+import 'package:kazumi/bean/widget/tv_search_entry.dart';
+import 'package:kazumi/bean/widget/tv_focusable_surface.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 part 'search_filter_sheet.dart';
 part 'search_widgets.dart';
@@ -132,6 +135,20 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _searchField() {
+    if (TvMode.enabled) {
+      return Row(children: [
+        Expanded(
+            child: TvSearchEntry(controller: _input, onSubmitted: _submit)),
+        IconButton(
+            tooltip: '清空搜索',
+            onPressed: _clearSearch,
+            icon: const Icon(Icons.close_rounded)),
+        IconButton(
+            tooltip: '以图搜番',
+            onPressed: _imageSearch,
+            icon: const Icon(Icons.image_search_rounded)),
+      ]);
+    }
     final colors = Theme.of(context).colorScheme;
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: _input,
@@ -315,7 +332,8 @@ class _SearchPageState extends State<SearchPage> {
           icon: allItems.isEmpty
               ? Icons.search_off_rounded
               : Icons.filter_alt_off_rounded,
-          title: allItems.isEmpty ? '没有找到番剧' : '这些番剧被筛选隐藏了',
+          title:
+              allItems.isEmpty ? (failed ? '搜索请求失败' : '没有找到番剧') : '这些番剧被筛选隐藏了',
           actions: [
             StateActionButton.tonal(
                 onPressed: allItems.isEmpty
@@ -327,7 +345,7 @@ class _SearchPageState extends State<SearchPage> {
                 icon: allItems.isEmpty
                     ? Icons.refresh_rounded
                     : Icons.visibility_outlined,
-                text: allItems.isEmpty ? '重新搜索' : '显示全部'),
+                text: allItems.isEmpty ? (failed ? '重试' : '重新搜索') : '显示全部'),
             TextButton(onPressed: _showFilters, child: const Text('调整筛选')),
           ],
         ))
@@ -346,19 +364,24 @@ class _SearchPageState extends State<SearchPage> {
                       ? (allItems.isEmpty
                           ? const SizedBox.shrink()
                           : const LoadingIndicator(size: 32))
-                      : _controller.hasMoreSearchResults
+                      : failed
                           ? TextButton.icon(
                               onPressed: _loadMore,
-                              icon: const Icon(Icons.expand_more_rounded),
-                              label: const Text('加载更多'))
-                          : Text('已经看到全部结果',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant)),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('加载失败，重试'))
+                          : _controller.hasMoreSearchResults
+                              ? TextButton.icon(
+                                  onPressed: _loadMore,
+                                  icon: const Icon(Icons.expand_more_rounded),
+                                  label: const Text('加载更多'))
+                              : Text('已经看到全部结果',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant)),
                 ))),
     ];
   }

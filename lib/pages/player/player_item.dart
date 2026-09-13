@@ -1,7 +1,9 @@
+import 'package:kazumi/pages/history/history_controller.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/player_keyboard_shortcuts.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/player_pointer_interaction.dart';
@@ -11,6 +13,7 @@ import 'package:kazumi/pages/player/syncplay_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/player/android_video_output.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
@@ -24,7 +27,6 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/video_details_sheet.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
@@ -34,6 +36,7 @@ import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
 import 'package:kazumi/utils/device.dart';
@@ -47,9 +50,11 @@ class PlayerItem extends StatefulWidget {
     required this.videoPageController,
     required this.toggleMenu,
     required this.showMenuImmediately,
+    required this.showEpisodeGuide,
     required this.hideMenuImmediately,
     required this.changeEpisode,
     required this.onBackPressed,
+    required this.exitPlayer,
     required this.keyboardFocus,
     required this.pauseForTimedShutdown,
     this.disableAnimations = false,
@@ -59,10 +64,12 @@ class PlayerItem extends StatefulWidget {
   final VideoPageController videoPageController;
   final VoidCallback toggleMenu;
   final VoidCallback showMenuImmediately;
+  final VoidCallback showEpisodeGuide;
   final VoidCallback hideMenuImmediately;
   final Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
+  final Future<void> Function() exitPlayer;
   final FocusNode keyboardFocus;
   final bool disableAnimations;
   final VoidCallback pauseForTimedShutdown;
@@ -82,6 +89,7 @@ class _PlayerItemState extends State<PlayerItem>
       widget.videoPageController;
   final HistoryController historyController = inject<HistoryController>();
   final MyController myController = inject<MyController>();
+  final CollectController collectController = inject<CollectController>();
   AudioController get _audioController => playerController.audioController;
   late final Map<String, PlayerShortcutAction> keyboardActions;
   late final Map<String, PlayerLongPressShortcutActions>
@@ -126,6 +134,7 @@ class _PlayerItemState extends State<PlayerItem>
   PlayerPanelHold? _progressBarDragHold;
   PointerDeviceKind? _lastTapPointerKind;
   PointerDeviceKind? _lastDoubleTapPointerKind;
+  TraversalDirection _pendingTvControlDirection = TraversalDirection.down;
 
   late final AnimationController _panelVisibilityController;
   late final AnimationController _screenshotFeedbackController;
@@ -151,6 +160,9 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
+    if (TvMode.enabled && state == AppLifecycleState.paused) {
+      unawaited(playerController.playback.recordHistory());
+    }
     if (state == AppLifecycleState.paused && !backgroundPlayback) {
       // Suspend before awaiting pause so a later resume wins; pause alone keeps prefetching.
       final suspend = playerController.playback.setPrefetchSuspended(true);
@@ -349,6 +361,8 @@ class _PlayerItemState extends State<PlayerItem>
   void _initKeyboardActions() {
     keyboardActions = {
       'playorpause': () => playerController.playOrPause(),
+      'play': () => playerController.play(),
+      'pause': () => playerController.pause(),
       'forward': handleShortcutForwardDown,
       'rewind': handleShortcutRewind,
       'next': () => handlePreNextEpisode('next'),
@@ -366,6 +380,13 @@ class _PlayerItemState extends State<PlayerItem>
       'speed3': () => setPlaybackSpeed(3.0),
       'speedup': () => handleSpeedChange('up'),
       'speeddown': () => handleSpeedChange('down'),
+      'showcontrols': _showTvControls,
+      'showepisodes': widget.showEpisodeGuide,
+      'togglefavorite': _toggleFavorite,
+      'showdetails': _showVideoDetails,
+      'showremotehelp': _showRemoteHelp,
+      'back': () => widget.onBackPressed(context),
+      'exitplayer': widget.exitPlayer,
     };
     keyboardLongPressActions = {
       'forward': PlayerLongPressShortcutActions(
@@ -373,6 +394,101 @@ class _PlayerItemState extends State<PlayerItem>
         onRelease: handleShortcutForwardUp,
       ),
     };
+  }
+
+  void _showTvControls() {
+    widget.keyboardFocus.requestFocus();
+    showVideoController();
+    final direction = _pendingTvControlDirection;
+    _pendingTvControlDirection = TraversalDirection.down;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _tvPanelKey.currentState?.focusTvEntry(
+        episodes: direction == TraversalDirection.up,
+      );
+    });
+  }
+
+  final _tvPanelKey = GlobalKey<PlayerItemPanelState>();
+
+  bool _handleVisibleTvNavigationKey(LogicalKeyboardKey key) {
+    if (!TvMode.enabled ||
+        videoPageController.showTabBody ||
+        !playerController.panel.showVideoController ||
+        _openPlayerMenuCount > 0) {
+      return false;
+    }
+    final isArrowKey = key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight;
+    if (!isArrowKey) return false;
+    // A dismissed sheet may restore the shortcut root while controls remain
+    // visible. Re-enter the real buttons instead of leaving OK stranded there.
+    if (widget.keyboardFocus.hasPrimaryFocus) {
+      _pendingTvControlDirection = key == LogicalKeyboardKey.arrowUp
+          ? TraversalDirection.up
+          : TraversalDirection.down;
+      _showTvControls();
+      return true;
+    }
+    showVideoController();
+    // Keep the overlay alive, then let Flutter's built-in directional focus
+    // policy move between the visible controls. The shortcut gate below keeps
+    // these same keys from being interpreted as seek/volume actions.
+    return false;
+  }
+
+  bool _shouldHandleTvRemoteAction(
+    String actionName,
+    LogicalKeyboardKey key,
+  ) {
+    if (!TvMode.enabled) return true;
+    if (shouldDeferTvKeyToPlatform(key)) return false;
+    if (actionName == 'showcontrols' &&
+        (!playerController.panel.showVideoController ||
+            widget.keyboardFocus.hasPrimaryFocus)) {
+      _pendingTvControlDirection = key == LogicalKeyboardKey.arrowUp
+          ? TraversalDirection.up
+          : TraversalDirection.down;
+      return true;
+    }
+    final isNavigationKey = key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.gameButtonA ||
+        key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight;
+    if (playerController.panel.showVideoController && isNavigationKey) {
+      return false;
+    }
+    return true;
+  }
+
+  void _showVideoDetails() {
+    showVideoDetailsSheet(context, playerController: playerController);
+  }
+
+  void _showRemoteHelp() {
+    showVideoDetailsSheet(
+      context,
+      playerController: playerController,
+      initialTab: VideoDetailsTab.remote,
+    );
+  }
+
+  Future<void> _toggleFavorite() async {
+    final item = videoPageController.bangumiItem;
+    final wasCollected = collectController.getCollectType(item) != 0;
+    await collectController.addCollect(item, type: wasCollected ? 0 : 1);
+    if (!mounted) return;
+    setState(() {});
+    final isCollected = collectController.getCollectType(item) != 0;
+    if (isCollected != wasCollected) {
+      KazumiDialog.showToast(message: isCollected ? '已标记为在看' : '已取消追番');
+    }
   }
 
   void _initPlayerMenu() {
@@ -467,7 +583,7 @@ class _PlayerItemState extends State<PlayerItem>
   void handleShortcutExitFullscreen() {
     if (videoPageController.isFullscreen && !isTablet()) {
       try {
-        playerController.danmaku.canvasController.clear();
+        playerController.danmaku.clearAndInvalidateScheduledDanmakus();
       } catch (_) {}
       DisplayModeService.exitFullScreen();
       videoPageController.isFullscreen = !videoPageController.isFullscreen;
@@ -570,7 +686,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void handleDanmaku() {
-    playerController.danmaku.canvasController.clear();
+    playerController.danmaku.clearAndInvalidateScheduledDanmakus();
     if (playerController.danmaku.danmakuOn) {
       playerController.danmaku.setDanmakuEnabled(false);
       GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, false);
@@ -669,7 +785,7 @@ class _PlayerItemState extends State<PlayerItem>
   void _handleFullscreenChange(BuildContext context) async {
     playerController.panel.lockPanel = false;
     _releasePlayerPanelHolds();
-    playerController.danmaku.canvasController.clear();
+    playerController.danmaku.clearAndInvalidateScheduledDanmakus();
     _scheduleAndroidPIPSourceRectSync();
 
     await _syncHistoryWithWebDav();
@@ -777,7 +893,10 @@ class _PlayerItemState extends State<PlayerItem>
       final String androidVideoRenderer =
           GStorage.getSetting(SettingsKeys.androidVideoRenderer);
 
-      if (androidVideoRenderer == 'mediacodec_embed') {
+      if (usesAndroidDirectMediaCodecOutput(
+        configuredOutput: androidVideoRenderer,
+        isTv: TvMode.enabled,
+      )) {
         await KazumiDialog.show(builder: (context) {
           return AlertDialog(
             title: const Text('兼容性提示'),
@@ -903,6 +1022,9 @@ class _PlayerItemState extends State<PlayerItem>
     _panelVisibilityController.reverse();
     _cancelHideTimer();
     playerController.panel.showVideoController = false;
+    if (TvMode.enabled && !videoPageController.showTabBody) {
+      widget.keyboardFocus.requestFocus();
+    }
   }
 
   PlayerPanelHold acquirePlayerPanelHold() {
@@ -1049,12 +1171,16 @@ class _PlayerItemState extends State<PlayerItem>
   void _emitDanmakusForCurrentPosition() {
     if (playerController.playback.currentPosition.inMicroseconds == 0 ||
         playerController.playback.playerPlaying != true ||
+        (TvMode.enabled && playerController.playback.playerBuffering) ||
         playerController.danmaku.danmakuOn != true) {
       return;
     }
 
-    final danmakus = playerController.danmaku
-        .danmakusForPlaybackPosition(playerController.playback.currentPosition);
+    final danmakus = TvMode.enabled
+        ? playerController.danmaku.pendingDanmakusForPlaybackPosition(
+            playerController.playback.currentPosition)
+        : playerController.danmaku.danmakusForPlaybackPosition(
+            playerController.playback.currentPosition);
     final danmakuCount = danmakus.length;
     for (final entry in danmakus.asMap().entries) {
       final idx = entry.key;
@@ -1073,7 +1199,7 @@ class _PlayerItemState extends State<PlayerItem>
       Future.delayed(Duration(milliseconds: delay), () {
         if (!mounted ||
             !playerController.playback.playerPlaying ||
-            playerController.playback.playerBuffering ||
+            (TvMode.enabled && playerController.playback.playerBuffering) ||
             !playerController.danmaku.danmakuOn ||
             playerController.danmaku.scheduledDanmakuGeneration !=
                 scheduledDanmakuGeneration ||
@@ -1112,16 +1238,20 @@ class _PlayerItemState extends State<PlayerItem>
           playerController.panel.brightness = value;
         });
       }
-      final historyIdentity = videoPageController.currentHistoryIdentity;
-      if (playerController.playback.playerPlaying &&
-          !videoPageController.loading &&
-          historyIdentity != null &&
-          historyIdentity.canRecord) {
-        historyController.updateHistory(
-          historyIdentity,
-          playerController.playback.playerPosition,
-          duration: playerController.playback.playerDuration,
-        );
+      if (TvMode.enabled) {
+        unawaited(playerController.playback.recordHistory());
+      } else {
+        final historyIdentity = videoPageController.currentHistoryIdentity;
+        if (playerController.playback.playerPlaying &&
+            !videoPageController.loading &&
+            historyIdentity != null &&
+            historyIdentity.canRecord) {
+          historyController.updateHistory(
+            historyIdentity,
+            playerController.playback.playerPosition,
+            duration: playerController.playback.playerDuration,
+          );
+        }
       }
       final playingSelection = videoPageController.playbackEpisode;
       final playingRoadData =
@@ -1284,7 +1414,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   void onWindowRestore() {
-    playerController.danmaku.canvasController.clear();
+    playerController.danmaku.clearAndInvalidateScheduledDanmakus();
   }
 
   @override
@@ -1459,7 +1589,11 @@ class _PlayerItemState extends State<PlayerItem>
                       focusScopeNode: widget.keyboardFocus,
                       actions: keyboardActions,
                       longPressActions: keyboardLongPressActions,
-                      isBlocked: () => _openPlayerMenuCount > 0,
+                      shouldHandleAction: _shouldHandleTvRemoteAction,
+                      onNavigationKey: _handleVisibleTvNavigationKey,
+                      isBlocked: () =>
+                          _openPlayerMenuCount > 0 ||
+                          (TvMode.enabled && videoPageController.showTabBody),
                     ),
                     Center(
                       key: _videoSurfaceKey,
@@ -1571,6 +1705,7 @@ class _PlayerItemState extends State<PlayerItem>
                         ? const SizedBox.shrink()
                         : (_needsFullPanel(context))
                             ? PlayerItemPanel(
+                                key: _tvPanelKey,
                                 playerController: playerController,
                                 videoPageController: videoPageController,
                                 onBackPressed: widget.onBackPressed,

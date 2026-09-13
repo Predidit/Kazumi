@@ -16,9 +16,10 @@ enum SettingGroup {
 }
 
 class SettingContext {
-  const SettingContext({this.compactLayout = false});
+  const SettingContext({this.compactLayout = false, this.isTelevision = false});
 
   final bool compactLayout;
+  final bool isTelevision;
 }
 
 class SettingKey<T> {
@@ -27,16 +28,24 @@ class SettingKey<T> {
     this.defaultValue, {
     required this.group,
     this.defaultResolver,
+    this.tvDefaultValue,
   });
 
   final String name;
   final T defaultValue;
   final SettingGroup group;
   final T Function(SettingContext context)? defaultResolver;
+  final T? tvDefaultValue;
 
   T resolveDefault(SettingContext context) {
+    if (context.isTelevision && tvDefaultValue != null) {
+      return tvDefaultValue as T;
+    }
     return defaultResolver?.call(context) ?? defaultValue;
   }
+
+  T resolveStored(Object? stored, SettingContext context) =>
+      stored is T ? stored : resolveDefault(context);
 }
 
 // Add new settings here. SettingsKeys is the public typed registry used by
@@ -61,6 +70,7 @@ class SettingsKeys {
     _SettingBoxKey.autoUpdate,
     true,
     group: SettingGroup.update,
+    tvDefaultValue: false,
   );
   static const checkPluginUpdateOnStartup = SettingKey<bool>(
     'checkPluginUpdateOnStartup',
@@ -122,6 +132,7 @@ class SettingsKeys {
     25.0,
     group: SettingGroup.danmaku,
     defaultResolver: (context) => context.compactLayout ? 16.0 : 25.0,
+    tvDefaultValue: 24.0,
   );
   static const danmakuTop = SettingKey<bool>(
     _SettingBoxKey.danmakuTop,
@@ -147,11 +158,13 @@ class SettingsKeys {
     _SettingBoxKey.danmakuDeduplication,
     false,
     group: SettingGroup.danmaku,
+    tvDefaultValue: true,
   );
   static const danmakuArea = SettingKey<double>(
     _SettingBoxKey.danmakuArea,
     1.0,
     group: SettingGroup.danmaku,
+    tvDefaultValue: 0.5,
   );
   static const danmakuColor = SettingKey<bool>(
     _SettingBoxKey.danmakuColor,
@@ -177,6 +190,7 @@ class SettingsKeys {
     _SettingBoxKey.danmakuEnabledByDefault,
     false,
     group: SettingGroup.danmaku,
+    tvDefaultValue: true,
   );
   static const danmakuBiliBiliSource = SettingKey<bool>(
     _SettingBoxKey.danmakuBiliBiliSource,
@@ -307,6 +321,7 @@ class SettingsKeys {
     _SettingBoxKey.lowMemoryMode,
     false,
     group: SettingGroup.player,
+    tvDefaultValue: true,
   );
   // Null preserves the legacy lowMemoryMode choice until a policy is selected.
   static const lowMemoryPolicy = SettingKey<String?>(
@@ -373,6 +388,7 @@ class SettingsKeys {
     _SettingBoxKey.playerDisableAnimations,
     false,
     group: SettingGroup.player,
+    tvDefaultValue: true,
   );
   static const playerLogLevel = SettingKey<int>(
     _SettingBoxKey.playerLogLevel,
@@ -444,11 +460,13 @@ class SettingsKeys {
     _SettingBoxKey.downloadParallelEpisodes,
     2,
     group: SettingGroup.download,
+    tvDefaultValue: 1,
   );
   static const downloadParallelSegments = SettingKey<int>(
     _SettingBoxKey.downloadParallelSegments,
     3,
     group: SettingGroup.download,
+    tvDefaultValue: 2,
   );
   static const downloadDanmaku = SettingKey<bool>(
     _SettingBoxKey.downloadDanmaku,
@@ -496,6 +514,7 @@ class SettingsKeys {
     _SettingBoxKey.brightnessVolumeGesture,
     true,
     group: SettingGroup.player,
+    tvDefaultValue: false,
   );
   static const historySyncDeviceId = SettingKey<String>(
     _SettingBoxKey.historySyncDeviceId,
@@ -516,6 +535,7 @@ class SettingsKeys {
     'playerControllerLayerDisappearTime',
     4000,
     group: SettingGroup.player,
+    tvDefaultValue: 7000,
   );
   static const defaultVolume = SettingKey<double>(
     'defaultVolume',

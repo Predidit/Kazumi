@@ -1,6 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:kazumi/bean/widget/episode_tile.dart';
+import 'package:kazumi/bean/widget/tv_focus_navigation.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 import 'package:flutter/physics.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 
@@ -44,6 +48,39 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
       ListObserverController(controller: _scrollController)
         ..cacheJumpIndexOffset = false;
   late int _visibleRoad = widget.selectedRoad;
+  final _episodeFocus = <String, FocusNode>{};
+  int _focusRequest = 0;
+
+  FocusNode _focusFor(int index) => _episodeFocus.putIfAbsent(
+      '$_visibleRoad:$index',
+      () => FocusNode(debugLabel: 'TV episode $_visibleRoad:${index + 1}'));
+
+  Future<void> _focusTvEpisode(int index) async {
+    final request = ++_focusRequest;
+    final road = _visibleRoad;
+    final origin = FocusManager.instance.primaryFocus;
+    final node = _focusFor(index);
+    final extent = EpisodeTile.tvGridMainAxisExtent(context) + 4;
+    if (_scrollController.hasClients) {
+      final top = index ~/ 4 * extent;
+      final position = _scrollController.position;
+      final target = top < position.pixels
+          ? top
+          : top + extent > position.pixels + position.viewportDimension
+              ? top + extent - position.viewportDimension
+              : position.pixels;
+      _scrollController.jumpTo(target.clamp(0, position.maxScrollExtent));
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    if (mounted &&
+        request == _focusRequest &&
+        road == _visibleRoad &&
+        node.context != null &&
+        (FocusManager.instance.primaryFocus == origin ||
+            origin?.parent == null)) {
+      node.requestFocus();
+    }
+  }
 
   bool get _canLocate =>
       widget.selectedRoad >= 0 &&
@@ -56,6 +93,7 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
 
   void _selectRoad(int road) {
     if (_visibleRoad == road) return;
+    _focusRequest++;
     setState(() => _visibleRoad = road);
     if (_scrollController.hasClients) _scrollController.jumpTo(0);
   }
@@ -73,6 +111,10 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
     }
 
     final index = widget.selectedEpisode - 1;
+    if (TvMode.enabled) {
+      await _focusTvEpisode(index);
+      return;
+    }
     final toolbarHeight = _toolbarHeight;
     final item = _observerController.observeItem(index: index);
     if (item != null) {
@@ -92,6 +134,10 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
 
   @override
   void dispose() {
+    _focusRequest++;
+    for (final node in _episodeFocus.values) {
+      node.dispose();
+    }
     _scrollController.dispose();
     super.dispose();
   }
@@ -104,6 +150,7 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
         ? widget.roads[_visibleRoad]
         : null;
     final count = road?.data.length ?? 0;
+    if (TvMode.enabled) return _buildTvPanel(road, count);
 
     return LayoutBuilder(builder: (context, constraints) {
       final textScaler = MediaQuery.textScalerOf(context);
@@ -233,6 +280,91 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
       );
     });
   }
+
+  Widget _buildTvPanel(Road? road, int count) => Column(children: [
+        Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(widget.title.isEmpty ? '剧集列表' : widget.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  _RoadSelector(
+                      roads: widget.roads,
+                      visibleRoad: _visibleRoad,
+                      isOffline: widget.isOffline,
+                      onChanged: _selectRoad,
+                      disableAnimations: widget.disableAnimations),
+                  Row(children: [
+                    Expanded(child: Text('$count 集')),
+                    IconButton(
+                        tooltip: '定位当前集',
+                        onPressed: _canLocate ? revealCurrentEpisode : null,
+                        icon: const Icon(Icons.my_location_rounded)),
+                    if (!widget.isOffline)
+                      IconButton(
+                          tooltip: '缓存剧集',
+                          onPressed: count > 0 && widget.onDownload != null
+                              ? () => widget.onDownload!(_visibleRoad)
+                              : null,
+                          icon: const Icon(Icons.download_rounded)),
+                  ]),
+                ])),
+        Expanded(
+            child: count == 0
+                ? const GeneralEmptyState(
+                    icon: Icons.video_library_outlined, title: '这条线路暂无剧集')
+                : GridView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        mainAxisSpacing: 4,
+                        crossAxisSpacing: 2,
+                        mainAxisExtent:
+                            EpisodeTile.tvGridMainAxisExtent(context)),
+                    itemCount: count,
+                    itemBuilder: (context, index) => EpisodeTile(
+                      key: ValueKey('$_visibleRoad:${index + 1}'),
+                      label: index < road!.identifier.length &&
+                              road.identifier[index].trim().isNotEmpty
+                          ? road.identifier[index]
+                          : '第${index + 1}集',
+                      isPlaying: _visibleRoad == widget.selectedRoad &&
+                          index + 1 == widget.selectedEpisode,
+                      focusNode: _focusFor(index),
+                      onPressed: () =>
+                          widget.onEpisodeSelected(index + 1, _visibleRoad),
+                      onKeyEvent: (_, event) {
+                        if (event is! KeyDownEvent &&
+                            event is! KeyRepeatEvent) {
+                          return KeyEventResult.ignored;
+                        }
+                        _focusRequest++;
+                        final direction = switch (event.logicalKey) {
+                          LogicalKeyboardKey.arrowLeft =>
+                            TraversalDirection.left,
+                          LogicalKeyboardKey.arrowRight =>
+                            TraversalDirection.right,
+                          LogicalKeyboardKey.arrowUp => TraversalDirection.up,
+                          LogicalKeyboardKey.arrowDown =>
+                            TraversalDirection.down,
+                          _ => null,
+                        };
+                        if (direction == null ||
+                            (direction == TraversalDirection.up && index < 4)) {
+                          return KeyEventResult.ignored;
+                        }
+                        _focusTvEpisode(
+                            tvGridTarget(index, count, 4, direction));
+                        return KeyEventResult.handled;
+                      },
+                    ),
+                  )),
+      ]);
 }
 
 class _EpisodeToolbar extends SliverPersistentHeaderDelegate {
@@ -286,8 +418,23 @@ class _RoadSelector extends StatefulWidget {
 
 class _RoadSelectorState extends State<_RoadSelector> {
   final _focusNode = FocusNode(debugLabel: 'Playback road selector');
+  final _roadFocusNodes = <int, FocusNode>{};
   FocusNode? _focusBeforeOpen;
   bool _pointerActivation = false;
+
+  FocusNode _roadFocus(int index) => _roadFocusNodes.putIfAbsent(
+      index, () => FocusNode(debugLabel: 'Playback road option $index'));
+
+  void _handleOpen() {
+    if (!TvMode.enabled) return;
+    // A custom MenuAnchor trigger does not move keyboard focus into its menu.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.roads.isEmpty) return;
+      final node =
+          _roadFocus(widget.visibleRoad.clamp(0, widget.roads.length - 1));
+      if (node.context != null) node.requestFocus();
+    });
+  }
 
   String _name(int index) => index >= 0 && index < widget.roads.length
       ? (widget.roads[index].name.trim().isEmpty
@@ -330,6 +477,9 @@ class _RoadSelectorState extends State<_RoadSelector> {
   @override
   void dispose() {
     _focusNode.dispose();
+    for (final node in _roadFocusNodes.values) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -346,8 +496,13 @@ class _RoadSelectorState extends State<_RoadSelector> {
         inMutuallyExclusiveGroup: true,
         child: MenuItemButton(
           key: ValueKey('road-option-$index'),
+          focusNode: TvMode.enabled ? _roadFocus(index) : null,
           onPressed: () => widget.onChanged(index),
           style: ButtonStyle(
+            side: WidgetStateProperty.resolveWith((states) =>
+                TvMode.enabled && states.contains(WidgetState.focused)
+                    ? BorderSide(color: colors.primary, width: 3)
+                    : BorderSide.none),
             minimumSize: WidgetStatePropertyAll(Size(width, 56)),
             padding: const WidgetStatePropertyAll(
                 EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
@@ -414,6 +569,7 @@ class _RoadSelectorState extends State<_RoadSelector> {
         crossAxisUnconstrained: false,
         consumeOutsideTap: true,
         animated: !reduceMotion,
+        onOpen: _handleOpen,
         onClose: _handleClose,
         alignmentOffset: const Offset(0, 8),
         style: MenuStyle(

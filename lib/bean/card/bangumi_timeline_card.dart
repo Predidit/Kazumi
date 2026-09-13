@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
+import 'package:kazumi/bean/widget/tv_focusable_surface.dart';
 
 class BangumiTimelineCard extends StatelessWidget {
   const BangumiTimelineCard({
@@ -68,7 +70,7 @@ class BangumiTimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
+    final card = Semantics(
       button: true,
       child: Card(
         elevation: 0,
@@ -97,6 +99,11 @@ class BangumiTimelineCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (!TvMode.enabled) return card;
+    return TvFocusableSurface(
+      onPressed: onTap,
+      child: card,
     );
   }
 

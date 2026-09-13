@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 typedef PlayerShortcutAction = FutureOr<void> Function();
+typedef PlayerNavigationKeyHandler = bool Function(LogicalKeyboardKey key);
 
 class PlayerLongPressShortcutActions {
   const PlayerLongPressShortcutActions({
@@ -30,6 +32,8 @@ class PlayerKeyboardShortcuts extends StatefulWidget {
     required this.actions,
     this.longPressActions = const <String, PlayerLongPressShortcutActions>{},
     this.isBlocked,
+    this.shouldHandleAction,
+    this.onNavigationKey,
     this.shortcuts,
   });
 
@@ -37,6 +41,9 @@ class PlayerKeyboardShortcuts extends StatefulWidget {
   final Map<String, PlayerShortcutAction> actions;
   final Map<String, PlayerLongPressShortcutActions> longPressActions;
   final bool Function()? isBlocked;
+  final bool Function(String actionName, LogicalKeyboardKey key)?
+      shouldHandleAction;
+  final PlayerNavigationKeyHandler? onNavigationKey;
   final Map<String, List<String>>? shortcuts;
 
   @override
@@ -45,6 +52,9 @@ class PlayerKeyboardShortcuts extends StatefulWidget {
 }
 
 class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
+  static const _tvRemoteChannel = MethodChannel(
+    'com.predidit.kazumi/tv_remote',
+  );
   late Map<String, List<String>> _shortcuts;
   final Map<LogicalKeyboardKey, PlayerLongPressShortcutActions>
       _activeLongPressKeys =
@@ -55,6 +65,13 @@ class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
     super.initState();
     _shortcuts = widget.shortcuts ?? _loadShortcuts();
     FocusManager.instance.addEarlyKeyEventHandler(_handleKeyEvent);
+    if (TvMode.enabled) {
+      _tvRemoteChannel.setMethodCallHandler(_handleTvRemoteMethod);
+      unawaited(_tvRemoteChannel.invokeMethod<void>(
+        'setPlayerActive',
+        const {'active': true},
+      ));
+    }
   }
 
   @override
@@ -68,18 +85,36 @@ class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
   @override
   void dispose() {
     FocusManager.instance.removeEarlyKeyEventHandler(_handleKeyEvent);
+    if (TvMode.enabled) {
+      _tvRemoteChannel.setMethodCallHandler(null);
+      unawaited(_tvRemoteChannel.invokeMethod<void>(
+        'setPlayerActive',
+        const {'active': false},
+      ));
+    }
     _releaseAllLongPressShortcuts();
     super.dispose();
   }
 
+  Future<void> _handleTvRemoteMethod(MethodCall call) async {
+    if (call.method != 'dispatch' || call.arguments is! String) return;
+    final actionName = call.arguments as String;
+    if (widget.isBlocked?.call() ?? false) return;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
+    final action = widget.actions[actionName];
+    if (action != null) await _runAction(action);
+  }
+
   Map<String, List<String>> _loadShortcuts() {
-    return <String, List<String>>{
+    final shortcuts = <String, List<String>>{
       for (final entry in defaultShortcuts.entries)
         entry.key: GStorage.getStringListSettingByName(
           'shortcut_${entry.key}',
           defaultValue: entry.value,
         ),
     };
+    return TvMode.enabled ? withTvRemoteShortcuts(shortcuts) : shortcuts;
   }
 
   KeyEventResult _handleKeyEvent(KeyEvent event) {
@@ -95,11 +130,20 @@ class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
       return KeyEventResult.ignored;
     }
 
+    if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
+        (widget.onNavigationKey?.call(event.logicalKey) ?? false)) {
+      return KeyEventResult.handled;
+    }
+
     final keyLabel = event.logicalKey.keyLabel.isNotEmpty
         ? event.logicalKey.keyLabel
         : event.logicalKey.debugName ?? '';
     final actionName = _findActionName(keyLabel);
     if (actionName == null) {
+      return KeyEventResult.ignored;
+    }
+    if (!(widget.shouldHandleAction?.call(actionName, event.logicalKey) ??
+        true)) {
       return KeyEventResult.ignored;
     }
 
@@ -191,4 +235,81 @@ class _PlayerKeyboardShortcutsState extends State<PlayerKeyboardShortcuts> {
 
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
+/// Adds Android TV remote aliases without changing the user's stored mapping.
+Map<String, List<String>> withTvRemoteShortcuts(
+  Map<String, List<String>> source,
+) {
+  final result = <String, List<String>>{
+    for (final entry in source.entries) entry.key: [...entry.value],
+  };
+
+  String label(LogicalKeyboardKey key) => key.keyLabel.isNotEmpty
+      ? key.keyLabel
+      : key.debugName ?? key.keyId.toString();
+
+  void add(String action, LogicalKeyboardKey key) {
+    final values = result.putIfAbsent(action, () => <String>[]);
+    final keyLabel = label(key);
+    if (!values.contains(keyLabel)) values.add(keyLabel);
+  }
+
+  result['volumeup']?.remove(label(LogicalKeyboardKey.arrowUp));
+  result['volumedown']?.remove(label(LogicalKeyboardKey.arrowDown));
+  result['exitfullscreen']?.remove(label(LogicalKeyboardKey.escape));
+
+  for (final key in [
+    LogicalKeyboardKey.select,
+    LogicalKeyboardKey.enter,
+    LogicalKeyboardKey.numpadEnter,
+    LogicalKeyboardKey.gameButtonA,
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.arrowDown,
+  ]) {
+    add('showcontrols', key);
+  }
+  add('playorpause', LogicalKeyboardKey.mediaPlayPause);
+  add('play', LogicalKeyboardKey.mediaPlay);
+  add('pause', LogicalKeyboardKey.mediaPause);
+  add('forward', LogicalKeyboardKey.mediaFastForward);
+  add('forward', LogicalKeyboardKey.mediaSkipForward);
+  add('rewind', LogicalKeyboardKey.mediaRewind);
+  add('rewind', LogicalKeyboardKey.mediaSkipBackward);
+  add('next', LogicalKeyboardKey.mediaTrackNext);
+  add('next', LogicalKeyboardKey.channelUp);
+  add('prev', LogicalKeyboardKey.mediaTrackPrevious);
+  add('prev', LogicalKeyboardKey.channelDown);
+  add('prev', LogicalKeyboardKey.mediaLast);
+  add('volumeup', LogicalKeyboardKey.audioVolumeUp);
+  add('volumedown', LogicalKeyboardKey.audioVolumeDown);
+  add('togglemute', LogicalKeyboardKey.audioVolumeMute);
+  add('showepisodes', LogicalKeyboardKey.guide);
+  add('showepisodes', LogicalKeyboardKey.mediaTopMenu);
+  add('showepisodes', LogicalKeyboardKey.colorF2Yellow);
+  add('toggledanmaku', LogicalKeyboardKey.closedCaptionToggle);
+  add('toggledanmaku', LogicalKeyboardKey.mediaAudioTrack);
+  add('toggledanmaku', LogicalKeyboardKey.colorF0Red);
+  add('togglefavorite', LogicalKeyboardKey.browserFavorites);
+  add('togglefavorite', LogicalKeyboardKey.favoriteStore0);
+  add('togglefavorite', LogicalKeyboardKey.colorF1Green);
+  add('showdetails', LogicalKeyboardKey.info);
+  add('showdetails', LogicalKeyboardKey.colorF3Blue);
+  add('showremotehelp', LogicalKeyboardKey.help);
+  add('showremotehelp', LogicalKeyboardKey.contextMenu);
+  add('showremotehelp', LogicalKeyboardKey.f1);
+  add('back', LogicalKeyboardKey.goBack);
+  add('back', LogicalKeyboardKey.escape);
+  add('back', LogicalKeyboardKey.gameButtonB);
+  add('exitplayer', LogicalKeyboardKey.exit);
+  add('exitplayer', LogicalKeyboardKey.close);
+  add('exitplayer', LogicalKeyboardKey.mediaClose);
+  add('exitplayer', LogicalKeyboardKey.mediaStop);
+  return result;
+}
+
+bool shouldDeferTvKeyToPlatform(LogicalKeyboardKey key) {
+  return key == LogicalKeyboardKey.audioVolumeUp ||
+      key == LogicalKeyboardKey.audioVolumeDown ||
+      key == LogicalKeyboardKey.audioVolumeMute;
 }

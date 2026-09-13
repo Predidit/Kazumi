@@ -1,3 +1,4 @@
+import 'package:kazumi/services/platform/tv_mode.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -203,6 +204,7 @@ class PlayerController implements Disposable {
         canInstall: () => initialization.isActive,
         offset: params.offset,
         videoSourceFormat: params.videoSourceFormat,
+        onHistoryProgress: params.onHistoryProgress,
       );
     } catch (e) {
       if (initialization.isStale) {
@@ -280,6 +282,7 @@ class PlayerController implements Disposable {
             forceSyncPlaying: true, forceSyncPosition: 0.0);
       }
     }
+    playback.enableHistoryFor(player);
     return true;
   }
 
@@ -337,6 +340,9 @@ class PlayerController implements Disposable {
   Future<void> pause({bool enableSync = true}) async {
     final player = playback.mediaPlayer;
     if (player == null) return;
+    // A short pause/resume can otherwise let delayed comments from before the
+    // pause appear at the resumed position.
+    if (TvMode.enabled) danmaku.invalidateScheduledDanmakus();
     danmaku.canvasController.pause();
     try {
       await player.pause();

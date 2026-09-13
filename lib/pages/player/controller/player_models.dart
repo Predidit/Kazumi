@@ -1,4 +1,5 @@
 import 'package:kazumi/services/video_source/video_source_format.dart';
+import 'package:kazumi/services/player/playback_history_recorder.dart';
 
 class PlaybackInitParams {
   final String videoUrl;
@@ -20,6 +21,7 @@ class PlaybackInitParams {
   final int currentRoad;
   final String? coverUrl;
   final String? bangumiName;
+  final PlaybackProgressWriter? onHistoryProgress;
 
   const PlaybackInitParams({
     required this.videoUrl,
@@ -39,6 +41,7 @@ class PlaybackInitParams {
     this.sortNumber,
     this.coverUrl,
     this.bangumiName,
+    this.onHistoryProgress,
   });
 }
 

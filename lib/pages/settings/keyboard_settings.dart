@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/pages/settings/tv_remote_help.dart';
 
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/bean/widget/tv_focusable_surface.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
+import 'package:kazumi/bean/widget/tv_focus_navigation.dart';
 
 class _ShortcutGroup {
   const _ShortcutGroup(this.title, this.functions);
@@ -40,6 +44,11 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   late Map<String, List<String>> shortcuts;
 
   final FocusNode focusNode = FocusNode();
+  final List<FocusNode> _tvSectionFocusNodes = [
+    FocusNode(debugLabel: 'TV remote guide section'),
+    FocusNode(debugLabel: 'TV custom shortcuts section'),
+  ];
+  int _tvSection = 0;
 
   bool get isListening => listeningFunction != null && listeningIndex != null;
 
@@ -71,6 +80,9 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   void dispose() {
     cancelListening();
     focusNode.dispose();
+    for (final node in _tvSectionFocusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -207,21 +219,22 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    final showCustomShortcuts = !TvMode.enabled || _tvSection == 1;
     return SettingsDetailScaffold(
-      title: const Text('操作设置'),
+      title: Text(TvMode.enabled ? '遥控器与操作设置' : '操作设置'),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.settings_backup_restore_rounded),
-          tooltip: '恢复默认',
-          onPressed: restoreDefaults,
-        ),
+        if (showCustomShortcuts)
+          IconButton(
+            icon: const Icon(Icons.settings_backup_restore_rounded),
+            tooltip: '恢复默认',
+            onPressed: restoreDefaults,
+          ),
       ],
       body: FocusScope(
         autofocus: true,
         child: Focus(
           focusNode: focusNode,
-          autofocus: true,
-          canRequestFocus: true,
+          canRequestFocus: isListening,
           skipTraversal: true,
           descendantsAreFocusable: true,
           onKeyEvent: (node, event) {
@@ -238,29 +251,133 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1000),
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      '点按按键标签，再按下新按键完成修改',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+              if (TvMode.enabled) ...[
+                _buildTvSectionTabs(),
+                const SizedBox(height: 14),
+              ],
+              if (showCustomShortcuts) ...[
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1000),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        TvMode.enabled
+                            ? '选择按键标签，再按下遥控器或键盘上的新按键完成修改'
+                            : '点按按键标签，再按下新按键完成修改',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              for (final group in displayGroups)
+                for (final group in displayGroups)
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1000),
+                      child: _buildGroupCard(group),
+                    ),
+                  ),
+              ] else ...[
                 Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1000),
-                    child: _buildGroupCard(group),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'TV 固定映射负责遥控器兼容；播放器通用按键可在“自定义按键”中调整。',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
+                const TvRemoteHelp(),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTvSectionTabs() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    const labels = ['遥控器说明', '自定义按键'];
+    const icons = [Icons.settings_remote_rounded, Icons.tune_rounded];
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1000),
+        child: Row(
+          children: [
+            for (var index = 0; index < labels.length; index++) ...[
+              if (index > 0) const SizedBox(width: 12),
+              Expanded(
+                child: TvFocusableSurface(
+                  focusNode: _tvSectionFocusNodes[index],
+                  autofocus: index == 0,
+                  highlighted: _tvSection == index,
+                  borderRadius: 22,
+                  onFocusChange: (focused) {
+                    if (focused && _tvSection != index) {
+                      setState(() => _tvSection = index);
+                    }
+                  },
+                  onKeyEvent: (node, event) {
+                    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+                      return KeyEventResult.ignored;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                      _tvSectionFocusNodes[
+                              tvWrappedIndex(index, -1, labels.length)]
+                          .requestFocus();
+                      return KeyEventResult.handled;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                      _tvSectionFocusNodes[
+                              tvWrappedIndex(index, 1, labels.length)]
+                          .requestFocus();
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  onPressed: () => setState(() => _tvSection = index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _tvSection == index
+                          ? colorScheme.primaryContainer
+                          : colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(icons[index]),
+                        const SizedBox(width: 10),
+                        Text(
+                          labels[index],
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: _tvSection == index
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

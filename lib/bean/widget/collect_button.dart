@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
 
 class CollectButton extends StatefulWidget {
   CollectButton({
@@ -10,6 +11,7 @@ class CollectButton extends StatefulWidget {
     this.color = Colors.white,
     this.onOpen,
     this.onClose,
+    this.focusNode,
   }) {
     isExtended = false;
   }
@@ -20,6 +22,7 @@ class CollectButton extends StatefulWidget {
     this.color = Colors.white,
     this.onOpen,
     this.onClose,
+    this.focusNode,
   }) {
     isExtended = true;
   }
@@ -29,6 +32,7 @@ class CollectButton extends StatefulWidget {
   late final bool isExtended;
   final void Function()? onOpen;
   final void Function()? onClose;
+  final FocusNode? focusNode;
 
   @override
   State<CollectButton> createState() => _CollectButtonState();
@@ -42,6 +46,47 @@ class _CollectButtonState extends State<CollectButton> {
   // 5. 抛弃
   late int collectType;
   final CollectController collectController = inject<CollectController>();
+  final _menuController = MenuController();
+  final _menuFocusNodes = List.generate(
+      6, (index) => FocusNode(debugLabel: 'TV collection menu $index'));
+  LocalHistoryEntry? _menuHistory;
+  bool _disposing = false;
+
+  void _onMenuOpen() {
+    if (TvMode.enabled) {
+      final route = ModalRoute.of(context);
+      if (route != null && _menuHistory == null) {
+        _menuHistory = LocalHistoryEntry(onRemove: () {
+          _menuHistory = null;
+          if (!_disposing && _menuController.isOpen) _menuController.close();
+        });
+        route.addLocalHistoryEntry(_menuHistory!);
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_menuController.isOpen) return;
+        _menuFocusNodes[collectType.clamp(0, 5)].requestFocus();
+      });
+    }
+    widget.onOpen?.call();
+  }
+
+  void _onMenuClose() {
+    final entry = _menuHistory;
+    _menuHistory = null;
+    entry?.remove();
+    if (!_disposing && TvMode.enabled) widget.focusNode?.requestFocus();
+    widget.onClose?.call();
+  }
+
+  @override
+  void dispose() {
+    _disposing = true;
+    _menuHistory?.remove();
+    for (final node in _menuFocusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -86,13 +131,16 @@ class _CollectButtonState extends State<CollectButton> {
   Widget build(BuildContext context) {
     collectType = collectController.getCollectType(widget.bangumiItem);
     return MenuAnchor(
+      controller: _menuController,
+      childFocusNode: widget.focusNode,
       consumeOutsideTap: true,
-      onClose: widget.onClose,
-      onOpen: widget.onOpen,
+      onClose: _onMenuClose,
+      onOpen: _onMenuOpen,
       crossAxisUnconstrained: false,
       builder: (_, MenuController controller, __) {
         if (widget.isExtended) {
           return FilledButton.icon(
+            focusNode: widget.focusNode,
             onPressed: () {
               if (controller.isOpen) {
                 controller.close();
@@ -105,6 +153,7 @@ class _CollectButtonState extends State<CollectButton> {
           );
         } else {
           return IconButton(
+            focusNode: widget.focusNode,
             onPressed: () {
               if (controller.isOpen) {
                 controller.close();
@@ -123,6 +172,7 @@ class _CollectButtonState extends State<CollectButton> {
       menuChildren: List<MenuItemButton>.generate(
         6,
         (int index) => MenuItemButton(
+          focusNode: TvMode.enabled ? _menuFocusNodes[index] : null,
           onPressed: () async {
             if (index != collectType && mounted) {
               await collectController.addCollect(widget.bangumiItem,

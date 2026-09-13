@@ -113,7 +113,8 @@ class _SearchResultGrid extends StatelessWidget {
               metadataHeight +
               _SearchResultCard.titleSpacing +
               _SearchResultCard.metadataSpacing +
-              6),
+              6 +
+              (TvMode.enabled ? 10 : 0)),
       itemCount: items.length,
       itemBuilder: (_, index) => _SearchResultCard(
           item: items[index],
@@ -147,7 +148,7 @@ class _SearchResultCard extends StatelessWidget {
     final theme = Theme.of(context);
     final title = item.nameCn.isNotEmpty ? item.nameCn : item.name;
     final year = item.airDate.length >= 4 ? item.airDate.substring(0, 4) : '';
-    return Material(
+    final card = Material(
       type: MaterialType.transparency,
       clipBehavior: Clip.antiAlias,
       borderRadius: BorderRadius.circular(16),
@@ -195,6 +196,12 @@ class _SearchResultCard extends StatelessWidget {
                           color: theme.colorScheme.onSurfaceVariant))),
             ]),
           ])),
+    );
+    if (!TvMode.enabled) return card;
+    return TvFocusableSurface(
+      focusScale: 1,
+      onPressed: () => context.pushNamed('/info/', arguments: item),
+      child: card,
     );
   }
 }

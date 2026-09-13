@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -10,17 +12,24 @@ import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/pages/player/controller/player_diagnostics.dart';
+import 'package:kazumi/services/platform/tv_mode.dart';
+
+enum VideoDetailsTab { status, logs, remote }
 
 void showVideoDetailsSheet(
   BuildContext context, {
   required PlayerController playerController,
+  VideoDetailsTab initialTab = VideoDetailsTab.status,
 }) {
   showAdaptiveBottomSheet<void>(
     context: context,
     maxHeightFactor: 0.86,
     compactLandscapeMaxHeightFactor: 0.95,
-    builder: (context) =>
-        _VideoDetailsSheet(playerController: playerController),
+    builder: (context) => VideoDetailsSheet(
+      playerController: playerController,
+      initialTab: initialTab,
+    ),
   );
 }
 
@@ -58,24 +67,46 @@ class _LogEntry {
   bool get isProblem => level == 'fatal' || level == 'error' || level == 'warn';
 }
 
-class _VideoDetailsSheet extends StatefulWidget {
-  const _VideoDetailsSheet({required this.playerController});
+class VideoDetailsSheet extends StatefulWidget {
+  const VideoDetailsSheet({
+    super.key,
+    required this.playerController,
+    this.initialTab = VideoDetailsTab.status,
+  });
 
   final PlayerController playerController;
+  final VideoDetailsTab initialTab;
 
   @override
-  State<_VideoDetailsSheet> createState() => _VideoDetailsSheetState();
+  State<VideoDetailsSheet> createState() => _VideoDetailsSheetState();
 }
 
-class _VideoDetailsSheetState extends State<_VideoDetailsSheet>
+class _VideoDetailsSheetState extends State<VideoDetailsSheet>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabController =
-      TabController(length: 2, vsync: this);
+  late final TabController _tabController;
   final ScrollController _logScrollController = ScrollController();
   bool _logInitialScrollDone = false;
   int _lastLogCount = 0;
+  PlayerDiagnosticsSnapshot? _diagnostics;
+  bool _loadingDiagnostics = false;
 
   PlayerController get playerController => widget.playerController;
+
+  @override
+  void initState() {
+    super.initState();
+    final tabCount = TvMode.enabled ? 3 : 2;
+    final requestedTab = widget.initialTab.index;
+    _tabController = TabController(
+      length: tabCount,
+      initialIndex: requestedTab < tabCount ? requestedTab : 0,
+      vsync: this,
+    );
+    _tabController.addListener(_handleTabChanged);
+    if (TvMode.enabled) {
+      unawaited(_refreshDiagnostics());
+    }
+  }
 
   @override
   void dispose() {
@@ -84,6 +115,24 @@ class _VideoDetailsSheetState extends State<_VideoDetailsSheet>
     super.dispose();
   }
 
+  void _handleTabChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _refreshDiagnostics() async {
+    if (_loadingDiagnostics) return;
+    setState(() => _loadingDiagnostics = true);
+    final diagnostics = await playerController.playback.readDiagnostics();
+    if (!mounted) return;
+    setState(() {
+      _diagnostics = diagnostics;
+      _loadingDiagnostics = false;
+    });
+  }
+
+  /// [context] must sit below this sheet's ScaffoldMessenger.
   void _copyToClipboard(BuildContext context, String value) {
     Clipboard.setData(ClipboardData(text: value));
     KazumiDialog.showToast(message: '已复制到剪贴板', context: context);
@@ -103,12 +152,18 @@ class _VideoDetailsSheetState extends State<_VideoDetailsSheet>
                   ConnectedTabs(
                     padding: materialBottomSheetTabsPadding,
                     controller: _tabController,
-                    labels: const ['概览', '日志'],
+                    labels: TvMode.enabled
+                        ? const ['概览', '日志', '遥控器']
+                        : const ['概览', '日志'],
                   ),
                   Expanded(
                       child: TabBarView(
                     controller: _tabController,
-                    children: [_buildStatusTab(context), _buildLogTab(context)],
+                    children: [
+                      _buildStatusTab(context),
+                      _buildLogTab(context),
+                      if (TvMode.enabled) _buildRemoteTab(context)
+                    ],
                   )),
                 ]),
               )),
@@ -126,6 +181,25 @@ class _VideoDetailsSheetState extends State<_VideoDetailsSheet>
         key: const PageStorageKey('video-details-overview'),
         padding: materialBottomSheetContentPadding,
         children: [
+          if (TvMode.enabled) ...[
+            ContentSection.group(title: '播放诊断', children: [
+              _statusField(
+                  context, '解码通路', _diagnostics?.decodeRouteSummary ?? '正在读取…'),
+              _statusField(
+                  context, '渲染输出', _diagnostics?.outputSummary ?? '正在读取…'),
+              _statusField(
+                  context, '视频流', _diagnostics?.streamSummary ?? '正在读取…'),
+              _statusField(context, '播放健康',
+                  _diagnostics?.playbackHealthSummary ?? '正在读取…'),
+              _statusField(
+                  context, '音频与同步', _diagnostics?.audioClockSummary ?? '正在读取…'),
+              TextButton.icon(
+                  onPressed: _loadingDiagnostics ? null : _refreshDiagnostics,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('刷新诊断')),
+            ]),
+            const SizedBox(height: 24),
+          ],
           ContentSection(
             title: '画面与声音',
             child:
@@ -268,6 +342,69 @@ class _VideoDetailsSheetState extends State<_VideoDetailsSheet>
         ]),
       );
     });
+  }
+
+  Widget _buildRemoteTab(BuildContext context) {
+    return ListView(
+      padding: materialBottomSheetContentPadding,
+      children: [
+        ContentSection.group(
+          title: '播放',
+          children: const [
+            ListTile(
+              leading: Icon(Icons.play_circle_outline_rounded),
+              title: Text('播放、暂停与定位'),
+              subtitle: Text('播放/暂停键；左右方向键快退/快进；频道键切换上下集'),
+            ),
+            ListTile(
+              leading: Icon(Icons.subtitles_rounded),
+              title: Text('弹幕'),
+              subtitle: Text('字幕/CC、音轨或红色功能键'),
+            ),
+          ],
+        ),
+        ContentSection.group(
+          title: '浏览',
+          children: const [
+            ListTile(
+              leading: Icon(Icons.view_list_rounded),
+              title: Text('选集'),
+              subtitle: Text('EPG/Guide、Top Menu 或黄色功能键'),
+            ),
+            ListTile(
+              leading: Icon(Icons.favorite_outline_rounded),
+              title: Text('收藏'),
+              subtitle: Text('收藏键或绿色功能键'),
+            ),
+            ListTile(
+              leading: Icon(Icons.info_outline_rounded),
+              title: Text('播放信息'),
+              subtitle: Text('INFO 或蓝色功能键'),
+            ),
+            ListTile(
+              leading: Icon(Icons.help_outline_rounded),
+              title: Text('遥控器帮助'),
+              subtitle: Text('HELP、MENU、右键菜单或 F1'),
+            ),
+          ],
+        ),
+        ContentSection.group(
+          title: '系统按键',
+          children: const [
+            ListTile(
+              leading: Icon(Icons.volume_up_rounded),
+              title: Text('音量'),
+              subtitle: Text('交由 Android TV 处理，以兼容电视、CEC、ARC 和功放'),
+            ),
+            ListTile(
+              leading: Icon(Icons.keyboard_return_rounded),
+              title: Text('返回与退出'),
+              subtitle: Text('返回键关闭当前面板；Stop/Exit 退出播放器'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildLogRow(BuildContext context, _LogEntry entry) {

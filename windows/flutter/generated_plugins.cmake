@@ -12,6 +12,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   media_kit_video
   screen_retriever_windows
   tray_manager
+  universal_gamepad
   url_launcher_windows
   webview_windows
   window_manager

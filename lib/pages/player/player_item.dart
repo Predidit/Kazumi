@@ -29,6 +29,7 @@ import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
+import 'package:kazumi/bean/widget/gamepad_navigation.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
@@ -123,10 +124,14 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? mouseScrollerTimer;
   Timer? _adjustmentHudHideTimer;
   final Set<PlayerPanelHold> _playerPanelHolds = <PlayerPanelHold>{};
+  final FocusScopeNode _gamepadScopeNode =
+      FocusScopeNode(debugLabel: 'Player controls');
   int _openPlayerMenuCount = 0;
   PlayerPanelHold? _progressBarDragHold;
   PointerDeviceKind? _lastTapPointerKind;
   PointerDeviceKind? _lastDoubleTapPointerKind;
+  Duration _surfaceSeekStartPosition = Duration.zero;
+  double _surfaceSeekCumulativeDx = 0;
 
   late final AnimationController _panelVisibilityController;
   late final AnimationController _screenshotFeedbackController;
@@ -712,6 +717,72 @@ class _PlayerItemState extends State<PlayerItem>
       _syncAudioServiceState();
     }
     _restartPlayerTimer();
+  }
+
+  void _beginSurfaceInteractiveSeek() {
+    if (!mounted ||
+        !shouldEnablePlayerSurfaceSeek(
+          isDesktop: isDesktop(),
+          isLinux: Platform.isLinux,
+          panelLocked: playerController.panel.lockPanel,
+          videoDuration: playerController.playback.duration,
+        ) ||
+        playerController.seeking.hasActiveInteractiveSeek) {
+      return;
+    }
+    _surfaceSeekStartPosition = playerController.playback.currentPosition;
+    _surfaceSeekCumulativeDx = 0;
+    playerController.panel.seekDirection = 0;
+    _beginInteractiveSeek();
+  }
+
+  void _updateSurfaceInteractiveSeek(
+    BuildContext context,
+    DragUpdateDetails details,
+  ) {
+    if (!mounted || !playerController.seeking.hasActiveInteractiveSeek) {
+      return;
+    }
+    final dx = details.delta.dx;
+    final width = MediaQuery.sizeOf(context).width;
+    final duration = playerController.playback.duration;
+    if (!dx.isFinite || !width.isFinite || width <= 0) {
+      return;
+    }
+
+    final Duration target;
+    if (isDesktop()) {
+      _surfaceSeekCumulativeDx =
+          (_surfaceSeekCumulativeDx + dx).clamp(-1e6, 1e6).toDouble();
+      target = horizontalDragSeekTarget(
+        initialPosition: _surfaceSeekStartPosition,
+        videoDuration: duration,
+        cumulativeDeltaX: _surfaceSeekCumulativeDx,
+        surfaceWidth: width,
+      );
+    } else {
+      final offset = dx * 180000 / width;
+      if (!offset.isFinite) {
+        return;
+      }
+      target = playerController.playback.currentPosition +
+          Duration(milliseconds: offset.round());
+    }
+    playerController.panel.showSeekTime = true;
+    playerController.panel.seekDirection = interactiveSeekDirection(
+      initialPosition: _surfaceSeekStartPosition,
+      target: target,
+    );
+    playerController.seeking.updateInteractiveSeek(target);
+  }
+
+  void _finishSurfaceInteractiveSeek() {
+    playerController.panel.showSeekTime = false;
+    playerController.panel.seekDirection = 0;
+    _surfaceSeekCumulativeDx = 0;
+    if (playerController.seeking.hasActiveInteractiveSeek) {
+      unawaited(_commitInteractiveSeek());
+    }
   }
 
   void _restartPlayerTimer() {
@@ -1374,6 +1445,7 @@ class _PlayerItemState extends State<PlayerItem>
     _panelVisibilityController.dispose();
     _screenshotFeedbackController.dispose();
     _disposePlayerMenu();
+    _gamepadScopeNode.dispose();
     if (Platform.isAndroid) {
       unawaited(_syncAndroidPIPPlayerPageState(false));
       PipUtils.disposePipHandler();
@@ -1382,9 +1454,152 @@ class _PlayerItemState extends State<PlayerItem>
     super.dispose();
   }
 
+  bool get _playerGamepadHasFocus {
+    final primary = FocusManager.instance.primaryFocus;
+    return primary != null && primary.ancestors.contains(_gamepadScopeNode);
+  }
+
+  Map<Type, Action<Intent>> get _gamepadActions =>
+      <Type, Action<Intent>>{
+        GamepadActivateIntent: CallbackAction<GamepadActivateIntent>(
+          onInvoke: (_) {
+            if (_playerGamepadHasFocus) {
+              final context = FocusManager.instance.primaryFocus?.context;
+              if (context != null) {
+                Actions.maybeInvoke(context, const ActivateIntent());
+              }
+            } else {
+              _focusFirstGamepadControl();
+            }
+            return null;
+          },
+        ),
+        GamepadNavigateIntent: CallbackAction<GamepadNavigateIntent>(
+          onInvoke: (intent) {
+            _handleGamepadNavigate(intent.direction);
+            return null;
+          },
+        ),
+        GamepadBackIntent: CallbackAction<GamepadBackIntent>(
+          onInvoke: (_) {
+            if (_playerGamepadHasFocus ||
+                playerController.panel.showVideoController) {
+              widget.keyboardFocus.requestFocus();
+              hideVideoController();
+            } else {
+              widget.onBackPressed();
+            }
+            return null;
+          },
+        ),
+        GamepadSecondaryActionIntent:
+            CallbackAction<GamepadSecondaryActionIntent>(
+          onInvoke: (_) {
+            handleDanmaku();
+            return null;
+          },
+        ),
+        GamepadContextActionIntent: CallbackAction<GamepadContextActionIntent>(
+          onInvoke: (_) {
+            _toggleVideoController();
+            return null;
+          },
+        ),
+        GamepadPreviousSectionIntent:
+            CallbackAction<GamepadPreviousSectionIntent>(
+          onInvoke: (_) {
+            unawaited(_seekWithPlayerTimer(() => playerController.seekBy(
+                  Duration(
+                    seconds: -playerController.playback.arrowKeySkipTime,
+                  ),
+                )));
+            return null;
+          },
+        ),
+        GamepadNextSectionIntent: CallbackAction<GamepadNextSectionIntent>(
+          onInvoke: (_) {
+            unawaited(_seekWithPlayerTimer(() => playerController.seekBy(
+                  Duration(
+                    seconds: playerController.playback.arrowKeySkipTime,
+                  ),
+                )));
+            return null;
+          },
+        ),
+        GamepadPreviousSecondarySectionIntent:
+            CallbackAction<GamepadPreviousSecondarySectionIntent>(
+          onInvoke: (_) {
+            unawaited(handlePreNextEpisode('prev'));
+            return null;
+          },
+        ),
+        GamepadNextSecondarySectionIntent:
+            CallbackAction<GamepadNextSecondarySectionIntent>(
+          onInvoke: (_) {
+            unawaited(handlePreNextEpisode('next'));
+            return null;
+          },
+        ),
+        GamepadMenuIntent: CallbackAction<GamepadMenuIntent>(
+          onInvoke: (_) {
+            unawaited(playerController.playOrPause());
+            showVideoController();
+            return null;
+          },
+        ),
+        GamepadViewIntent: CallbackAction<GamepadViewIntent>(
+          onInvoke: (_) {
+            widget.onToggleSidePanel?.call();
+            return null;
+          },
+        ),
+        GamepadLeftStickClickIntent:
+            CallbackAction<GamepadLeftStickClickIntent>(
+          onInvoke: (_) {
+            unawaited(handleShortcutVolumeChange('mute'));
+            return null;
+          },
+        ),
+        GamepadRightStickClickIntent:
+            CallbackAction<GamepadRightStickClickIntent>(
+          onInvoke: (_) {
+            final current = playerController.playback.playerSpeed;
+            final target = (current - longPressPlaySpeed).abs() < 0.01
+                ? 1.0
+                : longPressPlaySpeed;
+            unawaited(setPlaybackSpeed(target));
+            return null;
+          },
+        ),
+      };
+
+  void _focusFirstGamepadControl() {
+    showVideoController(restartHideTimer: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        focusFirstGamepadControl(_gamepadScopeNode);
+      }
+    });
+  }
+
+  void _handleGamepadNavigate(TraversalDirection direction) {
+    if (playerController.panel.lockPanel) {
+      return;
+    }
+    if (!playerController.panel.showVideoController ||
+        !_playerGamepadHasFocus) {
+      _focusFirstGamepadControl();
+      return;
+    }
+    if (invokeGamepadControlDirection(direction)) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.focusInDirection(direction);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Observer(
+    final content = Observer(
       builder: (context) {
         return ClipRect(
           child: Container(
@@ -1564,45 +1779,36 @@ class _PlayerItemState extends State<PlayerItem>
                       top: 25,
                       right: 15,
                       bottom: 15,
-                      child: (isDesktop() || playerController.panel.lockPanel)
-                          ? Container()
-                          : GestureDetector(
+                      child: shouldEnablePlayerSurfaceSeek(
+                        isDesktop: isDesktop(),
+                        isLinux: Platform.isLinux,
+                        panelLocked: playerController.panel.lockPanel,
+                        videoDuration: playerController.playback.duration,
+                      )
+                          ? GestureDetector(
+                              supportedDevices: playerSurfaceDragDevices(
+                                isLinux: Platform.isLinux,
+                              ),
                               onHorizontalDragStart: (_) {
-                                playerController.panel.seekDirection = 0;
-                                _beginInteractiveSeek();
+                                _beginSurfaceInteractiveSeek();
                               },
                               onHorizontalDragUpdate:
                                   (DragUpdateDetails details) {
-                                playerController.panel.showSeekTime = true;
-                                if (details.delta.dx != 0) {
-                                  playerController.panel.seekDirection =
-                                      details.delta.dx > 0 ? 1 : -1;
-                                }
-                                final double scale =
-                                    180000 / MediaQuery.sizeOf(context).width;
-                                playerController.seeking.updateInteractiveSeek(
-                                  playerController.playback.currentPosition +
-                                      Duration(
-                                        milliseconds:
-                                            (details.delta.dx * scale).round(),
-                                      ),
-                                );
+                                _updateSurfaceInteractiveSeek(context, details);
                               },
                               onHorizontalDragEnd: (_) {
-                                playerController.panel.showSeekTime = false;
-                                playerController.panel.seekDirection = 0;
-                                if (playerController
-                                    .seeking.hasActiveInteractiveSeek) {
-                                  unawaited(
-                                    _commitInteractiveSeek(),
-                                  );
-                                }
+                                _finishSurfaceInteractiveSeek();
                               },
+                              onHorizontalDragCancel:
+                                  _finishSurfaceInteractiveSeek,
                               onVerticalDragUpdate:
-                                  (DragUpdateDetails details) async {
-                                if (!brightnessVolumeGesture) {
-                                  return;
-                                }
+                                  shouldEnablePlayerSurfaceVerticalDrag(
+                                    isDesktop: isDesktop(),
+                                  )
+                                      ? (DragUpdateDetails details) async {
+                                  if (!brightnessVolumeGesture) {
+                                    return;
+                                  }
                                 final double totalWidth =
                                     MediaQuery.sizeOf(context).width;
                                 final double totalHeight =
@@ -1641,15 +1847,23 @@ class _PlayerItemState extends State<PlayerItem>
                                       baseVolume - delta / level;
                                   playerController
                                       .setVolumeDuringGesture(volume);
+                                  }
                                 }
-                              },
-                              onVerticalDragEnd: (_) {
-                                _finishAdjustmentGesture();
-                              },
-                              onVerticalDragCancel: () {
-                                _finishAdjustmentGesture();
-                              },
-                            ),
+                                      : null,
+                              onVerticalDragEnd:
+                                  shouldEnablePlayerSurfaceVerticalDrag(
+                                    isDesktop: isDesktop(),
+                                  )
+                                      ? (_) => _finishAdjustmentGesture()
+                                      : null,
+                              onVerticalDragCancel:
+                                  shouldEnablePlayerSurfaceVerticalDrag(
+                                    isDesktop: isDesktop(),
+                                  )
+                                      ? _finishAdjustmentGesture
+                                      : null,
+                            )
+                          : Container(),
                     ),
                   ]),
                 ),
@@ -1658,6 +1872,16 @@ class _PlayerItemState extends State<PlayerItem>
           ),
         );
       },
+    );
+    if (!isHandheldGamepadSupported()) {
+      return content;
+    }
+    return Actions(
+      actions: _gamepadActions,
+      child: GamepadFocusScope(
+        node: _gamepadScopeNode,
+        child: content,
+      ),
     );
   }
 }

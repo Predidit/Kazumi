@@ -27,6 +27,26 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
       ? Duration.zero
       : const Duration(milliseconds: 200);
 
+  // ListTile-based controls own focus but do not translate ActivateIntent
+  // into onChanged, so map it explicitly. Without this a gamepad A press on
+  // an option does nothing.
+  Widget _activateOnIntent({
+    required VoidCallback onActivate,
+    required Widget child,
+  }) {
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            onActivate();
+            return null;
+          },
+        ),
+      },
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -118,21 +138,25 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
               ),
             ),
             const SizedBox(height: 16),
-            CheckboxListTile(
-              value: _rememberChoice,
-              onChanged: (value) {
-                setState(() => _rememberChoice = value ?? false);
-              },
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              title: Text('记住我的选择', style: theme.textTheme.bodyMedium),
-              subtitle: Text(
-                '下次关闭窗口时不再询问',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
+            _activateOnIntent(
+              onActivate: () =>
+                  setState(() => _rememberChoice = !_rememberChoice),
+              child: CheckboxListTile(
+                value: _rememberChoice,
+                onChanged: (value) {
+                  setState(() => _rememberChoice = value ?? false);
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                title: Text('记住我的选择', style: theme.textTheme.bodyMedium),
+                subtitle: Text(
+                  '下次关闭窗口时不再询问',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -185,29 +209,38 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
     final foreground =
         selected ? colors.onSecondaryContainer : colors.onSurface;
 
-    return Material(
-      color: selected ? colors.secondaryContainer : colors.surfaceContainerLow,
-      borderRadius: borderRadius,
-      clipBehavior: Clip.antiAlias,
-      animationDuration: _animationDuration,
-      child: RadioListTile<ExitDialogAction>(
-        value: action,
-        selected: selected,
-        activeColor: colors.onSecondaryContainer,
-        controlAffinity: ListTileControlAffinity.trailing,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: borderRadius),
-        secondary: Icon(icon, color: foreground),
-        title: Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(color: foreground),
-        ),
-        subtitle: Text(
-          description,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: selected
-                ? colors.onSecondaryContainer
-                : colors.onSurfaceVariant,
+    return _activateOnIntent(
+      onActivate: () {
+        if (_action != action) {
+          setState(() => _action = action);
+        }
+      },
+      child: Material(
+        color:
+            selected ? colors.secondaryContainer : colors.surfaceContainerLow,
+        borderRadius: borderRadius,
+        clipBehavior: Clip.antiAlias,
+        animationDuration: _animationDuration,
+        child: RadioListTile<ExitDialogAction>(
+          value: action,
+          selected: selected,
+          activeColor: colors.onSecondaryContainer,
+          controlAffinity: ListTileControlAffinity.trailing,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: borderRadius),
+          secondary: Icon(icon, color: foreground),
+          title: Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(color: foreground),
+          ),
+          subtitle: Text(
+            description,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: selected
+                  ? colors.onSecondaryContainer
+                  : colors.onSurfaceVariant,
+            ),
           ),
         ),
       ),

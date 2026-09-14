@@ -39,6 +39,8 @@ class VideoSidePanelState extends State<VideoSidePanel>
       _animation.status == AnimationStatus.forward ||
       _animation.status == AnimationStatus.completed;
 
+  bool get isOpen => _animation.value > 0;
+
   void toggle() {
     if (_isOpening) {
       close();

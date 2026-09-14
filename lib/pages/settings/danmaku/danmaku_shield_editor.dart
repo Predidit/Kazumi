@@ -29,12 +29,11 @@ class _DanmakuShieldEditorState extends State<DanmakuShieldEditor> {
     super.dispose();
   }
 
-  void _addRule() {
+  Future<void> _addRule() async {
     final rule = textEditingController.text.trim();
     if (rule.isEmpty) return;
-    final previousCount = myController.shieldList.length;
-    myController.addShieldList(rule);
-    if (myController.shieldList.length > previousCount) {
+    final added = await myController.addShieldList(rule);
+    if (mounted && added && textEditingController.text.trim() == rule) {
       textEditingController.clear();
     }
   }

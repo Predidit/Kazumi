@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
+import 'package:kazumi/modules/danmaku/danmaku_shield_sync.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
@@ -16,6 +17,7 @@ class WebDav {
   static const String _historyRootPath = '$_syncRootPath/history';
   static const String _historyChangesPath = '$_historyRootPath/changes';
   static const String _historySnapshotPath = '$_historyRootPath/snapshot.json';
+  static const String _danmakuShieldPath = '$_syncRootPath/danmakuShield';
 
   late String webDavURL;
   late String webDavUsername;
@@ -38,7 +40,9 @@ class WebDav {
   static final WebDav _instance = WebDav._internal();
   factory WebDav() => _instance;
 
-  Future<void> init() async {
+  Future<void> init() => _runWebDavExclusive(_init);
+
+  Future<void> _init() async {
     initialized = false;
     var directory = await getApplicationSupportDirectory();
     webDavLocalTempDirectory = Directory('${directory.path}/webdavTemp');
@@ -74,12 +78,68 @@ class WebDav {
       // Collection sync reads its own flag independently of the master switch.
       await GStorage.putSetting(SettingsKeys.webDavEnableHistory, false);
       await GStorage.putSetting(SettingsKeys.webDavEnableCollect, false);
+      await GStorage.putSetting(SettingsKeys.webDavEnableDanmakuShield, false);
     }
     await GStorage.putSetting(SettingsKeys.webDavEnable, enabled);
   }
 
   Future<T> _runWebDavExclusive<T>(Future<T> Function() action) {
     return _webDavOperationQueue.run(action);
+  }
+
+  bool get isDanmakuShieldSyncEnabled =>
+      GStorage.getSetting(SettingsKeys.webDavEnable) &&
+      GStorage.getSetting(SettingsKeys.webDavEnableDanmakuShield);
+
+  Future<void> syncDanmakuShield({
+    required String deviceId,
+    required Future<DanmakuShieldSyncState> Function(DanmakuShieldSyncState)
+        merge,
+  }) {
+    // Queue every request: an edit during an upload needs another pass.
+    return _runWebDavExclusive(() async {
+      if (!isDanmakuShieldSyncEnabled) return;
+      if (!initialized) await _init();
+      await _ensureLocalTempDirectory();
+      await _ensureRemoteDirectory(_danmakuShieldPath);
+      final runDirectory =
+          await webDavLocalTempDirectory.createTemp('danmaku-shield-sync-');
+      try {
+        var remote = DanmakuShieldSyncState();
+        final entries = await client.readDir(_danmakuShieldPath);
+        var index = 0;
+        for (final entry in entries) {
+          final name = entry.name ?? '';
+          if (entry.isDir == true ||
+              !RegExp(r'^[0-9a-f]{32}\.json$').hasMatch(name)) {
+            continue;
+          }
+          final file = File('${runDirectory.path}/remote-${index++}.json');
+          await client.read2File('$_danmakuShieldPath/$name', file.path);
+          remote = remote.merge(
+            DanmakuShieldSyncState.decode(await file.readAsString()),
+          );
+        }
+        if (!isDanmakuShieldSyncEnabled) return;
+        final merged = await merge(remote);
+        final upload = File('${runDirectory.path}/local.json');
+        await upload.writeAsString(merged.encode(), flush: true);
+        // Per-device files prevent simultaneous uploads from losing edits.
+        final destination = '$_danmakuShieldPath/$deviceId.json';
+        await _publishRemoteFile(
+          sourceFilePath: upload.path,
+          destinationPath: destination,
+          temporaryPath: '$destination.cache',
+        );
+      } finally {
+        try {
+          await runDirectory.delete(recursive: true);
+        } catch (e) {
+          KazumiLogger()
+              .w('WebDav: failed to clean danmaku shield sync files', error: e);
+        }
+      }
+    });
   }
 
   Future<void> _updateBox(String boxName) async {

@@ -24,6 +24,7 @@ import 'package:kazumi/pages/settings/sync/webdav_sync_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/settings/update_settings.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 
 final settingsModule = createModule(
   path: '/settings',
@@ -37,7 +38,10 @@ final settingsModule = createModule(
           ..route('/sync', child: (context, state) => const SyncSettingsPage())
           ..route('/bangumi/',
               child: (context, state) => const BangumiSyncPage())
-          ..route('/webdav/', child: (context, state) => const WebDavSyncPage())
+          ..route('/webdav/',
+              child: (context, state) => WebDavSyncPage(
+                    danmakuShieldSync: inject<DanmakuShieldSyncService>(),
+                  ))
           ..route('/webdav/editor',
               child: (context, state) => const WebDavServerPage())
           ..route(

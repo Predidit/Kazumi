@@ -8,9 +8,12 @@ import 'package:kazumi/pages/settings/sync/sync_settings_widgets.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 
 class WebDavSyncPage extends StatefulWidget {
-  const WebDavSyncPage({super.key});
+  const WebDavSyncPage({super.key, required this.danmakuShieldSync});
+
+  final DanmakuShieldSyncService danmakuShieldSync;
 
   @override
   State<WebDavSyncPage> createState() => _WebDavSyncPageState();
@@ -68,11 +71,18 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
     }
   }
 
+  Future<void> _syncDanmakuShield() => _run(() async {
+        if (mounted) setState(() => _message = '正在同步弹幕屏蔽词…');
+        await widget.danmakuShieldSync.sync();
+        _message = '弹幕屏蔽词已同步';
+      });
+
   @override
   Widget build(BuildContext context) {
     final enabled = GStorage.getSetting(SettingsKeys.webDavEnable);
     final history = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
     final collect = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+    final shield = GStorage.getSetting(SettingsKeys.webDavEnableDanmakuShield);
     final url = GStorage.getSetting(SettingsKeys.webDavURL).trim();
     final configured = url.isNotEmpty;
     final host = Uri.tryParse(url)?.host;
@@ -86,7 +96,7 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
             const SyncPageIntro(
               icon: Icons.devices_rounded,
               title: 'WebDAV',
-              description: '连接自己的云盘，同步观看记录与收藏。',
+              description: '连接自己的云盘，同步观看记录、收藏与弹幕屏蔽词。',
             ),
             SettingsSection(
               margin: EdgeInsets.zero,
@@ -141,11 +151,32 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
                     if (mounted) setState(() {});
                   },
                 ),
+                SettingsTile.switchTile(
+                  leading: Icons.filter_alt_rounded,
+                  title: const Text('弹幕屏蔽词'),
+                  description: const Text('启动和修改规则后自动同步，包含关键词与正则表达式'),
+                  initialValue: shield,
+                  enabled: enabled && !_busy,
+                  onToggle: (value) async {
+                    final syncEnabled = value ?? !shield;
+                    await GStorage.putSetting(
+                        SettingsKeys.webDavEnableDanmakuShield, syncEnabled);
+                    if (!mounted) return;
+                    setState(() {});
+                    if (syncEnabled) await _syncDanmakuShield();
+                  },
+                ),
               ],
             ),
             StateActionButton(
               onPressed: enabled && !_busy ? _syncHistory : null,
               text: _busy ? '请稍候…' : '立即同步观看记录',
+              icon: Icons.sync_rounded,
+            ),
+            StateActionButton.tonal(
+              onPressed:
+                  enabled && shield && !_busy ? _syncDanmakuShield : null,
+              text: '立即同步弹幕屏蔽词',
               icon: Icons.sync_rounded,
             ),
             if (_message != null)

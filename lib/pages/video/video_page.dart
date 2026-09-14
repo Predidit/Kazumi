@@ -56,6 +56,7 @@ class _VideoPageState extends State<VideoPage>
   PlayerController get playerController => widget.playerController;
   VideoPageController get videoPageController => widget.videoPageController;
   bool _didInitializePlayback = false;
+  bool _isExiting = false;
   HistoryController get historyController => widget.historyController;
   DownloadController get downloadController => widget.downloadController;
   late bool playResume;
@@ -246,7 +247,7 @@ class _VideoPageState extends State<VideoPage>
 
   Future<void> changeEpisode(int episode,
       {int currentRoad = 0, int offset = 0}) async {
-    if (!mounted) {
+    if (!mounted || _isExiting) {
       return;
     }
     setState(() {
@@ -304,7 +305,10 @@ class _VideoPageState extends State<VideoPage>
   Widget build(BuildContext context) {
     return PopScope(
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) playerController.beginShutdown();
+        if (didPop) {
+          setState(() => _isExiting = true);
+          playerController.beginShutdown();
+        }
       },
       child: Observer(builder: (context) {
         final bool isPip = videoPageController.isPip;
@@ -320,7 +324,10 @@ class _VideoPageState extends State<VideoPage>
                 child: Focus(
                   focusNode: keyboardFocus,
                   autofocus: true,
-                  child: Observer(builder: (_) => _buildPlayerBody(layout)),
+                  // Cleanup resets loading while the route is still visible.
+                  child: _isExiting
+                      ? const SizedBox.expand()
+                      : Observer(builder: (_) => _buildPlayerBody(layout)),
                 ),
               ),
               tabs: tabBody,

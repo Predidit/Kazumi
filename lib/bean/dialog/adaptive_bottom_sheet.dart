@@ -5,8 +5,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
-import 'package:kazumi/utils/device.dart';
-
 BoxConstraints _adaptiveBottomSheetConstraints(
   BuildContext context, {
   required double maxHeightFactor,
@@ -14,12 +12,10 @@ BoxConstraints _adaptiveBottomSheetConstraints(
 }) {
   final size = MediaQuery.sizeOf(context);
   final isLandscape = size.width > size.height;
-  final isLargeScreen = size.shortestSide >= 600;
   final useFullWidth = !isLandscape && size.width < 600;
   final maxWidth =
       useFullWidth ? size.width : math.min(size.width * 0.72, 640.0);
-  final useExpandedLandscapeHeight =
-      isLandscape && !isDesktop() && !isLargeScreen;
+  final useExpandedLandscapeHeight = isLandscape && size.height < 600;
   final maxHeight = size.height *
       (useExpandedLandscapeHeight
           ? compactLandscapeMaxHeightFactor

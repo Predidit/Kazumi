@@ -24,8 +24,50 @@ class PlayerPanelHold {
   }
 }
 
-/// Binds a hover/menu widget lifecycle to a panel hold so callers do not manage
-/// counters or menu identities by hand.
+/// Release focus holds when resizing removes the input but preserves its panel.
+class PlayerPanelHoldFocusRegion extends StatefulWidget {
+  const PlayerPanelHoldFocusRegion({
+    super.key,
+    required this.acquirePlayerPanelHold,
+    required this.child,
+  });
+
+  final PlayerPanelHold Function() acquirePlayerPanelHold;
+  final Widget child;
+
+  @override
+  State<PlayerPanelHoldFocusRegion> createState() =>
+      _PlayerPanelHoldFocusRegionState();
+}
+
+class _PlayerPanelHoldFocusRegionState
+    extends State<PlayerPanelHoldFocusRegion> {
+  PlayerPanelHold? _hold;
+
+  void _onFocusChange(bool focused) {
+    if (focused) {
+      _hold ??= widget.acquirePlayerPanelHold();
+    } else {
+      _hold?.release();
+      _hold = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _hold?.release();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Focus(
+        canRequestFocus: false,
+        onFocusChange: _onFocusChange,
+        child: widget.child,
+      );
+}
+
+/// Release hover holds when their controls unmount.
 class PlayerPanelHoldMouseRegion extends StatefulWidget {
   const PlayerPanelHoldMouseRegion({
     super.key,

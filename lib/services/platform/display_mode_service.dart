@@ -1,94 +1,87 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/platform/platform_environment_service.dart';
-import 'package:kazumi/utils/device.dart';
 import 'package:window_manager/window_manager.dart';
 
 class DisplayModeService {
   DisplayModeService._();
 
   static const _intentChannel = MethodChannel('com.predidit.kazumi/intent');
+  static Future<void> _pendingFullscreen = Future.value();
+  static Future<void>? _pendingSystemBars;
+  static Object? _systemBarsOwner;
+  static bool _systemBarsHidden = false;
 
-  static Future<void> enterFullScreen({bool lockOrientation = true}) async {
-    if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
-      await windowManager.setFullScreen(true);
-      return;
-    }
-    if (Platform.isAndroid) {
-      await _intentChannel.invokeMethod('enterFullscreen');
-    } else {
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    }
-    if (!lockOrientation) {
-      return;
-    }
-    if (Platform.isAndroid &&
-        await PlatformEnvironmentService.isInMultiWindowMode()) {
-      return;
-    }
-    await landscape();
-  }
-
-  static Future<void> exitFullScreen({bool lockOrientation = true}) async {
-    if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
-      await windowManager.setFullScreen(false);
-    }
-    try {
-      if (Platform.isAndroid || Platform.isIOS) {
-        if (Platform.isAndroid) {
-          await _intentChannel.invokeMethod('exitFullscreen');
-        } else {
-          await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-        }
-        if (isCompact() && lockOrientation) {
-          if (Platform.isAndroid &&
-              await PlatformEnvironmentService.isInMultiWindowMode()) {
-            return;
-          }
-          await verticalScreen();
-        }
+  static Future<void> applyVideoFullscreen(bool fullscreen) {
+    return _pendingFullscreen = _pendingFullscreen.then((_) async {
+      if (defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.windows) {
+        await _attempt(() => windowManager.setFullScreen(fullscreen));
+        return;
       }
-    } catch (exception, stacktrace) {
-      KazumiLogger().e(
-        'Display: failed to exit full screen',
-        error: exception,
-        stackTrace: stacktrace,
-      );
-    }
+
+      // Restore system orientation on exit, including an existing landscape.
+      await _attempt(() => SystemChrome.setPreferredOrientations(
+            fullscreen
+                ? [
+                    DeviceOrientation.landscapeLeft,
+                    DeviceOrientation.landscapeRight
+                  ]
+                : [],
+          ));
+    });
   }
 
-  static Future<void> landscape() async {
-    dynamic document;
+  /// Outgoing pages cannot release chrome owned by the next visible page.
+  static Future<void> setSystemBarsHidden({
+    required Object owner,
+    required bool hidden,
+  }) {
+    _systemBarsOwner = owner;
+    return _setSystemBarsHidden(hidden);
+  }
+
+  static Future<void> releaseSystemBars(Object owner) {
+    if (!identical(_systemBarsOwner, owner)) {
+      return _pendingSystemBars ?? Future.value();
+    }
+    _systemBarsOwner = null;
+    return _setSystemBarsHidden(false);
+  }
+
+  static Future<void> _setSystemBarsHidden(bool hidden) {
+    if (_systemBarsHidden == hidden) {
+      return _pendingSystemBars ?? Future.value();
+    }
+    _systemBarsHidden = hidden;
+    // Rotation acknowledgements must not delay immersion or route cleanup.
+    late final Future<void> request;
+    request = (_pendingSystemBars ?? Future<void>.value())
+        .then((_) => _attempt(() async {
+              if (defaultTargetPlatform == TargetPlatform.android) {
+                await _intentChannel.invokeMethod(
+                    'setSystemBarsHidden', hidden);
+              } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+                await SystemChrome.setEnabledSystemUIMode(
+                  hidden
+                      ? SystemUiMode.immersiveSticky
+                      : SystemUiMode.edgeToEdge,
+                );
+              }
+            }))
+        .whenComplete(() {
+      if (identical(_pendingSystemBars, request)) _pendingSystemBars = null;
+    });
+    return _pendingSystemBars = request;
+  }
+
+  static Future<void> _attempt(Future<void> Function() operation) async {
     try {
-      if (kIsWeb) {
-        await document.documentElement?.requestFullscreen();
-      } else if (Platform.isAndroid || Platform.isIOS) {
-        await SystemChrome.setPreferredOrientations(
-          [
-            DeviceOrientation.landscapeLeft,
-            DeviceOrientation.landscapeRight,
-          ],
-        );
-      }
-    } catch (exception, stacktrace) {
-      KazumiLogger().e(
-        'Display: failed to enter landscape mode',
-        error: exception,
-        stackTrace: stacktrace,
-      );
+      await operation();
+    } catch (error, stackTrace) {
+      KazumiLogger().e('Display: failed to apply video display mode',
+          error: error, stackTrace: stackTrace);
     }
-  }
-
-  static Future<void> verticalScreen() async {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
-  }
-
-  static Future<void> unlockScreenRotation() async {
-    await SystemChrome.setPreferredOrientations([]);
   }
 }

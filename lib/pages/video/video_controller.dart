@@ -14,18 +14,17 @@ import 'package:kazumi/services/video_source/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
 import 'package:kazumi/utils/media.dart';
 import 'package:kazumi/utils/async_session.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
+import 'package:kazumi/pages/video/video_fullscreen_controller.dart';
 
 part 'video_controller.g.dart';
 
@@ -99,8 +98,11 @@ abstract class _VideoPageController with Store implements Disposable {
   VideoEpisodeSelection get playbackEpisode =>
       playingEpisode ?? selectedEpisode;
 
-  @observable
-  bool isFullscreen = false;
+  final fullscreen = VideoFullscreenController(
+    applyFullscreen: DisplayModeService.applyVideoFullscreen,
+  );
+
+  bool get isFullscreen => fullscreen.isFullscreen;
 
   @observable
   bool isCommentsAscending = false;
@@ -114,9 +116,6 @@ abstract class _VideoPageController with Store implements Disposable {
 
   @observable
   bool isPip = false;
-
-  @observable
-  bool showTabBody = true;
 
   @observable
   int historyOffset = 0;
@@ -744,6 +743,7 @@ abstract class _VideoPageController with Store implements Disposable {
   /// Called by Modular when the '/video' route scope is disposed.
   @override
   void dispose() {
+    unawaited(fullscreen.close());
     _playbackSessions.cancel();
     _danmakuSessions.cancel();
     _commentSessions.cancel();
@@ -757,30 +757,6 @@ abstract class _VideoPageController with Store implements Disposable {
     if (videoSourceService != null) {
       unawaited(videoSourceService.dispose());
     }
-  }
-
-  void enterFullScreen() {
-    isFullscreen = true;
-    DisplayModeService.enterFullScreen(lockOrientation: false);
-  }
-
-  void exitFullScreen() {
-    isFullscreen = false;
-    DisplayModeService.exitFullScreen();
-  }
-
-  void isDesktopFullscreen() async {
-    if (isDesktop()) {
-      isFullscreen = await windowManager.isFullScreen();
-    }
-  }
-
-  void handleOnEnterFullScreen() async {
-    isFullscreen = true;
-  }
-
-  void handleOnExitFullScreen() async {
-    isFullscreen = false;
   }
 }
 

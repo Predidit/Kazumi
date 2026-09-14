@@ -5,6 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
@@ -290,18 +296,28 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _SheetHeader(
-              step: _step,
-              keyword: _keywordController.text.trim(),
-              animeTitle: _selectedAnime?.animeTitle,
-              onBack: _step == _SourceStep.search || _loading ? null : _goBack,
-              onClose: () => Navigator.of(context).pop(),
+        child: InputDecorationTheme(
+          data: const InputDecorationThemeData(
+            filled: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+              borderSide: BorderSide.none,
             ),
-            Flexible(child: _loading ? _buildLoading() : _buildBody()),
-          ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SheetHeader(
+                step: _step,
+                keyword: _keywordController.text.trim(),
+                animeTitle: _selectedAnime?.animeTitle,
+                onBack:
+                    _step == _SourceStep.search || _loading ? null : _goBack,
+                onClose: () => Navigator.of(context).pop(),
+              ),
+              Flexible(child: _loading ? _buildLoading() : _buildBody()),
+            ],
+          ),
         ),
       ),
     );
@@ -318,11 +334,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
+            LoadingIndicator(size: 22, semanticsLabel: label),
             const SizedBox(width: 12),
             Text(label, style: Theme.of(context).textTheme.bodyMedium),
           ],
@@ -362,16 +374,6 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                         onPressed: () => _keywordController.clear(),
                         icon: const Icon(Icons.close, size: 18),
                       ),
-                filled: true,
-                fillColor: colors.surfaceContainerHigh,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: colors.primary, width: 1.5),
-                ),
               ),
             ),
           ),
@@ -388,22 +390,13 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                 ],
                 Text(
                   '当番剧集数较多或分季命名混乱时，自动匹配的弹幕可能与画面对不上。可以在这里按番剧名检索，手动选择正确的弹幕源与分集。',
-                  style: TextStyle(
-                    color: colors.onSurfaceVariant,
-                    fontSize: 13,
-                    height: 1.6,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 if (_recentKeywords.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   Text(
                     '最近检索',
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
-                    ),
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
                   const SizedBox(height: 10),
                   Wrap(
@@ -442,10 +435,10 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                   child: const Text('取消'),
                 ),
                 const SizedBox(width: 10),
-                FilledButton.icon(
+                StateActionButton(
                   onPressed: _searchAnime,
-                  icon: const Icon(Icons.search),
-                  label: const Text('检索'),
+                  icon: Icons.search,
+                  text: '检索',
                 ),
               ],
             ),
@@ -457,12 +450,20 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
 
   Widget _buildAnimeList() {
     if (_error != null) {
-      return _StateMessage(
+      return GeneralEmptyState(
+        compact: true,
         icon: Icons.search_off,
         title: _animes.isEmpty ? '未找到匹配的番剧' : '弹幕检索失败',
-        subtitle: _animes.isEmpty ? '换个关键词，或去掉季度、副标题再试' : _error!,
-        actionLabel: '返回修改',
-        onAction: _goBack,
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              _animes.isEmpty ? '换个关键词，或去掉季度、副标题再试' : _error!,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          StateActionButton.tonal(onPressed: _goBack, text: '返回修改'),
+        ],
       );
     }
     return Column(
@@ -484,7 +485,21 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final anime = _animes[index];
-              return _AnimeCard(anime: anime, onTap: () => _selectAnime(anime));
+              return Card.outlined(
+                margin: EdgeInsets.zero,
+                clipBehavior: Clip.antiAlias,
+                child: SplitListRow(
+                  topRadius: 12,
+                  bottomRadius: 12,
+                  onTap: () => _selectAnime(anime),
+                  child: ListTile(
+                    title: Text(anime.animeTitle,
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(anime.typeDescription),
+                    trailing: const Icon(Icons.chevron_right),
+                  ),
+                ),
+              );
             },
           ),
         ),
@@ -494,12 +509,12 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
 
   Widget _buildEpisodeList() {
     if (_error != null) {
-      return _StateMessage(
+      return GeneralErrorWidget(
+        compact: true,
         icon: Icons.subtitles_off_outlined,
         title: '无法加载分集',
-        subtitle: _error!,
-        actionLabel: '返回重选',
-        onAction: _goBack,
+        errMsg: _error!,
+        actions: [StateActionButton.tonal(onPressed: _goBack, text: '返回重选')],
       );
     }
     final visible = _visibleEpisodes;
@@ -523,10 +538,11 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
           ),
         Flexible(
           child: visible.isEmpty
-              ? const _StateMessage(
+              ? const GeneralEmptyState(
+                  compact: true,
                   icon: Icons.filter_list_off,
                   title: '没有匹配的分集',
-                  subtitle: '试试直接输入集号，或点上方区段浏览',
+                  actions: [Text('试试直接输入集号，或点上方区段浏览')],
                 )
               : ListView.builder(
                   controller: _episodeScrollController,
@@ -535,10 +551,23 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                   itemCount: visible.length,
                   itemBuilder: (context, index) {
                     final item = visible[index];
-                    return _EpisodeRow(
-                      number: item.key,
-                      title: item.value.episodeTitle,
-                      onTap: () => _selectEpisode(item.value),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: splitListRowGap / 2),
+                      child: SplitListRow(
+                        topRadius: 12,
+                        bottomRadius: 12,
+                        onTap: () => _selectEpisode(item.value),
+                        child: ListTile(
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8),
+                          leading: CircleAvatar(
+                            child: FittedBox(child: Text('${item.key}')),
+                          ),
+                          title: Text(item.value.episodeTitle,
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -579,149 +608,64 @@ class _SheetHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      padding: const EdgeInsets.only(top: 14, bottom: 8),
       child: Column(
         children: [
           Row(
             children: [
-              if (onBack != null) ...[
-                IconButton(
-                  tooltip: '返回上一步',
-                  onPressed: onBack,
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                const SizedBox(width: 4),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.onSurfaceVariant,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Material(
-                color: colors.surfaceContainerHigh,
-                shape: const CircleBorder(),
-                child: IconButton(
-                  tooltip: '关闭',
-                  onPressed: onClose,
-                  icon: const Icon(Icons.close, size: 20),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: List.generate(3, (index) {
-              final color = index == step.index
-                  ? colors.primary
-                  : index < step.index
-                      ? colors.primaryContainer
-                      : colors.outlineVariant;
-              return Expanded(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: EdgeInsets.only(right: index == 2 ? 0 : 6),
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(2),
+              if (onBack != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: IconButton(
+                    tooltip: '返回上一步',
+                    onPressed: onBack,
+                    icon: const Icon(Icons.arrow_back),
                   ),
                 ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AnimeCard extends StatelessWidget {
-  const _AnimeCard({required this.anime, required this.onTap});
-
-  final DanmakuSearchAnime anime;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: colors.surfaceContainer,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colors.outlineVariant),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      anime.animeTitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            height: 1.3,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colors.secondaryContainer,
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Text(
-                        anime.typeDescription,
-                        style: TextStyle(
-                          color: colors.onSecondaryContainer,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: MaterialBottomSheetHeader(
+                  title: title,
+                  onClose: onClose,
+                  compact: true,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right,
-                color: colors.onSurfaceVariant,
-                size: 22,
               ),
             ],
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: List.generate(3, (index) {
+                final color = index == step.index
+                    ? colors.primary
+                    : index < step.index
+                        ? colors.primaryContainer
+                        : colors.outlineVariant;
+                return Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: EdgeInsets.only(right: index == 2 ? 0 : 6),
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -755,28 +699,6 @@ class _EpisodeToolbar extends StatelessWidget {
     final showJump = showSegments;
     final segmentCount = (total / _episodeSegmentSize).ceil();
 
-    InputDecoration fieldDecoration({
-      required String hint,
-      required IconData icon,
-      Widget? suffixIcon,
-    }) =>
-        InputDecoration(
-          isDense: true,
-          hintText: hint,
-          prefixIcon: Icon(icon, size: 18),
-          suffixIcon: suffixIcon,
-          filled: true,
-          fillColor: colors.surfaceContainerHigh,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: colors.primary, width: 1.5),
-          ),
-        );
-
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
       decoration: BoxDecoration(
@@ -793,9 +715,10 @@ class _EpisodeToolbar extends StatelessWidget {
                   child: TextField(
                     controller: searchController,
                     onChanged: onSearch,
-                    decoration: fieldDecoration(
-                      hint: '搜索标题或集号',
-                      icon: Icons.search,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: '搜索标题或集号',
+                      prefixIcon: const Icon(Icons.search, size: 18),
                       suffixIcon: searchController.text.isEmpty
                           ? null
                           : IconButton(
@@ -821,9 +744,9 @@ class _EpisodeToolbar extends StatelessWidget {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     textInputAction: TextInputAction.go,
                     onSubmitted: (_) => onJump(),
-                    decoration: fieldDecoration(
-                      hint: '跳至集',
-                      icon: Icons.pin_outlined,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: '跳至集',
                       suffixIcon: IconButton(
                         tooltip: '跳转',
                         onPressed: onJump,
@@ -843,11 +766,7 @@ class _EpisodeToolbar extends StatelessWidget {
                 children: [
                   Text(
                     '区段',
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(context).textTheme.labelMedium,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -884,35 +803,11 @@ class _EpisodeToolbar extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 8),
-          Text.rich(
-            TextSpan(
-              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
-              children: showSegments && segmentStart != null
-                  ? [
-                      const TextSpan(text: '共 '),
-                      TextSpan(
-                        text: '$total',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      TextSpan(
-                        text:
-                            ' 集 · 当前显示 $segmentStart-${(segmentStart! + _episodeSegmentSize - 1).clamp(0, total)}',
-                      ),
-                    ]
-                  : [
-                      const TextSpan(text: '共 '),
-                      TextSpan(
-                        text: '$total',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      const TextSpan(text: ' 集 · 匹配 '),
-                      TextSpan(
-                        text: '$matched',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      const TextSpan(text: ' 条'),
-                    ],
-            ),
+          Text(
+            showSegments && segmentStart != null
+                ? '共 $total 集 · 当前显示 $segmentStart-${(segmentStart! + _episodeSegmentSize - 1).clamp(0, total)}'
+                : '共 $total 集 · 匹配 $matched 条',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
@@ -933,7 +828,6 @@ class _SegmentChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
@@ -941,131 +835,6 @@ class _SegmentChip extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onTap(),
         showCheckmark: false,
-        selectedColor: colors.primaryContainer,
-        backgroundColor: colors.surfaceContainerHigh,
-        side: BorderSide.none,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(9),
-        ),
-        labelStyle: TextStyle(
-          color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant,
-          fontSize: 12,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-        ),
-      ),
-    );
-  }
-}
-
-class _EpisodeRow extends StatelessWidget {
-  const _EpisodeRow({
-    required this.number,
-    required this.title,
-    required this.onTap,
-  });
-
-  final int number;
-  final String title;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Text(
-                  '$number',
-                  style: TextStyle(
-                    color: colors.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StateMessage extends StatelessWidget {
-  const _StateMessage({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 44,
-              color: colors.onSurfaceVariant.withValues(alpha: 0.55),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 5),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.onSurfaceVariant,
-                fontSize: 13,
-                height: 1.45,
-              ),
-            ),
-            if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 16),
-              OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
-            ],
-          ],
-        ),
       ),
     );
   }

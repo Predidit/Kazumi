@@ -3,7 +3,6 @@ import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
@@ -26,55 +25,39 @@ Future<void> showDanmakuSourceSheet(
   required PlayerDanmakuController danmakuController,
   VoidCallback? onBeforeApply,
 }) async {
-  Widget buildSheet(BuildContext _) => _DanmakuSourceSheet(
-        initialKeyword: initialKeyword,
-        danmakuController: danmakuController,
-        onBeforeApply: onBeforeApply,
-      );
-
-  if (MediaQuery.orientationOf(context) == Orientation.portrait) {
-    await showAdaptiveBottomSheet<void>(
-      context: context,
-      maxHeightFactor: 0.88,
-      builder: buildSheet,
-    );
-    return;
-  }
-
-  final size = MediaQuery.sizeOf(context);
-  await showGeneralDialog<void>(
+  await KazumiDialog.show<void>(
     context: context,
-    barrierDismissible: true,
-    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-    barrierColor: Colors.black54,
-    transitionDuration: const Duration(milliseconds: 260),
-    pageBuilder: (_, __, ___) => SafeArea(
-      left: false,
-      child: Align(
-        alignment: Alignment.centerRight,
+    builder: (context) {
+      final size = MediaQuery.sizeOf(context);
+      final isPortrait =
+          MediaQuery.orientationOf(context) == Orientation.portrait;
+      final colors = Theme.of(context).colorScheme;
+      return Align(
+        alignment: isPortrait ? Alignment.bottomCenter : Alignment.centerRight,
         child: SizedBox(
-          width: math.min(440, size.width * 0.46),
-          height: double.infinity,
+          width: isPortrait
+              ? (size.width < 600
+                  ? size.width
+                  : math.min(size.width * 0.72, 640))
+              : math.min(440, size.width * 0.46),
+          height: isPortrait ? size.height * 0.88 : double.infinity,
           child: Material(
-            color: Theme.of(context).colorScheme.surfaceContainerLow,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.horizontal(left: Radius.circular(28)),
+            color: isPortrait ? colors.surface : colors.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: isPortrait
+                  ? const BorderRadius.vertical(top: Radius.circular(28))
+                  : const BorderRadius.horizontal(left: Radius.circular(28)),
             ),
             clipBehavior: Clip.antiAlias,
-            child: buildSheet(context),
+            child: _DanmakuSourceSheet(
+              initialKeyword: initialKeyword,
+              danmakuController: danmakuController,
+              onBeforeApply: onBeforeApply,
+            ),
           ),
         ),
-      ),
-    ),
-    transitionBuilder: (_, animation, __, child) => FadeTransition(
-      opacity: animation,
-      child: SlideTransition(
-        position: Tween(begin: const Offset(1, 0), end: Offset.zero).animate(
-          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-        ),
-        child: child,
-      ),
-    ),
+      );
+    },
   );
 }
 
@@ -204,7 +187,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
           .getDanDanmakuByEpisodeID(episode.episodeId);
       if (!mounted) return;
       widget.danmakuController.setDanmakuEnabled(hasDanmakus);
-      Navigator.of(context).pop();
+      KazumiDialog.dismiss(context: context);
       KazumiDialog.showToast(
         message: hasDanmakus ? '弹幕切换成功' : '未找到弹幕内容',
       );
@@ -313,7 +296,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                 animeTitle: _selectedAnime?.animeTitle,
                 onBack:
                     _step == _SourceStep.search || _loading ? null : _goBack,
-                onClose: () => Navigator.of(context).pop(),
+                onClose: () => KazumiDialog.dismiss(context: context),
               ),
               Flexible(child: _loading ? _buildLoading() : _buildBody()),
             ],
@@ -345,13 +328,13 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
 
   Widget _buildBody() {
     return switch (_step) {
-      _SourceStep.search => _buildSearch(),
+      _SourceStep.search => _buildSearch(context),
       _SourceStep.anime => _buildAnimeList(),
       _SourceStep.episode => _buildEpisodeList(),
     };
   }
 
-  Widget _buildSearch() {
+  Widget _buildSearch(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Column(
       children: [
@@ -431,7 +414,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => KazumiDialog.dismiss(context: context),
                   child: const Text('取消'),
                 ),
                 const SizedBox(width: 10),

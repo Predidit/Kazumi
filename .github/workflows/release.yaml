@@ -490,6 +490,8 @@
               distribution: 'temurin'          
           - name: Setup Android SDK
             uses: android-actions/setup-android@v3
+            with:
+              packages: 'platform-tools'
           - name: Setup Android build tools
             run: sdkmanager "build-tools;34.0.0"
   

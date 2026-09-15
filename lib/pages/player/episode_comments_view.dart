@@ -5,7 +5,6 @@ import 'package:kazumi/bean/card/user_comments_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
-import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 
@@ -78,17 +77,10 @@ class EpisodeCommentsView extends StatelessWidget {
                 ),
               )
             else if (!isLoading && comments.isEmpty)
-              SliverToBoxAdapter(
+              const SliverToBoxAdapter(
                 child: GeneralEmptyState(
                   icon: Icons.chat_bubble_outline_rounded,
                   title: '本集还没有讨论',
-                  actions: [
-                    StateActionButton.tonal(
-                      onPressed: onSelectEpisode,
-                      icon: Icons.video_library_outlined,
-                      text: '切换分集',
-                    ),
-                  ],
                 ),
               )
             else if (comments.isNotEmpty) ...[

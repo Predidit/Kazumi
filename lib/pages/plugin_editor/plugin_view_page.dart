@@ -343,33 +343,27 @@ class _PluginViewPageState extends State<PluginViewPage> {
                         const SizedBox(height: 8),
                       ],
                     ),
-                    footer: visible.isEmpty
-                        ? GeneralEmptyState(
-                            icon: all.isEmpty
-                                ? Icons.extension_rounded
-                                : Icons.search_off_rounded,
-                            title: all.isEmpty
-                                ? '还没有安装规则'
-                                : _updatesOnly && query.isEmpty
+                    footer: all.isEmpty
+                        ? const GeneralEmptyState(
+                            icon: Icons.extension_rounded,
+                            title: '还没有安装规则',
+                          )
+                        : visible.isEmpty
+                            ? GeneralEmptyState(
+                                icon: Icons.search_off_rounded,
+                                title: _updatesOnly && query.isEmpty
                                     ? '没有可更新的规则'
                                     : '没有符合条件的规则',
-                            actions: [
-                              if (all.isEmpty)
-                                StateActionButton.tonal(
-                                    onPressed: () => context
-                                        .pushNamed('/settings/plugin/shop'),
-                                    icon: Icons.travel_explore_rounded,
-                                    text: '浏览规则仓库')
-                              else
-                                StateActionButton.tonal(
-                                    onPressed: () => setState(() {
-                                          _search.clear();
-                                          _updatesOnly = false;
-                                        }),
-                                    text: '显示全部规则'),
-                            ],
-                          )
-                        : null,
+                                actions: [
+                                  StateActionButton.tonal(
+                                      onPressed: () => setState(() {
+                                            _search.clear();
+                                            _updatesOnly = false;
+                                          }),
+                                      text: '显示全部规则'),
+                                ],
+                              )
+                            : null,
                     itemCount: visible.length,
                     itemBuilder: (context, index) {
                       final plugin = visible[index];

@@ -128,8 +128,6 @@ class _ImageSearchResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final type = Theme.of(context).textTheme;
     if (searching) {
       return const _ImageSearchLoadingState();
     }
@@ -143,19 +141,13 @@ class _ImageSearchResults extends StatelessWidget {
           retryText: '重新识别',
         );
       }
-      return GeneralEmptyState(
+      return const GeneralEmptyState(
         icon: Icons.image_search_rounded,
         title: '没有找到匹配画面',
-        actions: [
-          if (onRetry != null)
-            StateActionButton.tonal(
-              onPressed: onRetry!,
-              icon: Icons.refresh_rounded,
-              text: '重新识别',
-            ),
-        ],
       );
     }
+    final colors = Theme.of(context).colorScheme;
+    final type = Theme.of(context).textTheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Semantics(
           header: true,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/my/watch_stats.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
@@ -29,113 +31,24 @@ class MySpaceView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return LayoutBuilder(builder: (context, constraints) {
       final inset = constraints.maxWidth < 600 ? 16.0 : 32.0;
-      final width = (constraints.maxWidth - inset * 2).clamp(0.0, 1120.0);
+      final width = constraints.maxWidth - inset * 2;
       final largeText = MediaQuery.textScalerOf(context).scale(16) > 24;
       final wide = width >= 840 && !largeText;
-      final columnWidth = wide ? (width - 12) / 2 : width;
-      final stackTools = columnWidth < 300 || largeText;
       return SingleChildScrollView(
         key: const PageStorageKey('my-space'),
         padding: EdgeInsets.fromLTRB(inset, 12, inset, 32),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1120),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _AdaptivePair(
-                  stack: !wide,
-                  gap: 20,
-                  first: const _SpaceHeading(),
-                  second: _WatchStatsPanel(
-                    bangumiCount: stats.watchedBangumiCount,
-                    episodeCount: stats.watchedEpisodeCount,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                _AdaptivePair(
-                  stack: !wide,
-                  gap: 12,
-                  first: _RulesTile(onTap: () => onOpen(MyDestination.rules)),
-                  second: _AdaptivePair(
-                    stack: stackTools,
-                    gap: 12,
-                    first: _ToolTile(
-                      icon: Icons.history_rounded,
-                      title: '历史记录',
-                      caption:
-                          stats.watchedBangumiCount == 0 ? '暂无观看记录' : '查看观看记录',
-                      color: colors.secondaryContainer,
-                      foreground: colors.onSecondaryContainer,
-                      onTap: () => onOpen(MyDestination.history),
-                    ),
-                    second: _ToolTile(
-                      icon: Icons.download_rounded,
-                      title: '离线下载',
-                      caption: stats.downloadTaskCount == 0
-                          ? '管理离线内容'
-                          : '${stats.downloadTaskCount} 集下载任务',
-                      color: colors.tertiaryContainer,
-                      foreground: colors.onTertiaryContainer,
-                      onTap: () => onOpen(MyDestination.downloads),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _AdaptivePair(
-                  stack: !wide,
-                  gap: 12,
-                  first: _PreferencesPanel(
+            child: wide
+                ? _WideSpaceLayout(stats: stats, onOpen: onOpen)
+                : _CompactSpaceLayout(
+                    stats: stats,
                     onOpen: onOpen,
-                    stack: columnWidth < 280 || largeText,
+                    stackTools: width < 280 || largeText,
                   ),
-                  second: _AdaptivePair(
-                    stack: stackTools,
-                    gap: 12,
-                    first: _ToolTile(
-                      icon: Icons.cloud_sync_rounded,
-                      title: '同步备份',
-                      caption: '跨设备同步数据',
-                      color: colors.surfaceContainer,
-                      foreground: colors.onSurface,
-                      onTap: () => onOpen(MyDestination.sync),
-                    ),
-                    second: _ToolTile(
-                      icon: Icons.cleaning_services_rounded,
-                      title: '存储管理',
-                      caption: '缓存与日志',
-                      color: colors.surfaceContainer,
-                      foreground: colors.onSurface,
-                      onTap: () => onOpen(MyDestination.storage),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Align(
-                  alignment: Alignment.center,
-                  child: _ExpressiveAction(
-                    color: colors.surfaceContainerLow,
-                    foreground: colors.onSurfaceVariant,
-                    onTap: () => onOpen(MyDestination.about),
-                    child: const Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.info_outline_rounded, size: 20),
-                          SizedBox(width: 8),
-                          Flexible(child: Text('关于 Kazumi')),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       );
@@ -143,41 +56,261 @@ class MySpaceView extends StatelessWidget {
   }
 }
 
+class _WideSpaceLayout extends StatelessWidget {
+  const _WideSpaceLayout({required this.stats, required this.onOpen});
+
+  final WatchStats stats;
+  final ValueChanged<MyDestination> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _AdaptivePair(
+          gap: 20,
+          first: const _SpaceHeading(),
+          second: _WatchStatsPanel(
+            bangumiCount: stats.watchedBangumiCount,
+            episodeCount: stats.watchedEpisodeCount,
+          ),
+        ),
+        const SizedBox(height: 28),
+        _AdaptivePair(
+          first: _RulesTile(onTap: () => onOpen(MyDestination.rules)),
+          second: _AdaptivePair(
+            first: _ToolTile(
+              icon: Icons.history_rounded,
+              title: '历史记录',
+              caption: stats.watchedBangumiCount == 0 ? '暂无观看记录' : '查看观看记录',
+              color: colors.secondaryContainer,
+              foreground: colors.onSecondaryContainer,
+              onTap: () => onOpen(MyDestination.history),
+            ),
+            second: _ToolTile(
+              icon: Icons.download_rounded,
+              title: '离线下载',
+              caption: stats.downloadTaskCount == 0
+                  ? '管理离线内容'
+                  : '${stats.downloadTaskCount} 集下载任务',
+              color: colors.tertiaryContainer,
+              foreground: colors.onTertiaryContainer,
+              onTap: () => onOpen(MyDestination.downloads),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _AdaptivePair(
+          first: _PreferencesPanel(onOpen: onOpen),
+          second: _AdaptivePair(
+            first: _ToolTile(
+              icon: Icons.cloud_sync_rounded,
+              title: '同步备份',
+              caption: '跨设备同步数据',
+              color: colors.surfaceContainer,
+              foreground: colors.onSurface,
+              onTap: () => onOpen(MyDestination.sync),
+            ),
+            second: _ToolTile(
+              icon: Icons.cleaning_services_rounded,
+              title: '存储管理',
+              caption: '缓存与日志',
+              color: colors.surfaceContainer,
+              foreground: colors.onSurface,
+              onTap: () => onOpen(MyDestination.storage),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Align(
+          alignment: Alignment.center,
+          child: _ExpressiveAction(
+            color: colors.surfaceContainerLow,
+            foreground: colors.onSurfaceVariant,
+            onTap: () => onOpen(MyDestination.about),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 20),
+                  SizedBox(width: 8),
+                  Flexible(child: Text('关于 Kazumi')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactSpaceLayout extends StatelessWidget {
+  const _CompactSpaceLayout({
+    required this.stats,
+    required this.onOpen,
+    required this.stackTools,
+  });
+
+  final WatchStats stats;
+  final ValueChanged<MyDestination> onOpen;
+  final bool stackTools;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _WatchStatsPanel(
+          bangumiCount: stats.watchedBangumiCount,
+          episodeCount: stats.watchedEpisodeCount,
+          compact: true,
+        ),
+        const SizedBox(height: 12),
+        _AdaptivePair(
+          stack: stackTools,
+          first: _ToolTile(
+            icon: Icons.history_rounded,
+            title: '历史记录',
+            caption: stats.watchedBangumiCount == 0 ? '暂无观看记录' : '查看观看记录',
+            color: colors.secondaryContainer,
+            foreground: colors.onSecondaryContainer,
+            compact: true,
+            onTap: () => onOpen(MyDestination.history),
+          ),
+          second: _ToolTile(
+            icon: Icons.download_rounded,
+            title: '离线下载',
+            caption: stats.downloadTaskCount == 0
+                ? '管理离线内容'
+                : '${stats.downloadTaskCount} 集下载任务',
+            color: colors.secondaryContainer,
+            foreground: colors.onSecondaryContainer,
+            compact: true,
+            onTap: () => onOpen(MyDestination.downloads),
+          ),
+        ),
+        const SizedBox(height: 24),
+        ContentSection.group(
+          title: '内容与偏好',
+          children: [
+            _entry('规则设置', Icons.extension_rounded, MyDestination.rules),
+            _entry('外观设置', Icons.palette_rounded, MyDestination.theme),
+            _entry('播放设置', Icons.play_circle_rounded, MyDestination.player),
+            _entry('弹幕设置', Icons.subtitles_rounded, MyDestination.danmaku),
+          ],
+        ),
+        const SizedBox(height: 24),
+        ContentSection.group(
+          title: '数据与应用',
+          children: [
+            _entry('同步备份', Icons.cloud_sync_rounded, MyDestination.sync),
+            _entry(
+                '存储管理', Icons.cleaning_services_rounded, MyDestination.storage),
+            _entry(
+                '关于 Kazumi', Icons.info_outline_rounded, MyDestination.about),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _entry(String title, IconData icon, MyDestination destination) =>
+      SettingsTile(
+        title: Text(title),
+        leading: icon,
+        trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+        onPressed: (_) => onOpen(destination),
+      );
+}
+
 class _WatchStatsPanel extends StatelessWidget {
   const _WatchStatsPanel({
     required this.bangumiCount,
     required this.episodeCount,
+    this.compact = false,
   });
 
   final int bangumiCount;
   final int episodeCount;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Material(
-      color: colors.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(48),
+      color: compact ? colors.primaryContainer : colors.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(compact ? 28 : 48),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('观看统计',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelMedium
-                    ?.copyWith(color: colors.onSurfaceVariant)),
+            if (compact)
+              Row(
+                children: [
+                  _ShapeIcon(
+                    shape: _SpaceShape.sun,
+                    icon: Icons.sentiment_satisfied_alt_rounded,
+                    size: 32,
+                    color: colors.primary,
+                    foreground: colors.onPrimary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: Text('观看足迹',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
+                                  color: colors.onPrimaryContainer,
+                                  fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text('观看统计',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium
+                      ?.copyWith(color: colors.onSurfaceVariant)),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: _StatCount(value: bangumiCount, label: '看过番剧')),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Icon(Icons.auto_awesome_rounded,
-                      color: colors.primary, size: 20),
+                Expanded(
+                  child: _StatCount(
+                    value: bangumiCount,
+                    label: '看过番剧',
+                    foreground: compact ? colors.onPrimaryContainer : null,
+                  ),
                 ),
-                Expanded(child: _StatCount(value: episodeCount, label: '观看集数')),
+                if (compact)
+                  SizedBox(
+                    height: 32,
+                    child: VerticalDivider(
+                      width: 24,
+                      color: colors.onPrimaryContainer.withValues(alpha: .16),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Icon(Icons.auto_awesome_rounded,
+                        color: colors.primary, size: 20),
+                  ),
+                Expanded(
+                  child: _StatCount(
+                    value: episodeCount,
+                    label: '观看集数',
+                    foreground: compact ? colors.onPrimaryContainer : null,
+                  ),
+                ),
               ],
             ),
           ],
@@ -188,10 +321,11 @@ class _WatchStatsPanel extends StatelessWidget {
 }
 
 class _StatCount extends StatelessWidget {
-  const _StatCount({required this.value, required this.label});
+  const _StatCount({required this.value, required this.label, this.foreground});
 
   final int value;
   final String label;
+  final Color? foreground;
 
   @override
   Widget build(BuildContext context) {
@@ -203,15 +337,15 @@ class _StatCount extends StatelessWidget {
           fit: BoxFit.scaleDown,
           child: Text('$value',
               style: theme.textTheme.displaySmall?.copyWith(
-                  color: theme.colorScheme.onSurface,
+                  color: foreground ?? theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
                   fontFeatures: const [FontFeature.tabularFigures()])),
         ),
         const SizedBox(height: 2),
         Text(label,
             textAlign: TextAlign.center,
-            style: theme.textTheme.labelMedium
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            style: theme.textTheme.labelMedium?.copyWith(
+                color: foreground ?? theme.colorScheme.onSurfaceVariant)),
       ],
     );
   }
@@ -313,6 +447,7 @@ class _ToolTile extends StatelessWidget {
     required this.color,
     required this.foreground,
     required this.onTap,
+    this.compact = false,
   });
 
   final IconData icon;
@@ -321,6 +456,7 @@ class _ToolTile extends StatelessWidget {
   final Color color;
   final Color foreground;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -330,23 +466,23 @@ class _ToolTile extends StatelessWidget {
       foreground: foreground,
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(compact ? 16 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(
               children: [
-                Icon(icon, size: 30),
+                Icon(icon, size: compact ? 24 : 30),
                 const Spacer(),
                 const Icon(Icons.arrow_forward_rounded, size: 20),
               ],
             ),
-            const SizedBox(height: 26),
+            SizedBox(height: compact ? 12 : 26),
             Text(title,
                 style: text.titleMedium
                     ?.copyWith(fontWeight: FontWeight.w700, color: foreground)),
-            const SizedBox(height: 6),
+            SizedBox(height: compact ? 4 : 6),
             Text(caption,
                 style:
                     text.bodySmall?.copyWith(color: foreground, height: 1.4)),
@@ -358,10 +494,9 @@ class _ToolTile extends StatelessWidget {
 }
 
 class _PreferencesPanel extends StatelessWidget {
-  const _PreferencesPanel({required this.onOpen, required this.stack});
+  const _PreferencesPanel({required this.onOpen});
 
   final ValueChanged<MyDestination> onOpen;
-  final bool stack;
 
   static const _entries = [
     ('外观', Icons.palette_rounded, MyDestination.theme),
@@ -372,16 +507,6 @@ class _PreferencesPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final buttons = Flex(
-      direction: stack ? Axis.vertical : Axis.horizontal,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < _entries.length; i++) ...[
-          if (i > 0) const SizedBox(width: 4, height: 4),
-          if (stack) _button(i) else Expanded(child: _button(i)),
-        ],
-      ],
-    );
     return Material(
       color: colors.surfaceContainerLow,
       borderRadius: _tileRadius,
@@ -398,7 +523,17 @@ class _PreferencesPanel extends StatelessWidget {
                       fontWeight: FontWeight.w700, color: colors.onSurface)),
             ),
             const SizedBox(height: 16),
-            if (stack) buttons else IntrinsicHeight(child: buttons),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < _entries.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 4),
+                    Expanded(child: _button(i)),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -410,7 +545,6 @@ class _PreferencesPanel extends StatelessWidget {
     return _PreferenceAction(
       icon: icon,
       label: label,
-      stack: stack,
       first: index == 0,
       last: index == _entries.length - 1,
       onTap: () => onOpen(destination),
@@ -422,7 +556,6 @@ class _PreferenceAction extends StatelessWidget {
   const _PreferenceAction({
     required this.icon,
     required this.label,
-    required this.stack,
     required this.first,
     required this.last,
     required this.onTap,
@@ -430,7 +563,6 @@ class _PreferenceAction extends StatelessWidget {
 
   final IconData icon;
   final String label;
-  final bool stack;
   final bool first;
   final bool last;
   final VoidCallback onTap;
@@ -438,17 +570,13 @@ class _PreferenceAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final radius = stack
-        ? BorderRadius.vertical(
-            top: Radius.circular(first ? 24 : 8),
-            bottom: Radius.circular(last ? 24 : 8))
-        : BorderRadius.horizontal(
-            left: Radius.circular(first ? 24 : 8),
-            right: Radius.circular(last ? 24 : 8));
     return _ExpressiveAction(
       color: colors.secondaryContainer,
       foreground: colors.onSecondaryContainer,
-      radius: radius,
+      radius: BorderRadius.horizontal(
+        left: Radius.circular(first ? 24 : 8),
+        right: Radius.circular(last ? 24 : 8),
+      ),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
@@ -642,8 +770,8 @@ class _AdaptivePair extends StatelessWidget {
   const _AdaptivePair({
     required this.first,
     required this.second,
-    required this.stack,
-    required this.gap,
+    this.stack = false,
+    this.gap = 12,
   });
 
   final Widget first;

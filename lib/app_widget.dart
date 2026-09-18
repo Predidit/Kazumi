@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -12,7 +13,9 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/exit_confirmation_dialog.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
+import 'package:kazumi/bean/widget/gamepad_navigation.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/services/platform/gamepad_input_service.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
@@ -30,6 +33,7 @@ class _AppWidgetState extends State<AppWidget>
   bool _isHandlingWindowClose = false;
   bool _didApplyStoredThemeSettings = false;
   Brightness? _lastTitleBarBrightness;
+  late final GamepadInputService _gamepadInputService;
 
   @override
   void initState() {
@@ -37,6 +41,23 @@ class _AppWidgetState extends State<AppWidget>
     trayManager.addListener(this);
     windowManager.addListener(this);
     WidgetsBinding.instance.addObserver(this);
+    // 手柄仅在 Linux 端启用：非 Linux 平台强制关闭，避免在 Windows/macOS/
+    // Android/iOS 上订阅原生手柄事件或改变焦点行为。
+    final gamepadSupported = isHandheldGamepadSupported();
+    if (!gamepadSupported) {
+      unawaited(GamepadInputService.disableNativeBackend());
+    }
+    _gamepadInputService = gamepadSupported
+        ? GamepadInputService(
+            enabled: GStorage.getSetting(SettingsKeys.gamepadEnabled),
+            stickDeadZone:
+                GStorage.getSetting(SettingsKeys.gamepadStickDeadZone),
+            initialRepeatDelay: Duration(
+              milliseconds:
+                  GStorage.getSetting(SettingsKeys.gamepadRepeatDelay),
+            ),
+          )
+        : GamepadInputService(enabled: false);
     _initializePlatformIntegrations();
   }
 
@@ -76,6 +97,7 @@ class _AppWidgetState extends State<AppWidget>
     trayManager.removeListener(this);
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_gamepadInputService.dispose());
     super.dispose();
   }
 
@@ -141,12 +163,41 @@ class _AppWidgetState extends State<AppWidget>
     Color? color,
     ColorScheme? colorScheme,
   }) {
+    final effectiveColorScheme = colorScheme ??
+        ColorScheme.fromSeed(
+          seedColor: color ?? Colors.green,
+          brightness: brightness,
+        );
+    final gamepadSupported = isHandheldGamepadSupported();
+    // A controller-driven focus needs to be unmistakable on Linux. A null
+    // non-focused side preserves the normal outlined-button border.
+    WidgetStateProperty<BorderSide?> focusedOutline() =>
+        WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.focused)) {
+            return BorderSide(color: effectiveColorScheme.primary, width: 2);
+          }
+          return null;
+        });
     return ThemeData(
       useMaterial3: true,
       fontFamily: fontFamily,
       brightness: brightness,
-      colorSchemeSeed: color,
-      colorScheme: colorScheme,
+      colorScheme: effectiveColorScheme,
+      focusColor: gamepadSupported
+          ? effectiveColorScheme.primary.withValues(alpha: 0.32)
+          : null,
+      iconButtonTheme: gamepadSupported
+          ? IconButtonThemeData(style: ButtonStyle(side: focusedOutline()))
+          : null,
+      textButtonTheme: gamepadSupported
+          ? TextButtonThemeData(style: ButtonStyle(side: focusedOutline()))
+          : null,
+      filledButtonTheme: gamepadSupported
+          ? FilledButtonThemeData(style: ButtonStyle(side: focusedOutline()))
+          : null,
+      outlinedButtonTheme: gamepadSupported
+          ? OutlinedButtonThemeData(style: ButtonStyle(side: focusedOutline()))
+          : null,
       progressIndicatorTheme: progressIndicatorTheme2024,
       sliderTheme: sliderTheme2024,
       pageTransitionsTheme: pageTransitionsTheme2024,
@@ -303,6 +354,7 @@ class _AppWidgetState extends State<AppWidget>
 
         return MaterialApp.router(
           title: "Kazumi",
+          debugShowCheckedModeBanner: false,
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           supportedLocales: const [
             Locale.fromSubtags(
@@ -315,6 +367,17 @@ class _AppWidgetState extends State<AppWidget>
           themeMode: themeProvider.themeMode,
           scaffoldMessengerKey: rootScaffoldMessengerKey,
           routerConfig: ModularApp.routerConfigOf(context),
+          builder: (context, child) {
+            final content = child ?? const SizedBox.shrink();
+            // 非 Linux 直接透传：不挂载手柄焦点逻辑，保持上游原有行为。
+            if (!isHandheldGamepadSupported()) {
+              return content;
+            }
+            return GamepadNavigationScope(
+              service: _gamepadInputService,
+              child: content,
+            );
+          },
         );
       },
     );

@@ -58,55 +58,64 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       }
       acs.add(const SizedBox(width: 8));
     }
-    return GestureDetector(
-      onPanStart: (_) => (isDesktop()) ? windowManager.startDragging() : null,
-      child: AppBar(
-        toolbarHeight: preferredSize.height,
-        scrolledUnderElevation: 0.0,
-        title: title != null
-            ? EmbeddedNativeControlArea(
-                requireOffset: needTopOffset,
-                child: title!,
-              )
-            : null,
-        centerTitle: Platform.isIOS ? true : false,
-        actions: acs.map((e) {
-          return EmbeddedNativeControlArea(
-            requireOffset: needTopOffset,
-            child: e,
-          );
-        }).toList(),
-        leading: leading != null
-            ? EmbeddedNativeControlArea(
-                requireOffset: needTopOffset,
-                child: leading!,
-              )
-            : (ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
-                ? EmbeddedNativeControlArea(
-                    requireOffset: needTopOffset,
-                    child: IconButton(
-                      onPressed: () {
-                        context.maybePop();
-                      },
-                      icon: Icon(Icons.arrow_back),
-                    ),
-                  )
-                : null,
-        leadingWidth: leadingWidth,
-        backgroundColor: backgroundColor,
-        elevation: elevation,
-        shape: shape,
-        bottom: bottom,
-        automaticallyImplyLeading: false,
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness:
-              Theme.of(context).brightness == Brightness.light
-                  ? Brightness.dark
-                  : Brightness.light,
-          systemNavigationBarColor: Colors.transparent,
-          systemNavigationBarDividerColor: Colors.transparent,
-        ),
+    // When the native title bar is hidden the app bar is the window's drag
+    // surface. It must stay draggable, but a bar-wide drag recognizer would
+    // race the leading/actions buttons in the gesture arena: a touch or a
+    // slightly-moving mouse press over the back button starts a drag (and can
+    // leave the pointer grabbed), so the button intermittently becomes
+    // unclickable. Put the drag surface in flexibleSpace so it sits behind the
+    // toolbar. Buttons win the hit test (AppBar stacks the toolbar above
+    // flexibleSpace) and always keep their taps; only the empty bar area
+    // actually starts a window drag.
+    final Widget? dragSurface =
+        isDesktop() && !showWindowButton() ? const _DragToMoveSurface() : null;
+    return AppBar(
+      toolbarHeight: preferredSize.height,
+      scrolledUnderElevation: 0.0,
+      title: title != null
+          ? EmbeddedNativeControlArea(
+              requireOffset: needTopOffset,
+              child: title!,
+            )
+          : null,
+      centerTitle: Platform.isIOS ? true : false,
+      flexibleSpace: dragSurface,
+      actions: acs.map((e) {
+        return EmbeddedNativeControlArea(
+          requireOffset: needTopOffset,
+          child: e,
+        );
+      }).toList(),
+      leading: leading != null
+          ? EmbeddedNativeControlArea(
+              requireOffset: needTopOffset,
+              child: leading!,
+            )
+          : (ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
+              ? EmbeddedNativeControlArea(
+                  requireOffset: needTopOffset,
+                  child: IconButton(
+                    onPressed: () {
+                      context.maybePop();
+                    },
+                    icon: Icon(Icons.arrow_back),
+                  ),
+                )
+              : null,
+      leadingWidth: leadingWidth,
+      backgroundColor: backgroundColor,
+      elevation: elevation,
+      shape: shape,
+      bottom: bottom,
+      automaticallyImplyLeading: false,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness:
+            Theme.of(context).brightness == Brightness.light
+                ? Brightness.dark
+                : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
       ),
     );
   }
@@ -124,5 +133,23 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     } else {
       return Size.fromHeight(toolbarHeight ?? kToolbarHeight);
     }
+  }
+}
+
+/// Full-toolbar window-drag surface placed in [AppBar.flexibleSpace].
+///
+/// It is the topmost hittable widget only where no other app bar widget
+/// (leading / actions / title) claims the pointer, so those buttons stay
+/// clickable while the remaining bar area drags the window.
+class _DragToMoveSurface extends StatelessWidget {
+  const _DragToMoveSurface();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanStart: (_) => windowManager.startDragging(),
+      child: const SizedBox.expand(),
+    );
   }
 }

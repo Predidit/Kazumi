@@ -1670,6 +1670,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  universal_gamepad:
+    dependency: "direct main"
+    description:
+      name: universal_gamepad
+      sha256: "8570c1c2d354c0959592839f45683599fd7d6a3b8b438b5b634388c6a5724798"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.5.8"
   universal_io:
     dependency: transitive
     description:

@@ -34,6 +34,8 @@ class KazumiDialogHandle<T> {
 
 class KazumiDialog {
   static final KazumiDialogObserver observer = KazumiDialogObserver();
+  // Allows modal sheets to use the same dismissal and route tracking.
+  static const routeSettings = RouteSettings(name: 'KazumiDialog');
   static int _toastRevision = 0;
 
   KazumiDialog._internal();
@@ -43,6 +45,8 @@ class KazumiDialog {
     KazumiDialogHandle<T>? handle,
     bool clickMaskDismiss = true,
     FutureOr<void> Function()? onDismiss,
+    Duration? transitionDuration,
+    RouteTransitionsBuilder? transitionBuilder,
     required WidgetBuilder builder,
   }) async {
     final dialog = handle ?? KazumiDialogHandle<T>();
@@ -55,7 +59,7 @@ class KazumiDialog {
           observer.navigator?.context;
       if (ctx == null || !ctx.mounted || dialog._dismissed) return null;
       final navigator = Navigator.of(ctx, rootNavigator: true);
-      final route = DialogRoute<T>(
+      final route = _KazumiDialogRoute<T>(
         context: ctx,
         builder: builder,
         themes: InheritedTheme.capture(from: ctx, to: navigator.context),
@@ -64,7 +68,11 @@ class KazumiDialog {
             Colors.black54,
         barrierDismissible: clickMaskDismiss,
         traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
-        settings: const RouteSettings(name: 'KazumiDialog'),
+        settings: routeSettings,
+        animationStyle: transitionDuration == null
+            ? null
+            : AnimationStyle(duration: transitionDuration),
+        transitionBuilder: transitionBuilder,
       );
       dialog._attach(route);
       return await navigator.push<T>(route);
@@ -129,7 +137,7 @@ class KazumiDialog {
     if (context != null && !context.mounted) return;
     final route =
         context == null ? observer._lastDialogRoute : ModalRoute.of(context);
-    if (route != null && route.settings.name == 'KazumiDialog') {
+    if (route != null && route.settings.name == routeSettings.name) {
       _dismissRoute(route, popWith);
     }
   }
@@ -164,6 +172,32 @@ class KazumiDialog {
     }
     return rootScaffoldMessengerKey.currentState;
   }
+}
+
+class _KazumiDialogRoute<T> extends DialogRoute<T> {
+  _KazumiDialogRoute({
+    required super.context,
+    required super.builder,
+    super.themes,
+    super.barrierColor,
+    super.barrierDismissible,
+    super.traversalEdgeBehavior,
+    super.settings,
+    super.animationStyle,
+    this.transitionBuilder,
+  });
+
+  final RouteTransitionsBuilder? transitionBuilder;
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) =>
+      transitionBuilder?.call(context, animation, secondaryAnimation, child) ??
+      super.buildTransitions(context, animation, secondaryAnimation, child);
 }
 
 class KazumiDialogObserver extends NavigatorObserver {
@@ -215,7 +249,7 @@ class KazumiDialogObserver extends NavigatorObserver {
   }
 
   bool _isKazumiDialogRoute(Route<dynamic>? route) =>
-      route?.settings.name == 'KazumiDialog';
+      route?.settings.name == KazumiDialog.routeSettings.name;
 
   void _scheduleSnackBarClear() {
     if (_snackBarClearScheduled) return;

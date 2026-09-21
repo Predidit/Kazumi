@@ -449,10 +449,9 @@ class SettingsKeys {
     true,
     group: SettingGroup.interface,
   );
-  // Retained for legacy settings compatibility; no longer controls the UI.
-  static const showAnimeCounter = SettingKey<bool>(
-    _SettingBoxKey.showAnimeCounter,
-    false,
+  static const defaultCollectLayout = SettingKey<String>(
+    'defaultCollectLayout',
+    'list',
     group: SettingGroup.interface,
   );
   static const downloadParallelEpisodes = SettingKey<int>(
@@ -625,7 +624,7 @@ class SettingsKeys {
     proxyUrl,
     proxyTestUrl,
     showRating,
-    showAnimeCounter,
+    defaultCollectLayout,
     downloadParallelEpisodes,
     downloadParallelSegments,
     downloadDanmaku,
@@ -734,7 +733,6 @@ class _SettingBoxKey {
       proxyUrl = 'proxyUrl',
       proxyTestUrl = 'proxyTestUrl',
       showRating = 'showRating',
-      showAnimeCounter = 'showAnimeCounter',
       downloadParallelEpisodes = 'downloadParallelEpisodes',
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',

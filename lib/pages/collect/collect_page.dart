@@ -9,6 +9,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
+import 'package:kazumi/modules/collect/collect_layout.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
@@ -32,6 +33,7 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   CollectController get collectController => widget.controller;
   bool get _syncDialogOpen => dialogs.isRunning;
   final Set<int> _pendingIds = {};
+  late CollectLayout _layout;
 
   Future<bool> _syncStep(
     CollectSyncStep step, {
@@ -54,7 +56,16 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   @override
   void initState() {
     super.initState();
+    // Read once; page switches never change the saved default.
+    _layout = CollectLayout.fromValue(
+      GStorage.getSetting(SettingsKeys.defaultCollectLayout),
+    );
     collectController.loadCollectibles();
+  }
+
+  void _changeLayout(CollectLayout layout) {
+    if (_layout == layout) return;
+    setState(() => _layout = layout);
   }
 
   Future<void> _changeType(BangumiItem item, CollectType type) async {
@@ -129,6 +140,8 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
           builder: (context) => CollectLibraryView(
             entries: collectController.collectibles.toList(),
             showRating: GStorage.getSetting(SettingsKeys.showRating),
+            layout: _layout,
+            onLayoutChanged: _changeLayout,
             canEdit: (item) =>
                 !_syncDialogOpen && !_pendingIds.contains(item.id),
             onOpen: (item) => context.pushNamed('/info/', arguments: item),

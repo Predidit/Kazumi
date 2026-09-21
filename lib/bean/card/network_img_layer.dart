@@ -18,6 +18,7 @@ class NetworkImgLayer extends StatelessWidget {
     this.filterQuality = FilterQuality.high,
     this.color,
     this.colorBlendMode,
+    this.borderRadius,
   });
 
   final String? src;
@@ -31,6 +32,7 @@ class NetworkImgLayer extends StatelessWidget {
   final FilterQuality filterQuality;
   final Color? color;
   final BlendMode? colorBlendMode;
+  final BorderRadius? borderRadius;
 
   static Widget heroFlightShuttleBuilder(
     BuildContext flightContext,
@@ -123,7 +125,9 @@ class NetworkImgLayer extends StatelessWidget {
     }
   }
 
-  BorderRadius get _borderRadius => BorderRadius.circular(switch (type) {
+  BorderRadius get _borderRadius =>
+      borderRadius ??
+      BorderRadius.circular(switch (type) {
         'avatar' => 50,
         'emote' => 0,
         _ => StyleString.imgRadius.x,

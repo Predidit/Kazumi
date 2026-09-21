@@ -1,6 +1,8 @@
-import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/modules/collect/collect_layout.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -14,6 +16,9 @@ class InterfaceSettingsPage extends StatefulWidget {
 class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   late bool showRating;
   late String defaultPage;
+  late CollectLayout _defaultCollectLayout;
+  bool _savingCollectLayout = false;
+  final _collectLayoutMenuController = MenuController();
   int _exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
   static const _exitBehaviorTitles = ['退出 Kazumi', '最小化至托盘', '每次都询问'];
   final MenuController defaultPageMenuController = MenuController();
@@ -30,6 +35,9 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
     super.initState();
     showRating = GStorage.getSetting(SettingsKeys.showRating);
     defaultPage = GStorage.getSetting(SettingsKeys.defaultStartupPage);
+    _defaultCollectLayout = CollectLayout.fromValue(
+      GStorage.getSetting(SettingsKeys.defaultCollectLayout),
+    );
   }
 
   void updateDefaultPage(String page) {
@@ -38,6 +46,40 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
       defaultPage = page;
     });
   }
+
+  Future<void> _updateDefaultCollectLayout(CollectLayout layout) async {
+    if (_savingCollectLayout || layout == _defaultCollectLayout) return;
+    setState(() => _savingCollectLayout = true);
+    try {
+      await GStorage.putSetting(SettingsKeys.defaultCollectLayout, layout.name);
+      if (mounted) setState(() => _defaultCollectLayout = layout);
+    } catch (_) {
+      if (mounted) KazumiDialog.showToast(message: '追番默认布局保存失败，请重试');
+    } finally {
+      if (mounted) setState(() => _savingCollectLayout = false);
+    }
+  }
+
+  Widget _menuItem({
+    required String label,
+    required bool selected,
+    required VoidCallback? onPressed,
+  }) =>
+      MenuItemButton(
+        requestFocusOnHover: false,
+        onPressed: onPressed,
+        child: Container(
+          height: 48,
+          constraints: const BoxConstraints(minWidth: 112),
+          alignment: Alignment.centerLeft,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Theme.of(context).colorScheme.primary : null,
+            ),
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -67,30 +109,40 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
                 },
                 menuChildren: [
                   for (final entry in defaultPageMap.entries)
-                    MenuItemButton(
-                      requestFocusOnHover: false,
+                    _menuItem(
+                      label: entry.value,
+                      selected: entry.key == defaultPage,
                       onPressed: () => updateDefaultPage(entry.key),
-                      child: Container(
-                        height: 48,
-                        constraints: BoxConstraints(minWidth: 112),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            entry.value,
-                            style: TextStyle(
-                              color: entry.key == defaultPage
-                                  ? Theme.of(context).colorScheme.primary
-                                  : null,
-                            ),
-                          ),
-                        ),
-                      ),
                     ),
                 ],
               ),
             ),
           ]),
           SettingsSection(title: Text('展示信息'), tiles: [
+            SettingsTile(
+              leading: Icons.view_agenda_rounded,
+              title: const Text('追番默认布局'),
+              description: const Text('下次打开追番页时使用，页面内切换不会改变此设置'),
+              enabled: !_savingCollectLayout,
+              onPressed: (_) => _collectLayoutMenuController.isOpen
+                  ? _collectLayoutMenuController.close()
+                  : _collectLayoutMenuController.open(),
+              value: MenuAnchor(
+                controller: _collectLayoutMenuController,
+                consumeOutsideTap: true,
+                menuChildren: [
+                  for (final layout in CollectLayout.values)
+                    _menuItem(
+                      label: layout.label,
+                      selected: layout == _defaultCollectLayout,
+                      onPressed: _savingCollectLayout
+                          ? null
+                          : () => _updateDefaultCollectLayout(layout),
+                    ),
+                ],
+                builder: (_, __, ___) => Text(_defaultCollectLayout.label),
+              ),
+            ),
             SettingsTile.switchTile(
               leading: Icons.star_rounded,
               onToggle: (value) async {

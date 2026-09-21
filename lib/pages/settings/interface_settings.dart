@@ -19,8 +19,10 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   late CollectLayout _defaultCollectLayout;
   bool _savingCollectLayout = false;
   final _collectLayoutMenuController = MenuController();
-  int _exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
+  final _exitBehaviorMenuController = MenuController();
   static const _exitBehaviorTitles = ['退出 Kazumi', '最小化至托盘', '每次都询问'];
+  int _exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior)
+      .clamp(0, _exitBehaviorTitles.length - 1);
   final MenuController defaultPageMenuController = MenuController();
 
   static const Map<String, String> defaultPageMap = {
@@ -162,27 +164,26 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
                 SettingsTile(
                   leading: Icons.exit_to_app_rounded,
                   title: const Text('关闭窗口时'),
-                  description: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: DropdownButton<int>(
-                      value: _exitBehavior.clamp(
-                          0, _exitBehaviorTitles.length - 1),
-                      isExpanded: true,
-                      borderRadius: BorderRadius.circular(16),
-                      underline: const SizedBox.shrink(),
-                      items: [
-                        for (var i = 0; i < _exitBehaviorTitles.length; i++)
-                          DropdownMenuItem(
-                            value: i,
-                            child: Text(_exitBehaviorTitles[i]),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() => _exitBehavior = value);
-                        GStorage.putSetting(SettingsKeys.exitBehavior, value);
-                      },
-                    ),
+                  description: const Text('设置点击窗口关闭按钮后的行为'),
+                  onPressed: (_) => _exitBehaviorMenuController.isOpen
+                      ? _exitBehaviorMenuController.close()
+                      : _exitBehaviorMenuController.open(),
+                  value: MenuAnchor(
+                    controller: _exitBehaviorMenuController,
+                    consumeOutsideTap: true,
+                    builder: (_, __, ___) =>
+                        Text(_exitBehaviorTitles[_exitBehavior]),
+                    menuChildren: [
+                      for (var i = 0; i < _exitBehaviorTitles.length; i++)
+                        _menuItem(
+                          label: _exitBehaviorTitles[i],
+                          selected: i == _exitBehavior,
+                          onPressed: () {
+                            setState(() => _exitBehavior = i);
+                            GStorage.putSetting(SettingsKeys.exitBehavior, i);
+                          },
+                        ),
+                    ],
                   ),
                 ),
               ],

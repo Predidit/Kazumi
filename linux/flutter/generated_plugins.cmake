@@ -7,7 +7,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   dynamic_color
   file_selector_linux
   flutter_volume_controller
-  media_kit_libs_linux
   media_kit_video
   screen_retriever_linux
   tray_manager

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/side_panel_transition.dart';
 
 class VideoSidePanel extends StatefulWidget {
   const VideoSidePanel({
@@ -26,12 +27,8 @@ class VideoSidePanelState extends State<VideoSidePanel>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animation = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 120),
+    duration: SidePanelTransition.duration,
   );
-  late final Animation<Offset> _offset = Tween<Offset>(
-    begin: const Offset(1, 0),
-    end: Offset.zero,
-  ).animate(_animation.drive(CurveTween(curve: Curves.easeOut)));
   late final Animation<double> _opacity =
       _animation.drive(CurveTween(curve: Curves.easeIn));
 
@@ -103,7 +100,7 @@ class VideoSidePanelState extends State<VideoSidePanel>
                     ),
                   ),
                 ),
-                SlideTransition(position: _offset, child: child),
+                SidePanelTransition(animation: _animation, child: child!),
               ],
             );
           },

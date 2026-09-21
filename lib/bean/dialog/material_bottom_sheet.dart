@@ -11,6 +11,7 @@ class MaterialBottomSheetHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.description,
+    this.leading,
     this.onClose,
     this.trailing,
     this.compact = false,
@@ -18,6 +19,7 @@ class MaterialBottomSheetHeader extends StatelessWidget {
 
   final String title;
   final String? description;
+  final Widget? leading;
   final VoidCallback? onClose;
   final Widget? trailing;
   final bool compact;
@@ -36,6 +38,10 @@ class MaterialBottomSheetHeader extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              if (leading != null) ...[
+                leading!,
+                const SizedBox(width: 12),
+              ],
               Expanded(
                 child: Semantics(
                   header: true,

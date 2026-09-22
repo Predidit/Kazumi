@@ -93,12 +93,12 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: a1b34d371ca18181262a6f1b22f5b1b09f638cc5
+      ref: 6fd002aabce0c22009bfbf564c1b7f16f0b120d8
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: a1b34d371ca18181262a6f1b22f5b1b09f638cc5
+      ref: 6fd002aabce0c22009bfbf564c1b7f16f0b120d8
       path: ./media_kit_video
   macos_secure_bookmarks: ^0.2.1
 

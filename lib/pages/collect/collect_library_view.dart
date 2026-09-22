@@ -11,6 +11,15 @@ import 'package:kazumi/pages/collect/collect_library_query.dart';
 part 'collect_library_card.dart';
 part 'collect_library_controls.dart';
 
+const _collectCategories = <CollectType?>[
+  null,
+  CollectType.watching,
+  CollectType.planToWatch,
+  CollectType.watched,
+  CollectType.onHold,
+  CollectType.abandoned,
+];
+
 class CollectLibraryView extends StatefulWidget {
   const CollectLibraryView({
     super.key,
@@ -35,10 +44,15 @@ class CollectLibraryView extends StatefulWidget {
   State<CollectLibraryView> createState() => _CollectLibraryViewState();
 }
 
-class _CollectLibraryViewState extends State<CollectLibraryView> {
+class _CollectLibraryViewState extends State<CollectLibraryView>
+    with TickerProviderStateMixin {
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
   final _libraryFocus = FocusNode();
+  // Keep tab animations alive when the category scroll view is replaced.
+  final _categoriesKey = GlobalKey();
+  late TabController _tabController;
+  bool? _disableAnimations;
   final _scrollControllers = {
     for (final type in _collectCategories) type: ScrollController(),
   };
@@ -49,6 +63,23 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
   bool _searchExpanded = false;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    if (_disableAnimations == disableAnimations) return;
+    if (_disableAnimations != null) {
+      _tabController.dispose();
+    }
+    _disableAnimations = disableAnimations;
+    _tabController = TabController(
+      length: _collectCategories.length,
+      initialIndex: _collectCategories.indexOf(_selectedType),
+      animationDuration: disableAnimations ? Duration.zero : null,
+      vsync: this,
+    )..addListener(_onCategoryChanged);
+  }
+
+  @override
   void didUpdateWidget(covariant CollectLibraryView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.layout != widget.layout) _resetResults();
@@ -56,6 +87,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
     _libraryFocus.dispose();
@@ -66,7 +98,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
   }
 
   void _resetResults() {
-    // Unmounted categories must forget their previous layout's offsets too.
+    // Reset saved offsets for unmounted categories too.
     _resultsStorage = PageStorageBucket();
     for (final controller in _scrollControllers.values) {
       if (controller.hasClients) controller.jumpTo(0);
@@ -99,7 +131,8 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
     });
   }
 
-  void _selectType(CollectType? type) {
+  void _onCategoryChanged() {
+    final type = _collectCategories[_tabController.index];
     if (type == _selectedType) return;
     _libraryFocus.requestFocus();
     setState(() => _selectedType = type);
@@ -142,17 +175,15 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
                         child: header,
                       ),
                       Expanded(
-                        child: _CollectCategoryPager(
-                          selectedIndex:
-                              _collectCategories.indexOf(_selectedType),
-                          onChanged: (index) =>
-                              _selectType(_collectCategories[index]),
-                          itemCount: _collectCategories.length,
-                          itemBuilder: (context, index) => HeroMode(
-                            enabled: _collectCategories[index] == _selectedType,
-                            child: _results(query, _collectCategories[index],
-                                inset: inset),
-                          ),
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            for (final type in _collectCategories)
+                              HeroMode(
+                                enabled: type == _selectedType,
+                                child: _results(query, type, inset: inset),
+                              ),
+                          ],
                         ),
                       ),
                     ],
@@ -172,9 +203,9 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
           children: [
             Expanded(
               child: _CollectCategories(
-                selected: _selectedType,
+                key: _categoriesKey,
+                controller: _tabController,
                 count: query.count,
-                onSelected: _selectType,
               ),
             ),
             if (!compact)
@@ -276,10 +307,9 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
 
   Widget _results(CollectLibraryQuery query, CollectType? type,
       {required double inset, Widget? header}) {
-    final entries = query.results(type, _sort);
     return LayoutBuilder(builder: (context, constraints) {
+      final entries = query.results(type, _sort);
       final contentWidth = constraints.maxWidth - inset * 2;
-      // Keep the viewport full-width; only the slivers receive content insets.
       return ScrollbarTheme(
         data: ScrollbarTheme.of(context).copyWith(crossAxisMargin: 0),
         child: CustomScrollView(

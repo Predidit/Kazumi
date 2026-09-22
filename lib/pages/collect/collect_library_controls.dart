@@ -1,165 +1,57 @@
 part of 'collect_library_view.dart';
 
-const _collectCategories = <CollectType?>[
-  null,
-  CollectType.watching,
-  CollectType.planToWatch,
-  CollectType.watched,
-  CollectType.onHold,
-  CollectType.abandoned,
-];
-
-class _CollectCategoryPager extends StatefulWidget {
-  const _CollectCategoryPager({
-    required this.selectedIndex,
-    required this.onChanged,
-    required this.itemCount,
-    required this.itemBuilder,
-  });
-
-  final int selectedIndex;
-  final ValueChanged<int> onChanged;
-  final int itemCount;
-  final IndexedWidgetBuilder itemBuilder;
-
-  @override
-  State<_CollectCategoryPager> createState() => _CollectCategoryPagerState();
-}
-
-class _CollectCategoryPagerState extends State<_CollectCategoryPager> {
-  late final _controller = PageController(
-    initialPage: widget.selectedIndex,
-    keepPage: false,
-  );
-
-  @override
-  void didUpdateWidget(covariant _CollectCategoryPager oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.selectedIndex != oldWidget.selectedIndex &&
-        _controller.hasClients &&
-        _controller.page?.round() != widget.selectedIndex) {
-      // Tab taps jump; swipe callbacks keep the current animation.
-      _controller.jumpToPage(widget.selectedIndex);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => PageView.builder(
-        key: const ValueKey('collect-category-pages'),
-        controller: _controller,
-        onPageChanged: widget.onChanged,
-        itemCount: widget.itemCount,
-        itemBuilder: widget.itemBuilder,
-        scrollBehavior:
-            ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      );
-}
-
-class _CollectCategories extends StatefulWidget {
+class _CollectCategories extends StatelessWidget {
   const _CollectCategories({
-    required this.selected,
+    super.key,
+    required this.controller,
     required this.count,
-    required this.onSelected,
   });
 
-  final CollectType? selected;
+  final TabController controller;
   final int Function(CollectType?) count;
-  final ValueChanged<CollectType?> onSelected;
-
-  @override
-  State<_CollectCategories> createState() => _CollectCategoriesState();
-}
-
-class _CollectCategoriesState extends State<_CollectCategories> {
-  final _controller = ScrollController(keepScrollOffset: false);
-  final _keys = {for (final type in _collectCategories) type: GlobalKey()};
-
-  @override
-  void initState() {
-    super.initState();
-    _revealSelected();
-  }
-
-  @override
-  void didUpdateWidget(covariant _CollectCategories oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _revealSelected();
-  }
-
-  void _revealSelected() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_controller.hasClients) return;
-      final target = _keys[widget.selected]?.currentContext?.findRenderObject();
-      if (target == null) return;
-      // Scroll only the tabs, never the enclosing collection viewport.
-      _controller.position.ensureVisible(
-        target,
-        alignment: 0.5,
-        duration: MediaQuery.disableAnimationsOf(context)
-            ? Duration.zero
-            : const Duration(milliseconds: 220),
-        curve: Curves.easeInOutCubicEmphasized,
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    return SingleChildScrollView(
-      key: const ValueKey('collect-filter-strip'),
-      controller: _controller,
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        spacing: 4,
-        children: [
-          for (final type in _collectCategories)
-            Semantics(
-              key: _keys[type],
-              selected: type == widget.selected,
-              inMutuallyExclusiveGroup: true,
-              button: true,
-              label: '${type?.label ?? '全部'}，${widget.count(type)} 部',
+    return TabBar(
+      key: const PageStorageKey('collect-filter-strip'),
+      controller: controller,
+      isScrollable: true,
+      tabAlignment: TabAlignment.start,
+      dividerHeight: 0,
+      indicatorSize: TabBarIndicatorSize.tab,
+      indicatorPadding: const EdgeInsets.symmetric(horizontal: 2),
+      indicator: BoxDecoration(
+        color: colors.primaryContainer,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      indicatorAnimation: TabIndicatorAnimation.elastic,
+      labelColor: colors.onPrimaryContainer,
+      unselectedLabelColor: colors.onSurfaceVariant,
+      labelStyle:
+          theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+      unselectedLabelStyle:
+          theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+      splashBorderRadius: BorderRadius.circular(24),
+      tabs: [
+        for (final type in _collectCategories)
+          Tab(
+            height: 48,
+            child: Semantics(
+              label: '${type?.label ?? '全部'}，${count(type)} 部',
               excludeSemantics: true,
-              onTap: () => widget.onSelected(type),
-              child: TextButton(
-                key: ValueKey('collect-filter-${type?.value ?? 'all'}'),
-                onPressed: () => widget.onSelected(type),
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(64, 48),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 64),
+                child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  backgroundColor: type == widget.selected
-                      ? colors.primaryContainer
-                      : Colors.transparent,
-                  foregroundColor: type == widget.selected
-                      ? colors.onPrimaryContainer
-                      : colors.onSurfaceVariant,
-                  textStyle: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: type == widget.selected
-                        ? FontWeight.w700
-                        : FontWeight.w500,
-                  ),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24)),
+                  child: Text(type?.label ?? '全部'),
                 ),
-                child: Text(type?.label ?? '全部'),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

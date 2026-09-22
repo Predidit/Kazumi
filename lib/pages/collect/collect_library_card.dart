@@ -331,10 +331,10 @@ class _CollectListTile extends StatelessWidget {
 class _CollectCover extends StatelessWidget {
   const _CollectCover({
     required this.item,
-    this.borderRadius = BorderRadius.zero,
+    this.borderRadius,
   });
   final BangumiItem item;
-  final BorderRadius borderRadius;
+  final BorderRadius? borderRadius;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(

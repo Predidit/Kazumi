@@ -2,6 +2,7 @@ import 'package:ech_http/ech_http.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:kazumi/services/network/image_file_response.dart';
+import 'package:kazumi/utils/constants.dart' show bangumiHTTPHeader;
 
 class BangumiEchImageService extends FileService {
   BangumiEchImageService({
@@ -31,11 +32,17 @@ class BangumiEchImageService extends FileService {
           DohEchResolver(
             client: bootstrap,
             endpoint: _dohEndpoint,
-            hosts: {'lain.bgm.tv'},
+            // This client only handles images. Protect both the API image
+            // redirect and its CDN destination; API JSON still uses Dio.
+            hosts: {'api.bgm.tv', 'lain.bgm.tv'},
             // Bangumi currently shares Cloudflare's ECH config. Pin its CDN
             // addresses to bypass polluted A records; revisit on CDN changes.
-            configDomains: {'lain.bgm.tv': 'crypto.cloudflare.com'},
+            configDomains: {
+              'api.bgm.tv': 'crypto.cloudflare.com',
+              'lain.bgm.tv': 'crypto.cloudflare.com',
+            },
             addressOverrides: {
+              'api.bgm.tv': ['172.67.134.140', '104.21.6.61', '172.67.73.67'],
               'lain.bgm.tv': ['172.67.134.140', '104.21.6.61', '172.67.73.67'],
             },
           ),
@@ -62,6 +69,8 @@ class BangumiEchImageService extends FileService {
     final http.StreamedResponse response;
     try {
       final request = http.Request('GET', uri);
+      // Bangumi image endpoints can reject requests without an application UA.
+      request.headers['user-agent'] = bangumiHTTPHeader['user-agent']!;
       if (headers != null) request.headers.addAll(headers);
       // ech_http does not decompress HTTP content encodings.
       request.headers['accept-encoding'] = 'identity';

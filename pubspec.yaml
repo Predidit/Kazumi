@@ -26,6 +26,8 @@ dependencies:
   hive_ce_flutter: ^2.3.3
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
+  ech_http: ^0.1.1
+  http: ^1.6.0
   image: ^4.8.0
   file_picker: ^10.3.7
 
@@ -93,12 +95,12 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 6fd002aabce0c22009bfbf564c1b7f16f0b120d8
+      ref: d13fc22ba1b19b45de3090c2d1b0f8a541b585a0
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 6fd002aabce0c22009bfbf564c1b7f16f0b120d8
+      ref: d13fc22ba1b19b45de3090c2d1b0f8a541b585a0
       path: ./media_kit_video
   macos_secure_bookmarks: ^0.2.1
 
@@ -159,6 +161,7 @@ flutter:
     - assets/shaders/
     - assets/images/logo/
     - assets/statements/
+    - licenses/ech_http/
   fonts:
     - family: MI_Sans_Regular
       fonts:

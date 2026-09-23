@@ -36,19 +36,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       title: const Text('网络设置'),
       body: SettingsList(
         sections: [
-          NetworkMirrorSettings(
-            enableBangumiProxy:
-                GStorage.getSetting(SettingsKeys.enableBangumiProxy),
-            enableGitProxy: GStorage.getSetting(SettingsKeys.enableGitProxy),
-            onBangumiChanged: (value) async {
-              await GStorage.putSetting(SettingsKeys.enableBangumiProxy, value);
-              if (mounted) setState(() {});
-            },
-            onGitChanged: (value) async {
-              await GStorage.putSetting(SettingsKeys.enableGitProxy, value);
-              if (mounted) setState(() {});
-            },
-          ),
+          const NetworkMirrorSettings(),
           SettingsSection(
             title: const Text('代理'),
             tiles: [

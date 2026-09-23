@@ -20,7 +20,7 @@ class BangumiMirrorErrorWidget extends StatelessWidget {
 
     return GeneralErrorWidget(
       title: '暂时无法加载番剧',
-      errMsg: '请检查网络连接，或调整镜像设置后重试。\nBangumi 镜像${mirrorEnabled ? '已启用' : '已禁用'}',
+      errMsg: '请检查网络连接，或调整镜像设置后重试。\n番剧条目镜像${mirrorEnabled ? '已启用' : '已禁用'}',
       icon: Icons.cloud_off_rounded,
       onRetry: onRetry,
       actions: [

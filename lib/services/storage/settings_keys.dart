@@ -258,6 +258,11 @@ class SettingsKeys {
     true,
     group: SettingGroup.proxy,
   );
+  static const imageAcceleration = SettingKey<String>(
+    'imageAcceleration',
+    'ech',
+    group: SettingGroup.proxy,
+  );
   static const enableSystemProxy = SettingKey<bool>(
     _SettingBoxKey.enableSystemProxy,
     false,
@@ -586,6 +591,7 @@ class SettingsKeys {
     displayMode,
     enableGitProxy,
     enableBangumiProxy,
+    imageAcceleration,
     enableSystemProxy,
     defaultStartupPage,
     webDavEnable,

@@ -46,7 +46,10 @@ class _CollectCategories extends StatelessWidget {
                 constraints: const BoxConstraints(minWidth: 64),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(type?.label ?? '全部'),
+                  child: Text(
+                    type?.label ?? '全部',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
             ),

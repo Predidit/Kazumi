@@ -77,10 +77,10 @@ abstract class _SearchPageController with Store {
       _searchOffset = 0;
       hasMoreSearchResults = true;
       if (!_collectRepository.getPrivateMode() && input.trim().isNotEmpty) {
+        await _searchHistoryRepository.deleteDuplicates(input);
         if (_searchHistoryRepository.isHistoryFull(10)) {
           await _searchHistoryRepository.deleteOldest();
         }
-        await _searchHistoryRepository.deleteDuplicates(input);
         await _searchHistoryRepository.saveHistory(input);
         loadSearchHistories();
       }

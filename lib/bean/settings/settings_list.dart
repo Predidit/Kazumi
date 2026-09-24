@@ -160,18 +160,24 @@ class SettingsCategoryTile extends StatelessWidget {
     required this.title,
     required this.description,
     required this.onTap,
+    this.focusNode,
+    this.autofocus = false,
   });
 
   final IconData icon;
   final String title;
   final String description;
   final VoidCallback onTap;
+  final FocusNode? focusNode;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return InkWell(
+      focusNode: focusNode,
+      autofocus: autofocus,
       onTap: onTap,
       onHighlightChanged: SplitListRow.pressReporterOf(context),
       child: Padding(

@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/bean/widget/gamepad_navigation.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/media_error_widget.dart';
 import 'package:kazumi/modules/download/download_module.dart';
@@ -68,6 +69,8 @@ class _VideoPageState extends State<VideoPage>
 
   final _episodePanelKey = GlobalKey<EpisodeSelectionPanelState>();
   final _sidePanelKey = GlobalKey<VideoSidePanelState>();
+  final FocusScopeNode _sidePanelFocusNode =
+      FocusScopeNode(debugLabel: 'Video episode side panel');
   late TabController tabController;
 
   late final bool disableAnimations;
@@ -217,6 +220,7 @@ class _VideoPageState extends State<VideoPage>
     _pipModeListener();
     _desktopPipEntry?.remove();
     _desktopPipEntry = null;
+    _sidePanelFocusNode.dispose();
     if (!isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
@@ -270,6 +274,65 @@ class _VideoPageState extends State<VideoPage>
 
   void _closeSidePanel() => _sidePanelKey.currentState?.close();
 
+  void _focusSidePanel() {
+    if (!isHandheldGamepadSupported()) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        focusFirstGamepadControl(_sidePanelFocusNode);
+      }
+    });
+  }
+
+  Map<Type, Action<Intent>> get _gamepadActions =>
+      <Type, Action<Intent>>{
+        GamepadBackIntent: CallbackAction<GamepadBackIntent>(
+          onInvoke: (_) {
+            if (_sidePanelKey.currentState?.isOpen ?? false) {
+              _closeSidePanel();
+            } else {
+              _onBackPressed();
+            }
+            return null;
+          },
+        ),
+        GamepadViewIntent: CallbackAction<GamepadViewIntent>(
+          onInvoke: (_) {
+            _toggleSidePanel();
+            return null;
+          },
+        ),
+        GamepadMenuIntent: CallbackAction<GamepadMenuIntent>(
+          onInvoke: (_) {
+            unawaited(playerController.playOrPause());
+            return null;
+          },
+        ),
+        GamepadPreviousSecondarySectionIntent:
+            CallbackAction<GamepadPreviousSecondarySectionIntent>(
+          onInvoke: (_) {
+            tabController.animateTo(
+              (tabController.index - 1)
+                  .clamp(0, tabController.length - 1)
+                  .toInt(),
+            );
+            return null;
+          },
+        ),
+        GamepadNextSecondarySectionIntent:
+            CallbackAction<GamepadNextSecondarySectionIntent>(
+          onInvoke: (_) {
+            tabController.animateTo(
+              (tabController.index + 1)
+                  .clamp(0, tabController.length - 1)
+                  .toInt(),
+            );
+            return null;
+          },
+        ),
+      };
+
   // Only desktop PiP participates in local navigation.
   void _syncDesktopPipHistory(bool isPip) {
     if (!isDesktop()) return;
@@ -303,7 +366,7 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
+    final content = PopScope(
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (didPop) {
           setState(() => _isExiting = true);
@@ -335,15 +398,25 @@ class _VideoPageState extends State<VideoPage>
                 key: _sidePanelKey,
                 fullscreen: videoPageController.isFullscreen,
                 disableAnimations: disableAnimations,
-                onOpened: _revealCurrentEpisode,
+                onOpened: () {
+                  _revealCurrentEpisode();
+                  _focusSidePanel();
+                },
                 onClosed: keyboardFocus.requestFocus,
-                child: tabBody,
+                child: GamepadFocusScope(
+                  node: _sidePanelFocusNode,
+                  child: tabBody,
+                ),
               ),
             ),
           ),
         );
       }),
     );
+    if (!isHandheldGamepadSupported()) {
+      return content;
+    }
+    return Actions(actions: _gamepadActions, child: content);
   }
 
   Widget _buildPlayerBody(VideoPlayerLayout layout) {

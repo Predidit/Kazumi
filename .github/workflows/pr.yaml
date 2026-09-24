@@ -312,7 +312,7 @@
           - name: Install dependencies
             run: |
               sudo apt-get update
-              sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev unzip webkit2gtk-4.1 libasound2-dev
+              sudo apt-get install -y clang cmake pkg-config libgtk-3-dev ninja-build libayatana-appindicator3-dev unzip webkit2gtk-4.1 libasound2-dev libevdev-dev
               sudo apt-get install -y gcc g++ autoconf automake debhelper glslang-dev ladspa-sdk xutils-dev libasound2-dev \
                   libarchive-dev libbluray-dev libbs2b-dev libcaca-dev libcdio-paranoia-dev libdrm-dev \
                   libdav1d-dev libdvdnav-dev libegl1-mesa-dev libepoxy-dev libfontconfig-dev libfreetype6-dev \
@@ -381,7 +381,8 @@
               Homepage: https://github.com/Predidit/Kazumi
               Depends: libayatana-appindicator3-1,
                        gir1.2-ayatanaappindicator3-0.1,
-                       libwebkit2gtk-4.1-0
+                       libwebkit2gtk-4.1-0,
+                       libevdev2
               EOF
 
               cp ../assets/linux/io.github.Predidit.Kazumi.desktop usr/share/applications
@@ -419,8 +420,8 @@
           - name: Install project dependencies
             run: |
               sudo apt-get update
-              sudo apt-get install -y cmake libwebkit2gtk-4.1-dev libsoup-3.0-dev libasound2-dev \
-                libayatana-appindicator3-dev libepoxy-dev libmpv-dev unzip
+              sudo apt-get install -y cmake pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev libasound2-dev \
+                libayatana-appindicator3-dev libepoxy-dev libmpv-dev libevdev-dev unzip
             shell: bash
           - name: Get Flutter dependencies
             run: flutter pub get
@@ -462,7 +463,8 @@
               Homepage: https://github.com/Predidit/Kazumi
               Depends: libayatana-appindicator3-1,
                        gir1.2-ayatanaappindicator3-0.1,
-                       libwebkit2gtk-4.1-0
+                       libwebkit2gtk-4.1-0,
+                       libevdev2
               EOF
 
               cp ../assets/linux/io.github.Predidit.Kazumi.desktop usr/share/applications

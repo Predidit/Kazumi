@@ -288,6 +288,7 @@ class _RoadSelectorState extends State<_RoadSelector> {
   final _focusNode = FocusNode(debugLabel: 'Playback road selector');
   FocusNode? _focusBeforeOpen;
   bool _pointerActivation = false;
+  bool _focused = false;
 
   String _name(int index) => index >= 0 && index < widget.roads.length
       ? (widget.roads[index].name.trim().isEmpty
@@ -451,54 +452,69 @@ class _RoadSelectorState extends State<_RoadSelector> {
             button: canSwitch,
             expanded: canSwitch ? open : null,
             label: canSwitch ? '切换播放线路' : null,
-            child: Material(
-              animationDuration: duration,
-              color:
-                  open ? colors.secondaryContainer : colors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(open ? 16 : 20),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                focusNode: _focusNode,
-                onTapUp: canSwitch ? (_) => _pointerActivation = true : null,
-                onTap: canSwitch ? () => _toggleMenu(controller) : null,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.isOffline ? '离线观看' : '播放线路',
-                              style: theme.textTheme.labelMedium
-                                  ?.copyWith(color: foreground),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _name(widget.visibleRoad),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: foreground,
+            child: DecoratedBox(
+              position: DecorationPosition.foreground,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(open ? 16 : 20),
+                border: _focused
+                    ? Border.all(color: colors.primary, width: 2)
+                    : null,
+              ),
+              child: Material(
+                animationDuration: duration,
+                color: open
+                    ? colors.secondaryContainer
+                    : colors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(open ? 16 : 20),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  focusNode: _focusNode,
+                  onFocusChange: (focused) {
+                    if (_focused != focused) {
+                      setState(() => _focused = focused);
+                    }
+                  },
+                  onTapUp: canSwitch ? (_) => _pointerActivation = true : null,
+                  onTap: canSwitch ? () => _toggleMenu(controller) : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.isOffline ? '离线观看' : '播放线路',
+                                style: theme.textTheme.labelMedium
+                                    ?.copyWith(color: foreground),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 2),
+                              Text(
+                                _name(widget.visibleRoad),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: foreground,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (canSwitch) ...[
-                        const SizedBox(width: 8),
-                        AnimatedRotation(
-                          turns: open ? 0.5 : 0,
-                          duration: duration,
-                          curve: Curves.easeOutCubic,
-                          child: Icon(Icons.keyboard_arrow_down_rounded,
-                              color: foreground),
-                        ),
+                        if (canSwitch) ...[
+                          const SizedBox(width: 8),
+                          AnimatedRotation(
+                            turns: open ? 0.5 : 0,
+                            duration: duration,
+                            curve: Curves.easeOutCubic,
+                            child: Icon(Icons.keyboard_arrow_down_rounded,
+                                color: foreground),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -541,6 +557,7 @@ class _EpisodeRow extends StatefulWidget {
 class _EpisodeRowState extends State<_EpisodeRow>
     with SingleTickerProviderStateMixin {
   late final _press = AnimationController.unbounded(vsync: this);
+  bool _focused = false;
 
   bool get _reduceMotion =>
       widget.disableAnimations || MediaQuery.disableAnimationsOf(context);
@@ -617,30 +634,47 @@ class _EpisodeRowState extends State<_EpisodeRow>
                     bottom: Radius.circular(widget.last ? 20 : 4),
                   );
             final press = _press.value.clamp(0.0, 1.0);
+            final radius =
+                BorderRadius.lerp(restShape, BorderRadius.circular(12), press);
+            final tile = Material(
+              animationDuration: _reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 200),
+              color:
+                  widget.selected ? colors.primary : colors.surfaceContainerLow,
+              borderRadius: radius,
+              clipBehavior: Clip.antiAlias,
+              child: child,
+            );
             return Padding(
               padding: EdgeInsets.only(bottom: widget.last ? 0 : 2),
-              child: Material(
-                animationDuration: _reduceMotion
-                    ? Duration.zero
-                    : const Duration(milliseconds: 200),
-                color: widget.selected
-                    ? colors.primary
-                    : colors.surfaceContainerLow,
-                borderRadius: BorderRadius.lerp(
-                    restShape, BorderRadius.circular(12), press),
-                clipBehavior: Clip.antiAlias,
-                child: child,
+              // The gamepad focus is the "pending" selection; outline it so
+              // it is distinct from the currently playing row's fill.
+              child: DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  border: _focused
+                      ? Border.all(color: colors.primary, width: 2)
+                      : null,
+                ),
+                child: tile,
               ),
             );
           },
           child: InkWell(
             onTap: widget.onTap,
             onHighlightChanged: _setPressed,
+            onFocusChange: (focused) {
+              if (_focused != focused) setState(() => _focused = focused);
+            },
             excludeFromSemantics: true,
             overlayColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.pressed) ||
-                  states.contains(WidgetState.focused)) {
+              if (states.contains(WidgetState.pressed)) {
                 return foreground.withValues(alpha: 0.1);
+              }
+              if (states.contains(WidgetState.focused)) {
+                return colors.primary.withValues(alpha: 0.18);
               }
               if (states.contains(WidgetState.hovered)) {
                 return foreground.withValues(alpha: 0.08);

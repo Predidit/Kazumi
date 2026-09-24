@@ -26,3 +26,7 @@ Future<Map<String, double>> getScreenInfo() async {
 bool isDesktop() {
   return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 }
+
+bool isHandheldGamepadSupported() => Platform.isLinux;
+
+bool isHandheldTouchSeekSupportedOnDesktop() => Platform.isLinux;

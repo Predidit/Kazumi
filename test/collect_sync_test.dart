@@ -103,6 +103,33 @@ void main() {
       expect(mergeResult.changes.map((change) => change.id), [9, 10, 11, 12]);
     });
 
+    test('preserves changes from different devices when IDs collide', () {
+      final mergeResult = CollectSyncMerger.mergeWebDav(
+        localCollectibles: [
+          _collect(2, CollectType.watched, 20),
+        ],
+        localChanges: [
+          _change(10, 2, 1, CollectType.watched, 20),
+        ],
+        remoteCollectibles: [
+          _collect(1, CollectType.watching, 10),
+        ],
+        remoteChanges: [
+          _change(10, 1, 1, CollectType.watching, 10),
+        ],
+      );
+
+      expect(_typesById(mergeResult.collectibles), {
+        1: CollectType.watching.value,
+        2: CollectType.watched.value,
+      });
+      expect(mergeResult.changes, hasLength(2));
+      expect(
+        mergeResult.changes.map((change) => change.id).toSet(),
+        hasLength(2),
+      );
+    });
+
     test('plans Bangumi changes after local and WebDAV already diverged', () {
       final webDavResult = CollectSyncMerger.mergeWebDav(
         localCollectibles: [

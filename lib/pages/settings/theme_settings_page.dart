@@ -25,7 +25,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late dynamic defaultThemeColor;
   late bool oledEnhance;
   late bool useDynamicColor;
-  late bool showWindowButton;
   late bool useSystemFont;
   late final ThemeProvider themeProvider;
   final MenuController menuController = MenuController();
@@ -37,7 +36,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     defaultThemeColor = GStorage.getSetting(SettingsKeys.themeColor);
     oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
     useDynamicColor = GStorage.getSetting(SettingsKeys.useDynamicColor);
-    showWindowButton = GStorage.getSetting(SettingsKeys.showWindowButton);
     useSystemFont = GStorage.getSetting(SettingsKeys.useSystemFont);
     themeProvider = context.read<ThemeProvider>();
   }
@@ -352,24 +350,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               ),
             ],
           ),
-          if (isDesktop())
-            SettingsSection(
-              title: Text('窗口'),
-              tiles: [
-                SettingsTile.switchTile(
-                  leading: Icons.web_asset_rounded,
-                  onToggle: (value) async {
-                    showWindowButton = value ?? !showWindowButton;
-                    await GStorage.putSetting(
-                        SettingsKeys.showWindowButton, showWindowButton);
-                    setState(() {});
-                  },
-                  title: Text('使用系统标题栏'),
-                  description: Text('重启应用生效'),
-                  initialValue: showWindowButton,
-                ),
-              ],
-            ),
           if (Platform.isAndroid)
             SettingsSection(
               title: Text('屏幕'),

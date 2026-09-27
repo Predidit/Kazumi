@@ -34,6 +34,7 @@ class MainActivity: AudioServiceActivity() {
     private val CHANNEL = "com.predidit.kazumi/intent"
     private val STORAGE_CHANNEL = "com.predidit.kazumi/storage"
     private val PIP_CHANNEL = "com.predidit.kazumi/pip"
+    private var localVideoAccess: LocalVideoAccess? = null
     private var intentChannel: MethodChannel? = null
     private var pipChannel: MethodChannel? = null
 
@@ -74,11 +75,17 @@ class MainActivity: AudioServiceActivity() {
     }
 
     override fun onDestroy() {
+        localVideoAccess?.dispose()
         unregisterPipActionReceiverIfNeeded()
         // audio_service stays bound for the whole activity lifetime, so its
         // own stopSelf() never destroys a service started for playback.
         stopService(Intent(this, AudioService::class.java))
         super.onDestroy()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        localVideoAccess?.onActivityResult(requestCode, resultCode, data)
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -101,6 +108,7 @@ class MainActivity: AudioServiceActivity() {
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        localVideoAccess = LocalVideoAccess(this, flutterEngine.dartExecutor.binaryMessenger)
         intentChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         intentChannel?.setMethodCallHandler { call, result ->
             if (call.method == "openWithMime") {

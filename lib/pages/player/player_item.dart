@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:kazumi/services/local_video/local_video_store.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/player_keyboard_shortcuts.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
@@ -150,6 +152,9 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
+    if (state != AppLifecycleState.resumed) {
+      unawaited(playerController.localVideo?.save());
+    }
     if (state == AppLifecycleState.paused && !backgroundPlayback) {
       // Suspend before awaiting pause so a later resume wins; pause alone keeps prefetching.
       final suspend = playerController.playback.setPrefetchSuspended(true);
@@ -385,6 +390,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> handlePreNextEpisode(String direction) async {
+    if (playerController.localVideo != null) return;
     if (videoPageController.loading) return;
     final selection = videoPageController.selectedEpisode;
     final currentRoad = selection.road;
@@ -567,6 +573,24 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void handleDanmaku() {
+    final local = playerController.localVideo;
+    if (local != null) {
+      final danmaku = playerController.danmaku;
+      if (danmaku.danmakuOn) {
+        local.disableDanmaku();
+        GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, false);
+      } else if (danmaku.danDanmakus.isNotEmpty) {
+        // disableDanmaku keeps the entries, so re-enabling needs no network.
+        danmaku.setDanmakuEnabled(true);
+        GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, true);
+      } else if (local.record.binding != null) {
+        unawaited(local.loadBinding(local.record.binding!));
+      } else {
+        showDanmakuSwitch();
+      }
+      unawaited(_updateAndroidPIPActions(force: true));
+      return;
+    }
     playerController.danmaku.canvasController.clear();
     if (playerController.danmaku.danmakuOn) {
       playerController.danmaku.setDanmakuEnabled(false);
@@ -585,6 +609,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> _syncHistoryWithWebDav() async {
+    if (videoPageController.isDeviceVideo) return;
     if (webDavEnable && webDavEnableHistory) {
       try {
         var webDav = WebDav();
@@ -603,7 +628,9 @@ class _PlayerItemState extends State<PlayerItem>
         onSkipToNext: () => handlePreNextEpisode('next'),
         onSkipToPrevious: () => handlePreNextEpisode('prev'),
         onSeek: (position) => playerController.seek(position),
-        artworkUrl: videoPageController.bangumiItem.images['large'],
+        artworkUrl: videoPageController.isDeviceVideo
+            ? null
+            : videoPageController.bangumiItem.images['large'],
       );
       _syncAudioServiceState();
     } catch (e) {
@@ -613,6 +640,31 @@ class _PlayerItemState extends State<PlayerItem>
 
   void _syncAudioServiceState() {
     try {
+      final local = playerController.localVideo;
+      if (local != null) {
+        final playback = playerController.playback;
+        if (playback.duration <= Duration.zero) return;
+        unawaited(
+          _audioController.updateSession(
+            mediaId: local.record.id,
+            title: local.record.reference.name,
+            album: '本地播放',
+            artist: '',
+            duration: playback.duration,
+            playing: playback.playing,
+            loading: playback.loading,
+            buffering: playback.isBuffering,
+            completed: playback.completed,
+            updatePosition: playback.currentPosition,
+            bufferedPosition: playback.buffer,
+            speed: playback.playerSpeed,
+            queueIndex: 0,
+            canSkipToNext: false,
+            canSkipToPrevious: false,
+          ),
+        );
+        return;
+      }
       final selection = videoPageController.playbackEpisode;
       final currentRoad = selection.road;
       final currentEpisode = selection.episode;
@@ -1101,6 +1153,7 @@ class _PlayerItemState extends State<PlayerItem>
           playerController.panel.brightness = value;
         });
       }
+      if (videoPageController.isDeviceVideo) return;
       final historyIdentity = videoPageController.currentHistoryIdentity;
       if (playerController.playback.playerPlaying &&
           !videoPageController.loading &&
@@ -1144,7 +1197,21 @@ class _PlayerItemState extends State<PlayerItem>
   void showDanmakuSwitch() {
     unawaited(showDanmakuSourceSheet(
       context,
-      initialKeyword: videoPageController.title,
+      initialKeyword: videoPageController.isDeviceVideo
+          ? path.basenameWithoutExtension(videoPageController.title)
+          : videoPageController.title,
+      onSelectEpisode: playerController.localVideo == null
+          ? null
+          : (anime, episode, active) =>
+              playerController.localVideo!.loadBinding(
+                LocalDanmakuBinding(
+                  episodeId: episode.episodeId,
+                  anime: anime,
+                  episode: episode.episodeTitle,
+                ),
+                commit: true,
+                canApply: active,
+              ),
       danmakuController: playerController.danmaku,
       onBeforeApply: videoPageController.cancelAutomaticDanmakuLoad,
     ));
@@ -1155,6 +1222,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void showSyncPlayPanel() {
+    if (videoPageController.isDeviceVideo) return;
     showSyncPlaySheet(
       context,
       playerController: playerController,

@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:hive_ce/hive.dart';
+import 'package:kazumi/services/local_video/local_video_store.dart';
+
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -111,6 +114,24 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void _initializePlayback() {
+    if (widget.args case LocalVideoPlaybackArgs(:final playback)) {
+      playerController.localVideo = playback;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted || _isExiting) return;
+        try {
+          await playback.start(playerController);
+        } catch (_) {
+          try {
+            await playback.stop();
+          } finally {
+            if (mounted && !_isExiting) {
+              videoPageController.setLocalError('无法播放此文件，请检查文件或编码格式后重新打开');
+            }
+          }
+        }
+      });
+      return;
+    }
     if (videoPageController.isOfflineMode) {
       _initOfflineMode();
     } else {
@@ -247,7 +268,7 @@ class _VideoPageState extends State<VideoPage>
 
   Future<void> changeEpisode(int episode,
       {int currentRoad = 0, int offset = 0}) async {
-    if (!mounted || _isExiting) {
+    if (!mounted || _isExiting || videoPageController.isDeviceVideo) {
       return;
     }
     setState(() {
@@ -331,14 +352,16 @@ class _VideoPageState extends State<VideoPage>
                 ),
               ),
               tabs: tabBody,
-              sidePanel: VideoSidePanel(
-                key: _sidePanelKey,
-                fullscreen: videoPageController.isFullscreen,
-                disableAnimations: disableAnimations,
-                onOpened: _revealCurrentEpisode,
-                onClosed: keyboardFocus.requestFocus,
-                child: tabBody,
-              ),
+              sidePanel: videoPageController.isDeviceVideo
+                  ? null
+                  : VideoSidePanel(
+                      key: _sidePanelKey,
+                      fullscreen: videoPageController.isFullscreen,
+                      disableAnimations: disableAnimations,
+                      onOpened: _revealCurrentEpisode,
+                      onClosed: keyboardFocus.requestFocus,
+                      child: tabBody,
+                    ),
             ),
           ),
         );
@@ -428,16 +451,17 @@ class _VideoPageState extends State<VideoPage>
                           const Expanded(
                               child: dtb.DragToMoveArea(
                                   child: SizedBox(height: 40))),
-                          IconButton(
-                            icon: const Icon(Icons.refresh_outlined,
-                                color: Colors.white),
-                            onPressed: () {
-                              changeEpisode(
-                                  videoPageController.selectedEpisode.episode,
-                                  currentRoad:
-                                      videoPageController.selectedEpisode.road);
-                            },
-                          ),
+                          if (!videoPageController.isDeviceVideo)
+                            IconButton(
+                              icon: const Icon(Icons.refresh_outlined,
+                                  color: Colors.white),
+                              onPressed: () {
+                                changeEpisode(
+                                    videoPageController.selectedEpisode.episode,
+                                    currentRoad: videoPageController
+                                        .selectedEpisode.road);
+                              },
+                            ),
                           if (layout.hasSidePanel)
                             IconButton(
                               onPressed: _toggleSidePanel,
@@ -446,14 +470,15 @@ class _VideoPageState extends State<VideoPage>
                                 color: Colors.white,
                               ),
                             ),
-                          IconButton(
-                            icon: Icon(
-                                showDebugLog
-                                    ? Icons.bug_report
-                                    : Icons.bug_report_outlined,
-                                color: Colors.white),
-                            onPressed: _toggleDebugConsole,
-                          ),
+                          if (!videoPageController.isDeviceVideo)
+                            IconButton(
+                              icon: Icon(
+                                  showDebugLog
+                                      ? Icons.bug_report
+                                      : Icons.bug_report_outlined,
+                                  color: Colors.white),
+                              onPressed: _toggleDebugConsole,
+                            ),
                         ],
                       ),
                     ),
@@ -464,7 +489,7 @@ class _VideoPageState extends State<VideoPage>
           ),
         ),
         Positioned.fill(
-          child: playerLoading
+          child: playerLoading || videoPageController.errorMessage != null
               ? const SizedBox.shrink()
               : PlayerItem(
                   fillsWindow: layout.fillsWindow,
@@ -536,7 +561,38 @@ class _VideoPageState extends State<VideoPage>
         );
       });
 
+  Stream<BoxEvent>? _localRecordEvents;
+
   Widget get tabBody {
+    final local = playerController.localVideo;
+    if (videoPageController.isDeviceVideo) {
+      if (local == null) return const SizedBox.shrink();
+      return StreamBuilder(
+        stream: _localRecordEvents ??=
+            local.session.store.box.watch(key: local.record.id),
+        builder: (context, _) {
+          final saved = local.session.store.box.get(local.record.id);
+          final binding = saved is Map
+              ? LocalVideoRecord.fromMap(saved).binding
+              : local.record.binding;
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              SelectableText(
+                local.record.reference.name,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                binding == null
+                    ? '未绑定弹幕'
+                    : '${binding.anime} · ${binding.episode}',
+              ),
+            ],
+          );
+        },
+      );
+    }
     final colors = Theme.of(context).colorScheme;
     final int episodeNum = videoPageController.commentsEpisode;
 

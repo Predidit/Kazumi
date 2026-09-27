@@ -1,3 +1,4 @@
+import 'package:kazumi/pages/local_video/local_video_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
@@ -70,6 +71,7 @@ final tabModule = createModule(
 final indexModule = createModule(
   register: (c) {
     c
+      ..route('/local-video', child: (context, state) => const LocalVideoPage())
       ..route(
         '/',
         child: (context, state) => InitPage(

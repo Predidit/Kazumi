@@ -5,7 +5,7 @@ class PlaybackInitParams {
   final int offset;
   final bool isLocalPlayback;
   final VideoSourceFormat videoSourceFormat;
-  final int bangumiId;
+  final int? bangumiId;
   final String pluginName;
   final int episode;
   final int danmakuEpisodeNumber;

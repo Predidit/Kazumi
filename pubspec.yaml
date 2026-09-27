@@ -28,6 +28,7 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   image: ^4.8.0
   file_picker: ^10.3.7
+  desktop_drop: ^0.8.4
 
   flutter_volume_controller: ^2.0.1
   audio_video_progress_bar: ^2.0.2

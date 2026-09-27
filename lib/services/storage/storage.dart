@@ -149,20 +149,20 @@ class GStorage {
     Hive.registerAdapters();
 
     // Open each box with automatic recovery on corruption
-    favorites = await _openBoxSafe<BangumiItem>('favorites');
-    collectibles = await _openBoxSafe<CollectedBangumi>('collectibles');
-    histories = await _openBoxSafe<History>('histories');
-    _setting = await _openBoxSafe<dynamic>('setting');
+    favorites = await openBoxSafe<BangumiItem>('favorites');
+    collectibles = await openBoxSafe<CollectedBangumi>('collectibles');
+    histories = await openBoxSafe<History>('histories');
+    _setting = await openBoxSafe<dynamic>('setting');
     collectChanges =
-        await _openBoxSafe<CollectedBangumiChange>('collectchanges');
-    shieldList = await _openBoxSafe<String>('shieldList');
-    searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
-    downloads = await _openBoxSafe<DownloadRecord>('downloads');
+        await openBoxSafe<CollectedBangumiChange>('collectchanges');
+    shieldList = await openBoxSafe<String>('shieldList');
+    searchHistory = await openBoxSafe<SearchHistory>('searchHistory');
+    downloads = await openBoxSafe<DownloadRecord>('downloads');
   }
 
   /// Open a Hive box with automatic recovery on corruption.
   /// If the box is corrupted, delete it and create a new empty one.
-  static Future<Box<T>> _openBoxSafe<T>(String boxName) async {
+  static Future<Box<T>> openBoxSafe<T>(String boxName) async {
     try {
       return await Hive.openBox<T>(boxName);
     } catch (e) {

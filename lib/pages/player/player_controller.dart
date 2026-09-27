@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:kazumi/services/local_video/local_video_playback.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -51,7 +52,7 @@ class PlayerController implements Disposable {
     isLocalPlayback: () => isLocalPlayback,
   );
   late final PlayerSyncPlayController syncplay = PlayerSyncPlayController(
-    bangumiId: () => bangumiId,
+    bangumiId: () => bangumiId!,
     currentEpisode: () => currentEpisode,
     currentRoad: () => currentRoad,
     playing: () => playback.playing,
@@ -75,7 +76,8 @@ class PlayerController implements Disposable {
     referer: () => referer,
   );
 
-  late int bangumiId;
+  LocalVideoPlayback? localVideo;
+  int? bangumiId;
   late int currentEpisode;
   late int currentDanmakuEpisodeNumber;
   late int currentRoad;
@@ -176,7 +178,7 @@ class PlayerController implements Disposable {
     referer = params.referer;
 
     KazumiLogger().i(
-        'PlayerController: ${params.isLocalPlayback ? "local" : "online"} playback, url: ${params.videoUrl}');
+        'PlayerController: ${params.isLocalPlayback ? "local" : "online"} playback, url: ${localVideo != null ? params.episodeTitle : params.videoUrl}');
 
     playback.resetForInit();
     debug.playerLogLevel = GStorage.getSetting(SettingsKeys.playerLogLevel);
@@ -273,7 +275,8 @@ class PlayerController implements Disposable {
 
     coverUrl = params.coverUrl;
 
-    if (syncplay.syncplayController?.isConnected ?? false) {
+    if (localVideo == null &&
+        (syncplay.syncplayController?.isConnected ?? false)) {
       if (syncplay.syncplayController!.currentFileName !=
           "$bangumiId[$currentEpisode]") {
         setSyncPlayPlayingBangumi(
@@ -326,7 +329,8 @@ class PlayerController implements Disposable {
       seeking.seekBy(offset, enableSync: enableSync);
 
   Future<void> _onSeekCompleted(bool enableSync) async {
-    if (syncplay.hasSession) {
+    unawaited(localVideo?.save(position: playback.currentPosition));
+    if (localVideo == null && syncplay.hasSession) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
         await requestSyncPlaySync(doSeek: true);
@@ -344,7 +348,8 @@ class PlayerController implements Disposable {
       return;
     }
     playback.playing = false;
-    if (syncplay.hasSession) {
+    // localVideo persists from the playing stream; saving here would write twice.
+    if (localVideo == null && syncplay.hasSession) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
         await requestSyncPlaySync();
@@ -362,7 +367,7 @@ class PlayerController implements Disposable {
       return;
     }
     playback.playing = true;
-    if (syncplay.hasSession) {
+    if (localVideo == null && syncplay.hasSession) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
         await requestSyncPlaySync();
@@ -385,7 +390,11 @@ class PlayerController implements Disposable {
     if (_shutdownFuture != null) {
       return;
     }
-    final shutdown = _shutdownResources();
+    final localSave = localVideo?.close();
+    final shutdown = _shutdownResources().whenComplete(() async {
+      await localSave;
+      await localVideo?.file.close();
+    });
     _shutdownFuture = shutdown;
     unawaited(
       shutdown.catchError((Object error, StackTrace stackTrace) {
@@ -396,6 +405,11 @@ class PlayerController implements Disposable {
         );
       }),
     );
+  }
+
+  Future<void> shutdown() {
+    beginShutdown();
+    return _shutdownFuture!;
   }
 
   Future<void> _shutdownResources() async {
@@ -460,6 +474,7 @@ class PlayerController implements Disposable {
       String username,
       Future<void> Function(int episode, {int currentRoad, int offset})
           changeEpisode) async {
+    if (localVideo != null) return;
     await syncplay.createRoom(
       room,
       username,
@@ -469,6 +484,7 @@ class PlayerController implements Disposable {
 
   void setSyncPlayCurrentPosition(
       {bool? forceSyncPlaying, double? forceSyncPosition}) {
+    if (localVideo != null) return;
     syncplay.setCurrentPosition(
       forceSyncPlaying: forceSyncPlaying,
       forceSyncPosition: forceSyncPosition,
@@ -477,6 +493,7 @@ class PlayerController implements Disposable {
 
   Future<void> setSyncPlayPlayingBangumi(
       {bool? forceSyncPlaying, double? forceSyncPosition}) async {
+    if (localVideo != null) return;
     await syncplay.setPlayingBangumi(
       forceSyncPlaying: forceSyncPlaying,
       forceSyncPosition: forceSyncPosition,
@@ -484,10 +501,12 @@ class PlayerController implements Disposable {
   }
 
   Future<void> requestSyncPlaySync({bool? doSeek}) async {
+    if (localVideo != null) return;
     await syncplay.requestSync(doSeek: doSeek);
   }
 
   Future<void> sendSyncPlayChatMessage(String message) async {
+    if (localVideo != null) return;
     await syncplay.sendChatMessage(message);
   }
 

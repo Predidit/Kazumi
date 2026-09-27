@@ -6,6 +6,7 @@ import 'package:kazumi/modules/my/watch_stats.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
 
 enum MyDestination {
+  localVideo,
   theme,
   player,
   danmaku,
@@ -97,6 +98,14 @@ class _WideSpaceLayout extends StatelessWidget {
               color: colors.tertiaryContainer,
               foreground: colors.onTertiaryContainer,
               onTap: () => onOpen(MyDestination.downloads),
+            ),
+            third: _ToolTile(
+              icon: Icons.video_file_rounded,
+              title: '本地播放',
+              caption: '设备上的视频',
+              color: colors.primaryContainer,
+              foreground: colors.onPrimaryContainer,
+              onTap: () => onOpen(MyDestination.localVideo),
             ),
           ),
         ),
@@ -197,6 +206,7 @@ class _CompactSpaceLayout extends StatelessWidget {
         ContentSection.group(
           title: '内容与偏好',
           children: [
+            _entry('本地播放', Icons.video_file_outlined, MyDestination.localVideo),
             _entry('规则设置', Icons.extension_rounded, MyDestination.rules),
             _entry('外观设置', Icons.palette_rounded, MyDestination.theme),
             _entry('播放设置', Icons.play_circle_rounded, MyDestination.player),
@@ -770,30 +780,39 @@ class _AdaptivePair extends StatelessWidget {
   const _AdaptivePair({
     required this.first,
     required this.second,
+    this.third,
     this.stack = false,
     this.gap = 12,
   });
 
   final Widget first;
   final Widget second;
+  final Widget? third;
   final bool stack;
   final double gap;
 
   @override
   Widget build(BuildContext context) {
+    final items = [first, second, ?third];
     if (stack) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [first, SizedBox(height: gap), second],
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) SizedBox(height: gap),
+            items[i],
+          ],
+        ],
       );
     }
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: first),
-          SizedBox(width: gap),
-          Expanded(child: second),
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) SizedBox(width: gap),
+            Expanded(child: items[i]),
+          ],
         ],
       ),
     );

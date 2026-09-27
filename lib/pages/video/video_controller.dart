@@ -62,6 +62,8 @@ abstract class _VideoPageController with Store implements Disposable {
     this.downloadManager,
   );
 
+  bool isDeviceVideo = false;
+
   late BangumiItem bangumiItem;
   EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
 
@@ -157,6 +159,12 @@ abstract class _VideoPageController with Store implements Disposable {
   @action
   void applyPlaybackArgs(VideoPlaybackArgs args) {
     switch (args) {
+      case LocalVideoPlaybackArgs():
+        isDeviceVideo = true;
+        title = args.playback.record.reference.name;
+        _loading = false;
+        _playbackHistoryIdentity = null;
+
       case OnlineVideoPlaybackArgs():
         bangumiItem = args.bangumiItem;
         currentPlugin = args.plugin;
@@ -173,6 +181,13 @@ abstract class _VideoPageController with Store implements Disposable {
           downloadedEpisodes: args.downloadedEpisodes,
         );
     }
+  }
+
+  void setLocalError(String? error) {
+    runInAction(() {
+      _errorMessage = error;
+      _loading = false;
+    });
   }
 
   @action
@@ -543,11 +558,13 @@ abstract class _VideoPageController with Store implements Disposable {
     PlaybackInitParams params,
     AsyncSession session,
   ) async {
+    final bangumiId = params.bangumiId;
+    if (bangumiId == null) return;
     final danmakuSession = _danmakuSessions.begin();
     playerController.danmaku.beginDanmakuLoad();
     try {
       final result = await playerController.danmaku.fetchDanmaku(
-        params.bangumiId,
+        bangumiId,
         params.pluginName,
         params.danmakuEpisodeNumber,
       );

@@ -52,6 +52,7 @@ class _MyPageState extends State<MyPage> {
 
   void _open(MyDestination destination) =>
       context.pushNamed(switch (destination) {
+        MyDestination.localVideo => '/local-video',
         MyDestination.theme => '/settings/theme',
         MyDestination.player => '/settings/player',
         MyDestination.danmaku => '/settings/danmaku/',

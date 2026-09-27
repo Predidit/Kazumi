@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audio_service_win
   connectivity_plus
+  desktop_drop
   dynamic_color
   file_selector_windows
   flutter_volume_controller

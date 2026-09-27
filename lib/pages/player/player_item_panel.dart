@@ -612,7 +612,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             children: [
               _buildDanmakuToggleButton(context),
               _danmakuSettingsButton,
-              if (constraints.maxWidth > 600) _danmakuTextField,
+              if (!videoPageController.isDeviceVideo &&
+                  constraints.maxWidth > 600)
+                _danmakuTextField,
             ],
           ),
         ),
@@ -651,7 +653,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           ),
           if (playerController.danmaku.danmakuOn) ...[
             _danmakuSettingsButton,
-            Expanded(child: _danmakuTextField),
+            if (!videoPageController.isDeviceVideo)
+              Expanded(child: _danmakuTextField)
+            else
+              const Spacer(),
           ] else
             const Spacer(),
         ],
@@ -706,12 +711,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 playing: playerController.playback.playing,
               ),
             ),
-            nextEpisode: IconButton(
-              color: Colors.white,
-              icon: const Icon(Icons.skip_next_rounded),
-              tooltip: '下一集',
-              onPressed: widget.onNextEpisode,
-            ),
+            nextEpisode: videoPageController.isDeviceVideo
+                ? const SizedBox.shrink()
+                : IconButton(
+                    color: Colors.white,
+                    icon: const Icon(Icons.skip_next_rounded),
+                    tooltip: '下一集',
+                    onPressed: widget.onNextEpisode,
+                  ),
             // Playback ticks only rebuild the progress bar and its time labels.
             progressBuilder: (location) => Observer(
                 builder: (context) => ProgressBar(
@@ -790,7 +797,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   child: compact
                       ? const SizedBox(height: 40)
                       : Text(
-                          ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.selectedEpisode.road].identifier[videoPageController.selectedEpisode.episode - 1]}]',
+                          videoPageController.isDeviceVideo
+                              ? videoPageController.title
+                              : ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.selectedEpisode.road].identifier[videoPageController.selectedEpisode.episode - 1]}]',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: Theme.of(context)
@@ -829,10 +838,11 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   ),
                 ),
               if (compact) _buildDanmakuToggleButton(context),
-              PlayerPanelHoldCollectButton(
-                acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
-                bangumiItem: videoPageController.bangumiItem,
-              ),
+              if (!videoPageController.isDeviceVideo)
+                PlayerPanelHoldCollectButton(
+                  acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+                  bangumiItem: videoPageController.bangumiItem,
+                ),
               PlayerPanelHoldMenuAnchor(
                 acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                 onVisibilityChanged: widget.onMenuVisibilityChanged,
@@ -864,36 +874,45 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     SubmenuButton(
                         menuChildren: _superResolutionItems,
                         child: _menuLabel('超分辨率')),
-                    _syncPlayMenuItem,
+                    if (!videoPageController.isDeviceVideo) _syncPlayMenuItem,
                   ],
                   MenuItemButton(
                     onPressed: widget.showDanmakuSwitch,
-                    child: _menuLabel('弹幕切换'),
+                    child: _menuLabel(
+                      videoPageController.isDeviceVideo ? '选择 / 更换弹幕' : '弹幕切换',
+                    ),
                   ),
+                  if (videoPageController.isDeviceVideo)
+                    MenuItemButton(
+                      onPressed: () => playerController.localVideo!.unlink(),
+                      child: _menuLabel('解除弹幕绑定'),
+                    ),
                   if (compact) _danmakuSettingsMenuItem,
                   MenuItemButton(
                     onPressed: widget.showVideoInfo,
                     child: _menuLabel('视频详情'),
                   ),
-                  MenuItemButton(
-                    onPressed: () {
-                      final needRestart = playerController.playback.playing;
-                      playerController.pause();
-                      RemotePlay()
-                          .castVideo(playerController.videoUrl,
-                              videoPageController.currentPlugin.referer)
-                          .whenComplete(() {
-                        if (mounted && needRestart) {
-                          playerController.play();
-                        }
-                      });
-                    },
-                    child: _menuLabel('远程投屏'),
-                  ),
-                  MenuItemButton(
-                    onPressed: playerController.launchExternalPlayer,
-                    child: _menuLabel('外部播放'),
-                  ),
+                  if (!videoPageController.isDeviceVideo)
+                    MenuItemButton(
+                      onPressed: () {
+                        final needRestart = playerController.playback.playing;
+                        playerController.pause();
+                        RemotePlay()
+                            .castVideo(playerController.videoUrl,
+                                videoPageController.currentPlugin.referer)
+                            .whenComplete(() {
+                          if (mounted && needRestart) {
+                            playerController.play();
+                          }
+                        });
+                      },
+                      child: _menuLabel('远程投屏'),
+                    ),
+                  if (!videoPageController.isDeviceVideo)
+                    MenuItemButton(
+                      onPressed: playerController.launchExternalPlayer,
+                      child: _menuLabel('外部播放'),
+                    ),
                   SubmenuButton(
                     menuChildren: [
                       MenuItemButton(
@@ -942,7 +961,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       ),
                     ),
                   ),
-                  if (!compact) _syncPlayMenuItem,
+                  if (!compact && !videoPageController.isDeviceVideo)
+                    _syncPlayMenuItem,
                 ],
               ),
             ],

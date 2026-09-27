@@ -27,11 +27,17 @@ Future<void> showDanmakuSourceSheet(
   required String initialKeyword,
   required PlayerDanmakuController danmakuController,
   required VoidCallback onBeforeApply,
+  Future<bool?> Function(
+    String anime,
+    DanmakuEpisode episode,
+    bool Function() active,
+  )? onSelectEpisode,
 }) async {
   Widget buildSheet(BuildContext _) => _DanmakuSourceSheet(
         initialKeyword: initialKeyword,
         danmakuController: danmakuController,
         onBeforeApply: onBeforeApply,
+        onSelectEpisode: onSelectEpisode,
       );
 
   if (MediaQuery.orientationOf(context) == Orientation.portrait) {
@@ -79,7 +85,14 @@ class _DanmakuSourceSheet extends StatefulWidget {
     required this.initialKeyword,
     required this.danmakuController,
     required this.onBeforeApply,
+    this.onSelectEpisode,
   });
+
+  final Future<bool?> Function(
+    String anime,
+    DanmakuEpisode episode,
+    bool Function() active,
+  )? onSelectEpisode;
 
   final String initialKeyword;
   final PlayerDanmakuController danmakuController;
@@ -105,6 +118,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   String? _error;
   bool _loading = false;
   bool _hasMore = false;
+  int _request = 0;
 
   @override
   void initState() {
@@ -123,6 +137,8 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   }
 
   Future<void> _searchAnime() async {
+    if (_loading) return;
+    final request = ++_request;
     final keyword = _keywordController.text.trim();
     if (keyword.isEmpty) {
       setState(() => _error = '请输入番剧名称');
@@ -141,7 +157,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
     });
     try {
       final response = await DanmakuApi.searchAnimes(keyword);
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _loading = false;
         _animes = response.animes;
@@ -150,7 +166,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
       });
     } catch (error) {
       KazumiLogger().w('Danmaku source search failed', error: error);
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _loading = false;
         _error = '搜索失败';
@@ -159,6 +175,8 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   }
 
   Future<void> _selectAnime(DanmakuSearchAnime anime) async {
+    if (_loading) return;
+    final request = ++_request;
     setState(() {
       _loading = true;
       _error = null;
@@ -172,7 +190,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
     try {
       final response =
           await DanmakuApi.getDanDanEpisodesByDanDanBangumiID(anime.animeId);
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _loading = false;
         _episodes = response.episodes;
@@ -180,7 +198,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
       });
     } catch (error) {
       KazumiLogger().w('Danmaku episode list failed to load', error: error);
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _loading = false;
         _error = '分集加载失败';
@@ -189,19 +207,36 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   }
 
   Future<void> _selectEpisode(DanmakuEpisode episode) async {
+    if (_loading) return;
+    final request = ++_request;
     setState(() => _loading = true);
     try {
+      if (widget.onSelectEpisode != null) {
+        final result = await widget.onSelectEpisode!(
+          _animeTitle ?? '',
+          episode,
+          () => mounted && request == _request,
+        );
+        if (!mounted || request != _request) return;
+        if (result == null) {
+          setState(() => _loading = false);
+          return;
+        }
+        KazumiDialog.dismiss(context: context);
+        if (result) KazumiDialog.showToast(message: '已切换弹幕源');
+        return;
+      }
       widget.onBeforeApply();
       final hasDanmakus = await widget.danmakuController
           .getDanDanmakuByEpisodeID(episode.episodeId);
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       widget.danmakuController.setDanmakuEnabled(hasDanmakus);
       KazumiDialog.dismiss(context: context);
       KazumiDialog.showToast(
         message: hasDanmakus ? '已切换弹幕源' : '暂无弹幕',
       );
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() => _loading = false);
       KazumiDialog.showToast(message: '弹幕源切换失败');
     }

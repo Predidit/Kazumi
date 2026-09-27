@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:window_manager/window_manager.dart';
 
 class DisplayModeService {
@@ -12,12 +14,45 @@ class DisplayModeService {
   static Object? _systemBarsOwner;
   static bool _systemBarsHidden = false;
 
+  // On Windows / Linux the native title bar would clip the video area while
+  // fullscreen is active. Hide it before fullscreen and restore the user's
+  // preference once we leave fullscreen. macOS keeps the title bar hidden
+  // at all times, so the calls are no-ops there.
+  static Future<void> _hideTitleBarForFullscreen() {
+    return _attempt(() => windowManager.setTitleBarStyle(
+          TitleBarStyle.hidden,
+          windowButtonVisibility: false,
+        ));
+  }
+
+  static Future<void> _restoreTitleBarAfterFullscreen() {
+    final showWindowButton =
+        GStorage.getSetting<bool>(SettingsKeys.showWindowButton);
+    // Mirror the macOS rule from main.dart: always hidden on macOS.
+    final style = (defaultTargetPlatform == TargetPlatform.macOS ||
+            !showWindowButton)
+        ? TitleBarStyle.hidden
+        : TitleBarStyle.normal;
+    return _attempt(() => windowManager.setTitleBarStyle(
+          style,
+          windowButtonVisibility: showWindowButton,
+        ));
+  }
+
   static Future<void> applyVideoFullscreen(bool fullscreen) {
     return _pendingFullscreen = _pendingFullscreen.then((_) async {
       if (defaultTargetPlatform == TargetPlatform.linux ||
           defaultTargetPlatform == TargetPlatform.macOS ||
           defaultTargetPlatform == TargetPlatform.windows) {
-        await _attempt(() => windowManager.setFullScreen(fullscreen));
+        if (fullscreen) {
+          // Hide the title bar *before* going fullscreen so the window is not
+          // resized with the bar still attached (which leaves a black strip).
+          await _hideTitleBarForFullscreen();
+          await _attempt(() => windowManager.setFullScreen(true));
+        } else {
+          await _attempt(() => windowManager.setFullScreen(false));
+          await _restoreTitleBarAfterFullscreen();
+        }
         return;
       }
 

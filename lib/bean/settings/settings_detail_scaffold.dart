@@ -34,6 +34,7 @@ class SettingsDetailScaffold extends StatelessWidget {
     this.actions,
     this.leading,
     this.floatingActionButton,
+    this.bottomNavigationBar,
   });
 
   final Widget title;
@@ -41,6 +42,7 @@ class SettingsDetailScaffold extends StatelessWidget {
   final List<Widget>? actions;
   final Widget? leading;
   final Widget? floatingActionButton;
+  final Widget? bottomNavigationBar;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +50,8 @@ class SettingsDetailScaffold extends StatelessWidget {
     final PreferredSizeWidget appBar;
 
     if (scope != null && scope.embedded) {
-      final paneLeading = leading ??
+      final paneLeading =
+          leading ??
           ((scope.showBackButton ||
                   (ModalRoute.of(context)?.impliesAppBarDismissal ?? false))
               ? BackButton(onPressed: scope.onBack)
@@ -58,33 +61,30 @@ class SettingsDetailScaffold extends StatelessWidget {
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
         toolbarHeight: 64,
-        titleSpacing:
-            paneLeading == null ? 24 : NavigationToolbar.kMiddleSpacing,
+        titleSpacing: paneLeading == null
+            ? 24
+            : NavigationToolbar.kMiddleSpacing,
         leading: paneLeading,
         title: title,
         titleTextStyle: Theme.of(context).textTheme.headlineSmall,
         actions: actions,
       );
     } else {
-      final onBack = scope?.onBack;
       appBar = SysAppBar(
         title: title,
         actions: actions,
-        leading: leading ??
-            (onBack == null
-                ? null
-                : IconButton(
-                    onPressed: onBack,
-                    icon: const Icon(Icons.arrow_back),
-                  )),
+        leading:
+            leading ??
+            (scope == null ? null : BackButton(onPressed: scope.onBack)),
       );
     }
 
-    // Routed panes must paint an opaque surface for page transitions.
+    // Keep routed panes opaque during transitions.
     return Scaffold(
       appBar: appBar,
       body: body,
       floatingActionButton: floatingActionButton,
+      bottomNavigationBar: bottomNavigationBar,
     );
   }
 }

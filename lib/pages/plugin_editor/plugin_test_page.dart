@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
@@ -105,7 +105,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
       return;
     }
     _resetState();
-    // Ignore late responses from requests that do not honor cancellation.
+    // Ignore late responses when cancellation is not honored.
     final runId = _runId;
     final cancelToken = _testCancelToken = CancelToken();
     setState(() {
@@ -148,18 +148,16 @@ class _PluginTestPageState extends State<PluginTestPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: SysAppBar(
-        title: const Text('规则测试'),
-        actions: [
-          IconButton(
-            onPressed: _resetState,
-            icon: const Icon(Icons.restart_alt_rounded),
-            tooltip: '重置测试',
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+    return SettingsDetailScaffold(
+      title: const Text('规则测试'),
+      actions: [
+        IconButton(
+          onPressed: _resetState,
+          icon: const Icon(Icons.restart_alt_rounded),
+          tooltip: '重置测试',
+        ),
+        const SizedBox(width: 8),
+      ],
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(

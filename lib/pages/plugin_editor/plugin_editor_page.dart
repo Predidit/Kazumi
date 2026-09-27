@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/pages/plugin_editor/rule_management_widgets.dart';
 import 'package:kazumi/pages/plugin_editor/editor_form_widgets.dart';
@@ -221,7 +221,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   String chapterApiMethod = 'GET';
   String chapterApiBodyType = ApiBodyType.none;
   String chapterApiFormat = ApiChapterFormat.nested;
-  // Preserve legacy schema values on save, even when no longer editable.
+  // Preserve legacy fields that the editor no longer exposes.
   late String _api;
   late String _type;
   late bool _muliSources;
@@ -431,8 +431,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: const SysAppBar(title: Text(_RuleEditorText.pageTitle)),
+    return SettingsDetailScaffold(
+      title: const Text(_RuleEditorText.pageTitle),
       body: SafeArea(
         top: false,
         bottom: false,

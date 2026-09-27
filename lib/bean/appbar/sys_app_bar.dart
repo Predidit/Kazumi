@@ -9,57 +9,46 @@ import 'package:kazumi/utils/device.dart';
 
 class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double? toolbarHeight;
-
   final Widget? title;
-
   final Color? backgroundColor;
-
-  final double? elevation;
-
-  final ShapeBorder? shape;
-
   final List<Widget>? actions;
-
   final Widget? leading;
-
-  final double? leadingWidth;
-
-  final PreferredSizeWidget? bottom;
-
   final bool needTopOffset;
 
-  const SysAppBar(
-      {super.key,
-      this.toolbarHeight,
-      this.title,
-      this.backgroundColor,
-      this.elevation,
-      this.shape,
-      this.actions,
-      this.leading,
-      this.leadingWidth,
-      this.bottom,
-      this.needTopOffset = true});
+  const SysAppBar({
+    super.key,
+    this.toolbarHeight,
+    this.title,
+    this.backgroundColor,
+    this.actions,
+    this.leading,
+    this.needTopOffset = true,
+  });
 
-  bool showWindowButton() {
-    return GStorage.getSetting(SettingsKeys.showWindowButton);
-  }
+  bool get _showWindowButton =>
+      GStorage.getSetting(SettingsKeys.showWindowButton);
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> acs = [];
-    if (actions != null) {
-      acs.addAll(actions!);
-    }
-    if (isDesktop()) {
-      // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
-      if (!showWindowButton()) {
-        acs.add(CloseButton(onPressed: () => windowManager.close()));
+    final desktop = isDesktop();
+    final appBarActions = <Widget>[...?actions];
+    if (desktop) {
+      if (!_showWindowButton) {
+        appBarActions.add(CloseButton(onPressed: () => windowManager.close()));
       }
-      acs.add(const SizedBox(width: 8));
+      appBarActions.add(const SizedBox(width: 8));
     }
+    final appBarLeading =
+        leading ??
+        ((ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
+            ? IconButton(
+                onPressed: () => context.maybePop(),
+                icon: const Icon(Icons.arrow_back),
+              )
+            : null);
+
     return GestureDetector(
-      onPanStart: (_) => (isDesktop()) ? windowManager.startDragging() : null,
+      onPanStart: desktop ? (_) => windowManager.startDragging() : null,
       child: AppBar(
         toolbarHeight: preferredSize.height,
         scrolledUnderElevation: 0.0,
@@ -69,41 +58,27 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
                 child: title!,
               )
             : null,
-        centerTitle: Platform.isIOS ? true : false,
-        actions: acs.map((e) {
+        centerTitle: Platform.isIOS,
+        actions: appBarActions.map((action) {
           return EmbeddedNativeControlArea(
             requireOffset: needTopOffset,
-            child: e,
+            child: action,
           );
         }).toList(),
-        leading: leading != null
+        leading: appBarLeading != null
             ? EmbeddedNativeControlArea(
                 requireOffset: needTopOffset,
-                child: leading!,
+                child: appBarLeading,
               )
-            : (ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
-                ? EmbeddedNativeControlArea(
-                    requireOffset: needTopOffset,
-                    child: IconButton(
-                      onPressed: () {
-                        context.maybePop();
-                      },
-                      icon: Icon(Icons.arrow_back),
-                    ),
-                  )
-                : null,
-        leadingWidth: leadingWidth,
+            : null,
         backgroundColor: backgroundColor,
-        elevation: elevation,
-        shape: shape,
-        bottom: bottom,
         automaticallyImplyLeading: false,
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness:
               Theme.of(context).brightness == Brightness.light
-                  ? Brightness.dark
-                  : Brightness.light,
+              ? Brightness.dark
+              : Brightness.light,
           systemNavigationBarColor: Colors.transparent,
           systemNavigationBarDividerColor: Colors.transparent,
         ),
@@ -113,16 +88,10 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
-    // macOS needs to add 22(macOS title bar height)
-    // to default toolbar height to build appbar like normal
-    if (Platform.isMacOS && needTopOffset && showWindowButton()) {
-      if (toolbarHeight != null) {
-        return Size.fromHeight(toolbarHeight! + 22);
-      } else {
-        return const Size.fromHeight(kToolbarHeight + 22);
-      }
-    } else {
-      return Size.fromHeight(toolbarHeight ?? kToolbarHeight);
-    }
+    // Reserve space for native macOS window controls.
+    final topOffset = Platform.isMacOS && needTopOffset && _showWindowButton
+        ? 22.0
+        : 0.0;
+    return Size.fromHeight((toolbarHeight ?? kToolbarHeight) + topOffset);
   }
 }

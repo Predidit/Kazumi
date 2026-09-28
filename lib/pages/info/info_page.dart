@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
@@ -15,6 +14,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/pages/info/info_actions_menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
@@ -348,15 +348,8 @@ class _InfoPageState extends State<InfoPage>
                       ),
                     ),
                   EmbeddedNativeControlArea(
-                    child: IconButton(
-                      onPressed: () {
-                        launchUrl(
-                          Uri.parse(
-                              'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
-                      icon: const Icon(Icons.open_in_browser_rounded),
+                    child: InfoActionsMenu(
+                      bangumiItem: infoController.bangumiItem,
                     ),
                   ),
                   if (!showWindowButton && isDesktop())

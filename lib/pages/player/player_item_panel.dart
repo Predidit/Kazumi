@@ -416,6 +416,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               duration:
                   visible ? playerController.playback.duration : Duration.zero,
               direction: playerController.panel.seekDirection,
+              cancelPending: playerController.panel.seekCancelPending,
               disableAnimations: widget.disableAnimations,
             );
           }),

@@ -1,12 +1,21 @@
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
+import 'package:media_kit/media_kit.dart';
 
 class _InteractiveSeekSession {
-  _InteractiveSeekSession(this.pauseCompleted, this.target);
+  _InteractiveSeekSession({
+    required this.pauseCompleted,
+    required this.initialPosition,
+    required this.wasPlaying,
+    required this.player,
+  }) : target = initialPosition;
 
   final Future<void> pauseCompleted;
+  final Duration initialPosition;
+  final bool wasPlaying;
+  final Player? player;
   Duration target;
-  Future<bool>? commit;
+  Future<bool>? completion;
 }
 
 class PlayerSeekController {
@@ -73,15 +82,24 @@ class PlayerSeekController {
       );
 
   void beginInteractiveSeek() {
+    final initialPosition = _playback.currentPosition;
+    final previousSession = _interactiveSession;
+    // Keep the original playing state across overlapping gestures.
+    final wasPlaying = previousSession != null && _isCurrent(previousSession)
+        ? previousSession.wasPlaying
+        : _playback.playerPlaying;
+    final player = _playback.mediaPlayer;
     _interactiveSession = _InteractiveSeekSession(
-      _pause(enableSync: false),
-      _playback.currentPosition,
+      pauseCompleted: _pause(enableSync: false),
+      initialPosition: initialPosition,
+      wasPlaying: wasPlaying,
+      player: player,
     );
   }
 
   bool updateInteractiveSeek(Duration target) {
     final session = _interactiveSession;
-    if (session == null) {
+    if (session == null || !_isCurrent(session) || session.completion != null) {
       return false;
     }
     session.target = _normalize(target);
@@ -89,36 +107,47 @@ class PlayerSeekController {
     return true;
   }
 
-  Future<bool> commitInteractiveSeek() {
+  Future<bool> finishInteractiveSeek({bool cancelled = false}) {
     final session = _interactiveSession;
     if (session == null) {
       return Future<bool>.value(false);
     }
-    return session.commit ??= _commitInteractiveSeek(session);
+    return session.completion ??=
+        _finishInteractiveSeek(session, cancelled: cancelled);
   }
 
   void invalidateInteractiveSeek() {
     _interactiveSession = null;
   }
 
-  Future<bool> _commitInteractiveSeek(
-    _InteractiveSeekSession session,
-  ) async {
+  Future<bool> _finishInteractiveSeek(
+    _InteractiveSeekSession session, {
+    required bool cancelled,
+  }) async {
     try {
+      if (!_isCurrent(session)) {
+        return false;
+      }
+      if (cancelled) {
+        // Only the preview moved; cancellation needs no native seek.
+        _playback.currentPosition = session.initialPosition;
+      }
       await session.pauseCompleted;
       if (!_isCurrent(session)) {
         return false;
       }
-
-      await seekTo(session.target);
-      if (!_isCurrent(session)) {
-        return false;
+      if (!cancelled) {
+        await seekTo(session.target);
+        if (!_isCurrent(session)) {
+          return false;
+        }
       }
-
-      await _play(enableSync: false);
+      if (!cancelled || session.wasPlaying) {
+        await _play(enableSync: false);
+      }
       return _isCurrent(session);
     } finally {
-      if (_isCurrent(session)) {
+      if (identical(_interactiveSession, session)) {
         _interactiveSession = null;
       }
     }
@@ -137,7 +166,8 @@ class PlayerSeekController {
   }
 
   bool _isCurrent(_InteractiveSeekSession session) =>
-      identical(_interactiveSession, session);
+      identical(_interactiveSession, session) &&
+      identical(_playback.mediaPlayer, session.player);
 
   Future<void> _settle(Future<void> operation) async {
     try {

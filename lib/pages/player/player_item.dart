@@ -5,6 +5,7 @@ import 'package:kazumi/pages/player/player_keyboard_shortcuts.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/player_pointer_interaction.dart';
+import 'package:kazumi/pages/player/player_gesture_detector.dart';
 import 'package:kazumi/pages/player/player_screenshot_feedback_overlay.dart';
 import 'package:kazumi/pages/player/syncplay_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -683,7 +684,7 @@ class _PlayerItemState extends State<PlayerItem>
       await playerController.seek(duration);
       return;
     }
-    await _commitInteractiveSeek();
+    await _finishInteractiveSeek();
   }
 
   void _beginInteractiveSeek() {
@@ -693,10 +694,11 @@ class _PlayerItemState extends State<PlayerItem>
     playerController.seeking.beginInteractiveSeek();
   }
 
-  Future<void> _commitInteractiveSeek() async {
+  Future<void> _finishInteractiveSeek({bool cancelled = false}) async {
     var completed = false;
     try {
-      completed = await playerController.seeking.commitInteractiveSeek();
+      completed = await playerController.seeking
+          .finishInteractiveSeek(cancelled: cancelled);
     } catch (e) {
       KazumiLogger().e('PlayerController: interactive seek failed', error: e);
     }
@@ -1471,37 +1473,36 @@ class _PlayerItemState extends State<PlayerItem>
                       bottom: 15,
                       child: (isDesktop() || playerController.panel.lockPanel)
                           ? Container()
-                          : GestureDetector(
-                              onHorizontalDragStart: (_) {
+                          : PlayerGestureDetector(
+                              onSeekStart: () {
                                 playerController.panel.seekDirection = 0;
+                                playerController.panel.seekCancelPending = false;
                                 _beginInteractiveSeek();
                               },
-                              onHorizontalDragUpdate:
-                                  (DragUpdateDetails details) {
+                              onSeekUpdate: (delta, cancelPending) {
                                 playerController.panel.showSeekTime = true;
-                                if (details.delta.dx != 0) {
-                                  playerController.panel.seekDirection =
-                                      details.delta.dx > 0 ? 1 : -1;
-                                }
+                                playerController.panel.seekCancelPending =
+                                    cancelPending;
+                                if (delta == 0) return;
+                                playerController.panel.seekDirection =
+                                    delta > 0 ? 1 : -1;
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
                                 playerController.seeking.updateInteractiveSeek(
                                   playerController.playback.currentPosition +
                                       Duration(
                                         milliseconds:
-                                            (details.delta.dx * scale).round(),
+                                            (delta * scale).round(),
                                       ),
                                 );
                               },
-                              onHorizontalDragEnd: (_) {
+                              onSeekEnd: (cancelled) {
                                 playerController.panel.showSeekTime = false;
+                                playerController.panel.seekCancelPending = false;
                                 playerController.panel.seekDirection = 0;
-                                if (playerController
-                                    .seeking.hasActiveInteractiveSeek) {
-                                  unawaited(
-                                    _commitInteractiveSeek(),
-                                  );
-                                }
+                                unawaited(
+                                  _finishInteractiveSeek(cancelled: cancelled),
+                                );
                               },
                               onVerticalDragUpdate:
                                   (DragUpdateDetails details) async {

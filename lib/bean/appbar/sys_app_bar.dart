@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -25,15 +25,12 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.needTopOffset = true,
   });
 
-  bool get _showWindowButton =>
-      GStorage.getSetting(SettingsKeys.showWindowButton);
-
   @override
   Widget build(BuildContext context) {
     final desktop = isDesktop();
     final appBarActions = <Widget>[...?actions];
     if (desktop) {
-      if (!_showWindowButton) {
+      if (!DesktopWindowConfig.showWindowButton) {
         appBarActions.add(CloseButton(onPressed: () => windowManager.close()));
       }
       appBarActions.add(const SizedBox(width: 8));
@@ -89,7 +86,10 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize {
     // Reserve space for native macOS window controls.
-    final topOffset = Platform.isMacOS && needTopOffset && _showWindowButton
+    final topOffset =
+        Platform.isMacOS &&
+            needTopOffset &&
+            DesktopWindowConfig.showWindowButton
         ? 22.0
         : 0.0;
     return Size.fromHeight((toolbarHeight ?? kToolbarHeight) + topOffset);

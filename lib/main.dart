@@ -17,6 +17,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/services/platform/webview_feature_service.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/navigation.dart';
@@ -43,7 +44,6 @@ void main() async {
     await Hive.initFlutter(hivePath);
     await GStorage.init();
   } catch (e) {
-    // Log the error for debugging (if logger is available)
     debugPrint('Storage initialization failed: $e');
 
     if (isDesktop()) {
@@ -68,16 +68,15 @@ void main() async {
         }));
     return;
   }
-  bool showWindowButton =
-      await GStorage.getSetting(SettingsKeys.showWindowButton);
+  final showWindowButton = DesktopWindowConfig.showWindowButton;
   if (isDesktop()) {
     await windowManager.ensureInitialized();
     final lowResolution = await isLowResolution();
-    WindowOptions windowOptions = WindowOptions(
+    final windowOptions = WindowOptions(
       size: lowResolution ? const Size(840, 600) : const Size(1280, 860),
       center: true,
       skipTaskbar: false,
-      // macOS always hide title bar regardless of showWindowButton setting
+      // macOS embeds native buttons in the Flutter view.
       titleBarStyle: (Platform.isMacOS || !showWindowButton)
           ? TitleBarStyle.hidden
           : TitleBarStyle.normal,

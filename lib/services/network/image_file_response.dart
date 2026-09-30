@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 Future<FileServiceResponse> createImageFileResponse(
   http.StreamedResponse response, {
+  required int? contentLength,
   required void Function() onComplete,
 }) async {
   // CacheManager only consumes 200/202 bodies.
@@ -12,11 +13,12 @@ Future<FileServiceResponse> createImageFileResponse(
     } finally {
       onComplete();
     }
-    return _ImageFileResponse(response, const Stream.empty());
+    return _ImageFileResponse(response, const Stream.empty(), contentLength);
   }
   return _ImageFileResponse(
     response,
     _releaseAfter(response.stream, onComplete),
+    contentLength,
   );
 }
 
@@ -32,8 +34,11 @@ Stream<List<int>> _releaseAfter(
 }
 
 class _ImageFileResponse extends HttpGetResponse {
-  _ImageFileResponse(super.response, this.content);
+  _ImageFileResponse(super.response, this.content, this.contentLength);
 
   @override
   final Stream<List<int>> content;
+
+  @override
+  final int? contentLength;
 }

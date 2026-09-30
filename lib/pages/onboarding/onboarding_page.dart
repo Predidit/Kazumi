@@ -35,7 +35,7 @@ class OnboardingPage extends StatefulWidget {
 enum _OnboardingStep {
   welcome('使用约定'),
   updates('更新来源'),
-  mirrors('网络镜像'),
+  mirrors('访问加速'),
   rules('添加规则');
 
   const _OnboardingStep(this.label);

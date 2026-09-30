@@ -39,11 +39,12 @@ void main() {
     await GStorage.collectibles.clear();
     DioFactory.reset();
     adapter = _BangumiAdapter();
-    DioFactory.apiDio.httpClientAdapter = adapter;
+    DioFactory.bangumiDio.httpClientAdapter.close();
+    DioFactory.bangumiDio.httpClientAdapter = adapter;
   });
 
   tearDownAll(() async {
-    DioFactory.apiDio.close(force: true);
+    DioFactory.bangumiDio.close(force: true);
     DioFactory.reset();
     await Hive.close();
     PathProviderPlatform.instance = originalPathProvider;

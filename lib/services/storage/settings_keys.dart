@@ -268,6 +268,12 @@ class SettingsKeys {
     'ech',
     group: SettingGroup.proxy,
   );
+  // An unset mode inherits the old mirror switch (enabled by default).
+  static const bangumiAcceleration = SettingKey<String>(
+    'bangumiAcceleration',
+    '',
+    group: SettingGroup.proxy,
+  );
   static const enableSystemProxy = SettingKey<bool>(
     _SettingBoxKey.enableSystemProxy,
     false,
@@ -598,6 +604,7 @@ class SettingsKeys {
     enableGitProxy,
     enableBangumiProxy,
     imageAcceleration,
+    bangumiAcceleration,
     enableSystemProxy,
     defaultStartupPage,
     webDavEnable,

@@ -82,6 +82,8 @@ class ApiEndpoints {
   /// Bangumi Next API Domain
   static const String bangumiAPINextDomain = 'https://next.bgm.tv';
 
+  static const bangumiPublicApiHosts = {'api.bgm.tv', 'next.bgm.tv'};
+
   /// 每日放送
   static const String bangumiCalendar = '/p1/calendar';
 

@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:mobx/mobx.dart';
 
 part 'popular_controller.g.dart';
@@ -31,7 +31,7 @@ abstract class _PopularController with Store {
   bool isTimeOut = false;
 
   bool get _bangumiMirrorEnabled =>
-      GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+      BangumiAcceleration.current == BangumiAcceleration.mirror;
 
   void setCurrentTag(String s) {
     currentTag = s;

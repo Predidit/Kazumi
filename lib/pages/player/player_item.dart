@@ -7,12 +7,13 @@ import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/player_pointer_interaction.dart';
 import 'package:kazumi/pages/player/player_gesture_detector.dart';
 import 'package:kazumi/pages/player/player_screenshot_feedback_overlay.dart';
+import 'package:kazumi/pages/player/player_screenshot_sheet.dart';
+import 'package:kazumi/pages/player/controller/player_screenshot_controller.dart';
 import 'package:kazumi/pages/player/syncplay_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/services/sync/webdav.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:flutter/material.dart';
@@ -32,8 +33,8 @@ import 'package:kazumi/pages/player/danmaku_source_sheet.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:saver_gallery/saver_gallery.dart';
 import 'package:kazumi/services/player/audio_controller.dart';
+import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/player_menu_service.dart';
 
@@ -130,6 +131,9 @@ class _PlayerItemState extends State<PlayerItem>
   late final AnimationController _panelVisibilityController;
   late final AnimationController _screenshotFeedbackController;
   late final Animation<double> _screenshotFeedbackAnimation;
+  late final PlayerScreenshotController _screenshots =
+      playerController.screenshots;
+  bool _screenshotSheetOpen = false;
 
   double lastPlayerSpeed = 1.0;
   late double longPressPlaySpeed;
@@ -733,36 +737,90 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> handleScreenshot() async {
-    _playScreenshotFeedback();
-
-    if (isDesktop()) {
-      KazumiDialog.showToast(message: '桌面端暂未支持保存截图');
+    if (!mounted || _screenshots.busy || _screenshotSheetOpen) return;
+    final episode = videoPageController.playbackEpisode;
+    final source = videoPageController.src;
+    final player = playerController.playback.mediaPlayer;
+    if (videoPageController.loading || player == null) {
+      KazumiDialog.showToast(message: '暂未获取到画面，请等视频显示后重试');
       return;
     }
+    final added = await _screenshots.capture(
+      capturePng: playerController.screenshotPng,
+      title: videoPageController.title,
+      episode:
+          videoPageController.resolveEpisode(episode)?.displayTitle ??
+          '第 ${episode.episode} 集',
+      position: player.state.position,
+      isCurrent: () =>
+          mounted &&
+          !videoPageController.loading &&
+          videoPageController.playbackEpisode == episode &&
+          videoPageController.src == source &&
+          identical(playerController.playback.mediaPlayer, player),
+    );
+    if (!mounted) return;
+    if (added) _playScreenshotFeedback();
+    if (!_screenshotSheetOpen) {
+      showVideoController();
+      if (!added || _screenshots.candidates.length == 1) {
+        KazumiDialog.showToast(
+          message: added
+              ? '已截取画面，点击右侧图库挑选保存'
+              : _screenshots.message ?? '截图失败，请重试',
+          showActionButton: _screenshots.candidates.isNotEmpty,
+          actionLabel: '挑选截图',
+          onActionPressed: showScreenshotCandidates,
+        );
+      }
+    }
+  }
 
+  Future<void> showScreenshotCandidates() async {
+    if (!mounted || _screenshotSheetOpen || _screenshots.busy) return;
+    _screenshotSheetOpen = true;
+    final hold = acquirePlayerPanelHold();
+    final player = playerController.playback.mediaPlayer;
+    final episode = videoPageController.playbackEpisode;
+    final source = videoPageController.src;
+    final resume =
+        playerController.playback.playing &&
+        !playerController.syncplay.hasSession;
+    final sleepRemaining = TimedShutdownService().remainingSecondsNotifier.value;
+    final sleepDeadline = sleepRemaining > 0
+        ? DateTime.now().add(Duration(seconds: sleepRemaining))
+        : null;
     try {
-      Uint8List? screenshot = await playerController.screenshotPng();
-
-      if (screenshot == null) {
-        KazumiDialog.showToast(message: '截图失败：未获取到图像');
-        return;
+      if (resume) await playerController.pause(enableSync: false);
+      if (!mounted) return;
+      await showPlayerScreenshotSheet(context, controller: _screenshots);
+    } finally {
+      _screenshotSheetOpen = false;
+      if (mounted) {
+        hold.release();
+        widget.keyboardFocus.requestFocus();
+        // Resume only the same local playback, respecting the sleep timer.
+        if (resume &&
+            identical(player, playerController.playback.mediaPlayer) &&
+            videoPageController.playbackEpisode == episode &&
+            videoPageController.src == source &&
+            !videoPageController.loading &&
+            !playerController.syncplay.hasSession &&
+            (sleepDeadline == null || DateTime.now().isBefore(sleepDeadline)) &&
+            WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed &&
+            (ModalRoute.of(context)?.isCurrent ?? false)) {
+          await playerController.play(enableSync: false);
+        }
+      } else {
+        hold.releaseSilently();
       }
-
-      final result = await SaverGallery.saveImage(
-        screenshot,
-        fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),
-        skipIfExists: false,
-      );
-      if (!result.isSuccess) {
-        KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
-      }
-    } catch (e) {
-      KazumiDialog.showToast(message: '截图失败：$e');
     }
   }
 
   void _playScreenshotFeedback() {
-    if (!mounted) {
+    if (!mounted ||
+        widget.disableAnimations ||
+        MediaQuery.disableAnimationsOf(context)) {
       return;
     }
     _screenshotFeedbackController.forward(from: 0);
@@ -1464,6 +1522,7 @@ class _PlayerItemState extends State<PlayerItem>
                             pauseForTimedShutdown: widget.pauseForTimedShutdown,
                             disableAnimations: widget.disableAnimations,
                             handleScreenShot: handleScreenshot,
+                            showScreenshotCandidates: showScreenshotCandidates,
                             skipOP: skipOP,
                           ),
                     Positioned.fill(

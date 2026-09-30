@@ -25,6 +25,7 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/format.dart';
 import 'package:kazumi/pages/player/player_transport_bar.dart';
+import 'package:kazumi/pages/player/player_screenshot_controls.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -38,6 +39,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleFullscreen,
     required this.enterAndroidPictureInPicture,
     required this.handleScreenShot,
+    required this.showScreenshotCandidates,
     required this.onNextEpisode,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarSeek,
@@ -65,6 +67,7 @@ class PlayerItemPanel extends StatefulWidget {
   final VoidCallback handleFullscreen;
   final Future<void> Function() enterAndroidPictureInPicture;
   final VoidCallback handleScreenShot;
+  final VoidCallback showScreenshotCandidates;
   final VoidCallback handleProgressBarDragStart;
   final Future<void> Function(Duration duration) handleProgressBarSeek;
   final Future<void> Function(SuperResolutionMode mode)
@@ -448,27 +451,28 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             );
           }),
         ),
-        if (!_desktop)
-          Positioned(
-            right: 0,
-            top: 0,
-            bottom: 0,
-            child: Observer(builder: (context) {
-              if ((compact || !widget.fillsWindow) &&
-                  !playerController.panel.lockPanel) {
-                return const SizedBox.shrink();
-              }
-              return Visibility(
-                visible: widget.disableAnimations
-                    ? playerController.panel.showVideoController
-                    : true,
-                child: widget.disableAnimations
-                    ? _rightControls
-                    : SlideTransition(
-                        position: _rightOffsetAnimation, child: _rightControls),
-              );
-            }),
-          ),
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: Observer(builder: (context) {
+            if (!_desktop &&
+                (compact || !widget.fillsWindow) &&
+                !playerController.panel.lockPanel) {
+              return const SizedBox.shrink();
+            }
+            return Visibility(
+              visible: widget.disableAnimations
+                  ? playerController.panel.showVideoController
+                  : true,
+              child: widget.disableAnimations
+                  ? _rightControls
+                  : SlideTransition(
+                      position: _rightOffsetAnimation,
+                      child: _rightControls),
+            );
+          }),
+        ),
         Positioned(
           top: 0,
           left: 0,
@@ -856,6 +860,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   );
                 },
                 menuChildren: [
+                  MenuItemButton(
+                    leadingIcon: const Icon(Icons.photo_camera_outlined),
+                    onPressed: widget.handleScreenShot,
+                    child: _menuLabel('截取当前画面'),
+                  ),
+                  MenuItemButton(
+                    leadingIcon: const Icon(Icons.photo_library_outlined),
+                    onPressed: widget.showScreenshotCandidates,
+                    child: _menuLabel('挑选截图'),
+                  ),
                   if (compact) ...[
                     SubmenuButton(
                         menuChildren: _aspectRatioItems,
@@ -959,33 +973,35 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       bottom: false,
       left: widget.fillsWindow,
       right: widget.fillsWindow,
-      child: Column(
-        children: [
-          const Spacer(),
-          if (!playerController.panel.lockPanel)
-            IconButton(
-              icon: const Icon(
-                Icons.photo_camera_outlined,
-                color: Colors.white,
+      child: PlayerPanelHoldMouseRegion(
+        acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+        cursor: SystemMouseCursors.basic,
+        child: Column(
+          children: [
+            const Spacer(),
+            if (!playerController.panel.lockPanel)
+              PlayerScreenshotControls(
+                controller: playerController.screenshots,
+                onCapture: widget.handleScreenShot,
+                onReview: widget.showScreenshotCandidates,
               ),
-              tooltip: '截图',
-              onPressed: widget.handleScreenShot,
-            ),
-          IconButton(
-            icon: Icon(
-              playerController.panel.lockPanel
-                  ? Icons.lock_outline
-                  : Icons.lock_open,
-              color: Colors.white,
-            ),
-            tooltip: playerController.panel.lockPanel ? '解锁面板' : '锁定面板',
-            onPressed: () {
-              playerController.panel.lockPanel =
-                  !playerController.panel.lockPanel;
-            },
-          ),
-          const Spacer(),
-        ],
+            if (!_desktop)
+              IconButton(
+                icon: Icon(
+                  playerController.panel.lockPanel
+                      ? Icons.lock_outline
+                      : Icons.lock_open,
+                  color: Colors.white,
+                ),
+                tooltip: playerController.panel.lockPanel ? '解锁面板' : '锁定面板',
+                onPressed: () {
+                  playerController.panel.lockPanel =
+                      !playerController.panel.lockPanel;
+                },
+              ),
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }

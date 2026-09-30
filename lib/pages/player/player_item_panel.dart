@@ -809,6 +809,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 IconButton(
                   onPressed: () async {
                     if (_desktop) {
+                      // if is fullscreen, do not enter pip mode.
+                      if (videoPageController.isFullscreen) {
+                        return;
+                      }
                       if (videoPageController.isPip) {
                         await PipUtils.exitDesktopPIPWindow();
                       } else {

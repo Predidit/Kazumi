@@ -860,16 +860,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   );
                 },
                 menuChildren: [
-                  MenuItemButton(
-                    leadingIcon: const Icon(Icons.photo_camera_outlined),
-                    onPressed: widget.handleScreenShot,
-                    child: _menuLabel('截取当前画面'),
-                  ),
-                  MenuItemButton(
-                    leadingIcon: const Icon(Icons.photo_library_outlined),
-                    onPressed: widget.showScreenshotCandidates,
-                    child: _menuLabel('挑选截图'),
-                  ),
                   if (compact) ...[
                     SubmenuButton(
                         menuChildren: _aspectRatioItems,

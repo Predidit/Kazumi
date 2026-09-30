@@ -451,28 +451,28 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             );
           }),
         ),
-        Positioned(
-          right: 0,
-          top: 0,
-          bottom: 0,
-          child: Observer(builder: (context) {
-            if (!_desktop &&
-                (compact || !widget.fillsWindow) &&
-                !playerController.panel.lockPanel) {
-              return const SizedBox.shrink();
-            }
-            return Visibility(
-              visible: widget.disableAnimations
-                  ? playerController.panel.showVideoController
-                  : true,
-              child: widget.disableAnimations
-                  ? _rightControls
-                  : SlideTransition(
-                      position: _rightOffsetAnimation,
-                      child: _rightControls),
-            );
-          }),
-        ),
+        if (!_desktop)
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: Observer(builder: (context) {
+              if ((compact || !widget.fillsWindow) &&
+                  !playerController.panel.lockPanel) {
+                return const SizedBox.shrink();
+              }
+              return Visibility(
+                visible: widget.disableAnimations
+                    ? playerController.panel.showVideoController
+                    : true,
+                child: widget.disableAnimations
+                    ? _rightControls
+                    : SlideTransition(
+                        position: _rightOffsetAnimation,
+                        child: _rightControls),
+              );
+            }),
+          ),
         Positioned(
           top: 0,
           left: 0,
@@ -808,6 +808,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 ),
               ),
               _forwardButton(),
+              if (_desktop)
+                PlayerScreenshotControls(
+                  controller: playerController.screenshots,
+                  onCapture: widget.handleScreenShot,
+                  onReview: widget.showScreenshotCandidates,
+                ),
               if ((_desktop &&
                       (compact || !videoPageController.isFullscreen)) ||
                   (defaultTargetPlatform == TargetPlatform.android))
@@ -970,25 +976,27 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           children: [
             const Spacer(),
             if (!playerController.panel.lockPanel)
-              PlayerScreenshotControls(
-                controller: playerController.screenshots,
-                onCapture: widget.handleScreenShot,
-                onReview: widget.showScreenshotCandidates,
-              ),
-            if (!_desktop)
               IconButton(
-                icon: Icon(
-                  playerController.panel.lockPanel
-                      ? Icons.lock_outline
-                      : Icons.lock_open,
+                icon: const Icon(
+                  Icons.photo_camera_outlined,
                   color: Colors.white,
                 ),
-                tooltip: playerController.panel.lockPanel ? '解锁面板' : '锁定面板',
-                onPressed: () {
-                  playerController.panel.lockPanel =
-                      !playerController.panel.lockPanel;
-                },
+                tooltip: '截图',
+                onPressed: widget.handleScreenShot,
               ),
+            IconButton(
+              icon: Icon(
+                playerController.panel.lockPanel
+                    ? Icons.lock_outline
+                    : Icons.lock_open,
+                color: Colors.white,
+              ),
+              tooltip: playerController.panel.lockPanel ? '解锁面板' : '锁定面板',
+              onPressed: () {
+                playerController.panel.lockPanel =
+                    !playerController.panel.lockPanel;
+              },
+            ),
             const Spacer(),
           ],
         ),

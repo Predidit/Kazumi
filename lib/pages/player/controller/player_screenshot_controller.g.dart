@@ -177,14 +177,9 @@ mixin _$PlayerScreenshotController on _PlayerScreenshotController, Store {
   Future<void> save({
     required Future<String?> Function() chooseDestination,
     required Future<void> Function(ScreenshotCandidate, String) write,
-    required String destinationLabel,
   }) {
     return _$saveAsyncAction.run(
-      () => super.save(
-        chooseDestination: chooseDestination,
-        write: write,
-        destinationLabel: destinationLabel,
-      ),
+      () => super.save(chooseDestination: chooseDestination, write: write),
     );
   }
 
@@ -199,6 +194,28 @@ mixin _$PlayerScreenshotController on _PlayerScreenshotController, Store {
         .startAction(name: '_PlayerScreenshotController.toggle');
     try {
       return super.toggle(item);
+    } finally {
+      _$_PlayerScreenshotControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void removeSelected() {
+    final _$actionInfo = _$_PlayerScreenshotControllerActionController
+        .startAction(name: '_PlayerScreenshotController.removeSelected');
+    try {
+      return super.removeSelected();
+    } finally {
+      _$_PlayerScreenshotControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void clearCandidates() {
+    final _$actionInfo = _$_PlayerScreenshotControllerActionController
+        .startAction(name: '_PlayerScreenshotController.clearCandidates');
+    try {
+      return super.clearCandidates();
     } finally {
       _$_PlayerScreenshotControllerActionController.endAction(_$actionInfo);
     }

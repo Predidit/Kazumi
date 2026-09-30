@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:kazumi/services/player/screenshot_candidate.dart';
+import 'package:kazumi/services/player/screenshot_image_cache.dart';
 import 'package:mobx/mobx.dart';
 
 part 'player_screenshot_controller.g.dart';
@@ -11,13 +12,11 @@ part 'player_screenshot_controller.g.dart';
 class PlayerScreenshotController = _PlayerScreenshotController
     with _$PlayerScreenshotController;
 
-/// Candidates are append-only and live until the playback page is disposed.
 abstract class _PlayerScreenshotController with Store {
   static const _maxCandidates = 24;
   static const _maxBytes = 96 << 20;
   final _candidates = ObservableList<ScreenshotCandidate>();
   final _selected = ObservableSet<String>();
-  final _saved = ObservableSet<String>();
   late final List<ScreenshotCandidate> candidates = UnmodifiableListView(
     _candidates,
   );
@@ -50,7 +49,6 @@ abstract class _PlayerScreenshotController with Store {
   int get selectedCount => _selected.length;
 
   bool isSelected(ScreenshotCandidate item) => _selected.contains(item.id);
-  bool isSaved(ScreenshotCandidate item) => _saved.contains(item.id);
 
   void _report(String message, {bool error = false}) {
     if (_disposed) return;
@@ -68,7 +66,7 @@ abstract class _PlayerScreenshotController with Store {
   }) async {
     if (_disposed || busy) return false;
     if (_candidates.length >= _maxCandidates || _byteCount >= _maxBytes) {
-      _report('本次播放的截图候选已满，请挑选需要保存的截图', error: true);
+      _report('待处理截图已满，请保存或移除部分截图后继续', error: true);
       return false;
     }
     _capturing = true;
@@ -87,7 +85,7 @@ abstract class _PlayerScreenshotController with Store {
         return false;
       }
       if (_byteCount + bytes.lengthInBytes > _maxBytes) {
-        _report('截图候选已达到内存上限，请挑选需要保存的截图', error: true);
+        _report('截图暂存空间已满，请保存或移除部分截图后继续', error: true);
         return false;
       }
       final item = ScreenshotCandidate(
@@ -110,17 +108,43 @@ abstract class _PlayerScreenshotController with Store {
 
   @action
   void toggle(ScreenshotCandidate item) {
-    if (_disposed || _saving || isSaved(item) || !_candidates.contains(item)) {
+    if (_disposed || _saving || !_candidates.contains(item)) {
       return;
     }
     if (!_selected.remove(item.id)) _selected.add(item.id);
+  }
+
+  void _removeCandidates(Iterable<ScreenshotCandidate> items) {
+    final removed = items.toList();
+    if (removed.isEmpty) return;
+    final ids = removed.map((item) => item.id).toSet();
+    for (final item in removed) {
+      _byteCount -= item.bytes.lengthInBytes;
+      evictScreenshotImages(item.bytes);
+    }
+    _selected.removeAll(ids);
+    _candidates.removeWhere((item) => ids.contains(item.id));
+  }
+
+  @action
+  void removeSelected() {
+    if (_disposed || busy || selectedCount == 0) return;
+    final count = selectedCount;
+    _removeCandidates(_candidates.where(isSelected));
+    _report('已移除 $count 张候选截图');
+  }
+
+  @action
+  void clearCandidates() {
+    if (_disposed || busy || _candidates.isEmpty) return;
+    _removeCandidates(_candidates);
+    _report('已清空候选截图');
   }
 
   @action
   Future<void> save({
     required Future<String?> Function() chooseDestination,
     required Future<void> Function(ScreenshotCandidate, String) write,
-    required String destinationLabel,
   }) async {
     if (_disposed || busy || selectedCount == 0) return;
     final batch = _candidates.where(isSelected).toList();
@@ -129,7 +153,7 @@ abstract class _PlayerScreenshotController with Store {
     _saveTotal = batch.length;
     _message = null;
     _hasError = false;
-    var successes = 0;
+    final saved = <ScreenshotCandidate>[];
     var failures = 0;
     try {
       final destination = await chooseDestination();
@@ -142,10 +166,8 @@ abstract class _PlayerScreenshotController with Store {
         try {
           await write(item, destination);
           if (_disposed) return;
-          // Commit each success so retries only write failed items.
-          _saved.add(item.id);
+          saved.add(item);
           _selected.remove(item.id);
-          successes++;
         } catch (_) {
           if (_disposed) return;
           failures++;
@@ -153,14 +175,21 @@ abstract class _PlayerScreenshotController with Store {
         _saveCompleted++;
       }
       if (failures > 0) {
-        _report('已保存 $successes 张，$failures 张失败；未保存的截图仍已选中，请重试', error: true);
+        _report(
+          '已保存 ${saved.length} 张，$failures 张失败；未保存的截图仍已选中，请重试',
+          error: true,
+        );
       } else {
-        _report('已保存 $successes 张到$destinationLabel');
+        _report('已保存 ${saved.length} 张到所选位置');
       }
     } catch (_) {
       _report('无法打开保存位置，请检查权限后重试', error: true);
     } finally {
-      if (!_disposed) _saving = false;
+      if (!_disposed) {
+        // Keep the preview stable during the batch, then release successful items.
+        _removeCandidates(saved);
+        _saving = false;
+      }
     }
   }
 
@@ -170,8 +199,6 @@ abstract class _PlayerScreenshotController with Store {
     _disposed = true;
     _capturing = false;
     _saving = false;
-    _candidates.clear();
-    _selected.clear();
-    _saved.clear();
+    _removeCandidates(_candidates);
   }
 }

@@ -10,6 +10,8 @@ import 'package:kazumi/pages/player/controller/player_screenshot_controller.dart
 import 'package:kazumi/pages/player/player_screenshot_image.dart';
 import 'package:kazumi/services/player/screenshot_candidate.dart';
 import 'package:kazumi/services/player/screenshot_export_service.dart';
+import 'package:kazumi/services/player/screenshot_image_cache.dart';
+import 'package:mobx/mobx.dart' as mobx;
 
 Future<void> showPlayerScreenshotSheet(
   BuildContext context, {
@@ -51,15 +53,16 @@ class _PlayerScreenshotSheet extends StatefulWidget {
 
 class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
   static const _exportService = ScreenshotExportService();
-  late final PageController _pages;
+  late PageController _pages;
+  late final mobx.ReactionDisposer _stopWatchingCandidates;
+  String? _activeId;
   final FocusNode _focus = FocusNode(debugLabel: 'Screenshot review');
   final TransformationController _transform = TransformationController();
-  // Preserve paging and zoom state when rotation moves the preview.
+  // Preserve the preview when resizing switches layouts.
   final GlobalKey _previewKey = GlobalKey();
   final Map<String, double?> _aspectRatios = {};
   int _index = 0;
   bool _zoomed = false;
-  bool _showResult = false;
   String? _notice;
   bool _noticeError = false;
   Timer? _noticeTimer;
@@ -76,7 +79,32 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
   void initState() {
     super.initState();
     _index = math.max(0, collection.candidates.length - 1);
-    _pages = PageController(initialPage: _index);
+    _activeId = current?.id;
+    _pages = PageController(initialPage: _index, keepPage: false);
+    _stopWatchingCandidates = mobx.reaction<List<String>>(
+      (_) => collection.candidates.map((item) => item.id).toList(),
+      _candidatesChanged,
+    );
+  }
+
+  void _candidatesChanged(List<String> ids) {
+    final retainedIndex = _activeId == null ? -1 : ids.indexOf(_activeId!);
+    final oldPages = _pages;
+    setState(() {
+      _index = retainedIndex >= 0
+          ? retainedIndex
+          : math.max(0, math.min(_index, ids.length - 1));
+      _activeId = ids.isEmpty ? null : ids[_index];
+      _zoomed = false;
+      _transform.value = Matrix4.identity();
+      _aspectRatios.removeWhere((id, _) => !ids.contains(id));
+      _pages = PageController(initialPage: _index, keepPage: false);
+    });
+    // Detach the old PageView before disposing its controller.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      oldPages.dispose();
+      if (mounted) _warmNeighbors();
+    });
   }
 
   @override
@@ -107,7 +135,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     try {
       buffer = await ui.ImmutableBuffer.fromUint8List(item.bytes);
       descriptor = await ui.ImageDescriptor.encoded(buffer);
-      if (!mounted) return;
+      if (!mounted || !_aspectRatios.containsKey(item.id)) return;
       final ratio = descriptor.width / descriptor.height;
       final resize = current?.id == item.id && ratio != _aspectRatio;
       _aspectRatios[item.id] = ratio;
@@ -122,6 +150,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
 
   @override
   void dispose() {
+    _stopWatchingCandidates();
     _pages.dispose();
     _focus.dispose();
     _transform.dispose();
@@ -162,25 +191,56 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
 
   Future<void> _save() async {
     _noticeTimer?.cancel();
-    setState(() {
-      _showResult = true;
-      _notice = null;
-    });
+    setState(() => _notice = null);
     await collection.save(
       chooseDestination: _exportService.chooseDestination,
       write: _exportService.write,
-      destinationLabel: _exportService.destinationLabel,
     );
-    if (mounted) {
-      _focus.requestFocus();
-      setState(() {
-        _notice = collection.message;
-        _noticeError = collection.hasError;
-      });
-      _noticeTimer = Timer(const Duration(seconds: 5), () {
-        if (mounted) setState(() => _notice = null);
-      });
-    }
+    if (mounted) _showNotice();
+  }
+
+  void _showNotice() {
+    _noticeTimer?.cancel();
+    _focus.requestFocus();
+    setState(() {
+      _notice = collection.message;
+      _noticeError = collection.hasError;
+    });
+    _noticeTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _notice = null);
+    });
+  }
+
+  void _removeSelected() {
+    if (collection.busy || collection.selectedCount == 0) return;
+    collection.removeSelected();
+    _showNotice();
+  }
+
+  Future<void> _clearCandidates() async {
+    if (collection.busy || collection.candidates.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清空候选截图？'),
+        content: Text('这将丢弃 ${collection.candidates.length} 张未保存的截图，无法恢复。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('清空'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    _focus.requestFocus();
+    if (confirmed != true || collection.busy) return;
+    collection.clearCandidates();
+    _showNotice();
   }
 
   @override
@@ -430,6 +490,27 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
           ),
         ),
         if (current != null)
+          PopupMenuButton<bool>(
+            tooltip: '管理截图',
+            enabled: !collection.busy,
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (clear) {
+              if (clear) {
+                unawaited(_clearCandidates());
+              } else {
+                _removeSelected();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: false,
+                enabled: collection.selectedCount > 0,
+                child: const Text('移除所选'),
+              ),
+              const PopupMenuItem(value: true, child: Text('清空候选')),
+            ],
+          ),
+        if (current != null)
           IconButton(
             tooltip: _zoomed ? '还原大小' : '放大查看',
             onPressed: _toggleZoom,
@@ -454,14 +535,17 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       fit: StackFit.expand,
       children: [
         PageView.builder(
+          key: ObjectKey(_pages),
           controller: _pages,
           physics: _zoomed
               ? const NeverScrollableScrollPhysics()
               : const ClampingScrollPhysics(),
           onPageChanged: (index) {
+            if (index >= collection.candidates.length) return;
             _transform.value = Matrix4.identity();
             setState(() {
               _index = index;
+              _activeId = current?.id;
               _zoomed = false;
             });
             _warmNeighbors();
@@ -525,7 +609,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
   Widget _pickButton(ScreenshotCandidate item) => Observer(
     builder: (context) {
       final selected = collection.isSelected(item);
-      final saved = collection.isSaved(item);
       return Semantics(
         selected: selected,
         child: FilledButton.tonalIcon(
@@ -536,22 +619,14 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
                   : Theme.of(context).colorScheme.surfaceContainerHighest,
             ),
           ),
-          onPressed: saved || collection.saving ? null : _toggle,
+          onPressed: collection.saving ? null : _toggle,
           icon: Icon(
-            saved
-                ? Icons.download_done_rounded
-                : selected
+            selected
                 ? Icons.check_circle_rounded
                 : Icons.radio_button_unchecked_rounded,
             size: 20,
           ),
-          label: Text(
-            saved
-                ? '已保存'
-                : selected
-                ? '已选中'
-                : '选择这张',
-          ),
+          label: Text(selected ? '已选中' : '选择这张'),
         ),
       );
     },
@@ -622,39 +697,24 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     final save = SizedBox(
       height: buttonHeight,
       child: Observer(
-        builder: (context) {
-          final finished =
-              _showResult &&
-              !collection.saving &&
-              !collection.hasError &&
-              collection.saveCompleted > 0 &&
-              collection.selectedCount == 0;
-          return FilledButton.icon(
-            style: _actionStyle(),
-            onPressed: finished
-                ? _close
-                : !collection.busy && collection.selectedCount > 0
-                ? _save
-                : null,
-            icon: collection.saving
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    finished ? Icons.check_rounded : Icons.save_alt_rounded,
-                    size: 20,
-                  ),
-            label: Text(
-              collection.saving
-                  ? '${collection.saveCompleted}/${collection.saveTotal}'
-                  : finished
-                  ? '完成'
-                  : '保存${collection.selectedCount > 0 ? ' ${collection.selectedCount} 张' : '所选'}',
-              maxLines: 1,
-            ),
-          );
-        },
+        builder: (context) => FilledButton.icon(
+          style: _actionStyle(),
+          onPressed: !collection.busy && collection.selectedCount > 0
+              ? _save
+              : null,
+          icon: collection.saving
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.save_alt_rounded, size: 20),
+          label: Text(
+            collection.saving
+                ? '${collection.saveCompleted}/${collection.saveTotal}'
+                : '保存${collection.selectedCount > 0 ? ' ${collection.selectedCount} 张' : '所选'}',
+            maxLines: 1,
+          ),
+        ),
       ),
     );
     return Padding(
@@ -666,7 +726,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Keep action bounds stable across save results and text scales.
           final stacked =
               stackActions ||
               constraints.maxWidth < saveWidth + scaler.scale(96) + 48;
@@ -732,10 +791,11 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
             color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: 20),
-          Text('还没有截图', style: Theme.of(context).textTheme.titleLarge),
+          Text('暂无待处理截图', style: Theme.of(context).textTheme.titleLarge),
+          if (_notice != null) ...[const SizedBox(height: 16), _noticeView()],
           const SizedBox(height: 8),
           const Text(
-            '返回视频，点击相机收集喜欢的画面。\n截图会暂存在本次播放中。',
+            '返回视频，点击相机收集喜欢的画面。\n保存或移除截图后，可以继续截图。',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -842,7 +902,6 @@ class _ScreenshotFilmstripState extends State<_ScreenshotFilmstrip> {
                       index: index,
                       active: index == widget.activeIndex,
                       selected: widget.controller.isSelected(item),
-                      saved: widget.controller.isSaved(item),
                       duration: widget.duration,
                       onTap: () => widget.onBrowse(index),
                     ),
@@ -863,7 +922,6 @@ class _FrameThumbnail extends StatelessWidget {
     required this.index,
     required this.active,
     required this.selected,
-    required this.saved,
     required this.duration,
     required this.onTap,
   });
@@ -871,7 +929,6 @@ class _FrameThumbnail extends StatelessWidget {
   final int index;
   final bool active;
   final bool selected;
-  final bool saved;
   final Duration duration;
   final VoidCallback onTap;
 
@@ -882,11 +939,7 @@ class _FrameThumbnail extends StatelessWidget {
       button: true,
       selected: active,
       label:
-          '查看第 ${index + 1} 张，${item.episode} ${item.timeLabel}${saved
-              ? '，已保存'
-              : selected
-              ? '，已选中'
-              : ''}',
+          '查看第 ${index + 1} 张，${item.episode} ${item.timeLabel}${selected ? '，已选中' : ''}',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -913,17 +966,15 @@ class _FrameThumbnail extends StatelessWidget {
                     PlayerScreenshotImage(
                       bytes: item.bytes,
                       fit: BoxFit.cover,
-                      cacheWidth: 240,
+                      cacheWidth: screenshotThumbnailCacheWidth,
                     ),
-                    if (selected || saved)
+                    if (selected)
                       Positioned(
                         right: 3,
                         bottom: 3,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: selected
-                                ? colors.primary
-                                : colors.inverseSurface,
+                            color: colors.primary,
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: colors.surface,
@@ -933,13 +984,9 @@ class _FrameThumbnail extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.all(2),
                             child: Icon(
-                              saved
-                                  ? Icons.done_all_rounded
-                                  : Icons.check_rounded,
+                              Icons.check_rounded,
                               size: 14,
-                              color: selected
-                                  ? colors.onPrimary
-                                  : colors.onInverseSurface,
+                              color: colors.onPrimary,
                             ),
                           ),
                         ),

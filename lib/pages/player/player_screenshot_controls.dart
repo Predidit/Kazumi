@@ -15,7 +15,7 @@ class PlayerScreenshotControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Observer(
-    builder: (context) => Column(
+    builder: (context) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
@@ -45,6 +45,8 @@ class PlayerScreenshotControls extends StatelessWidget {
             onPressed: controller.saving ? null : onReview,
             icon: Badge.count(
               count: controller.candidates.length,
+              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+              textColor: Theme.of(context).colorScheme.onSecondaryContainer,
               child: const Icon(Icons.photo_library_outlined),
             ),
           ),

@@ -1,7 +1,7 @@
 name: kazumi
 description: "A new Flutter project."
 publish_to: "none"
-version: 2.3.6+20306
+version: 2.3.7+20307
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
@@ -26,7 +26,7 @@ dependencies:
   hive_ce_flutter: ^2.3.3
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
-  ech_http: ^0.2.0
+  ech_http: ^0.2.1
   http: ^1.6.0
   image: ^4.8.0
   file_picker: ^10.3.7

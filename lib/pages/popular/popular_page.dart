@@ -10,7 +10,7 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
 
@@ -65,10 +65,6 @@ class _PopularPageState extends State<PopularPage> {
         popularController.queryBangumiByTrend();
       }
     }
-  }
-
-  bool showWindowButton() {
-    return GStorage.getSetting(SettingsKeys.showWindowButton);
   }
 
   @override
@@ -231,33 +227,25 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   List<Widget> buildActions() {
-    final actions = <Widget>[
+    return <Widget>[
       if (MediaQuery.of(context).orientation == Orientation.portrait)
         IconButton(
           tooltip: '搜索',
           onPressed: () => context.pushNamed('/search/'),
           icon: const Icon(Icons.search),
         ),
-    ];
-    actions.add(
       IconButton(
         tooltip: '历史记录',
         onPressed: () => context.pushNamed('/settings/history/'),
         icon: const Icon(Icons.history),
       ),
-    );
-    if (isDesktop()) {
-      if (!showWindowButton()) {
-        actions.add(
-          IconButton(
-            tooltip: '退出',
-            onPressed: () => windowManager.close(),
-            icon: const Icon(Icons.close),
-          ),
-        );
-      }
-    }
-    return actions;
+      if (isDesktop() && !DesktopWindowConfig.showWindowButton)
+        IconButton(
+          tooltip: '退出',
+          onPressed: () => windowManager.close(),
+          icon: const Icon(Icons.close),
+        ),
+    ];
   }
 
   Future<void> showTagMenu() async {

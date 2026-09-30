@@ -3,7 +3,7 @@ import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
 
@@ -47,7 +47,7 @@ abstract class _TimelineController with Store {
   TimelineSort _sort = TimelineSort.popularity;
 
   bool get _bangumiMirrorEnabled =>
-      GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+      BangumiAcceleration.current == BangumiAcceleration.mirror;
 
   @action
   Future<void> loadSeason(DateTime date) async {

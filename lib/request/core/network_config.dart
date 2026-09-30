@@ -27,6 +27,17 @@ class NetworkConfig {
 
   bool get hasProxy => proxyHost != null && proxyPort != null;
 
+  Uri? proxyForUri(Uri uri) {
+    if (hasProxy) return Uri(scheme: 'http', host: proxyHost, port: proxyPort);
+    if (Platform.isWindows) {
+      final proxy = SystemProxyService.findProxy(uri);
+      if (proxy.startsWith('PROXY ')) {
+        return Uri.parse('http://${proxy.substring(6)}');
+      }
+    }
+    return null;
+  }
+
   IOHttpClientAdapter createAdapter() {
     return IOHttpClientAdapter(
       createHttpClient: () {

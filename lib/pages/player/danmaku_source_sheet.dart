@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show PointerDeviceKind;
 
@@ -17,6 +18,7 @@ import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 const _episodeToolThreshold = 25;
 const _episodeSegmentSize = 100;
@@ -24,11 +26,13 @@ const _episodeRowExtent = 64.0;
 
 Future<void> showDanmakuSourceSheet(
   BuildContext context, {
+  required int bangumiId,
   required String initialKeyword,
   required PlayerDanmakuController danmakuController,
   required VoidCallback onBeforeApply,
 }) async {
   Widget buildSheet(BuildContext _) => _DanmakuSourceSheet(
+        bangumiId: bangumiId,
         initialKeyword: initialKeyword,
         danmakuController: danmakuController,
         onBeforeApply: onBeforeApply,
@@ -76,11 +80,13 @@ enum _SourceStep { search, anime, episode }
 
 class _DanmakuSourceSheet extends StatefulWidget {
   const _DanmakuSourceSheet({
+    required this.bangumiId,
     required this.initialKeyword,
     required this.danmakuController,
     required this.onBeforeApply,
   });
 
+  final int bangumiId;
   final String initialKeyword;
   final PlayerDanmakuController danmakuController;
   final VoidCallback onBeforeApply;
@@ -97,6 +103,8 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   final _episodeScrollController = ScrollController();
   late final List<String> _recentKeywords;
 
+  String get _historyKey => 'danmakuSearchHistory_${widget.bangumiId}';
+
   _SourceStep _step = _SourceStep.search;
   List<DanmakuSearchAnime> _animes = const [];
   List<DanmakuEpisode> _episodes = const [];
@@ -109,8 +117,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   @override
   void initState() {
     super.initState();
-    final keyword = widget.initialKeyword.trim();
-    _recentKeywords = keyword.isEmpty ? [] : [keyword];
+    _recentKeywords = GStorage.getStringListSettingByName(_historyKey).toList();
   }
 
   @override
@@ -129,16 +136,27 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
       return;
     }
 
+    final recordSearch = !GStorage.getSetting(SettingsKeys.privateMode);
     setState(() {
       _loading = true;
       _error = null;
       _step = _SourceStep.anime;
       _animes = const [];
-      _recentKeywords
-        ..remove(keyword)
-        ..insert(0, keyword);
-      if (_recentKeywords.length > 5) _recentKeywords.removeLast();
+      if (recordSearch) {
+        _recentKeywords
+          ..remove(keyword)
+          ..insert(0, keyword);
+        if (_recentKeywords.length > 5) _recentKeywords.removeLast();
+      }
     });
+    if (recordSearch) {
+      unawaited(GStorage.putStringListSettingByName(
+        _historyKey,
+        List<String>.of(_recentKeywords),
+      ).catchError((Object error) {
+        KazumiLogger().w('Danmaku search history failed to save', error: error);
+      }));
+    }
     try {
       final response = await DanmakuApi.searchAnimes(keyword);
       if (!mounted) return;

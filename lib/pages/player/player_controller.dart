@@ -14,6 +14,7 @@ import 'package:kazumi/pages/player/controller/player_panel_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
+import 'package:kazumi/pages/player/controller/player_screenshot_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
@@ -41,6 +42,7 @@ class PlayerController implements Disposable {
   final AsyncSessionOwner _initializations = AsyncSessionOwner();
   Future<void>? _shutdownFuture;
   final PlayerPanelController panel = PlayerPanelController();
+  final PlayerScreenshotController screenshots = PlayerScreenshotController();
   final PlayerDebugController debug = PlayerDebugController();
 
   late final PlayerDanmakuController danmaku;
@@ -385,6 +387,7 @@ class PlayerController implements Disposable {
     if (_shutdownFuture != null) {
       return;
     }
+    screenshots.dispose();
     final shutdown = _shutdownResources();
     _shutdownFuture = shutdown;
     unawaited(
@@ -433,13 +436,7 @@ class PlayerController implements Disposable {
     await _releasePlaybackResources();
   }
 
-  Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {
-    return await playback.screenshot(format: format);
-  }
-
-  Future<Uint8List?> screenshotPng() async {
-    return await playback.screenshotPng();
-  }
+  Future<Uint8List?> screenshotPng() => playback.screenshotPng();
 
   void setButtonForwardTime(int time) {
     playback.buttonSkipTime = time;

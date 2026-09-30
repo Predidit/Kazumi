@@ -25,6 +25,8 @@ abstract class _PlayerPanelController with Store {
   @observable
   bool showSeekTime = false;
   @observable
+  bool seekCancelPending = false;
+  @observable
   bool showBrightness = false;
   @observable
   bool showVolume = false;
@@ -43,6 +45,7 @@ abstract class _PlayerPanelController with Store {
     lockPanel = false;
     showVideoController = true;
     showSeekTime = false;
+    seekCancelPending = false;
     showBrightness = false;
     showVolume = false;
     showPlaySpeed = false;

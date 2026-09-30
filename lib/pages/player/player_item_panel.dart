@@ -25,6 +25,7 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/format.dart';
 import 'package:kazumi/pages/player/player_transport_bar.dart';
+import 'package:kazumi/pages/player/player_screenshot_controls.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -38,6 +39,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleFullscreen,
     required this.enterAndroidPictureInPicture,
     required this.handleScreenShot,
+    required this.showScreenshotCandidates,
     required this.onNextEpisode,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarSeek,
@@ -65,6 +67,7 @@ class PlayerItemPanel extends StatefulWidget {
   final VoidCallback handleFullscreen;
   final Future<void> Function() enterAndroidPictureInPicture;
   final VoidCallback handleScreenShot;
+  final VoidCallback showScreenshotCandidates;
   final VoidCallback handleProgressBarDragStart;
   final Future<void> Function(Duration duration) handleProgressBarSeek;
   final Future<void> Function(SuperResolutionMode mode)
@@ -416,6 +419,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               duration:
                   visible ? playerController.playback.duration : Duration.zero,
               direction: playerController.panel.seekDirection,
+              cancelPending: playerController.panel.seekCancelPending,
               disableAnimations: widget.disableAnimations,
             );
           }),
@@ -464,7 +468,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 child: widget.disableAnimations
                     ? _rightControls
                     : SlideTransition(
-                        position: _rightOffsetAnimation, child: _rightControls),
+                        position: _rightOffsetAnimation,
+                        child: _rightControls),
               );
             }),
           ),
@@ -803,6 +808,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 ),
               ),
               _forwardButton(),
+              if (_desktop)
+                PlayerScreenshotControls(
+                  controller: playerController.screenshots,
+                  onCapture: widget.handleScreenShot,
+                  onReview: widget.showScreenshotCandidates,
+                ),
               if ((_desktop &&
                       (compact || !videoPageController.isFullscreen)) ||
                   (defaultTargetPlatform == TargetPlatform.android))
@@ -962,33 +973,37 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       bottom: false,
       left: widget.fillsWindow,
       right: widget.fillsWindow,
-      child: Column(
-        children: [
-          const Spacer(),
-          if (!playerController.panel.lockPanel)
+      child: PlayerPanelHoldMouseRegion(
+        acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
+        cursor: SystemMouseCursors.basic,
+        child: Column(
+          children: [
+            const Spacer(),
+            if (!playerController.panel.lockPanel)
+              IconButton(
+                icon: const Icon(
+                  Icons.photo_camera_outlined,
+                  color: Colors.white,
+                ),
+                tooltip: '截图',
+                onPressed: widget.handleScreenShot,
+              ),
             IconButton(
-              icon: const Icon(
-                Icons.photo_camera_outlined,
+              icon: Icon(
+                playerController.panel.lockPanel
+                    ? Icons.lock_outline
+                    : Icons.lock_open,
                 color: Colors.white,
               ),
-              tooltip: '截图',
-              onPressed: widget.handleScreenShot,
+              tooltip: playerController.panel.lockPanel ? '解锁面板' : '锁定面板',
+              onPressed: () {
+                playerController.panel.lockPanel =
+                    !playerController.panel.lockPanel;
+              },
             ),
-          IconButton(
-            icon: Icon(
-              playerController.panel.lockPanel
-                  ? Icons.lock_outline
-                  : Icons.lock_open,
-              color: Colors.white,
-            ),
-            tooltip: playerController.panel.lockPanel ? '解锁面板' : '锁定面板',
-            onPressed: () {
-              playerController.panel.lockPanel =
-                  !playerController.panel.lockPanel;
-            },
-          ),
-          const Spacer(),
-        ],
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }

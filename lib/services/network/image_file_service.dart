@@ -63,6 +63,7 @@ class ImageFileService extends FileService {
     }
     return createImageFileResponse(
       response,
+      contentLength: response.contentLength,
       onComplete: () => _release(client),
     );
   }

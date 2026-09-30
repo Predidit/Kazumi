@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
@@ -15,11 +14,13 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/pages/info/info_actions_menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -307,8 +308,8 @@ class _InfoPageState extends State<InfoPage>
 
   @override
   Widget build(BuildContext context) {
-    final bool showWindowButton =
-        GStorage.getSetting(SettingsKeys.showWindowButton);
+    final showWindowButton = DesktopWindowConfig.showWindowButton;
+    final topOffset = Platform.isMacOS && showWindowButton ? 22.0 : 0.0;
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
@@ -348,37 +349,23 @@ class _InfoPageState extends State<InfoPage>
                       ),
                     ),
                   EmbeddedNativeControlArea(
-                    child: IconButton(
-                      onPressed: () {
-                        launchUrl(
-                          Uri.parse(
-                              'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
-                      icon: const Icon(Icons.open_in_browser_rounded),
+                    child: InfoActionsMenu(
+                      bangumiItem: infoController.bangumiItem,
                     ),
                   ),
-                  if (!showWindowButton && isDesktop())
+                  if (isDesktop() && !showWindowButton)
                     CloseButton(onPressed: () => windowManager.close()),
                   SizedBox(width: 8),
                 ],
-                toolbarHeight: (Platform.isMacOS && showWindowButton)
-                    ? kToolbarHeight + 22
-                    : kToolbarHeight,
+                toolbarHeight: kToolbarHeight + topOffset,
                 stretch: true,
                 centerTitle: false,
-                expandedHeight: (Platform.isMacOS && showWindowButton)
-                    ? 308 + kTextTabBarHeight + kToolbarHeight + 22
-                    : 308 + kTextTabBarHeight + kToolbarHeight,
-                collapsedHeight: (Platform.isMacOS && showWindowButton)
-                    ? kTextTabBarHeight +
-                        kToolbarHeight +
-                        MediaQuery.paddingOf(context).top +
-                        22
-                    : kTextTabBarHeight +
-                        kToolbarHeight +
-                        MediaQuery.paddingOf(context).top,
+                expandedHeight:
+                    308 + kTextTabBarHeight + kToolbarHeight + topOffset,
+                collapsedHeight: kTextTabBarHeight +
+                    kToolbarHeight +
+                    MediaQuery.paddingOf(context).top +
+                    topOffset,
                 flexibleSpace: FlexibleSpaceBar(
                   collapseMode: CollapseMode.pin,
                   background: Observer(builder: (context) {

@@ -148,6 +148,11 @@ class SettingsKeys {
     false,
     group: SettingGroup.danmaku,
   );
+  static const danmakuChConvert = SettingKey<int>(
+    'danmakuChConvert',
+    0,
+    group: SettingGroup.danmaku,
+  );
   static const danmakuArea = SettingKey<double>(
     _SettingBoxKey.danmakuArea,
     1.0,
@@ -569,6 +574,7 @@ class SettingsKeys {
     danmakuBottom,
     danmakuMassive,
     danmakuDeduplication,
+    danmakuChConvert,
     danmakuArea,
     danmakuColor,
     danmakuDuration,

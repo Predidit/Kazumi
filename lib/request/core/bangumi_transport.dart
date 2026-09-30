@@ -42,32 +42,39 @@ class BangumiEchAdapter implements HttpClientAdapter {
   BangumiEchAdapter({
     required HttpClientAdapter fallback,
     required NetworkConfig config,
-    http.Client Function(RequestOptions)? clientFactory,
   }) : _fallback = fallback,
-       _config = config,
-       _clientFactory = clientFactory;
+       _config = config;
 
   final HttpClientAdapter _fallback;
   final NetworkConfig _config;
-  final http.Client Function(RequestOptions)? _clientFactory;
   final _resolvers = <Uri?, DohEchResolver>{};
-  final _clients = <http.Client>{};
+  final _clients = <(Uri?, Uri?, Duration, Duration), EchClient>{};
+  final _activeRequests = <Completer<void>>{};
   bool _closed = false;
 
-  http.Client _createClient(RequestOptions options) {
+  EchClient _clientFor(RequestOptions options) {
+    final proxy = _config.proxyForUri(options.uri);
     final dohProxy = _config.proxyForUri(BangumiEchResolver.endpoint);
-    final resolver = _resolvers.putIfAbsent(
-      dohProxy,
-      () => BangumiEchResolver.create(EchClient(proxy: dohProxy)),
+    final connectTimeout = _positive(
+      options.connectTimeout,
+      _config.connectTimeout,
     );
-    return EchClient(
-      proxy: _config.proxyForUri(options.uri),
-      resolver: resolver,
-      connectTimeout: _positive(options.connectTimeout, _config.connectTimeout),
-      timeout:
-          _positive(options.connectTimeout, _config.connectTimeout) +
-          _positive(options.receiveTimeout, _config.receiveTimeout) +
-          _positive(options.sendTimeout, const Duration(seconds: 12)),
+    final timeout =
+        connectTimeout +
+        _positive(options.receiveTimeout, _config.receiveTimeout) +
+        _positive(options.sendTimeout, const Duration(seconds: 12));
+    // Native timeouts are client-wide; only matching settings share a pool.
+    return _clients.putIfAbsent(
+      (proxy, dohProxy, connectTimeout, timeout),
+      () => EchClient(
+        proxy: proxy,
+        resolver: _resolvers.putIfAbsent(
+          dohProxy,
+          () => BangumiEchResolver.create(EchClient(proxy: dohProxy)),
+        ),
+        connectTimeout: connectTimeout,
+        timeout: timeout,
+      ),
     );
   }
 
@@ -91,15 +98,15 @@ class BangumiEchAdapter implements HttpClientAdapter {
     }
 
     cancelFuture?.then((_) => cancel());
-    final client = (_clientFactory ?? _createClient)(options);
-    _clients.add(client);
+    _activeRequests.add(abort);
     void release() {
+      if (!_activeRequests.remove(abort)) return;
       cancel();
-      if (_clients.remove(client)) client.close();
-      if (_closed && _clients.isEmpty) _closeResolvers();
+      if (_closed && _activeRequests.isEmpty) _closeClients();
     }
 
     try {
+      final client = _clientFor(options);
       final request =
           _EchRequest(options.method, options.uri, requestStream, abort.future)
             ..followRedirects = options.followRedirects
@@ -187,7 +194,11 @@ class BangumiEchAdapter implements HttpClientAdapter {
     );
   }
 
-  void _closeResolvers() {
+  void _closeClients() {
+    for (final client in _clients.values) {
+      client.close();
+    }
+    _clients.clear();
     for (final resolver in _resolvers.values) {
       resolver.client.close();
     }
@@ -198,13 +209,7 @@ class BangumiEchAdapter implements HttpClientAdapter {
   void close({bool force = false}) {
     _closed = true;
     _fallback.close(force: force);
-    if (force) {
-      for (final client in _clients) {
-        client.close();
-      }
-      _clients.clear();
-    }
-    if (_clients.isEmpty) _closeResolvers();
+    if (force || _activeRequests.isEmpty) _closeClients();
   }
 }
 

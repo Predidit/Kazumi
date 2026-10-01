@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/history/history_module.dart';
@@ -226,43 +227,36 @@ class HistoryRecordTile extends StatelessWidget {
         onPressed: onPlay,
         icon: const Icon(Icons.play_arrow_rounded),
       ),
-      MenuAnchor(
-        consumeOutsideTap: true,
+      KazumiMenuButton(
         menuChildren: [
-          MenuItemButton(
-            leadingIcon: const Icon(Icons.info_outline_rounded),
+          KazumiMenuItem(
             onPressed: onDetails,
-            child: const Text('番剧详情'),
+            label: '番剧详情',
           ),
           SubmenuButton(
-            leadingIcon: const Icon(Icons.bookmark_outline_rounded),
             menuChildren: [
               for (final type in CollectType.values)
-                MenuItemButton(
-                  leadingIcon: Icon(collectType == type
-                      ? Icons.radio_button_checked_rounded
-                      : Icons.radio_button_unchecked_rounded),
+                KazumiMenuItem(
+                  selected: collectType == type,
                   onPressed: onChangeCollect == null
                       ? null
                       : () => onChangeCollect!(type),
-                  child: Text(type.label),
+                  label: type.label,
                 ),
             ],
-            child: Text('收藏 · ${collectType.label}'),
+            child: Text(collectType.label),
           ),
           const Divider(),
-          MenuItemButton(
-            leadingIcon:
-                Icon(Icons.delete_outline_rounded, color: colors.error),
+          KazumiMenuItem(
+            destructive: true,
             onPressed: onDelete,
-            child: Text('删除记录', style: TextStyle(color: colors.error)),
+            label: '删除记录',
           ),
         ],
-        builder: (context, controller, child) => IconButton(
+        builder: (context, toggle) => IconButton(
           tooltip: '更多操作',
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          onPressed: () =>
-              controller.isOpen ? controller.close() : controller.open(),
+          onPressed: toggle,
           icon: const Icon(Icons.more_horiz_rounded),
         ),
       ),

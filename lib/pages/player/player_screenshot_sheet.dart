@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/pages/player/controller/player_screenshot_controller.dart';
 import 'package:kazumi/pages/player/player_screenshot_image.dart';
 import 'package:kazumi/services/player/screenshot_candidate.dart';
@@ -490,24 +491,27 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
           ),
         ),
         if (current != null)
-          PopupMenuButton<bool>(
-            tooltip: '管理截图',
+          KazumiMenuButton(
+            animated: true,
             enabled: !collection.busy,
-            icon: const Icon(Icons.more_vert_rounded),
-            onSelected: (clear) {
-              if (clear) {
-                unawaited(_clearCandidates());
-              } else {
-                _removeSelected();
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: false,
-                enabled: collection.selectedCount > 0,
-                child: const Text('移除所选'),
+            builder: (context, toggle) => IconButton(
+              tooltip: '管理截图',
+              icon: const Icon(Icons.more_vert_rounded),
+              onPressed: toggle,
+            ),
+            menuChildren: [
+              KazumiMenuItem(
+                label: '移除所选',
+                onPressed: !collection.busy && collection.selectedCount > 0
+                    ? _removeSelected
+                    : null,
               ),
-              const PopupMenuItem(value: true, child: Text('清空候选')),
+              KazumiMenuItem(
+                label: '清空候选',
+                onPressed: collection.busy
+                    ? null
+                    : () => unawaited(_clearCandidates()),
+              ),
             ],
           ),
         if (current != null)

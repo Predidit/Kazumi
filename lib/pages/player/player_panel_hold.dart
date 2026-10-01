@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 /// A one-shot lease that keeps the player panel visible until released.
@@ -125,18 +126,12 @@ class PlayerPanelHoldMenuAnchor extends StatefulWidget {
     required this.onVisibilityChanged,
     required this.builder,
     required this.menuChildren,
-    this.consumeOutsideTap = false,
   });
 
   final PlayerPanelHold Function() acquirePlayerPanelHold;
   final ValueChanged<bool> onVisibilityChanged;
-  final Widget Function(
-    BuildContext context,
-    MenuController controller,
-    Widget? child,
-  ) builder;
+  final KazumiMenuBuilder builder;
   final List<Widget> menuChildren;
-  final bool consumeOutsideTap;
 
   @override
   State<PlayerPanelHoldMenuAnchor> createState() =>
@@ -159,9 +154,6 @@ class _PlayerPanelHoldMenuAnchorState extends State<PlayerPanelHoldMenuAnchor> {
     }
     _isOpen = true;
     widget.onVisibilityChanged(true);
-    if (_hold?.isReleased == false) {
-      return;
-    }
     _hold = widget.acquirePlayerPanelHold();
   }
 
@@ -176,8 +168,8 @@ class _PlayerPanelHoldMenuAnchorState extends State<PlayerPanelHoldMenuAnchor> {
 
   @override
   Widget build(BuildContext context) {
-    return MenuAnchor(
-      consumeOutsideTap: widget.consumeOutsideTap,
+    return KazumiMenuButton(
+      animated: false,
       onOpen: _handleOpen,
       onClose: _handleClose,
       builder: widget.builder,

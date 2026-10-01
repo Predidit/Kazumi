@@ -5,6 +5,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
@@ -144,20 +145,18 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
     return items;
   }
 
-  Widget _sortButton() => MenuAnchor(
-        builder: (context, controller, _) => TextButton.icon(
-          onPressed: () =>
-              controller.isOpen ? controller.close() : controller.open(),
+  Widget _sortButton() => KazumiMenuButton(
+        builder: (context, toggle) => TextButton.icon(
+          onPressed: toggle,
           icon: const Icon(Icons.sort_rounded, size: 20),
           label: Text(_sort == _CatalogSort.name ? '名称排序' : '最近更新'),
         ),
         menuChildren: [
           for (final sort in _CatalogSort.values)
-            MenuItemButton(
-              leadingIcon: Icon(
-                  _sort == sort ? Icons.check_rounded : Icons.sort_rounded),
+            KazumiMenuItem(
+              selected: _sort == sort,
               onPressed: () => setState(() => _sort = sort),
-              child: Text(sort == _CatalogSort.name ? '按名称排序' : '按更新时间排序'),
+              label: sort == _CatalogSort.name ? '按名称排序' : '按更新时间排序',
             ),
         ],
       );

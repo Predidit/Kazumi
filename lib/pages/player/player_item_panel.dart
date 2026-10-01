@@ -5,6 +5,7 @@ import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/danmaku_destination_sheet.dart';
@@ -557,9 +558,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   }) =>
       [
         for (final value in values)
-          MenuItemButton(
+          KazumiMenuItem(
             onPressed: () => onSelected(value),
-            child: _menuLabel(label(value), selected: selected(value)),
+            label: label(value),
+            selected: selected(value),
           ),
       ];
 
@@ -592,14 +594,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       PlayerPanelHoldMenuAnchor(
         acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
         onVisibilityChanged: widget.onMenuVisibilityChanged,
-        consumeOutsideTap: true,
-        builder: (context, controller, menuChild) {
-          void toggle() =>
-              controller.isOpen ? controller.close() : controller.open();
-          return tooltip == null
-              ? TextButton(onPressed: toggle, child: child)
-              : IconButton(onPressed: toggle, icon: child, tooltip: tooltip);
-        },
+        builder: (context, toggle) => tooltip == null
+            ? TextButton(onPressed: toggle, child: child)
+            : IconButton(onPressed: toggle, icon: child, tooltip: tooltip),
         menuChildren: items,
       );
 
@@ -623,24 +620,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         ),
       );
 
-  Widget get _syncPlayMenuItem => MenuItemButton(
+  Widget get _syncPlayMenuItem => KazumiMenuItem(
         onPressed: widget.showSyncPlayPanel,
-        child: _menuLabel('一起看'),
+        label: '一起看',
       );
 
-  Widget get _danmakuSettingsMenuItem => MenuItemButton(
+  Widget get _danmakuSettingsMenuItem => KazumiMenuItem(
         onPressed: _showDanmakuSettings,
-        child: _menuLabel('弹幕设置'),
-      );
-
-  Widget _menuLabel(String label, {bool selected = false}) => Container(
-        height: 48,
-        constraints: const BoxConstraints(minWidth: 112),
-        alignment: Alignment.centerLeft,
-        child: Text(label,
-            style: selected
-                ? TextStyle(color: Theme.of(context).colorScheme.primary)
-                : null),
+        label: '弹幕设置',
       );
 
   Widget get _wideControls => Row(children: [
@@ -847,17 +834,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               PlayerPanelHoldMenuAnchor(
                 acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                 onVisibilityChanged: widget.onMenuVisibilityChanged,
-                consumeOutsideTap: true,
-                builder: (BuildContext context, MenuController controller,
-                    Widget? child) {
+                builder: (context, toggle) {
                   return IconButton(
-                    onPressed: () {
-                      if (controller.isOpen) {
-                        controller.close();
-                      } else {
-                        controller.open();
-                      }
-                    },
+                    onPressed: toggle,
                     tooltip: '更多选项',
                     icon: const Icon(
                       Icons.more_vert,
@@ -869,24 +848,24 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   if (compact) ...[
                     SubmenuButton(
                         menuChildren: _aspectRatioItems,
-                        child: _menuLabel('视频比例')),
+                        child: const Text('视频比例')),
                     SubmenuButton(
-                        menuChildren: _speedItems, child: _menuLabel('倍速')),
+                        menuChildren: _speedItems, child: const Text('倍速')),
                     SubmenuButton(
                         menuChildren: _superResolutionItems,
-                        child: _menuLabel('超分辨率')),
+                        child: const Text('超分辨率')),
                     _syncPlayMenuItem,
                   ],
-                  MenuItemButton(
+                  KazumiMenuItem(
                     onPressed: widget.showDanmakuSwitch,
-                    child: _menuLabel('弹幕切换'),
+                    label: '弹幕切换',
                   ),
                   if (compact) _danmakuSettingsMenuItem,
-                  MenuItemButton(
+                  KazumiMenuItem(
                     onPressed: widget.showVideoInfo,
-                    child: _menuLabel('视频详情'),
+                    label: '视频详情',
                   ),
-                  MenuItemButton(
+                  KazumiMenuItem(
                     onPressed: () {
                       final needRestart = playerController.playback.playing;
                       playerController.pause();
@@ -899,21 +878,21 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         }
                       });
                     },
-                    child: _menuLabel('远程投屏'),
+                    label: '远程投屏',
                   ),
-                  MenuItemButton(
+                  KazumiMenuItem(
                     onPressed: playerController.launchExternalPlayer,
-                    child: _menuLabel('外部播放'),
+                    label: '外部播放',
                   ),
                   SubmenuButton(
                     menuChildren: [
-                      MenuItemButton(
+                      KazumiMenuItem(
                         onPressed: TimedShutdownService().cancel,
-                        child: _menuLabel('不开启',
-                            selected: !TimedShutdownService().isActive),
+                        label: '不开启',
+                        selected: !TimedShutdownService().isActive,
                       ),
                       for (final int minutes in [15, 30, 60])
-                        MenuItemButton(
+                        KazumiMenuItem(
                           onPressed: () {
                             TimedShutdownService().start(minutes,
                                 onExpired: widget.pauseForTimedShutdown);
@@ -921,35 +900,26 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 message:
                                     '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
                           },
-                          child: _menuLabel('$minutes 分钟',
-                              selected:
-                                  TimedShutdownService().setMinutes == minutes),
+                          label: '$minutes 分钟',
+                          selected:
+                              TimedShutdownService().setMinutes == minutes,
                         ),
-                      MenuItemButton(
+                      KazumiMenuItem(
                         onPressed: () {
                           TimedShutdownService.showCustomTimerDialog(
                             onExpired: widget.pauseForTimedShutdown,
                           );
                         },
-                        child: _menuLabel('自定义'),
+                        label: '自定义',
                       ),
                     ],
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: ValueListenableBuilder<int>(
-                          valueListenable:
-                              TimedShutdownService().remainingSecondsNotifier,
-                          builder: (context, remainingSeconds, child) {
-                            return Text(
-                              remainingSeconds > 0
-                                  ? "定时关闭 (${TimedShutdownService().formatRemainingTime()})"
-                                  : "定时关闭",
-                            );
-                          },
-                        ),
+                    child: ValueListenableBuilder<int>(
+                      valueListenable:
+                          TimedShutdownService().remainingSecondsNotifier,
+                      builder: (context, remainingSeconds, _) => Text(
+                        remainingSeconds > 0
+                            ? "定时关闭 (${TimedShutdownService().formatRemainingTime()})"
+                            : "定时关闭",
                       ),
                     ),
                   ),

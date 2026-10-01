@@ -41,27 +41,28 @@ class _SearchSortMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return PopupMenuButton<String>(
-      tooltip: '排序方式',
-      initialValue: value,
-      onSelected: onChanged,
-      itemBuilder: (_) => [
+    return KazumiMenuButton(
+      animated: true,
+      menuChildren: [
         for (final sort in _searchSortLabels.entries)
-          CheckedPopupMenuItem(
-              value: sort.key,
-              checked: sort.key == value,
-              child: Text('按${sort.value}排序')),
+          KazumiMenuItem(
+            label: '按${sort.value}排序',
+            selected: sort.key == value,
+            onPressed: () => onChanged(sort.key),
+          ),
       ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(_sortLabel(value),
-              style: theme.textTheme.labelLarge
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          const SizedBox(width: 4),
-          Icon(Icons.keyboard_arrow_down_rounded,
-              size: 20, color: theme.colorScheme.onSurfaceVariant),
-        ]),
+      builder: (context, toggle) => Tooltip(
+        message: '排序方式',
+        child: TextButton.icon(
+          onPressed: toggle,
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.onSurfaceVariant,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          ),
+          iconAlignment: IconAlignment.end,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+          label: Text(_sortLabel(value)),
+        ),
       ),
     );
   }

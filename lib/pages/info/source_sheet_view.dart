@@ -357,26 +357,29 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
 
   Widget _buildSourceMenu(_SourceSearchGroup group) => TooltipVisibility(
         visible: false,
-        child: PopupMenuButton<VoidCallback>(
-          tooltip: '${group.name} 的更多操作',
-          icon: const Icon(Icons.more_horiz_rounded, size: 20),
-          onSelected: (action) => action(),
-          itemBuilder: (_) => [
-            PopupMenuItem(
-              value: () => widget.onSourceSearch(group.name),
-              child: const Text('修改此来源的检索词'),
+        child: KazumiMenuButton(
+          animated: true,
+          builder: (context, toggle) => IconButton(
+            tooltip: '${group.name} 的更多操作',
+            icon: const Icon(Icons.more_horiz_rounded, size: 20),
+            onPressed: toggle,
+          ),
+          menuChildren: [
+            KazumiMenuItem(
+              label: '修改此来源的检索词',
+              onPressed: () => widget.onSourceSearch(group.name),
             ),
-            PopupMenuItem(
-              value: () => widget.onSourceAliasSearch(group.name),
-              child: const Text('使用别名检索此来源'),
+            KazumiMenuItem(
+              label: '使用别名检索此来源',
+              onPressed: () => widget.onSourceAliasSearch(group.name),
             ),
-            PopupMenuItem(
-              value: () => widget.onRetry(group.name),
-              child: const Text('重新检索此来源'),
+            KazumiMenuItem(
+              label: '重新检索此来源',
+              onPressed: () => widget.onRetry(group.name),
             ),
-            PopupMenuItem(
-              value: () => widget.onOpenBrowser(group.name),
-              child: const Text('在浏览器中打开'),
+            KazumiMenuItem(
+              label: '在浏览器中打开',
+              onPressed: () => widget.onOpenBrowser(group.name),
             ),
           ],
         ),

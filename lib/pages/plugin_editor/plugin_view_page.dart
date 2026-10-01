@@ -10,6 +10,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
@@ -440,56 +441,45 @@ class _PluginViewPageState extends State<PluginViewPage> {
         ),
       );
 
-  Widget _menu(Plugin plugin, int index) => MenuAnchor(
-        consumeOutsideTap: true,
+  Widget _menu(Plugin plugin, int index) => KazumiMenuButton(
         style: MenuStyle(
           shape: WidgetStatePropertyAll(
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
           padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
         ),
-        builder: (context, controller, child) => IconButton(
+        builder: (context, toggle) => IconButton(
             tooltip: '${plugin.name} 的更多操作',
-            onPressed: () =>
-                controller.isOpen ? controller.close() : controller.open(),
+            onPressed: toggle,
             icon: const Icon(Icons.more_horiz_rounded)),
         menuChildren: [
-          MenuItemButton(
-              leadingIcon: const Icon(Icons.edit_outlined),
+          KazumiMenuItem(
               onPressed: () => context.pushNamed('/settings/plugin/editor',
                   arguments: plugin),
-              child: const Text('编辑规则')),
-          MenuItemButton(
-              leadingIcon: const Icon(Icons.bug_report_outlined),
+              label: '编辑规则'),
+          KazumiMenuItem(
               onPressed: () =>
                   context.pushNamed('/settings/plugin/test', arguments: plugin),
-              child: const Text('测试规则')),
-          MenuItemButton(
-              leadingIcon: const Icon(Icons.sync_rounded),
+              label: '测试规则'),
+          KazumiMenuItem(
               onPressed: _updating ? null : () => _updateOne(plugin),
-              child: const Text('检查更新')),
-          MenuItemButton(
-              leadingIcon: const Icon(Icons.ios_share_rounded),
+              label: '检查更新'),
+          KazumiMenuItem(
               onPressed: () => showRuleShareDialog(context, plugin),
-              child: const Text('分享规则')),
+              label: '分享规则'),
           const Divider(),
-          MenuItemButton(
-              leadingIcon: const Icon(Icons.arrow_upward_rounded),
+          KazumiMenuItem(
               onPressed: index == 0 ? null : () => _reorder(index, index - 1),
-              child: const Text('上移')),
-          MenuItemButton(
-              leadingIcon: const Icon(Icons.arrow_downward_rounded),
+              label: '上移'),
+          KazumiMenuItem(
               onPressed: index == _controller.pluginList.length - 1
                   ? null
                   : () => _reorder(index, index + 1),
-              child: const Text('下移')),
+              label: '下移'),
           const Divider(),
-          MenuItemButton(
-              leadingIcon: Icon(Icons.delete_outline_rounded,
-                  color: Theme.of(context).colorScheme.error),
+          KazumiMenuItem(
+              destructive: true,
               onPressed: _deleting ? null : () => _delete({plugin.name}),
-              child: Text('删除规则',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.error))),
+              label: '删除规则'),
         ],
       );
 }

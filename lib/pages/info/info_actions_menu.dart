@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/device.dart';
@@ -103,35 +104,25 @@ class _InfoActionsMenuState extends State<InfoActionsMenu> {
 
   @override
   Widget build(BuildContext context) {
-    const itemStyle = ButtonStyle(
-      minimumSize: WidgetStatePropertyAll(Size(120, 48)),
-      padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
-      visualDensity: VisualDensity.standard,
-    );
-    return MenuAnchor(
-      consumeOutsideTap: true,
+    return KazumiMenuButton(
       menuChildren: [
-        MenuItemButton(
-          style: itemStyle,
+        KazumiMenuItem(
           onPressed: _savingCover ? null : _saveCover,
-          child: Text(_savingCover ? '保存中…' : '保存封面'),
+          label: _savingCover ? '保存中…' : '保存封面',
         ),
-        MenuItemButton(
-          style: itemStyle,
+        KazumiMenuItem(
           onPressed: _title.trim().isEmpty ? null : _copyTitle,
-          child: const Text('复制标题'),
+          label: '复制标题',
         ),
-        MenuItemButton(
-          style: itemStyle,
+        KazumiMenuItem(
           onPressed: _openExternally,
-          child: const Text('外部打开'),
+          label: '外部打开',
         ),
       ],
-      builder: (context, controller, child) => IconButton(
+      builder: (context, toggle) => IconButton(
         tooltip: '更多操作',
         icon: const Icon(Icons.more_horiz_rounded),
-        onPressed: () =>
-            controller.isOpen ? controller.close() : controller.open(),
+        onPressed: toggle,
       ),
     );
   }

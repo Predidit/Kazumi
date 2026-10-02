@@ -448,6 +448,10 @@ class _InfoPageState extends State<InfoPage>
       floatingActionButton: FloatingActionButton.extended(
         tooltip: '开始观看',
         onPressed: () {
+          if (GStorage.getSetting<bool>(SettingsKeys.autoSelectSource)) {
+            context.pushNamed('/auto-source', arguments: infoController);
+            return;
+          }
           showAdaptiveBottomSheet<void>(
             context: context,
             maxHeightFactor: 0.88,

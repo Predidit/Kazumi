@@ -38,6 +38,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool playerDisableAnimations;
   late bool forceAdBlocker;
   late bool autoPlayNext;
+  late bool autoSelectSource;
   late bool backgroundPlayback;
   late bool brightnessVolumeGesture;
   late int playerButtonSkipTime;
@@ -69,6 +70,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     showPlayerError = GStorage.getSetting<bool>(SettingsKeys.showPlayerError);
     playerDebugMode = GStorage.getSetting<bool>(SettingsKeys.playerDebugMode);
     autoPlayNext = GStorage.getSetting<bool>(SettingsKeys.autoPlayNext);
+    autoSelectSource =
+        GStorage.getSetting<bool>(SettingsKeys.autoSelectSource);
     backgroundPlayback =
         GStorage.getSetting<bool>(SettingsKeys.backgroundPlayback);
     playerDisableAnimations =
@@ -340,6 +343,18 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 title: Text('自动连播'),
                 description: Text('当前视频播放完毕后自动播放下一集'),
                 initialValue: autoPlayNext,
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.auto_awesome_motion_rounded,
+                onToggle: (value) async {
+                  autoSelectSource = value ?? !autoSelectSource;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.autoSelectSource, autoSelectSource);
+                  setState(() {});
+                },
+                title: Text('自动选择来源'),
+                description: Text('按规则管理中的顺序自动进入可用来源'),
+                initialValue: autoSelectSource,
               ),
               if (Platform.isAndroid)
                 SettingsTile.switchTile(

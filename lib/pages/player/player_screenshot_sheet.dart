@@ -191,8 +191,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
   }
 
   Future<void> _save() async {
-    _noticeTimer?.cancel();
-    setState(() => _notice = null);
+    _hideNotice();
     await collection.save(
       chooseDestination: _exportService.chooseDestination,
       write: _exportService.write,
@@ -210,6 +209,11 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     _noticeTimer = Timer(const Duration(seconds: 5), () {
       if (mounted) setState(() => _notice = null);
     });
+  }
+
+  void _hideNotice() {
+    _noticeTimer?.cancel();
+    setState(() => _notice = null);
   }
 
   void _removeSelected() {
@@ -241,7 +245,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     _focus.requestFocus();
     if (confirmed != true || collection.busy) return;
     collection.clearCandidates();
-    _showNotice();
+    _hideNotice();
   }
 
   @override

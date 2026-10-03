@@ -138,7 +138,6 @@ abstract class _PlayerScreenshotController with Store {
   void clearCandidates() {
     if (_disposed || busy || _candidates.isEmpty) return;
     _removeCandidates(_candidates);
-    _report('已清空候选截图');
   }
 
   @action

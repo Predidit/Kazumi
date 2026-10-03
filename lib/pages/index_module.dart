@@ -5,6 +5,8 @@ import 'package:kazumi/bean/widget/image_preview.dart';
 import 'package:kazumi/pages/collect/collect_module.dart';
 import 'package:kazumi/pages/index_page.dart';
 import 'package:kazumi/pages/info/info_module.dart';
+import 'package:kazumi/pages/info/auto_source_page.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/init_page.dart';
 import 'package:kazumi/pages/my/my_module.dart';
 import 'package:kazumi/pages/onboarding/onboarding_page.dart';
@@ -118,6 +120,16 @@ final indexModule = createModule(
         transition: _imagePreviewTransition,
       )
       ..module(infoModule)
+      ..route(
+        '/auto-source',
+        child: (context, state) {
+          final infoController = state.arguments;
+          if (infoController is! InfoController) {
+            return const RouteErrorPage(message: '自动选源参数无效，请返回后重试。');
+          }
+          return AutoSourcePage(infoController: infoController);
+        },
+      )
       ..module(settingsModule)
       ..module(searchModule);
   },

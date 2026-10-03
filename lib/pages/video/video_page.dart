@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:window_manager/window_manager.dart';
@@ -16,6 +17,9 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/player/player_item.dart';
@@ -163,19 +167,21 @@ class _VideoPageState extends State<VideoPage>
   void _initOnlineMode() {
     videoPageController.historyOffset = 0;
 
-    var progress = historyController.lastWatching(
-        videoPageController.bangumiItem,
-        videoPageController.currentPlugin.name);
-    if (progress != null) {
-      if (videoPageController.roadList.length > progress.road) {
-        if (videoPageController.roadList[progress.road].data.length >=
-            progress.episode) {
-          videoPageController.resetEpisodeState(
-            episode: progress.episode,
-            road: progress.road,
-          );
-          if (playResume) {
-            videoPageController.historyOffset = progress.progress.inSeconds;
+    if (!_restoreInitialOnlineSelection()) {
+      var progress = historyController.lastWatching(
+          videoPageController.bangumiItem,
+          videoPageController.currentPlugin.name);
+      if (progress != null) {
+        if (videoPageController.roadList.length > progress.road) {
+          if (videoPageController.roadList[progress.road].data.length >=
+              progress.episode) {
+            videoPageController.resetEpisodeState(
+              episode: progress.episode,
+              road: progress.road,
+            );
+            if (playResume) {
+              videoPageController.historyOffset = progress.progress.inSeconds;
+            }
           }
         }
       }
@@ -201,6 +207,31 @@ class _VideoPageState extends State<VideoPage>
           currentRoad: videoPageController.selectedEpisode.road,
           offset: videoPageController.historyOffset);
     });
+  }
+
+  bool _restoreInitialOnlineSelection() {
+    final args = widget.args;
+    if (args is! OnlineVideoPlaybackArgs || args.initialEpisode == null) {
+      return false;
+    }
+    final episode = args.initialEpisode!;
+    if (episode <= 0) return false;
+
+    final preferredRoad = args.initialRoad ?? 0;
+    final roadIndexes = <int>[
+      preferredRoad,
+      for (var index = 0;
+          index < videoPageController.roadList.length;
+          index++)
+        if (index != preferredRoad) index,
+    ];
+    for (final road in roadIndexes) {
+      if (road < 0 || road >= videoPageController.roadList.length) continue;
+      if (videoPageController.roadList[road].data.length < episode) continue;
+      videoPageController.resetEpisodeState(episode: episode, road: road);
+      return true;
+    }
+    return false;
   }
 
   @override
@@ -269,6 +300,32 @@ class _VideoPageState extends State<VideoPage>
   void _toggleSidePanel() => _sidePanelKey.currentState?.toggle();
 
   void _closeSidePanel() => _sidePanelKey.currentState?.close();
+
+  Future<void> _changeSource() async {
+    final infoController = InfoController(inject<CollectController>())
+      ..bangumiItem = videoPageController.bangumiItem;
+    await showAdaptiveBottomSheet<void>(
+      context: context,
+      maxHeightFactor: 0.88,
+      builder: (_) => SourceSheet(
+        infoController: infoController,
+        onPlaybackSelected: (args) {
+          final selection = videoPageController.selectedEpisode;
+          final replacementArgs = OnlineVideoPlaybackArgs(
+            bangumiItem: args.bangumiItem,
+            plugin: args.plugin,
+            title: args.title,
+            src: args.src,
+            roads: args.roads,
+            initialEpisode: selection.episode,
+            initialRoad: selection.road,
+          );
+          unawaited(
+              context.replace('/video/', arguments: replacementArgs));
+        },
+      ),
+    );
+  }
 
   // Only desktop PiP participates in local navigation.
   void _syncDesktopPipHistory(bool isPip) {
@@ -438,6 +495,13 @@ class _VideoPageState extends State<VideoPage>
                                       videoPageController.selectedEpisode.road);
                             },
                           ),
+                          if (!videoPageController.isOfflineMode)
+                            IconButton(
+                              tooltip: '更改来源',
+                              icon: const Icon(Icons.swap_horiz_rounded,
+                                  color: Colors.white),
+                              onPressed: () => unawaited(_changeSource()),
+                            ),
                           if (layout.hasSidePanel)
                             IconButton(
                               onPressed: _toggleSidePanel,

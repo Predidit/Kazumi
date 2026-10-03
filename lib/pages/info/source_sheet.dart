@@ -33,9 +33,14 @@ part 'source_captcha_flow.dart';
 part 'source_sheet_view.dart';
 
 class SourceSheet extends StatefulWidget {
-  const SourceSheet({super.key, required this.infoController});
+  const SourceSheet({
+    super.key,
+    required this.infoController,
+    this.onPlaybackSelected,
+  });
 
   final InfoController infoController;
+  final ValueChanged<OnlineVideoPlaybackArgs>? onPlaybackSelected;
 
   @override
   State<SourceSheet> createState() => _SourceSheetState();
@@ -131,16 +136,22 @@ class _SourceSheetState extends State<SourceSheet> with KazumiDialogOwner {
             plugin.queryChapterRoads(searchItem.src, cancelToken: cancelToken),
       );
       if (roads.isEmpty) throw ChapterErrorException(plugin.name);
-      task.withContext((context) => context.pushNamed(
-            '/video/',
-            arguments: OnlineVideoPlaybackArgs(
-              bangumiItem: widget.infoController.bangumiItem,
-              plugin: plugin,
-              title: searchItem.name,
-              src: searchItem.src,
-              roads: roads,
-            ),
-          ));
+      final args = OnlineVideoPlaybackArgs(
+        bangumiItem: widget.infoController.bangumiItem,
+        plugin: plugin,
+        title: searchItem.name,
+        src: searchItem.src,
+        roads: roads,
+      );
+      task.withContext((context) {
+        final onPlaybackSelected = widget.onPlaybackSelected;
+        if (onPlaybackSelected != null) {
+          Navigator.of(context).pop();
+          onPlaybackSelected(args);
+        } else {
+          context.pushNamed('/video/', arguments: args);
+        }
+      });
     }, onError: (error, stackTrace) {
       KazumiLogger().w('SourceSheet: failed to query playlist', error: error);
       KazumiDialog.showToast(message: '未能获取播放列表，请重试或选择其他结果');

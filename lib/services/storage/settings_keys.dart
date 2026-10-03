@@ -233,6 +233,11 @@ class SettingsKeys {
     true,
     group: SettingGroup.player,
   );
+  static const autoSelectSource = SettingKey<bool>(
+    'autoSelectSource',
+    true,
+    group: SettingGroup.player,
+  );
   static const playResume = SettingKey<bool>(
     _SettingBoxKey.playResume,
     true,
@@ -597,6 +602,7 @@ class SettingsKeys {
     privateMode,
     autoPlay,
     autoPlayNext,
+    autoSelectSource,
     playResume,
     showPlayerError,
     oledEnhance,

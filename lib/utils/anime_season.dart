@@ -25,14 +25,22 @@ class AnimeSeason {
     return [year, season];
   }
 
-  // Convert the DateTime to a List containing two strings (the start of the season -1 and the end of the season -1 ) eg: 2024-09-23 -> ['2024-06-01', '2024-09-01']
+  // Convert the DateTime to a List containing two strings (the start of the season -1 and the first day of the next season) eg: 2024-09-23 -> ['2024-06-01', '2024-10-01']
   // why -1? because the air date is the launch date of the anime, it is usually a few days before the start of the season
+  // the end bound is exclusive, so it has to be the first day of the next
+  // season. Stopping at the first day of the season's own last month drops
+  // that whole month, which is why the window used to miss late premieres.
   List<String> toSeasonStartAndEnd() {
     var yas = _getYearAndSeason(_date);
     int year = yas[0];
     int season = yas[1];
 
-    var end = DateTime(year, (season + 1) * 3, 1);
+    // Season 3 (autumn) rolls over into January of the next year.
+    var end = DateTime(
+      season == 3 ? year + 1 : year,
+      ((season + 1) % 4) * 3 + 1,
+      1,
+    );
 
     int startMonth = season * 3;
     if (startMonth == 0) {

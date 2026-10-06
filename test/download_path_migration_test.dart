@@ -27,6 +27,7 @@ void main() {
   });
 
   setUp(() async {
+    PathProviderPlatform.instance = _TestPaths(temporaryDirectory.path);
     await GStorage.downloads.clear();
   });
 
@@ -94,7 +95,10 @@ void main() {
         await oldContainer.rename(newContainer.path);
         expect(manager.getLocalVideoPath(episode), isNull);
 
-        await rebaseIosDownloadPaths(GStorage.downloads, base(newContainer));
+        PathProviderPlatform.instance = _TestPaths(
+          path.join(newContainer.path, 'Library', 'Application Support'),
+        );
+        await rebaseIosDownloadPaths(GStorage.downloads);
         await GStorage.downloads.close();
         GStorage.downloads = await Hive.openBox<DownloadRecord>('downloads');
         final restoredRecord = GStorage.downloads.get(record.key)!;
@@ -117,7 +121,7 @@ void main() {
         expect(restoredEpisode.totalBytes, 42);
 
         // A second startup must leave already restored paths unchanged.
-        await rebaseIosDownloadPaths(GStorage.downloads, base(newContainer));
+        await rebaseIosDownloadPaths(GStorage.downloads);
         expect(
           GStorage.downloads.get(record.key)!.episodes[1]!.localM3u8Path,
           path.join(newEpisodeDirectory, filename),
@@ -176,7 +180,10 @@ void main() {
         _record({2: partial, 3: unstarted, 4: legacy}),
       );
 
-      await rebaseIosDownloadPaths(GStorage.downloads, currentBase);
+      await rebaseIosDownloadPaths(
+        GStorage.downloads,
+        downloadDirectory: () async => currentBase,
+      );
 
       final restored = GStorage.downloads.get('source_123')!;
       expect(restored.episodes[2]!.downloadDirectory, currentDirectory);
@@ -208,7 +215,10 @@ void main() {
       videoPath: '',
     )..status = DownloadStatus.paused;
     await GStorage.downloads.put('source_123', _record({1: partial}));
-    await rebaseIosDownloadPaths(GStorage.downloads, currentBase);
+    await rebaseIosDownloadPaths(
+      GStorage.downloads,
+      downloadDirectory: () async => currentBase,
+    );
     final restored = GStorage.downloads.get('source_123')!.episodes[1]!;
 
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -266,6 +276,70 @@ void main() {
       await server.close(force: true);
     }
   });
+
+  test('directory lookup failure leaves existing downloads usable', () async {
+    final original = _record({
+      1: _episode(directory: '/old/downloads/123_source/1', videoPath: ''),
+    });
+    await GStorage.downloads.put(original.key, original);
+    await expectLater(
+      rebaseIosDownloadPaths(
+        GStorage.downloads,
+        downloadDirectory: () async => throw FileSystemException('unavailable'),
+      ),
+      completes,
+    );
+    expect(
+      GStorage.downloads.get(original.key)!.episodes[1]!.downloadDirectory,
+      '/old/downloads/123_source/1',
+    );
+  });
+
+  for (final failOnFlush in [false, true]) {
+    test(
+      'migration tolerates ${failOnFlush ? 'flush' : 'write'} failure and retries',
+      () async {
+        final original = _record({
+          1: _episode(directory: '/old/downloads/123_source/1', videoPath: ''),
+        });
+        await GStorage.downloads.put(original.key, original);
+        final currentBase = path.join(
+          temporaryDirectory.path,
+          'retry',
+          'downloads',
+        );
+        await expectLater(
+          rebaseIosDownloadPaths(
+            _FailingDownloads(GStorage.downloads, failOnFlush: failOnFlush),
+            downloadDirectory: () async => currentBase,
+          ),
+          completes,
+        );
+        await GStorage.downloads.close();
+        GStorage.downloads = await Hive.openBox<DownloadRecord>('downloads');
+        if (!failOnFlush) {
+          expect(
+            GStorage.downloads
+                .get(original.key)!
+                .episodes[1]!
+                .downloadDirectory,
+            '/old/downloads/123_source/1',
+          );
+        }
+
+        await rebaseIosDownloadPaths(
+          GStorage.downloads,
+          downloadDirectory: () async => currentBase,
+        );
+        await GStorage.downloads.close();
+        GStorage.downloads = await Hive.openBox<DownloadRecord>('downloads');
+        expect(
+          GStorage.downloads.get(original.key)!.episodes[1]!.downloadDirectory,
+          path.join(currentBase, '123_source', '1'),
+        );
+      },
+    );
+  }
 }
 
 DownloadRecord _record(Map<int, DownloadEpisode> episodes) =>
@@ -298,4 +372,30 @@ class _TestPaths extends PathProviderPlatform {
 
   @override
   Future<String?> getApplicationSupportPath() async => directory;
+}
+
+class _FailingDownloads implements Box<DownloadRecord> {
+  _FailingDownloads(this.delegate, {required this.failOnFlush});
+
+  final Box<DownloadRecord> delegate;
+  final bool failOnFlush;
+
+  @override
+  Iterable<dynamic> get keys => delegate.keys;
+
+  @override
+  DownloadRecord? get(dynamic key, {DownloadRecord? defaultValue}) =>
+      delegate.get(key, defaultValue: defaultValue);
+
+  @override
+  Future<void> put(dynamic key, DownloadRecord value) async {
+    if (!failOnFlush) throw FileSystemException('No space left on device');
+    await delegate.put(key, value);
+  }
+
+  @override
+  Future<void> flush() async => throw FileSystemException('flush failed');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

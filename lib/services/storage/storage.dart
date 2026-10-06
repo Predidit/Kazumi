@@ -13,7 +13,6 @@ import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/storage/history_storage_coordinator.dart';
 import 'package:kazumi/services/download/download_path_migration.dart';
-import 'package:kazumi/utils/file_system.dart';
 
 import 'package:kazumi/services/storage/settings_keys.dart';
 export 'package:kazumi/services/storage/settings_keys.dart';
@@ -161,8 +160,7 @@ class GStorage {
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
     if (Platform.isIOS) {
-      await rebaseIosDownloadPaths(
-          downloads, await getDefaultDownloadDirectory());
+      await rebaseIosDownloadPaths(downloads);
     }
   }
 

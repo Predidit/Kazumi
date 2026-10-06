@@ -1,5 +1,7 @@
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/file_system.dart';
 import 'package:path/path.dart' as path;
 
 /// iOS can move an app's data container on update. Download files move with it,
@@ -7,6 +9,23 @@ import 'package:path/path.dart' as path;
 /// iOS has no custom download directory, so restore all started episodes under
 /// the current default directory before any playback, resume or deletion.
 Future<void> rebaseIosDownloadPaths(
+  Box<DownloadRecord> downloads, {
+  Future<String> Function() downloadDirectory = getDefaultDownloadDirectory,
+}) async {
+  try {
+    await _rebaseDownloadPaths(downloads, await downloadDirectory());
+  } catch (error, stackTrace) {
+    // Existing boxes remain usable even if migration cannot be persisted (for
+    // example on a full disk). Retry from the saved records on the next launch.
+    KazumiLogger().e(
+      'DownloadStorage: iOS download path migration failed',
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+}
+
+Future<void> _rebaseDownloadPaths(
   Box<DownloadRecord> downloads,
   String downloadBase,
 ) async {

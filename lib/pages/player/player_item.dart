@@ -969,7 +969,10 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.panel.canHidePlayerPanel && _playerPanelHolds.isEmpty;
 
   void showVideoController({bool restartHideTimer = true}) {
-    _panelVisibilityController.forward();
+    // Re-forwarding restarts the ticker and stalls a frame, so hover must not.
+    if (!_panelVisibilityController.isForwardOrCompleted) {
+      _panelVisibilityController.forward();
+    }
     playerController.panel.showVideoController = true;
     if (restartHideTimer && _canHidePlayerPanel) {
       _startHideTimer();

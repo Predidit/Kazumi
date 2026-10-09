@@ -294,13 +294,13 @@ class _DownloadPageState extends State<DownloadPage> {
             ),
           ),
           TextButton(
-            onPressed: () {
-              downloadController.deleteEpisode(
+            onPressed: () async {
+              KazumiDialog.dismiss();
+              await downloadController.deleteEpisode(
                 record.bangumiId,
                 record.pluginName,
                 episode.episodeNumber,
               );
-              KazumiDialog.dismiss();
             },
             child: Text(
               '删除',
@@ -326,12 +326,12 @@ class _DownloadPageState extends State<DownloadPage> {
             ),
           ),
           TextButton(
-            onPressed: () {
-              downloadController.deleteRecord(
+            onPressed: () async {
+              KazumiDialog.dismiss();
+              await downloadController.deleteRecord(
                 record.bangumiId,
                 record.pluginName,
               );
-              KazumiDialog.dismiss();
             },
             child: Text(
               '删除',

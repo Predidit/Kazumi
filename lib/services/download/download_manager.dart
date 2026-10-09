@@ -10,7 +10,7 @@ import 'package:kazumi/utils/m3u8_ad_filter.dart';
 import 'package:kazumi/utils/format.dart' as fmt;
 import 'package:kazumi/utils/file_system.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/platform/secure_bookmark_service.dart';
+import 'package:kazumi/services/download/directory/download_directory_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:path/path.dart' as path;
 
@@ -133,11 +133,13 @@ class _SpeedTracker {
 }
 
 class DownloadManager implements IDownloadManager {
-  DownloadManager() {
+  DownloadManager({DownloadDirectoryService? directoryService})
+      : _directoryService = directoryService ?? DownloadDirectoryService.instance {
     _loadSettings();
   }
 
   final DownloadHttpClient _http = DownloadHttpClient.instance;
+  final DownloadDirectoryService _directoryService;
 
   final Map<String, DownloadTask> _activeTasks = {};
   final List<DownloadRequest> _queue = [];
@@ -215,21 +217,8 @@ class DownloadManager implements IDownloadManager {
   bool isDownloading(String recordKey, int episodeNumber) =>
       _activeTasks.containsKey(_taskKey(recordKey, episodeNumber));
 
-  Future<String> get _downloadBaseDir async {
-    if (supportsCustomDownloadDirectory) {
-      final customDir =
-          GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
-      if (customDir.isNotEmpty) {
-        // On macOS this re-establishes sandbox access after a restart;
-        // elsewhere it returns the path unchanged.
-        final usable = await SecureBookmarkService.restore(customDir);
-        if (usable != null) return usable;
-        KazumiLogger().w(
-            'DownloadManager: custom download directory unavailable, falling back to default');
-      }
-    }
-    return getDefaultDownloadDirectory();
-  }
+  Future<String> get _downloadBaseDir =>
+      _directoryService.getDownloadDirectory();
 
   String _getEpisodeDir(String downloadBase, int bangumiId, String pluginName,
       int episodeNumber) {
@@ -247,7 +236,7 @@ class DownloadManager implements IDownloadManager {
   ) async {
     final storedDir = episode.downloadDirectory.trim();
     final episodeDir = storedDir.isNotEmpty
-        ? storedDir
+        ? await _directoryService.requireAccess(storedDir)
         : _getEpisodeDir(
             await _downloadBaseDir, bangumiId, pluginName, episodeNumber);
     await ensureDirectoryWritable(episodeDir);
@@ -265,8 +254,10 @@ class DownloadManager implements IDownloadManager {
     int episodeNumber,
   ) async {
     final storedDir = episode?.downloadDirectory.trim() ?? '';
-    if (storedDir.isNotEmpty) return storedDir;
-    return _getEpisodeDir(await getDefaultDownloadDirectory(), bangumiId,
+    if (storedDir.isNotEmpty) {
+      return _directoryService.requireAccess(storedDir);
+    }
+    return _getEpisodeDir(await _directoryService.getDefaultDirectory(), bangumiId,
         pluginName, episodeNumber);
   }
 
@@ -925,7 +916,7 @@ class DownloadManager implements IDownloadManager {
       {DownloadRecord? record}) async {
     if (record == null) {
       final dir = Directory(path.join(
-          await getDefaultDownloadDirectory(), '${bangumiId}_$pluginName'));
+          await _directoryService.getDefaultDirectory(), '${bangumiId}_$pluginName'));
       if (await dir.exists()) {
         await dir.delete(recursive: true);
       }

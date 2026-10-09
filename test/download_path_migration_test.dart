@@ -29,6 +29,7 @@ void main() {
   setUp(() async {
     PathProviderPlatform.instance = _TestPaths(temporaryDirectory.path);
     await GStorage.downloads.clear();
+    await GStorage.putSetting(SettingsKeys.downloadDirectory, '');
   });
 
   tearDownAll(() async {
@@ -44,6 +45,34 @@ void main() {
     );
     await temporaryDirectory.delete(recursive: true);
   });
+
+  test(
+    'default migration root ignores a configured custom directory',
+    () async {
+      final customRoot = path.join(temporaryDirectory.path, 'custom');
+      await GStorage.putSetting(SettingsKeys.downloadDirectory, customRoot);
+      final record = _record({
+        1: _episode(
+          directory: path.join(
+            temporaryDirectory.path,
+            'old',
+            '123_source',
+            '1',
+          ),
+          videoPath: '',
+        ),
+      });
+      await GStorage.downloads.put(record.key, record);
+
+      await rebaseIosDownloadPaths(GStorage.downloads);
+
+      expect(
+        GStorage.downloads.get(record.key)!.episodes[1]!.downloadDirectory,
+        path.join(temporaryDirectory.path, 'downloads', '123_source', '1'),
+      );
+      expect(GStorage.getSetting(SettingsKeys.downloadDirectory), customRoot);
+    },
+  );
 
   for (final filename in ['playlist.m3u8', 'video.mp4']) {
     test(

@@ -30,7 +30,6 @@ abstract class DownloadDirectoryService {
   }
 
   bool get supportsCustomDirectory;
-  String? get selectionHint => null;
 
   String get customDirectory =>
       GStorage.getSetting(SettingsKeys.downloadDirectory).trim();

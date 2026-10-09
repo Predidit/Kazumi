@@ -12,9 +12,6 @@ class AndroidDownloadDirectoryService extends DownloadDirectoryService {
   bool get supportsCustomDirectory => true;
 
   @override
-  String get selectionHint => '选择本地文件夹前需要授予存储访问权限，Android 11 及以上需允许管理所有文件';
-
-  @override
   Future<String?> pickDirectory(String? initialDirectory) async {
     final granted =
         await _channel.invokeMethod<bool>('requestStorageAccess') ?? false;

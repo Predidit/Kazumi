@@ -172,10 +172,6 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                         color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
-                    if (_directoryService.selectionHint case final hint?) ...[
-                      const SizedBox(height: 8),
-                      Text(hint),
-                    ],
                   ],
                 ),
                 trailing: isSelectingDirectory

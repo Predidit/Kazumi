@@ -4,6 +4,8 @@ import AVKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+    private var pipController: NSObject?
+    private var pipPluginRegistry: KazumiPipPluginRegistry?
 
     override func application(
         _ application: UIApplication,
@@ -13,7 +15,40 @@ import AVKit
     }
 
     func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
-        GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+        if #available(iOS 15.0, *) {
+            let pip = IosPictureInPictureController(messenger: engineBridge.applicationRegistrar.messenger())
+            let registry = KazumiPipPluginRegistry(registry: engineBridge.pluginRegistry) {
+                [weak pip] buffer, textureId in
+                pip?.onVideoFrame(buffer, textureId: textureId)
+            }
+            pip.copyPixelBuffer = { [weak registry] textureId in
+                registry?.copyPixelBuffer(forTexture: textureId)
+            }
+            pip.useSoftwareRendering = { [weak registry] handle, completion in
+                guard let registry = registry else { completion(false); return }
+                registry.useSoftwareRendering(forHandle: handle, completion: completion)
+            }
+            pip.restoreRendering = { [weak registry] completion in
+                guard let registry = registry else { completion(); return }
+                registry.restoreRendering(completion: completion)
+            }
+            registry.videoOutputWillChange = { [weak pip] handle, completion in
+                guard let pip = pip else { completion(false); return }
+                pip.videoOutputWillChange(handle, completion: completion)
+            }
+            registry.videoOutputDidChange = { [weak pip] handle, completion in
+                guard let pip = pip else { completion(false); return }
+                pip.videoOutputDidChange(handle, completion: completion)
+            }
+            pipController = pip
+            pipPluginRegistry = registry
+            GeneratedPluginRegistrant.register(with: registry)
+        } else {
+            GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+            let pipChannel = FlutterMethodChannel(name: "com.predidit.kazumi/ios_pip",
+                                                  binaryMessenger: engineBridge.applicationRegistrar.messenger())
+            pipChannel.setMethodCallHandler { _, result in result(false) }
+        }
 
         let channel = FlutterMethodChannel(
             name: "com.predidit.kazumi/intent",

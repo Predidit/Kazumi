@@ -13,6 +13,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/player/playback_cache_policy.dart';
+import 'package:kazumi/services/player/ios_pip_controller.dart';
 import 'package:kazumi/services/player/player_error_mapper.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/video_source/video_source_format.dart';
@@ -406,13 +407,27 @@ abstract class _PlayerPlaybackController with Store {
         superResolutionMode = SuperResolutionMode.off;
       }
 
+      // Copy-back decoding allows the native video output to switch from GL to
+      // CPU rendering for background PiP without replacing the mpv player.
+      final iosPipSupported = Platform.isIOS &&
+          await IosPipController.isSupported();
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(candidate);
+      }
+      final decoder = iosPipSupported
+          ? switch (hardwareDecoder) {
+              'auto' => 'auto-copy',
+              'videotoolbox' => 'videotoolbox-copy',
+              _ => hardwareDecoder,
+            }
+          : hardwareDecoder;
       videoController ??= VideoController(
         player,
         configuration: VideoControllerConfiguration(
           vo: videoRenderer,
           enableHardwareAcceleration: hAenable,
           enableAndroidSurfaceProducer: false,
-          hwdec: hAenable ? hardwareDecoder : 'no',
+          hwdec: hAenable ? decoder : 'no',
           androidAttachSurfaceAfterVideoParameters: false,
         ),
       );

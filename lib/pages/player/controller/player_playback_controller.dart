@@ -418,6 +418,7 @@ abstract class _PlayerPlaybackController with Store {
           ? switch (hardwareDecoder) {
               'auto' => 'auto-copy',
               'videotoolbox' => 'videotoolbox-copy',
+              'auto-safe' => 'auto-copy-safe',
               _ => hardwareDecoder,
             }
           : hardwareDecoder;

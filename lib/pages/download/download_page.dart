@@ -9,6 +9,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_widgets.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
+import 'package:kazumi/services/download/directory/download_directory_service.dart';
 import 'package:kazumi/utils/format.dart';
 
 class DownloadPage extends StatefulWidget {
@@ -296,10 +297,12 @@ class _DownloadPageState extends State<DownloadPage> {
           TextButton(
             onPressed: () async {
               KazumiDialog.dismiss();
-              await downloadController.deleteEpisode(
-                record.bangumiId,
-                record.pluginName,
-                episode.episodeNumber,
+              await _deleteDownload(
+                () => downloadController.deleteEpisode(
+                  record.bangumiId,
+                  record.pluginName,
+                  episode.episodeNumber,
+                ),
               );
             },
             child: Text(
@@ -328,9 +331,11 @@ class _DownloadPageState extends State<DownloadPage> {
           TextButton(
             onPressed: () async {
               KazumiDialog.dismiss();
-              await downloadController.deleteRecord(
-                record.bangumiId,
-                record.pluginName,
+              await _deleteDownload(
+                () => downloadController.deleteRecord(
+                  record.bangumiId,
+                  record.pluginName,
+                ),
               );
             },
             child: Text(
@@ -341,5 +346,30 @@ class _DownloadPageState extends State<DownloadPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _deleteDownload(Future<void> Function() delete) async {
+    try {
+      await delete();
+    } catch (e) {
+      if (!mounted) return;
+      KazumiDialog.show(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('删除失败'),
+          content: Text(
+            e is DownloadDirectoryException
+                ? '下载目录访问权限失效，请在下载设置中重新选择原目录授权后重试'
+                : '删除下载失败，请检查目录访问权限后重试',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => KazumiDialog.dismiss(context: context),
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

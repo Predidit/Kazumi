@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/services/download/background_download_service.dart';
-import 'package:kazumi/services/download/directory/download_directory_service.dart';
 import 'package:kazumi/services/download/download_manager.dart';
 import 'package:kazumi/utils/format.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -877,26 +875,24 @@ abstract class _DownloadController with Store {
     }
   }
 
-  Future<void> cancelDownload(
-      int bangumiId, String pluginName, int episodeNumber) =>
-      deleteEpisode(bangumiId, pluginName, episodeNumber);
-
-  Future<bool> _tryDeleteDownloadFiles(Future<void> Function() deleteFiles) async {
+  Future<void> _deleteDownloadFiles(
+    String recordKey,
+    Iterable<int> episodeNumbers,
+    Future<void> Function() deleteFiles,
+  ) async {
     try {
       await deleteFiles();
-      return true;
     } catch (e, stackTrace) {
       KazumiLogger().w(
         'DownloadController: failed to delete download files',
         error: e,
         stackTrace: stackTrace,
       );
-      KazumiDialog.showToast(
-        message: e is DownloadDirectoryException
-            ? '删除失败：下载目录访问权限失效，请在下载设置中重新选择原目录授权后重试'
-            : '删除下载文件失败，请检查目录访问权限后重试',
+      await _pauseCancelledEpisodesAfterDeleteFailure(
+        recordKey,
+        episodeNumbers,
       );
-      return false;
+      rethrow;
     }
   }
 
@@ -933,18 +929,15 @@ abstract class _DownloadController with Store {
       }
     }
     _cancelResolveRecord(recordKey);
-    final deleted = await _tryDeleteDownloadFiles(
+    await _deleteDownloadFiles(
+      recordKey,
+      record?.episodes.keys.toList() ?? const [],
       () => _downloadManager.deleteRecordFiles(
         bangumiId,
         pluginName,
         record: record,
       ),
     );
-    if (!deleted) {
-      await _pauseCancelledEpisodesAfterDeleteFailure(
-          recordKey, record?.episodes.keys.toList() ?? const []);
-      return;
-    }
     await _repository.deleteRecord(recordKey);
     _refreshRecord(recordKey);
     _queueBackgroundNotificationUpdate();
@@ -958,7 +951,9 @@ abstract class _DownloadController with Store {
     _cancelResolve(recordKey, episodeNumber);
     final episode =
         _repository.getEpisode(bangumiId, pluginName, episodeNumber);
-    final deleted = await _tryDeleteDownloadFiles(
+    await _deleteDownloadFiles(
+      recordKey,
+      [episodeNumber],
       () => _downloadManager.deleteEpisodeFiles(
         bangumiId,
         pluginName,
@@ -966,10 +961,6 @@ abstract class _DownloadController with Store {
         episode: episode,
       ),
     );
-    if (!deleted) {
-      await _pauseCancelledEpisodesAfterDeleteFailure(recordKey, [episodeNumber]);
-      return;
-    }
     await _repository.deleteEpisode(recordKey, episodeNumber);
     _refreshRecord(recordKey);
     _queueBackgroundNotificationUpdate();

@@ -136,6 +136,67 @@ void main() {
     expect(menuNodes[2].hasPrimaryFocus, isTrue);
   });
 
+  testWidgets('离开时的控件已经被销毁时，右键不报错并进入最近的控件', (tester) async {
+    final showFirst = ValueNotifier(true);
+    addTearDown(showFirst.dispose);
+    final stale = FocusNode(debugLabel: 'stale');
+    addTearDown(stale.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Focus(
+                focusNode: bridge.menuNode,
+                onKeyEvent: (_, event) => bridge.handleMenuKey(
+                  event,
+                  toContent: TraversalDirection.right,
+                ),
+                child: button(menuNodes[0]),
+              ),
+              Expanded(
+                child: Focus(
+                  focusNode: bridge.contentNode,
+                  onKeyEvent: (_, event) => bridge.handleContentKey(
+                    event,
+                    toMenu: TraversalDirection.left,
+                  ),
+                  child: Navigator(
+                    onGenerateRoute: (_) => MaterialPageRoute<void>(
+                      builder: (_) => Align(
+                        alignment: Alignment.topLeft,
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: showFirst,
+                          builder: (_, first, _) =>
+                              button(first ? stale : contentNodes[0]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    stale.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pump();
+    expect(menuNodes[0].hasPrimaryFocus, isTrue);
+
+    // 换页：离开时的那个控件被移出了组件树
+    showFirst.value = false;
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(contentNodes[0].hasPrimaryFocus, isTrue);
+  });
+
   testWidgets('输入框里的左键留给光标，不抢焦点', (tester) async {
     final fieldNode = FocusNode();
     addTearDown(fieldNode.dispose);

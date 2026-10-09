@@ -33,7 +33,7 @@ class MenuFocusBridge {
     if (focus == null || !focus.ancestors.contains(menuNode)) return;
     var remainingFrames = 3;
     void restore(Duration _) {
-      if (focus.context == null || !focus.canRequestFocus) return;
+      if (focus.parent == null || !focus.canRequestFocus) return;
       if (!focus.hasPrimaryFocus) focus.requestFocus();
       if (--remainingFrames > 0) {
         WidgetsBinding.instance.addPostFrameCallback(restore);
@@ -54,9 +54,14 @@ class MenuFocusBridge {
   }
 
   static bool _isUsable(FocusNode node) {
-    if (node is FocusScopeNode || node.context == null) return false;
+    // 节点脱离焦点树后 context 不会被清空，这时读 rect 会在已卸载的 Element 上抛异常
+    final context = node.context;
+    if (node is FocusScopeNode || context == null || !context.mounted) {
+      return false;
+    }
+    if (node.parent == null || !node.canRequestFocus) return false;
     final rect = node.rect;
-    return node.canRequestFocus && rect.isFinite && !rect.isEmpty;
+    return rect.isFinite && !rect.isEmpty;
   }
 
   static FocusNode? _nearest(Iterable<FocusNode> nodes, Offset origin) {
@@ -131,8 +136,8 @@ class MenuFocusBridge {
     final last = _lastContentFocus;
     _lastContentFocus = null;
     if (last != null &&
-        _isUsable(last) &&
-        last.ancestors.contains(contentNode)) {
+        last.ancestors.contains(contentNode) &&
+        _isUsable(last)) {
       last.requestFocus();
       return KeyEventResult.handled;
     }

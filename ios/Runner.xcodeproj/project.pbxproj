@@ -18,7 +18,7 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		A17F1A012D80000100000001 /* IosPictureInPictureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17F1A012D80000100000002 /* IosPictureInPictureController.swift */; };
-		A17F1A012D80000100000003 /* KazumiPipPluginRegistry.m in Sources */ = {isa = PBXBuildFile; fileRef = A17F1A012D80000100000004 /* KazumiPipPluginRegistry.m */; };
+		A17F1A012D80000100000003 /* KazumiPipPluginRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17F1A012D80000100000004 /* KazumiPipPluginRegistry.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,8 +68,7 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A17F1A012D80000100000002 /* IosPictureInPictureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IosPictureInPictureController.swift; sourceTree = "<group>"; };
-		A17F1A012D80000100000004 /* KazumiPipPluginRegistry.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KazumiPipPluginRegistry.m; sourceTree = "<group>"; };
-		A17F1A012D80000100000005 /* KazumiPipPluginRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KazumiPipPluginRegistry.h; sourceTree = "<group>"; };
+		A17F1A012D80000100000004 /* KazumiPipPluginRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KazumiPipPluginRegistry.swift; sourceTree = "<group>"; };
 		A7581F6023578C74999458C8 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		FDD295DABEFF61B922DA11FF /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -161,8 +160,7 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				A17F1A012D80000100000002 /* IosPictureInPictureController.swift */,
-				A17F1A012D80000100000004 /* KazumiPipPluginRegistry.m */,
-				A17F1A012D80000100000005 /* KazumiPipPluginRegistry.h */,
+				A17F1A012D80000100000004 /* KazumiPipPluginRegistry.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
@@ -402,7 +400,7 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				A17F1A012D80000100000001 /* IosPictureInPictureController.swift in Sources */,
-				A17F1A012D80000100000003 /* KazumiPipPluginRegistry.m in Sources */,
+				A17F1A012D80000100000003 /* KazumiPipPluginRegistry.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

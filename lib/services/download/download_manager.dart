@@ -411,7 +411,7 @@ class DownloadManager implements IDownloadManager {
 
       episode.status = DownloadStatus.downloading;
       episode.networkM3u8Url = m3u8Url;
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
 
       String m3u8Content;
       try {
@@ -461,14 +461,14 @@ class DownloadManager implements IDownloadManager {
       if (!resolvedPlaylist.isVod) {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = '不支持下载直播流 (无有效分片)';
-        _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        _notifyProgress(task, episode);
         return;
       }
 
       if (resolvedPlaylist.segments.isEmpty) {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = 'M3U8 中未找到可下载的分片';
-        _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        _notifyProgress(task, episode);
         return;
       }
 
@@ -495,7 +495,7 @@ class DownloadManager implements IDownloadManager {
 
       episode.totalSegments = segments.length;
       episode.downloadedSegments = 0;
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
       final episodeDirObj = Directory(episodeDir);
       if (await episodeDirObj.exists()) {
         await for (final entity in episodeDirObj.list()) {
@@ -524,7 +524,7 @@ class DownloadManager implements IDownloadManager {
       episode.progressPercent = episode.totalSegments > 0
           ? episode.downloadedSegments / episode.totalSegments
           : 0.0;
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
 
       final pendingIndices = <int>[];
       for (int i = 0; i < segments.length; i++) {
@@ -564,7 +564,7 @@ class DownloadManager implements IDownloadManager {
             episode.progressPercent =
                 episode.downloadedSegments / episode.totalSegments;
             _speedTrackers[key]?.update(sessionBytes);
-            _notifyProgress(task.recordKey, task.episodeNumber, episode);
+            _notifyProgress(task, episode);
             completedCount++;
             semaphore.release();
             if (completedCount + failedCount == pendingIndices.length) {
@@ -590,14 +590,14 @@ class DownloadManager implements IDownloadManager {
         if (task.isPaused) {
           episode.status = DownloadStatus.paused;
         }
-        _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        _notifyProgress(task, episode);
         return;
       }
 
       if (failedCount > 0) {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = '$failedCount 个分片下载失败';
-        _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        _notifyProgress(task, episode);
         return;
       }
 
@@ -619,7 +619,7 @@ class DownloadManager implements IDownloadManager {
       episode.completedAt = DateTime.now();
       episode.totalBytes =
           finalVideoBytes > 0 ? finalVideoBytes : existingBytes + sessionBytes;
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
 
       KazumiLogger().i(
         'DownloadManager: episode ${task.episodeNumber} completed. '
@@ -629,12 +629,12 @@ class DownloadManager implements IDownloadManager {
       episode.status = DownloadStatus.failed;
       episode.errorMessage =
           '存储空间不足 (可用: ${fmt.formatBytes(e.availableBytes)})';
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
       KazumiLogger().w('DownloadManager: insufficient storage space', error: e);
     } on FileSystemException catch (e) {
       episode.status = DownloadStatus.failed;
       episode.errorMessage = _getStorageErrorMessage(e);
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
       KazumiLogger().e('DownloadManager: file system error', error: e);
     } on NetworkException catch (e) {
       if (e.type == NetworkExceptionType.cancel) {
@@ -645,14 +645,14 @@ class DownloadManager implements IDownloadManager {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = e.message;
       }
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
     } catch (e) {
       episode.status = DownloadStatus.failed;
       episode.errorMessage = e.toString();
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
       KazumiLogger().e('DownloadManager: episode download failed', error: e);
     } finally {
-      _onTaskComplete(key);
+      _onTaskComplete(task);
     }
   }
 
@@ -680,7 +680,7 @@ class DownloadManager implements IDownloadManager {
 
       episode.totalSegments = 1;
       episode.downloadedSegments = 0;
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
 
       final requestHeaders = Map<String, String>.from(httpHeaders);
       bool useRange = existingBytes > 0;
@@ -742,7 +742,7 @@ class DownloadManager implements IDownloadManager {
           episode.progressPercent = totalSize > 0 ? received / totalSize : 0;
           // Update speed tracker
           _speedTrackers[key]?.update(received);
-          _notifyProgress(task.recordKey, task.episodeNumber, episode);
+          _notifyProgress(task, episode);
         }
       } finally {
         await raf.close();
@@ -752,7 +752,7 @@ class DownloadManager implements IDownloadManager {
         if (task.isPaused) {
           episode.status = DownloadStatus.paused;
         }
-        _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        _notifyProgress(task, episode);
         return;
       }
 
@@ -764,7 +764,7 @@ class DownloadManager implements IDownloadManager {
       episode.progressPercent = 1.0;
       episode.completedAt = DateTime.now();
       episode.totalBytes = await File(filePath).length();
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
 
       KazumiLogger().i(
         'DownloadManager: episode ${task.episodeNumber} completed (direct download). '
@@ -774,12 +774,12 @@ class DownloadManager implements IDownloadManager {
       episode.status = DownloadStatus.failed;
       episode.errorMessage =
           '存储空间不足 (可用: ${fmt.formatBytes(e.availableBytes)})';
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
       KazumiLogger().w('DownloadManager: insufficient storage space', error: e);
     } on FileSystemException catch (e) {
       episode.status = DownloadStatus.failed;
       episode.errorMessage = _getStorageErrorMessage(e);
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
       KazumiLogger().e('DownloadManager: file system error', error: e);
     } on NetworkException catch (e) {
       if (e.type == NetworkExceptionType.cancel) {
@@ -790,28 +790,35 @@ class DownloadManager implements IDownloadManager {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = e.message;
       }
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
     } catch (e) {
       episode.status = DownloadStatus.failed;
       episode.errorMessage = e.toString();
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      _notifyProgress(task, episode);
       KazumiLogger()
           .e('DownloadManager: direct file download failed', error: e);
     }
   }
 
-  void _onTaskComplete(String key) {
-    _activeTasks.remove(key);
-    _speedTrackers.remove(key);
+  void _onTaskComplete(DownloadTask task) {
+    final key = _taskKey(task.recordKey, task.episodeNumber);
+    // A retry may already own this key while the cancelled task is unwinding.
+    if (_activeTasks[key] == null || identical(_activeTasks[key], task)) {
+      _activeTasks.remove(key);
+      _speedTrackers.remove(key);
+    }
     _runningCount--;
     _processQueue();
   }
 
-  void _notifyProgress(
-      String recordKey, int episodeNumber, DownloadEpisode episode) {
-    final key = _taskKey(recordKey, episodeNumber);
+  void _notifyProgress(DownloadTask task, DownloadEpisode episode) {
+    final key = _taskKey(task.recordKey, task.episodeNumber);
+    if (!identical(_activeTasks[key], task) ||
+        (task.cancelToken.isCancelled && episode.status != DownloadStatus.paused)) {
+      return;
+    }
     final speed = _speedTrackers[key]?.currentSpeed ?? 0.0;
-    onProgress?.call(recordKey, episodeNumber, episode, speed);
+    onProgress?.call(task.recordKey, task.episodeNumber, episode, speed);
   }
 
   Future<String> _fetchM3u8(

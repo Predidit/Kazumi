@@ -900,6 +900,29 @@ abstract class _DownloadController with Store {
     }
   }
 
+  Future<void> _pauseCancelledEpisodesAfterDeleteFailure(
+      String recordKey, Iterable<int> episodeNumbers) async {
+    final record = _repository.getRecord(recordKey);
+    if (record != null) {
+      for (final number in episodeNumbers) {
+        final episode = record.episodes[number];
+        if (episode == null ||
+            (episode.status != DownloadStatus.pending &&
+                episode.status != DownloadStatus.resolving &&
+                episode.status != DownloadStatus.downloading)) {
+          continue;
+        }
+        // A cancelled worker can still unwind asynchronously. Detach the saved
+        // episode from its mutable object so late writes cannot undo recovery.
+        final pausedEpisode = _cloneEpisode(episode);
+        pausedEpisode.status = DownloadStatus.paused;
+        await _repository.updateEpisode(recordKey, number, pausedEpisode);
+      }
+    }
+    _refreshRecord(recordKey);
+    _queueBackgroundNotificationUpdate();
+  }
+
   Future<void> deleteRecord(int bangumiId, String pluginName) async {
     final recordKey = '${pluginName}_$bangumiId';
     final record = _repository.getRecord(recordKey);
@@ -917,7 +940,11 @@ abstract class _DownloadController with Store {
         record: record,
       ),
     );
-    if (!deleted) return;
+    if (!deleted) {
+      await _pauseCancelledEpisodesAfterDeleteFailure(
+          recordKey, record?.episodes.keys.toList() ?? const []);
+      return;
+    }
     await _repository.deleteRecord(recordKey);
     _refreshRecord(recordKey);
     _queueBackgroundNotificationUpdate();
@@ -939,7 +966,10 @@ abstract class _DownloadController with Store {
         episode: episode,
       ),
     );
-    if (!deleted) return;
+    if (!deleted) {
+      await _pauseCancelledEpisodesAfterDeleteFailure(recordKey, [episodeNumber]);
+      return;
+    }
     await _repository.deleteEpisode(recordKey, episodeNumber);
     _refreshRecord(recordKey);
     _queueBackgroundNotificationUpdate();

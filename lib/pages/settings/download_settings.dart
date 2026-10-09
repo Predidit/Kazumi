@@ -18,7 +18,7 @@ class DownloadSettingsPage extends StatefulWidget {
 }
 
 class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
-  final _directoryService = DownloadDirectoryService.instance;
+  final _directoryService = DownloadDirectoryService();
   late int parallelEpisodes;
   late int parallelSegments;
   late bool downloadDanmaku;

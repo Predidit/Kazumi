@@ -17,7 +17,7 @@ Future<void> rebaseIosDownloadPaths(
     // custom-directory setting. Keep lookup failures inside the migration guard.
     final resolveDirectory =
         downloadDirectory ??
-        DownloadDirectoryService.instance.getDefaultDirectory;
+        DownloadDirectoryService().getDefaultDirectory;
     await _rebaseDownloadPaths(downloads, await resolveDirectory());
   } catch (error, stackTrace) {
     // Existing boxes remain usable even if migration cannot be persisted (for

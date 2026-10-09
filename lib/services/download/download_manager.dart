@@ -133,13 +133,12 @@ class _SpeedTracker {
 }
 
 class DownloadManager implements IDownloadManager {
-  DownloadManager({DownloadDirectoryService? directoryService})
-      : _directoryService = directoryService ?? DownloadDirectoryService.instance {
+  DownloadManager() {
     _loadSettings();
   }
 
   final DownloadHttpClient _http = DownloadHttpClient.instance;
-  final DownloadDirectoryService _directoryService;
+  final DownloadDirectoryService _directoryService = DownloadDirectoryService();
 
   final Map<String, DownloadTask> _activeTasks = {};
   final List<DownloadRequest> _queue = [];

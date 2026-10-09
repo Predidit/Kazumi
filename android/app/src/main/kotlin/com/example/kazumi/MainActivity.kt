@@ -36,6 +36,7 @@ class MainActivity: AudioServiceActivity() {
     private val PIP_CHANNEL = "com.predidit.kazumi/pip"
     private var intentChannel: MethodChannel? = null
     private var pipChannel: MethodChannel? = null
+    private var downloadDirectoryChannel: MethodChannel? = null
     private var downloadDirectoryHandler: DownloadDirectoryHandler? = null
 
     private var pipIsPlaying = false
@@ -75,7 +76,10 @@ class MainActivity: AudioServiceActivity() {
     }
 
     override fun onDestroy() {
+        downloadDirectoryChannel?.setMethodCallHandler(null)
+        downloadDirectoryChannel = null
         downloadDirectoryHandler?.dispose()
+        downloadDirectoryHandler = null
         unregisterPipActionReceiverIfNeeded()
         // audio_service stays bound for the whole activity lifetime, so its
         // own stopSelf() never destroys a service started for playback.
@@ -104,8 +108,10 @@ class MainActivity: AudioServiceActivity() {
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         downloadDirectoryHandler = DownloadDirectoryHandler(this)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DownloadDirectoryHandler.CHANNEL)
-            .setMethodCallHandler(downloadDirectoryHandler)
+        downloadDirectoryChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger, DownloadDirectoryHandler.CHANNEL
+        )
+        downloadDirectoryChannel?.setMethodCallHandler(downloadDirectoryHandler)
         intentChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         intentChannel?.setMethodCallHandler { call, result ->
             if (call.method == "openWithMime") {

@@ -1,3 +1,5 @@
+<p align="right"><a href="README.en.md">English</a></p>
+
 <div align=center>
 
 <h1>Kazumi</h1>

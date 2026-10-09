@@ -149,72 +149,11 @@
               --dart-define=KAZUMI_APPID=$env:KAZUMI_APPID
               --dart-define=KAZUMI_KEY=$env:KAZUMI_KEY
           - name: Generate Windows portable manifest
-            shell: pwsh
-            run: |
-              $ErrorActionPreference = 'Stop'
-              Set-StrictMode -Version Latest
-              $utf8 = [System.Text.UTF8Encoding]::new($false, $true)
-              $root = Get-Item -LiteralPath 'build/windows/x64/runner/Release' -Force
-              function Assert-PackageItem($item) {
-                # Inspect before recursion: reparse points may lead outside the package.
-                # Compress-Archive skips hidden entries, so reject them to keep sets equal.
-                if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-                  throw "Reparse point is not supported: $($item.FullName)"
-                }
-                if ($item.Attributes -band [IO.FileAttributes]::Hidden) {
-                  throw "Hidden package entry is not supported: $($item.FullName)"
-                }
-              }
-              Assert-PackageItem $root
-              if (-not $root.PSIsContainer) { throw 'Package root must be a directory' }
-
-              # Use the build input, never the release tag/canary label. This is a restricted
-              # top-level YAML scalar reader; unsupported syntax fails instead of guessing.
-              $declarations = @([IO.File]::ReadAllLines((Join-Path $PWD 'pubspec.yaml'), $utf8) |
-                Where-Object { $_ -cmatch '^(?:version|''version''|"version")[ \t]*:' })
-              if ($declarations.Count -ne 1) { throw 'Expected exactly one top-level version' }
-              $versionMatch = [regex]::Match($declarations[0],
-                '^version[ \t]*:[ \t]*(?<q>[''"]?)(?<v>[0-9]+\.[0-9]+\.[0-9]+)(?:\+[0-9]+)?\k<q>(?:[ \t]+#[^\r\n]*)?[ \t]*$')
-              if (-not $versionMatch.Success) { throw 'Unsupported pubspec version syntax' }
-
-              $files = [Collections.Generic.List[string]]::new()
-              function Visit-Directory($directory) {
-                foreach ($item in Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop) {
-                  Assert-PackageItem $item
-                  $relative = [IO.Path]::GetRelativePath($root.FullName, $item.FullName).Replace('\', '/')
-                  if ($relative -cmatch '[\p{Cc}]') {
-                    throw "Invalid manifest path: $relative"
-                  }
-                  if ($relative -ieq 'file-manifest.json') {
-                    # Excluding the prior output makes reruns identical; directories/links
-                    # must never be overwritten. Require canonical spelling in the archive.
-                    if ($item.PSIsContainer -or $relative -cne 'file-manifest.json') {
-                      throw 'Manifest output must be a regular file with canonical spelling'
-                    }
-                    continue
-                  }
-                  if ($item.PSIsContainer) { Visit-Directory $item.FullName }
-                  else { $files.Add($relative) }
-                }
-              }
-              Visit-Directory $root.FullName
-              # Ordinal hex comparison exactly preserves UTF-8 byte order, including prefixes;
-              # locale-dependent sorting and UTF-16 ordinal sorting do not satisfy the protocol.
-              $sorted = [Collections.Generic.SortedDictionary[string,string]]::new([StringComparer]::Ordinal)
-              foreach ($path in $files) { $sorted.Add([Convert]::ToHexString($utf8.GetBytes($path)), $path) }
-              $manifest = [ordered]@{
-                schemaVersion = 1
-                appId = 'kazumi'
-                packageType = 'windowsPortable'
-                version = $versionMatch.Groups['v'].Value
-                architecture = 'x64'
-                files = @($sorted.Values)
-              }
-              # Paths only: signing may change bytes. The manifest belongs only in portable ZIPs;
-              # clean the shared Release directory after archiving and after signed ZIP extraction.
-              # Errors propagate and stop packaging; never fall back to a stale manifest.
-              $json = ($manifest | ConvertTo-Json -Depth 4).Replace("`r`n", "`n") + "`n"
-              [IO.File]::WriteAllText((Join-Path $root.FullName 'file-manifest.json'), $json, $utf8)
+            run: >-
+              dart tools/generate_portable_manifest.dart
+              --root build/windows/x64/runner/Release
+              --package-type windowsPortable
+              --architecture x64
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_${env:tag}.zip
           - name: Remove portable manifest from Windows build output
             shell: pwsh
@@ -354,79 +293,11 @@
           # - run: rm -f build/linux/x64/release/bundle/lib/libffmpeg.so.7
           # - run: unzip ffmpeg_linux_amd64.zip -d build/linux/x64/release/bundle/lib
           - name: Generate Linux amd64 portable manifest
-            shell: bash
-            run: |
-              python3 - build/linux/x64/release/bundle x64 <<'PY'
-              import json
-              import os
-              from pathlib import Path
-              import re
-              import stat
-              import sys
-
-              root = Path(sys.argv[1]).absolute()
-              # The amd64 job passes x64 to match the manifest architecture values.
-              architecture = sys.argv[2]
-              if not stat.S_ISDIR(root.lstat().st_mode):
-                  raise ValueError("Bundle root must be a real directory")
-              root = root.resolve(strict=True)
-
-              # Read the build input, never a release tag/canary label. This intentionally
-              # supports only a restricted top-level YAML scalar, not arbitrary YAML syntax.
-              lines = Path("pubspec.yaml").read_text(encoding="utf-8-sig").splitlines()
-              declarations = [line for line in lines
-                              if re.match(r"^(?:version|'version'|\"version\")[ \t]*:", line)]
-              if len(declarations) != 1:
-                  raise ValueError("Expected exactly one top-level version")
-              match = re.fullmatch(
-                  r"version[ \t]*:[ \t]*(?P<q>['\"]?)(?P<v>[0-9]+\.[0-9]+\.[0-9]+)"
-                  r"(?:\+[0-9]+)?(?P=q)(?:[ \t]+#[^\r\n]*)?[ \t]*", declarations[0])
-              if match is None:
-                  raise ValueError("Unsupported pubspec version syntax")
-
-              files = []
-              def visit(directory):
-                  # scandir includes hidden entries and reports enumeration failures. Inspect
-                  # links before directories: record the link itself, never walk its target.
-                  # Build output is trusted; tar preserves link targets without resolving them.
-                  with os.scandir(directory) as entries:
-                      for entry in entries:
-                          path = Path(entry.path)
-                          relative = path.relative_to(root).as_posix()
-                          if ("\\" in relative or re.match(r"^[A-Za-z]:", relative)
-                                  or any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in relative)):
-                              raise ValueError(f"Invalid manifest path: {relative!r}")
-                          mode = entry.stat(follow_symlinks=False).st_mode
-                          if relative == "file-manifest.json":
-                              # Only a regular prior manifest may be overwritten; exclude it
-                              # so repeated runs are identical. Any failure stops packaging.
-                              if not stat.S_ISREG(mode):
-                                  raise ValueError("Manifest output must be a regular file")
-                              continue
-                          if stat.S_ISLNK(mode):
-                              files.append(relative)
-                          elif stat.S_ISDIR(mode):
-                              visit(path)
-                          elif stat.S_ISREG(mode):
-                              files.append(relative)
-                          else:
-                              raise ValueError(f"Unsupported file type: {relative}")
-
-              visit(root)
-              manifest = {
-                  "schemaVersion": 1,
-                  "appId": "kazumi",
-                  "packageType": "linuxPortable",
-                  "version": match.group("v"),
-                  "architecture": architecture,
-                  "files": sorted(files, key=lambda path: path.encode("utf-8")),
-              }
-              # Paths only: signing may change bytes. Preserve tar permissions/link semantics;
-              # remove the portable-only manifest from the shared bundle before DEB staging.
-              # No exception fallback: a stale manifest must never permit a failed job to publish.
-              with (root / "file-manifest.json").open("w", encoding="utf-8", newline="\n") as output:
-                  output.write(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
-              PY
+            run: >-
+              dart tools/generate_portable_manifest.dart
+              --root build/linux/x64/release/bundle
+              --package-type linuxPortable
+              --architecture x64
           - name: Package linux amd64 build output
             run: |
               set -e
@@ -515,79 +386,11 @@
               --dart-define=KAZUMI_KEY=$KAZUMI_KEY
             shell: bash
           - name: Generate Linux arm64 portable manifest
-            shell: bash
-            run: |
-              python3 - build/linux/arm64/release/bundle arm64 <<'PY'
-              import json
-              import os
-              from pathlib import Path
-              import re
-              import stat
-              import sys
-
-              root = Path(sys.argv[1]).absolute()
-              # The amd64 job passes x64 to match the manifest architecture values.
-              architecture = sys.argv[2]
-              if not stat.S_ISDIR(root.lstat().st_mode):
-                  raise ValueError("Bundle root must be a real directory")
-              root = root.resolve(strict=True)
-
-              # Read the build input, never a release tag/canary label. This intentionally
-              # supports only a restricted top-level YAML scalar, not arbitrary YAML syntax.
-              lines = Path("pubspec.yaml").read_text(encoding="utf-8-sig").splitlines()
-              declarations = [line for line in lines
-                              if re.match(r"^(?:version|'version'|\"version\")[ \t]*:", line)]
-              if len(declarations) != 1:
-                  raise ValueError("Expected exactly one top-level version")
-              match = re.fullmatch(
-                  r"version[ \t]*:[ \t]*(?P<q>['\"]?)(?P<v>[0-9]+\.[0-9]+\.[0-9]+)"
-                  r"(?:\+[0-9]+)?(?P=q)(?:[ \t]+#[^\r\n]*)?[ \t]*", declarations[0])
-              if match is None:
-                  raise ValueError("Unsupported pubspec version syntax")
-
-              files = []
-              def visit(directory):
-                  # scandir includes hidden entries and reports enumeration failures. Inspect
-                  # links before directories: record the link itself, never walk its target.
-                  # Build output is trusted; tar preserves link targets without resolving them.
-                  with os.scandir(directory) as entries:
-                      for entry in entries:
-                          path = Path(entry.path)
-                          relative = path.relative_to(root).as_posix()
-                          if ("\\" in relative or re.match(r"^[A-Za-z]:", relative)
-                                  or any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in relative)):
-                              raise ValueError(f"Invalid manifest path: {relative!r}")
-                          mode = entry.stat(follow_symlinks=False).st_mode
-                          if relative == "file-manifest.json":
-                              # Only a regular prior manifest may be overwritten; exclude it
-                              # so repeated runs are identical. Any failure stops packaging.
-                              if not stat.S_ISREG(mode):
-                                  raise ValueError("Manifest output must be a regular file")
-                              continue
-                          if stat.S_ISLNK(mode):
-                              files.append(relative)
-                          elif stat.S_ISDIR(mode):
-                              visit(path)
-                          elif stat.S_ISREG(mode):
-                              files.append(relative)
-                          else:
-                              raise ValueError(f"Unsupported file type: {relative}")
-
-              visit(root)
-              manifest = {
-                  "schemaVersion": 1,
-                  "appId": "kazumi",
-                  "packageType": "linuxPortable",
-                  "version": match.group("v"),
-                  "architecture": architecture,
-                  "files": sorted(files, key=lambda path: path.encode("utf-8")),
-              }
-              # Paths only: signing may change bytes. Preserve tar permissions/link semantics;
-              # remove the portable-only manifest from the shared bundle before DEB staging.
-              # No exception fallback: a stale manifest must never permit a failed job to publish.
-              with (root / "file-manifest.json").open("w", encoding="utf-8", newline="\n") as output:
-                  output.write(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
-              PY
+            run: >-
+              dart tools/generate_portable_manifest.dart
+              --root build/linux/arm64/release/bundle
+              --package-type linuxPortable
+              --architecture arm64
           - name: Package linux arm64 build output
             run: |
               set -e

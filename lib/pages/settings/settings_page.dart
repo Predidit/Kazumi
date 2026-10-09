@@ -5,6 +5,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/content_section.dart';
+import 'package:kazumi/bean/widget/menu_focus_bridge.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -165,12 +166,19 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final _outletKey = GlobalKey<RouterOutletState>();
+  final _focusBridge = MenuFocusBridge();
   Object? _categoryNavigation;
   late String _location = _normalizePath(widget.location);
 
   String get _selectedCategoryPath => _categoryPath(_location);
   bool get _isSecondaryRoute =>
       _location != '/settings' && _location != _selectedCategoryPath;
+
+  @override
+  void dispose() {
+    _focusBridge.dispose();
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant SettingsPage oldWidget) {
@@ -190,6 +198,7 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
     _categoryNavigation = null;
+    _focusBridge.keepMenuFocus();
     outlet.navigate(path);
     setState(() => _location = path);
   }
@@ -241,10 +250,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   width: wide ? 280 : 0,
                   child: Offstage(
                     offstage: !wide,
-                    child: _SettingsMenu(
-                      wide: true,
-                      selectedPath: _selectedCategoryPath,
-                      onSelect: _replaceCategory,
+                    child: Focus(
+                      focusNode: _focusBridge.menuNode,
+                      onKeyEvent: (_, event) => _focusBridge.handleMenuKey(
+                        event,
+                        toContent: TraversalDirection.right,
+                      ),
+                      child: _SettingsMenu(
+                        wide: true,
+                        selectedPath: _selectedCategoryPath,
+                        onSelect: _replaceCategory,
+                      ),
                     ),
                   ),
                 ),
@@ -262,7 +278,15 @@ class _SettingsPageState extends State<SettingsPage> {
                         data: Theme.of(context).copyWith(
                           pageTransitionsTheme: settingsPageTransitionsTheme,
                         ),
-                        child: RouterOutlet(key: _outletKey),
+                        child: Focus(
+                          focusNode: _focusBridge.contentNode,
+                          onKeyEvent: (_, event) =>
+                              _focusBridge.handleContentKey(
+                            event,
+                            toMenu: TraversalDirection.left,
+                          ),
+                          child: RouterOutlet(key: _outletKey),
+                        ),
                       ),
                     ),
                   ),

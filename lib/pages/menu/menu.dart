@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/bean/widget/menu_focus_bridge.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/menu/route_visibility.dart';
 import 'package:kazumi/pages/router.dart';
@@ -18,6 +19,7 @@ class ScaffoldMenu extends StatefulWidget {
 
 class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   final _outletKey = GlobalKey<RouterOutletState>();
+  final _focusBridge = MenuFocusBridge();
   late int _selectedIndex = menu.indexForPath(widget.location);
   DateTime? _lastExitPromptAt;
 
@@ -45,6 +47,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   @override
   void dispose() {
     rootRouteObserver.unsubscribe(this);
+    _focusBridge.dispose();
     super.dispose();
   }
 
@@ -68,6 +71,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
     }
     final outlet = _outletKey.currentState;
     if (outlet == null) return;
+    _focusBridge.keepMenuFocus();
     outlet.navigate('/tab${menu.getPath(index)}/');
     setState(() => _selectedIndex = index);
   }
@@ -118,7 +122,11 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
     );
   }
 
-  Widget _outlet(BuildContext context, {BorderRadius? borderRadius}) {
+  Widget _outlet(
+    BuildContext context, {
+    required TraversalDirection toMenu,
+    BorderRadius? borderRadius,
+  }) {
     Widget child = NotificationListener<NavigationNotification>(
       // A non-poppable outlet must not override the shell's PopScope state.
       onNotification: (notification) => !notification.canHandlePop,
@@ -127,43 +135,64 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
     if (borderRadius != null) {
       child = ClipRRect(borderRadius: borderRadius, child: child);
     }
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: borderRadius,
+    return Focus(
+      focusNode: _focusBridge.contentNode,
+      onKeyEvent: (_, event) => _focusBridge.handleContentKey(
+        event,
+        toMenu: toMenu,
+        selectedIndex: _selectedIndex,
+        destinationCount: menu.menuList.length,
       ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: borderRadius,
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _menuFocus(TraversalDirection toContent, Widget child) {
+    return Focus(
+      focusNode: _focusBridge.menuNode,
+      onKeyEvent: (_, event) =>
+          _focusBridge.handleMenuKey(event, toContent: toContent),
       child: child,
     );
   }
 
   Widget _bottomMenu(BuildContext context, int selectedIndex) {
     return Scaffold(
-      body: _outlet(context),
-      bottomNavigationBar: NavigationBar(
-        destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: '推荐',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.timeline),
-            icon: Icon(Icons.timeline_outlined),
-            label: '时间表',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.favorite),
-            icon: Icon(Icons.favorite_outlined),
-            label: '追番',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings),
-            label: '我的',
-          ),
-        ],
-        selectedIndex: selectedIndex,
-        onDestinationSelected: _selectDestination,
+      body: _outlet(context, toMenu: TraversalDirection.down),
+      bottomNavigationBar: _menuFocus(
+        TraversalDirection.up,
+        NavigationBar(
+          destinations: const <Widget>[
+            NavigationDestination(
+              selectedIcon: Icon(Icons.home),
+              icon: Icon(Icons.home_outlined),
+              label: '推荐',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.timeline),
+              icon: Icon(Icons.timeline_outlined),
+              label: '时间表',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.favorite),
+              icon: Icon(Icons.favorite_outlined),
+              label: '追番',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.settings),
+              icon: Icon(Icons.settings),
+              label: '我的',
+            ),
+          ],
+          selectedIndex: selectedIndex,
+          onDestinationSelected: _selectDestination,
+        ),
       ),
     );
   }
@@ -178,43 +207,52 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
       body: Row(
         children: [
           EmbeddedNativeControlArea(
-            child: NavigationRail(
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-              groupAlignment: 1,
-              leading: FloatingActionButton(
-                elevation: 0,
-                heroTag: null,
-                onPressed: () => context.pushNamed('/search/'),
-                child: const Icon(Icons.search),
+            child: _menuFocus(
+              TraversalDirection.right,
+              NavigationRail(
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                groupAlignment: 1,
+                leading: FloatingActionButton(
+                  elevation: 0,
+                  heroTag: null,
+                  onPressed: () => context.pushNamed('/search/'),
+                  child: const Icon(Icons.search),
+                ),
+                labelType: NavigationRailLabelType.selected,
+                destinations: const <NavigationRailDestination>[
+                  NavigationRailDestination(
+                    selectedIcon: Icon(Icons.home),
+                    icon: Icon(Icons.home_outlined),
+                    label: Text('推荐'),
+                  ),
+                  NavigationRailDestination(
+                    selectedIcon: Icon(Icons.timeline),
+                    icon: Icon(Icons.timeline_outlined),
+                    label: Text('时间表'),
+                  ),
+                  NavigationRailDestination(
+                    selectedIcon: Icon(Icons.favorite),
+                    icon: Icon(Icons.favorite_border),
+                    label: Text('追番'),
+                  ),
+                  NavigationRailDestination(
+                    selectedIcon: Icon(Icons.settings),
+                    icon: Icon(Icons.settings_outlined),
+                    label: Text('我的'),
+                  ),
+                ],
+                selectedIndex: selectedIndex,
+                onDestinationSelected: _selectDestination,
               ),
-              labelType: NavigationRailLabelType.selected,
-              destinations: const <NavigationRailDestination>[
-                NavigationRailDestination(
-                  selectedIcon: Icon(Icons.home),
-                  icon: Icon(Icons.home_outlined),
-                  label: Text('推荐'),
-                ),
-                NavigationRailDestination(
-                  selectedIcon: Icon(Icons.timeline),
-                  icon: Icon(Icons.timeline_outlined),
-                  label: Text('时间表'),
-                ),
-                NavigationRailDestination(
-                  selectedIcon: Icon(Icons.favorite),
-                  icon: Icon(Icons.favorite_border),
-                  label: Text('追番'),
-                ),
-                NavigationRailDestination(
-                  selectedIcon: Icon(Icons.settings),
-                  icon: Icon(Icons.settings_outlined),
-                  label: Text('我的'),
-                ),
-              ],
-              selectedIndex: selectedIndex,
-              onDestinationSelected: _selectDestination,
             ),
           ),
-          Expanded(child: _outlet(context, borderRadius: borderRadius)),
+          Expanded(
+            child: _outlet(
+              context,
+              toMenu: TraversalDirection.left,
+              borderRadius: borderRadius,
+            ),
+          ),
         ],
       ),
     );

@@ -23,7 +23,9 @@ flutter analyze --no-pub --no-fatal-infos --fatal-warnings
 flutter build ios --release --no-codesign --no-pub
 ```
 
-用户已确认开发测试包 2.3.6（20308）在 iOS 27、iPhone 16 Pro 上真机测试通过。提交前补充的页面销毁 / 会话交接整理由自动测试覆盖，尚未单独重新进行真机验收。
+用户已确认 Swift 迁移后的开发测试包 2.3.8（20309）在 iOS 27.0.1、iPhone 16 Pro 上进入小窗、返回 App、关闭小窗后的画面和声音均正常。页面销毁 / 会话交接已由自动测试覆盖，仍需按下述清单进行更完整的真机回归。
+
+新增的 4 项 Swift 原生 XCTest 已通过编译，覆盖插件转发、像素缓冲区引用释放、输出切换及恢复回调等待；执行受本机 CoreSimulator 的 `runtime path not found` 错误阻塞，尚未取得运行结果。
 
 后续真机回归项目：
 

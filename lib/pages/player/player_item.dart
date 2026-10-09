@@ -164,15 +164,7 @@ class _PlayerItemState extends State<PlayerItem>
     if (state == AppLifecycleState.paused &&
         !backgroundPlayback &&
         !(_iosPip?.keepPlaybackInBackground ?? false)) {
-      // Suspend before awaiting pause so a later resume wins; pause alone keeps prefetching.
-      final suspend = playerController.playback.setPrefetchSuspended(true);
-      if (playerController.playback.mediaPlayer != null &&
-          playerController.playback.playerPlaying) {
-        try {
-          await playerController.pause(enableSync: false);
-        } catch (_) {}
-      }
-      await suspend;
+      await _pauseForBackground();
       return;
     }
     if (state == AppLifecycleState.resumed) {
@@ -183,6 +175,18 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.danmaku.canvasController.resume();
       }
     } catch (_) {}
+  }
+
+  Future<void> _pauseForBackground() async {
+    // Request prefetch suspension before awaiting pause so a later resume wins.
+    final suspend = playerController.playback.setPrefetchSuspended(true);
+    if (playerController.playback.mediaPlayer != null &&
+        playerController.playback.playerPlaying) {
+      try {
+        await playerController.pause(enableSync: false);
+      } catch (_) {}
+    }
+    await suspend;
   }
 
   Future<void> _syncAndroidAutoEnterPIPSetting() async {
@@ -301,7 +305,7 @@ class _PlayerItemState extends State<PlayerItem>
     setState(() {});
     if (!active && !restored && !backgroundPlayback &&
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.paused) {
-      unawaited(playerController.pause(enableSync: false));
+      unawaited(_pauseForBackground());
     }
   }
 
@@ -333,7 +337,7 @@ class _PlayerItemState extends State<PlayerItem>
     // A failed entry must still honor the normal background playback setting.
     if (!backgroundPlayback &&
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.paused) {
-      await playerController.pause(enableSync: false);
+      await _pauseForBackground();
     }
   }
 

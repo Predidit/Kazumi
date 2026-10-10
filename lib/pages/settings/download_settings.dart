@@ -38,10 +38,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
     _loadDefaultDownloadDirectory();
   }
 
-  bool get _canPickDirectory => _directoryService.supportsCustomDirectory;
-
-  bool get _hasCustomDirectory =>
-      _canPickDirectory && downloadDirectory.isNotEmpty;
+  bool get _hasCustomDirectory => downloadDirectory.isNotEmpty;
 
   String get _effectiveDownloadDirectory =>
       _hasCustomDirectory ? downloadDirectory : defaultDownloadDirectory;

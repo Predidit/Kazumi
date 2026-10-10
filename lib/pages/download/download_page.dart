@@ -9,7 +9,6 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_widgets.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/services/download/download_directory_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/format.dart';
 
@@ -359,9 +358,7 @@ class _DownloadPageState extends State<DownloadPage> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('删除失败'),
-          content: Text(
-            e is DownloadDirectoryException ? e.message : '删除下载文件失败，请稍后重试',
-          ),
+          content: const Text('删除下载文件失败，请稍后重试'),
           actions: [
             TextButton(
               onPressed: () => KazumiDialog.dismiss(context: context),

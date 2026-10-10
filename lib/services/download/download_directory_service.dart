@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/async_single_flight.dart';
 import 'package:kazumi/utils/file_system.dart';
 import 'package:macos_secure_bookmarks/macos_secure_bookmarks.dart';
 import 'package:path/path.dart' as path;
@@ -18,8 +17,9 @@ class DownloadDirectoryException implements Exception {
   String toString() => message;
 }
 
-/// Owns where downloads are stored and the platform access that location
-/// needs. Downloads use plain filesystem paths for resume and playback.
+/// Owns where downloads are stored. Access is settled when the directory is
+/// picked and, on macOS, restored once per launch, so downloads, playback and
+/// deletion all work with plain filesystem paths.
 class DownloadDirectoryService {
   static final DownloadDirectoryService _instance =
       DownloadDirectoryService._internal();
@@ -30,29 +30,53 @@ class DownloadDirectoryService {
     'com.predidit.kazumi/download_directory',
   );
   final _bookmarks = SecureBookmarks();
-  final _bookmarkRestore = AsyncSingleFlight<String?>();
-  String? _grantedRoot;
+  bool _accessLost = false;
 
   bool get supportsCustomDirectory =>
       Platform.isAndroid || Platform.isMacOS || Platform.isWindows;
 
-  String get customDirectory =>
-      GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
+  /// Empty while the default directory is in use.
+  String get customDirectory => supportsCustomDirectory
+      ? GStorage.getSetting(SettingsKeys.downloadDirectory).trim()
+      : '';
 
-  /// Root for new downloads. A custom directory that lost its access fails
-  /// instead of silently redirecting downloads elsewhere.
-  Future<String> getDownloadDirectory() async {
-    final directory = supportsCustomDirectory ? customDirectory : '';
-    if (directory.isEmpty) return getDefaultDownloadDirectory();
-    await requireAccess(directory);
-    return directory;
+  /// Restores sandbox access to the custom directory before anything reads or
+  /// writes downloads. Other platforms keep the access granted when picking.
+  Future<void> restoreAccess() async {
+    final directory = customDirectory;
+    if (!Platform.isMacOS || directory.isEmpty) return;
+    try {
+      final restored = await _bookmarks.resolveBookmark(
+        GStorage.getSetting(SettingsKeys.downloadDirectoryBookmark),
+        isDirectory: true,
+      );
+      _accessLost =
+          !await _bookmarks.startAccessingSecurityScopedResource(restored);
+      // The bookmark follows the directory when the user moves it.
+      if (!_accessLost && !path.equals(restored.path, directory)) {
+        await GStorage.putSetting(
+          SettingsKeys.downloadDirectory,
+          restored.path,
+        );
+      }
+    } catch (e) {
+      _accessLost = true;
+      KazumiLogger().e(
+        'DownloadDirectoryService: failed to restore access to $directory',
+        error: e,
+      );
+    }
   }
 
-  /// Never prompts, so it is safe to call from background downloads.
-  Future<void> requireAccess(String directory) async {
-    if (!await _hasAccess(directory)) {
+  /// Root for new downloads. A custom directory whose access could not be
+  /// restored fails instead of silently redirecting downloads elsewhere.
+  Future<String> getDownloadDirectory() async {
+    final directory = customDirectory;
+    if (directory.isEmpty) return getDefaultDownloadDirectory();
+    if (_accessLost) {
       throw const DownloadDirectoryException('下载目录访问权限已失效，请在下载设置中重新选择该目录');
     }
+    return directory;
   }
 
   /// Returns null when the user cancels. The directory is saved only after
@@ -71,12 +95,15 @@ class DownloadDirectoryService {
     await ensureDirectoryWritable(selected);
     await _persistAccess(selected);
     await GStorage.putSetting(SettingsKeys.downloadDirectory, selected);
+    // The picker grant covers the rest of this session.
+    _accessLost = false;
     return selected;
   }
 
   Future<void> resetDirectory() async {
     await GStorage.putSetting(SettingsKeys.downloadDirectoryBookmark, '');
     await GStorage.putSetting(SettingsKeys.downloadDirectory, '');
+    _accessLost = false;
   }
 
   Future<String?> _pickDirectory(String? initialDirectory) async {
@@ -119,43 +146,5 @@ class DownloadDirectoryService {
       throw const DownloadDirectoryException('无法获得该目录的持久访问权限，请更换目录');
     }
     await GStorage.putSetting(SettingsKeys.downloadDirectoryBookmark, bookmark);
-    // The picker grant covers the rest of this session.
-    _grantedRoot = directory;
   }
-
-  Future<bool> _hasAccess(String directory) async {
-    // Only the macOS bookmark has to be restored on each launch. Elsewhere the
-    // grant is obtained when the directory is picked, and losing it later
-    // surfaces as an ordinary file system error.
-    if (!Platform.isMacOS) return true;
-
-    final custom = customDirectory;
-    // Paths outside the custom directory are app-owned or left to the sandbox.
-    if (custom.isEmpty || !_isWithin(custom, directory)) return true;
-    _grantedRoot ??= await _bookmarkRestore.run(_restoreBookmark);
-    final root = _grantedRoot;
-    return root != null && _isWithin(root, directory);
-  }
-
-  Future<String?> _restoreBookmark() async {
-    final bookmark = GStorage.getSetting(
-      SettingsKeys.downloadDirectoryBookmark,
-    );
-    if (bookmark.isEmpty) return null;
-    try {
-      final entity = await _bookmarks.resolveBookmark(bookmark);
-      return await _bookmarks.startAccessingSecurityScopedResource(entity)
-          ? entity.path
-          : null;
-    } catch (e) {
-      KazumiLogger().e(
-        'DownloadDirectoryService: failed to restore bookmark access',
-        error: e,
-      );
-      return null;
-    }
-  }
-
-  bool _isWithin(String root, String directory) =>
-      path.equals(root, directory) || path.isWithin(root, directory);
 }

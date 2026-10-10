@@ -101,10 +101,6 @@ abstract class IDownloadManager {
   Future<void> resume(DownloadRequest request);
   void cancel(String recordKey, int episodeNumber);
   String? getLocalVideoPath(DownloadEpisode? episode);
-
-  /// Throws [DownloadDirectoryException] if any recorded directory of
-  /// [episodes] is no longer accessible.
-  Future<void> ensureFileAccess(Iterable<DownloadEpisode> episodes);
   Future<void> deleteEpisodeFiles(
       int bangumiId, String pluginName, int episodeNumber,
       {DownloadEpisode? episode});
@@ -235,7 +231,6 @@ class DownloadManager implements IDownloadManager {
     int episodeNumber,
   ) async {
     final storedDir = episode.downloadDirectory.trim();
-    if (storedDir.isNotEmpty) await _directoryService.requireAccess(storedDir);
     final episodeDir = storedDir.isNotEmpty
         ? storedDir
         : _getEpisodeDir(await _directoryService.getDownloadDirectory(),
@@ -255,10 +250,7 @@ class DownloadManager implements IDownloadManager {
     int episodeNumber,
   ) async {
     final storedDir = episode?.downloadDirectory.trim() ?? '';
-    if (storedDir.isNotEmpty) {
-      await _directoryService.requireAccess(storedDir);
-      return storedDir;
-    }
+    if (storedDir.isNotEmpty) return storedDir;
     return _getEpisodeDir(await getDefaultDownloadDirectory(), bangumiId,
         pluginName, episodeNumber);
   }
@@ -905,16 +897,6 @@ class DownloadManager implements IDownloadManager {
         if (retryCount >= maxRetries) rethrow;
         final delay = Duration(seconds: [1, 3, 9][retryCount - 1]);
         await Future.delayed(delay);
-      }
-    }
-  }
-
-  @override
-  Future<void> ensureFileAccess(Iterable<DownloadEpisode> episodes) async {
-    for (final episode in episodes) {
-      final storedDir = episode.downloadDirectory.trim();
-      if (storedDir.isNotEmpty) {
-        await _directoryService.requireAccess(storedDir);
       }
     }
   }

@@ -879,7 +879,6 @@ abstract class _DownloadController with Store {
     final recordKey = '${pluginName}_$bangumiId';
     final record = _repository.getRecord(recordKey);
     final episodes = <int, DownloadEpisode>{...?record?.episodes};
-    await _downloadManager.ensureFileAccess(episodes.values);
     _cancelResolveRecord(recordKey);
     await _stopEpisodes(recordKey, episodes);
     try {
@@ -900,10 +899,8 @@ abstract class _DownloadController with Store {
     final recordKey = '${pluginName}_$bangumiId';
     final episode =
         _repository.getEpisode(bangumiId, pluginName, episodeNumber);
-    final episodes = {episodeNumber: ?episode};
-    await _downloadManager.ensureFileAccess(episodes.values);
     _cancelResolve(recordKey, episodeNumber);
-    await _stopEpisodes(recordKey, episodes);
+    await _stopEpisodes(recordKey, {episodeNumber: ?episode});
     try {
       await _downloadManager.deleteEpisodeFiles(
         bangumiId,

@@ -1,13 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
-import 'package:kazumi/services/download/directory/download_directory_service.dart';
+import 'package:kazumi/services/download/download_directory_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class DownloadSettingsPage extends StatefulWidget {
@@ -29,12 +28,10 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   @override
   void initState() {
     super.initState();
-    parallelEpisodes = GStorage.getSetting(
-      SettingsKeys.downloadParallelEpisodes,
-    );
-    parallelSegments = GStorage.getSetting(
-      SettingsKeys.downloadParallelSegments,
-    );
+    parallelEpisodes =
+        GStorage.getSetting(SettingsKeys.downloadParallelEpisodes);
+    parallelSegments =
+        GStorage.getSetting(SettingsKeys.downloadParallelSegments);
     downloadDanmaku = GStorage.getSetting(SettingsKeys.downloadDanmaku);
     downloadDirectory = _directoryService.customDirectory;
     _loadDefaultDownloadDirectory();
@@ -49,7 +46,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       _hasCustomDirectory ? downloadDirectory : defaultDownloadDirectory;
 
   Future<void> _loadDefaultDownloadDirectory() async {
-    final directory = await _directoryService.getDefaultDirectory();
+    final directory = await DownloadDirectoryService.getDefaultDirectory();
     if (!mounted) return;
     setState(() {
       defaultDownloadDirectory = directory;
@@ -57,15 +54,11 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   }
 
   Future<void> _selectDownloadDirectory() async {
-    if (!_canPickDirectory) {
-      KazumiDialog.showToast(message: '当前平台不支持手动选择目录');
-      return;
-    }
     if (isSelectingDirectory) return;
 
     setState(() => isSelectingDirectory = true);
     try {
-      final selectedPath = await _directoryService.selectAndSaveDirectory();
+      final selectedPath = await _directoryService.selectDirectory();
       if (selectedPath == null) return;
       if (mounted) {
         setState(() => downloadDirectory = selectedPath);
@@ -73,8 +66,6 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       KazumiDialog.showToast(message: '下载位置已更新，仅对新下载生效');
     } on DownloadDirectoryException catch (e) {
       KazumiDialog.showToast(message: e.message);
-    } on PlatformException catch (e) {
-      KazumiDialog.showToast(message: e.message ?? '选择下载位置失败');
     } on FileSystemException catch (e) {
       KazumiDialog.showToast(message: '无法写入该目录: ${e.message}');
     } catch (e) {
@@ -87,21 +78,11 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   }
 
   Future<void> _resetDownloadDirectory() async {
-    if (isSelectingDirectory) return;
-    setState(() => isSelectingDirectory = true);
-    try {
-      await _directoryService.resetDirectory();
-      if (mounted) {
-        setState(() => downloadDirectory = '');
-      }
-      KazumiDialog.showToast(message: '已恢复默认下载位置，仅对新下载生效');
-    } catch (e) {
-      KazumiDialog.showToast(message: '恢复默认下载位置失败: $e');
-    } finally {
-      if (mounted) {
-        setState(() => isSelectingDirectory = false);
-      }
+    await _directoryService.resetDirectory();
+    if (mounted) {
+      setState(() => downloadDirectory = '');
     }
+    KazumiDialog.showToast(message: '已恢复默认下载位置，仅对新下载生效');
   }
 
   @override
@@ -181,12 +162,12 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                         child: LoadingIndicator(),
                       )
                     : _hasCustomDirectory
-                    ? IconButton(
-                        tooltip: '恢复默认',
-                        icon: const Icon(Icons.restore_rounded),
-                        onPressed: _resetDownloadDirectory,
-                      )
-                    : null,
+                        ? IconButton(
+                            tooltip: '恢复默认',
+                            icon: const Icon(Icons.restore_rounded),
+                            onPressed: _resetDownloadDirectory,
+                          )
+                        : null,
                 onPressed: (_) => _selectDownloadDirectory(),
               ),
               SettingsTile.switchTile(
@@ -194,12 +175,12 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                 onToggle: (value) {
                   setState(() => downloadDanmaku = value ?? !downloadDanmaku);
                   GStorage.putSetting(
-                    SettingsKeys.downloadDanmaku,
-                    downloadDanmaku,
-                  );
+                      SettingsKeys.downloadDanmaku, downloadDanmaku);
                 },
                 title: Text('缓存弹幕'),
-                description: Text('下载视频时同时缓存弹幕数据'),
+                description: Text(
+                  '下载视频时同时缓存弹幕数据',
+                ),
                 initialValue: downloadDanmaku,
               ),
             ],

@@ -9,7 +9,8 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_widgets.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/services/download/directory/download_directory_service.dart';
+import 'package:kazumi/services/download/download_directory_service.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/format.dart';
 
 class DownloadPage extends StatefulWidget {
@@ -352,15 +353,14 @@ class _DownloadPageState extends State<DownloadPage> {
     try {
       await delete();
     } catch (e) {
+      KazumiLogger().w('DownloadPage: failed to delete download', error: e);
       if (!mounted) return;
       KazumiDialog.show(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('删除失败'),
           content: Text(
-            e is DownloadDirectoryException
-                ? '下载目录访问权限失效，请在下载设置中重新选择原目录授权后重试'
-                : '删除下载失败，请检查目录访问权限后重试',
+            e is DownloadDirectoryException ? e.message : '删除下载文件失败，请稍后重试',
           ),
           actions: [
             TextButton(

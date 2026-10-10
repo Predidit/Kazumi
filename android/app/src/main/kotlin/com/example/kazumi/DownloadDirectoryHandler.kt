@@ -41,7 +41,7 @@ class DownloadDirectoryHandler(private val activity: Activity) : MethodChannel.M
 
     private fun isBusy(result: MethodChannel.Result): Boolean {
         if (accessResult == null && directoryResult == null) return false
-        result.error("DIRECTORY_BUSY", "正在选择下载位置，请稍后重试", null)
+        result.error("DIRECTORY_BUSY", "Another directory request is in progress", null)
         return true
     }
 
@@ -97,7 +97,7 @@ class DownloadDirectoryHandler(private val activity: Activity) : MethodChannel.M
             }
         } catch (e: Exception) {
             accessResult = null
-            result.error("STORAGE_ACCESS_FAILED", "无法打开存储授权页面: ${e.message}", null)
+            result.error("STORAGE_ACCESS_FAILED", "Failed to open storage access settings: ${e.message}", null)
         }
     }
 
@@ -105,7 +105,7 @@ class DownloadDirectoryHandler(private val activity: Activity) : MethodChannel.M
     private fun pickDirectory(initialDirectory: String?, result: MethodChannel.Result) {
         if (isBusy(result)) return
         if (!hasStorageAccess()) {
-            result.error("STORAGE_ACCESS_DENIED", "请先授予存储访问权限", null)
+            result.error("STORAGE_ACCESS_DENIED", "Storage access is not granted", null)
             return
         }
         directoryResult = result
@@ -121,7 +121,7 @@ class DownloadDirectoryHandler(private val activity: Activity) : MethodChannel.M
             activity.startActivityForResult(intent, DIRECTORY_REQUEST)
         } catch (e: Exception) {
             directoryResult = null
-            result.error("DIRECTORY_PICKER_FAILED", "无法打开文件夹选择器: ${e.message}", null)
+            result.error("DIRECTORY_PICKER_FAILED", "Failed to open directory picker: ${e.message}", null)
         }
     }
 
@@ -141,14 +141,14 @@ class DownloadDirectoryHandler(private val activity: Activity) : MethodChannel.M
                     if (directory == null) {
                         result.error(
                             "UNSUPPORTED_DIRECTORY",
-                            "请选择内部存储或 SD 卡中的本地文件夹，不支持此文件提供商",
+                            "Only directories on local storage volumes are supported",
                             null
                         )
                     } else {
                         result.success(directory.canonicalPath)
                     }
                 } catch (e: Exception) {
-                    result.error("INVALID_DIRECTORY", "无法访问所选文件夹: ${e.message}", null)
+                    result.error("INVALID_DIRECTORY", "Failed to resolve the selected directory: ${e.message}", null)
                 }
             }
         }
@@ -216,8 +216,8 @@ class DownloadDirectoryHandler(private val activity: Activity) : MethodChannel.M
     }
 
     fun dispose() {
-        accessResult?.error("ACTIVITY_CLOSED", "存储授权已取消，请重试", null)
-        directoryResult?.error("ACTIVITY_CLOSED", "文件夹选择已取消，请重试", null)
+        accessResult?.error("ACTIVITY_CLOSED", "Activity destroyed during storage access request", null)
+        directoryResult?.error("ACTIVITY_CLOSED", "Activity destroyed during directory selection", null)
         accessResult = null
         directoryResult = null
     }

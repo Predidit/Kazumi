@@ -10,7 +10,7 @@ import 'package:kazumi/utils/m3u8_ad_filter.dart';
 import 'package:kazumi/utils/format.dart' as fmt;
 import 'package:kazumi/utils/file_system.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/download/directory/download_directory_service.dart';
+import 'package:kazumi/services/download/download_directory_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:path/path.dart' as path;
 
@@ -101,6 +101,10 @@ abstract class IDownloadManager {
   Future<void> resume(DownloadRequest request);
   void cancel(String recordKey, int episodeNumber);
   String? getLocalVideoPath(DownloadEpisode? episode);
+
+  /// Throws [DownloadDirectoryException] if any recorded directory of
+  /// [episodes] is no longer accessible.
+  Future<void> ensureFileAccess(Iterable<DownloadEpisode> episodes);
   Future<void> deleteEpisodeFiles(
       int bangumiId, String pluginName, int episodeNumber,
       {DownloadEpisode? episode});
@@ -216,9 +220,6 @@ class DownloadManager implements IDownloadManager {
   bool isDownloading(String recordKey, int episodeNumber) =>
       _activeTasks.containsKey(_taskKey(recordKey, episodeNumber));
 
-  Future<String> get _downloadBaseDir =>
-      _directoryService.getDownloadDirectory();
-
   String _getEpisodeDir(String downloadBase, int bangumiId, String pluginName,
       int episodeNumber) {
     return path.join(
@@ -234,10 +235,11 @@ class DownloadManager implements IDownloadManager {
     int episodeNumber,
   ) async {
     final storedDir = episode.downloadDirectory.trim();
+    if (storedDir.isNotEmpty) await _directoryService.requireAccess(storedDir);
     final episodeDir = storedDir.isNotEmpty
-        ? await _directoryService.requireAccess(storedDir)
-        : _getEpisodeDir(
-            await _downloadBaseDir, bangumiId, pluginName, episodeNumber);
+        ? storedDir
+        : _getEpisodeDir(await _directoryService.getDownloadDirectory(),
+            bangumiId, pluginName, episodeNumber);
     await ensureDirectoryWritable(episodeDir);
     episode.downloadDirectory = episodeDir;
     await _checkStorageSpace(episodeDir);
@@ -254,10 +256,11 @@ class DownloadManager implements IDownloadManager {
   ) async {
     final storedDir = episode?.downloadDirectory.trim() ?? '';
     if (storedDir.isNotEmpty) {
-      return _directoryService.requireAccess(storedDir);
+      await _directoryService.requireAccess(storedDir);
+      return storedDir;
     }
-    return _getEpisodeDir(await _directoryService.getDefaultDirectory(), bangumiId,
-        pluginName, episodeNumber);
+    return _getEpisodeDir(await DownloadDirectoryService.getDefaultDirectory(),
+        bangumiId, pluginName, episodeNumber);
   }
 
   @override
@@ -361,6 +364,8 @@ class DownloadManager implements IDownloadManager {
     final key = _taskKey(recordKey, episodeNumber);
     final task = _activeTasks[key];
     if (task != null) {
+      // The unwinding worker then leaves its episode paused, never active.
+      task.isPaused = true;
       task.cancelToken.cancel('cancelled');
       _activeTasks.remove(key);
       _queue.removeWhere(
@@ -812,10 +817,8 @@ class DownloadManager implements IDownloadManager {
 
   void _notifyProgress(DownloadTask task, DownloadEpisode episode) {
     final key = _taskKey(task.recordKey, task.episodeNumber);
-    if (!identical(_activeTasks[key], task) ||
-        (task.cancelToken.isCancelled && episode.status != DownloadStatus.paused)) {
-      return;
-    }
+    // Cancelled or superseded tasks no longer own the episode.
+    if (!identical(_activeTasks[key], task)) return;
     final speed = _speedTrackers[key]?.currentSpeed ?? 0.0;
     onProgress?.call(task.recordKey, task.episodeNumber, episode, speed);
   }
@@ -907,6 +910,16 @@ class DownloadManager implements IDownloadManager {
   }
 
   @override
+  Future<void> ensureFileAccess(Iterable<DownloadEpisode> episodes) async {
+    for (final episode in episodes) {
+      final storedDir = episode.downloadDirectory.trim();
+      if (storedDir.isNotEmpty) {
+        await _directoryService.requireAccess(storedDir);
+      }
+    }
+  }
+
+  @override
   Future<void> deleteEpisodeFiles(
       int bangumiId, String pluginName, int episodeNumber,
       {DownloadEpisode? episode}) async {
@@ -922,7 +935,8 @@ class DownloadManager implements IDownloadManager {
       {DownloadRecord? record}) async {
     if (record == null) {
       final dir = Directory(path.join(
-          await _directoryService.getDefaultDirectory(), '${bangumiId}_$pluginName'));
+          await DownloadDirectoryService.getDefaultDirectory(),
+          '${bangumiId}_$pluginName'));
       if (await dir.exists()) {
         await dir.delete(recursive: true);
       }

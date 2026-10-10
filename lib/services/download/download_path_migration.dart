@@ -1,6 +1,6 @@
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/services/download/directory/download_directory_service.dart';
+import 'package:kazumi/services/download/download_directory_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:path/path.dart' as path;
 
@@ -10,15 +10,11 @@ import 'package:path/path.dart' as path;
 /// the current default directory before any playback, resume or deletion.
 Future<void> rebaseIosDownloadPaths(
   Box<DownloadRecord> downloads, {
-  Future<String> Function()? downloadDirectory,
+  Future<String> Function() downloadDirectory =
+      DownloadDirectoryService.getDefaultDirectory,
 }) async {
   try {
-    // Container relocation always targets app-owned storage, regardless of any
-    // custom-directory setting. Keep lookup failures inside the migration guard.
-    final resolveDirectory =
-        downloadDirectory ??
-        DownloadDirectoryService().getDefaultDirectory;
-    await _rebaseDownloadPaths(downloads, await resolveDirectory());
+    await _rebaseDownloadPaths(downloads, await downloadDirectory());
   } catch (error, stackTrace) {
     // Existing boxes remain usable even if migration cannot be persisted (for
     // example on a full disk). Retry from the saved records on the next launch.

@@ -259,8 +259,8 @@ class DownloadManager implements IDownloadManager {
       await _directoryService.requireAccess(storedDir);
       return storedDir;
     }
-    return _getEpisodeDir(await DownloadDirectoryService.getDefaultDirectory(),
-        bangumiId, pluginName, episodeNumber);
+    return _getEpisodeDir(await getDefaultDownloadDirectory(), bangumiId,
+        pluginName, episodeNumber);
   }
 
   @override
@@ -935,8 +935,7 @@ class DownloadManager implements IDownloadManager {
       {DownloadRecord? record}) async {
     if (record == null) {
       final dir = Directory(path.join(
-          await DownloadDirectoryService.getDefaultDirectory(),
-          '${bangumiId}_$pluginName'));
+          await getDefaultDownloadDirectory(), '${bangumiId}_$pluginName'));
       if (await dir.exists()) {
         await dir.delete(recursive: true);
       }

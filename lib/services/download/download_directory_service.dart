@@ -8,7 +8,6 @@ import 'package:kazumi/utils/async_single_flight.dart';
 import 'package:kazumi/utils/file_system.dart';
 import 'package:macos_secure_bookmarks/macos_secure_bookmarks.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 class DownloadDirectoryException implements Exception {
   const DownloadDirectoryException(this.message);
@@ -34,11 +33,6 @@ class DownloadDirectoryService {
   final _bookmarkRestore = AsyncSingleFlight<String?>();
   String? _grantedRoot;
 
-  static Future<String> getDefaultDirectory() async {
-    final support = await getApplicationSupportDirectory();
-    return path.join(support.path, 'downloads');
-  }
-
   bool get supportsCustomDirectory =>
       Platform.isAndroid || Platform.isMacOS || Platform.isWindows;
 
@@ -49,7 +43,7 @@ class DownloadDirectoryService {
   /// instead of silently redirecting downloads elsewhere.
   Future<String> getDownloadDirectory() async {
     final directory = supportsCustomDirectory ? customDirectory : '';
-    if (directory.isEmpty) return getDefaultDirectory();
+    if (directory.isEmpty) return getDefaultDownloadDirectory();
     await requireAccess(directory);
     return directory;
   }
@@ -68,7 +62,7 @@ class DownloadDirectoryService {
       throw const DownloadDirectoryException('当前平台不支持手动选择目录');
     }
     final current = customDirectory.isEmpty
-        ? await getDefaultDirectory()
+        ? await getDefaultDownloadDirectory()
         : customDirectory;
     final selected = await _pickDirectory(
       await Directory(current).exists() ? current : null,

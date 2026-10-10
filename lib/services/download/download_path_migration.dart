@@ -1,7 +1,7 @@
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/services/download/download_directory_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/file_system.dart';
 import 'package:path/path.dart' as path;
 
 /// iOS can move an app's data container on update. Download files move with it,
@@ -10,8 +10,7 @@ import 'package:path/path.dart' as path;
 /// the current default directory before any playback, resume or deletion.
 Future<void> rebaseIosDownloadPaths(
   Box<DownloadRecord> downloads, {
-  Future<String> Function() downloadDirectory =
-      DownloadDirectoryService.getDefaultDirectory,
+  Future<String> Function() downloadDirectory = getDefaultDownloadDirectory,
 }) async {
   try {
     await _rebaseDownloadPaths(downloads, await downloadDirectory());

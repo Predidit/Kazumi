@@ -1,6 +1,12 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+
+Future<String> getDefaultDownloadDirectory() async {
+  final appSupport = await getApplicationSupportDirectory();
+  return path.join(appSupport.path, 'downloads');
+}
 
 Future<void> ensureDirectoryWritable(String directoryPath) async {
   final directory = Directory(directoryPath);

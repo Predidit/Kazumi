@@ -8,6 +8,7 @@ import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/services/download/download_directory_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/file_system.dart';
 
 class DownloadSettingsPage extends StatefulWidget {
   const DownloadSettingsPage({super.key});
@@ -46,7 +47,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       _hasCustomDirectory ? downloadDirectory : defaultDownloadDirectory;
 
   Future<void> _loadDefaultDownloadDirectory() async {
-    final directory = await DownloadDirectoryService.getDefaultDirectory();
+    final directory = await getDefaultDownloadDirectory();
     if (!mounted) return;
     setState(() {
       defaultDownloadDirectory = directory;

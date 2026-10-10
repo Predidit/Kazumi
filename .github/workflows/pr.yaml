@@ -185,7 +185,18 @@
               --dart-define=DANDANAPI_KEY=$env:DANDANAPI_KEY
               --dart-define=KAZUMI_APPID=$env:KAZUMI_APPID
               --dart-define=KAZUMI_KEY=$env:KAZUMI_KEY
+          - name: Generate Windows portable manifest
+            run: >-
+              dart tools/generate_portable_manifest.dart
+              --root build/windows/x64/runner/Release
+              --package-type windowsPortable
+              --architecture x64
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary.zip
+          - name: Remove portable manifest from Windows build output
+            shell: pwsh
+            run: |
+              # The ZIP already owns its copy; prevent later packages from inheriting this file.
+              Remove-Item -LiteralPath 'build/windows/x64/runner/Release/file-manifest.json' -ErrorAction Stop
           - name: Upload windows outputs
             id: unsigned-windows-packet-artifacts
             uses: actions/upload-artifact@v4
@@ -352,10 +363,20 @@
           #     token: ${{ secrets.GITHUB_TOKEN }}
           # - run: rm -f build/linux/x64/release/bundle/lib/libffmpeg.so.7
           # - run: unzip ffmpeg_linux_amd64.zip -d build/linux/x64/release/bundle/lib
+          - name: Generate Linux amd64 portable manifest
+            run: >-
+              dart tools/generate_portable_manifest.dart
+              --root build/linux/x64/release/bundle
+              --package-type linuxPortable
+              --architecture x64
           - name: Package linux amd64 build output
             run: |
+              set -e
               # Tarball package
               tar -zcvf Kazumi_linux_canary_amd64.tar.gz -C build/linux/x64/release/bundle .
+
+              # The tarball retains its copy. Abort on cleanup failure so DEB cannot inherit it.
+              rm -- build/linux/x64/release/bundle/file-manifest.json
 
               # Debian package
               mkdir Kazumi_linux_canary_amd64
@@ -433,10 +454,20 @@
               --dart-define=KAZUMI_APPID=$KAZUMI_APPID
               --dart-define=KAZUMI_KEY=$KAZUMI_KEY
             shell: bash
+          - name: Generate Linux arm64 portable manifest
+            run: >-
+              dart tools/generate_portable_manifest.dart
+              --root build/linux/arm64/release/bundle
+              --package-type linuxPortable
+              --architecture arm64
           - name: Package linux arm64 build output
             run: |
+              set -e
               # Tarball package
               tar -zcvf Kazumi_linux_canary_arm64.tar.gz -C build/linux/arm64/release/bundle .
+
+              # The tarball retains its copy. Abort on cleanup failure so DEB cannot inherit it.
+              rm -- build/linux/arm64/release/bundle/file-manifest.json
 
               # Debian package
               mkdir Kazumi_linux_canary_arm64

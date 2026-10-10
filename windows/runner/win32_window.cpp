@@ -3,9 +3,32 @@
 #include <dwmapi.h>
 #include <flutter_windows.h>
 
+#include <cstdint>
+#include <limits>
+
 #include "resource.h"
 
 namespace {
+
+// SetWindowPos can synchronously reenter MessageHandler through WM_DPICHANGED.
+// Restore the previous pointer even on failure or a nested bounds operation;
+// no borrowed stack rectangle may remain attached to the window after return.
+class ScopedPhysicalBoundsOverride {
+ public:
+  ScopedPhysicalBoundsOverride(const RECT*& slot, const RECT& bounds)
+      : slot_(slot), previous_(slot) {
+    slot_ = &bounds;
+  }
+  ~ScopedPhysicalBoundsOverride() { slot_ = previous_; }
+
+  ScopedPhysicalBoundsOverride(const ScopedPhysicalBoundsOverride&) = delete;
+  ScopedPhysicalBoundsOverride& operator=(const ScopedPhysicalBoundsOverride&) =
+      delete;
+
+ private:
+  const RECT*& slot_;
+  const RECT* previous_;
+};
 
 /// Window attribute that enables dark mode window decorations.
 ///
@@ -173,6 +196,24 @@ LRESULT CALLBACK Win32Window::WndProc(HWND const window,
   return DefWindowProc(window, message, wparam, lparam);
 }
 
+bool Win32Window::SetBoundsInPhysicalPixels(const RECT& bounds) {
+  const int64_t width = static_cast<int64_t>(bounds.right) - bounds.left;
+  const int64_t height = static_cast<int64_t>(bounds.bottom) - bounds.top;
+  if (!IsWindow(window_handle_) || IsIconic(window_handle_) ||
+      IsZoomed(window_handle_) || width <= 0 || height <= 0 ||
+      width > (std::numeric_limits<int>::max)() ||
+      height > (std::numeric_limits<int>::max)()) {
+    return false;
+  }
+  // No SWP_ASYNCWINDOWPOS: the scoped override must cover the whole operation,
+  // including nested DPI handling, and be gone before this call returns.
+  const ScopedPhysicalBoundsOverride bounds_override(physical_bounds_override_,
+                                                     bounds);
+  return SetWindowPos(window_handle_, nullptr, bounds.left, bounds.top,
+                      static_cast<int>(width), static_cast<int>(height),
+                      SWP_NOZORDER | SWP_NOACTIVATE) != FALSE;
+}
+
 LRESULT
 Win32Window::MessageHandler(HWND hwnd,
                             UINT const message,
@@ -188,12 +229,20 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
 
     case WM_DPICHANGED: {
-      auto newRectSize = reinterpret_cast<RECT*>(lparam);
-      LONG newWidth = newRectSize->right - newRectSize->left;
-      LONG newHeight = newRectSize->bottom - newRectSize->top;
+      const auto* suggested = reinterpret_cast<const RECT*>(lparam);
+      // Flutter and plugins have already received the new DPI. Only an explicit
+      // physical restoration replaces the suggested outer rect: applying the
+      // scaled suggestion here would scale the requested size a second time.
+      // Copy before SetWindowPos so nested messages cannot change our
+      // selection.
+      const bool restoring =
+          hwnd == window_handle_ && physical_bounds_override_;
+      const RECT target = restoring ? *physical_bounds_override_ : *suggested;
+      const LONG width = target.right - target.left;
+      const LONG height = target.bottom - target.top;
 
-      SetWindowPos(hwnd, nullptr, newRectSize->left, newRectSize->top, newWidth,
-                   newHeight, SWP_NOZORDER | SWP_NOACTIVATE);
+      SetWindowPos(hwnd, nullptr, target.left, target.top, width, height,
+                   SWP_NOZORDER | SWP_NOACTIVATE);
 
       return 0;
     }

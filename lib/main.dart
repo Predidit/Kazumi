@@ -20,6 +20,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/services/platform/webview_feature_service.dart';
+import 'package:kazumi/services/platform/window_state_service.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/navigation.dart';
 
@@ -73,10 +74,12 @@ void main() async {
   final showWindowButton = DesktopWindowConfig.showWindowButton;
   if (isDesktop()) {
     await windowManager.ensureInitialized();
-    final lowResolution = await isLowResolution();
+    final windowState = Platform.isWindows ? WindowStateService.instance : null;
+    final savedState = windowState?.loadSavedState();
+    final defaultSize = await defaultDesktopWindowSize();
     final windowOptions = WindowOptions(
-      size: lowResolution ? const Size(840, 600) : const Size(1280, 860),
-      center: true,
+      size: savedState == null ? defaultSize : null,
+      center: savedState == null ? true : null,
       skipTaskbar: false,
       // macOS embeds native buttons in the Flutter view.
       titleBarStyle: (Platform.isMacOS || !showWindowButton)
@@ -86,9 +89,26 @@ void main() async {
       title: 'Kazumi',
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
+      bool restored = false;
+      if (windowState != null) {
+        if (savedState != null) {
+          restored = await windowState.restoreNormalLayout(
+            savedState,
+            defaultSize,
+          );
+        } else {
+          await windowState.cacheDefaultLayout();
+        }
+      }
       // window_manager controls desktop visibility to avoid startup flicker.
       await windowManager.show();
+      if (restored && savedState!.wasMaximized) {
+        await windowState!.maximizeRestoredLayout();
+      }
       await windowManager.focus();
+      // This callback alone starts sampling, after all startup layout calls.
+      // waitUntilReadyToShow does not await it; keep app initialization in place.
+      windowState?.startListening();
     });
   }
   if (Platform.isWindows) {

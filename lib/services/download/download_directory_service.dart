@@ -124,12 +124,9 @@ class DownloadDirectoryService {
   }
 
   Future<bool> _hasAccess(String directory) async {
-    if (Platform.isAndroid) {
-      return await _androidChannel.invokeMethod<bool>('hasDirectoryAccess', {
-            'path': directory,
-          }) ??
-          false;
-    }
+    // Only the macOS bookmark has to be restored on each launch. Elsewhere the
+    // grant is obtained when the directory is picked, and losing it later
+    // surfaces as an ordinary file system error.
     if (!Platform.isMacOS) return true;
 
     final custom = customDirectory;

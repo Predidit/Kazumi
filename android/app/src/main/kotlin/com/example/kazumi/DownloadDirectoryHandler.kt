@@ -15,7 +15,10 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
-/** Direct filesystem directories for the downloader and offline player. */
+/**
+ * Grants storage access and picks a local directory when the user changes the
+ * download location. Downloads then use the plain filesystem path.
+ */
 class DownloadDirectoryHandler(private val activity: Activity) : MethodChannel.MethodCallHandler {
     companion object {
         const val CHANNEL = "com.predidit.kazumi/download_directory"
@@ -29,10 +32,6 @@ class DownloadDirectoryHandler(private val activity: Activity) : MethodChannel.M
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "hasDirectoryAccess" -> {
-                val path = call.argument<String>("path")
-                result.success(path != null && hasDirectoryAccess(path))
-            }
             "requestStorageAccess" -> requestStorageAccess(result)
             "pickDirectory" -> pickDirectory(call.argument<String>("initialDirectory"), result)
             else -> result.notImplemented()
@@ -51,20 +50,6 @@ class DownloadDirectoryHandler(private val activity: Activity) : MethodChannel.M
         } else {
             ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
                 PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    private fun hasDirectoryAccess(path: String): Boolean {
-        return try {
-            val directory = File(path)
-            if (!directory.isAbsolute) return false
-            val privateRoots = listOfNotNull(
-                activity.filesDir.parentFile,
-                *activity.getExternalFilesDirs(null)
-            )
-            privateRoots.any { contains(it, directory) } || hasStorageAccess()
-        } catch (_: Exception) {
-            false
         }
     }
 

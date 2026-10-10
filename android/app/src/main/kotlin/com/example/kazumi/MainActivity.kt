@@ -36,6 +36,8 @@ class MainActivity: AudioServiceActivity() {
     private val PIP_CHANNEL = "com.predidit.kazumi/pip"
     private var intentChannel: MethodChannel? = null
     private var pipChannel: MethodChannel? = null
+    private var downloadDirectoryChannel: MethodChannel? = null
+    private var downloadDirectoryHandler: DownloadDirectoryHandler? = null
 
     private var pipIsPlaying = false
     private var pipDanmakuEnabled = false
@@ -74,6 +76,10 @@ class MainActivity: AudioServiceActivity() {
     }
 
     override fun onDestroy() {
+        downloadDirectoryChannel?.setMethodCallHandler(null)
+        downloadDirectoryChannel = null
+        downloadDirectoryHandler?.dispose()
+        downloadDirectoryHandler = null
         unregisterPipActionReceiverIfNeeded()
         // audio_service stays bound for the whole activity lifetime, so its
         // own stopSelf() never destroys a service started for playback.
@@ -101,6 +107,11 @@ class MainActivity: AudioServiceActivity() {
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        downloadDirectoryHandler = DownloadDirectoryHandler(this)
+        downloadDirectoryChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger, DownloadDirectoryHandler.CHANNEL
+        )
+        downloadDirectoryChannel?.setMethodCallHandler(downloadDirectoryHandler)
         intentChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         intentChannel?.setMethodCallHandler { call, result ->
             if (call.method == "openWithMime") {
@@ -174,6 +185,21 @@ class MainActivity: AudioServiceActivity() {
         intent.action = Intent.ACTION_VIEW
         intent.setDataAndType(Uri.parse(url), mimeType)
         startActivity(intent)
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        downloadDirectoryHandler?.onActivityResult(requestCode, resultCode, data)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        downloadDirectoryHandler?.onRequestPermissionsResult(requestCode)
     }
 
     private fun getAndroidSdkVersion(): Int {

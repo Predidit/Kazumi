@@ -62,6 +62,11 @@ class SettingsKeys {
     true,
     group: SettingGroup.update,
   );
+  static const updateDownloadSource = SettingKey<String>(
+    'updateDownloadSource',
+    'mirror',
+    group: SettingGroup.update,
+  );
   static const checkPluginUpdateOnStartup = SettingKey<bool>(
     'checkPluginUpdateOnStartup',
     true,
@@ -563,6 +568,7 @@ class SettingsKeys {
     hardwareDecoder,
     searchEnhanceEnable,
     autoUpdate,
+    updateDownloadSource,
     checkPluginUpdateOnStartup,
     alwaysOntop,
     defaultPlaySpeed,

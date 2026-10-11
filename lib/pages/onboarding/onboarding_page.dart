@@ -191,6 +191,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
           textStyle: theme.textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.w600),
         ),
+        // The first screen a new install ever shows must focus its primary
+        // action. Flutter routes key events through the focus system, and
+        // directional traversal needs a focused widget to move away from: with
+        // nothing focused the traversal starts from the root scope, whose rect
+        // is the entire screen, so no candidate lies in any direction and every
+        // D-pad press is silently dropped. That leaves remote-only devices (TVs)
+        // unable to get past the disclaimer at all. The dialog buttons below
+        // already set autofocus for the same reason.
+        autofocus: true,
         onPressed: _installingBundled ? null : () => _navigate(forward: true),
         iconAlignment: IconAlignment.end,
         icon: _installingBundled

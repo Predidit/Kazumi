@@ -1,31 +1,39 @@
 import CoreVideo
 import Flutter
 import UIKit
+import media_kit_video
 
-private final class KazumiPipVideoDelegate: NSObject, FlutterPlugin {
-    weak var owner: KazumiPipPluginRegistry?
-
-    static func register(with registrar: FlutterPluginRegistrar) {}
-
-    func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        owner?.handleVideoCall(call, result: result)
-    }
+// The plugin publishes this typed API through FlutterPluginRegistry. It owns
+// output configuration and replacement; the app owns mpv track suspension.
+protocol KazumiPipRendering: AnyObject {
+    var softwareRenderingHandles: [Int64] { get }
+    func setSoftwareRenderingForNewOutputs(_ enabled: Bool)
+    func setSoftwareRendering(handle: Int64, enabled: Bool,
+                              completion: @escaping (VideoOutputRenderingResult) -> Void)
 }
+
+extension MediaKitVideoPlugin: KazumiPipRendering {}
 
 private final class KazumiPipTextureRegistry: NSObject, FlutterTextureRegistry {
     private let registry: FlutterTextureRegistry
     private let frameHandler: (CVPixelBuffer, Int64) -> Void
+    private let onRegistered: () -> Void
     private var textures: [Int64: FlutterTexture] = [:]
 
-    init(registry: FlutterTextureRegistry, frameHandler: @escaping (CVPixelBuffer, Int64) -> Void) {
+    init(registry: FlutterTextureRegistry, frameHandler: @escaping (CVPixelBuffer, Int64) -> Void,
+         onRegistered: @escaping () -> Void) {
         self.registry = registry
         self.frameHandler = frameHandler
+        self.onRegistered = onRegistered
         super.init()
     }
 
     func register(_ texture: FlutterTexture) -> Int64 {
         let textureId = registry.register(texture)
         textures[textureId] = texture
+        // The plugin finishes initialization after register returns. Retry a
+        // foreground restoration that previously encountered a busy new output.
+        DispatchQueue.main.async(execute: onRegistered)
         return textureId
     }
 
@@ -54,7 +62,6 @@ private final class KazumiPipTextureRegistry: NSObject, FlutterTextureRegistry {
 private final class KazumiPipRegistrar: NSObject, FlutterPluginRegistrar {
     private let registrar: FlutterPluginRegistrar
     let textureRegistry: KazumiPipTextureRegistry
-    weak var owner: KazumiPipPluginRegistry?
 
     init(registrar: FlutterPluginRegistrar, textureRegistry: KazumiPipTextureRegistry) {
         self.registrar = registrar
@@ -68,10 +75,7 @@ private final class KazumiPipRegistrar: NSObject, FlutterPluginRegistrar {
     func publish(_ value: NSObject) { registrar.publish(value) }
 
     func addMethodCallDelegate(_ delegate: FlutterPlugin, channel: FlutterMethodChannel) {
-        owner?.videoDelegate = delegate
-        let adapter = KazumiPipVideoDelegate()
-        adapter.owner = owner
-        registrar.addMethodCallDelegate(adapter, channel: channel)
+        registrar.addMethodCallDelegate(delegate, channel: channel)
     }
 
     func addApplicationDelegate(_ delegate: FlutterPlugin) {
@@ -101,40 +105,53 @@ private final class KazumiPipRegistrar: NSObject, FlutterPluginRegistrar {
     }
 }
 
-// Give the app access to media-kit's rendered frames through Flutter's public
-// texture API, including when the Flutter rasterizer is suspended in background.
+// Observe frames using Flutter's public texture API. Plugin method delegates
+// are forwarded unchanged; renderer changes use media-kit's published API.
 final class KazumiPipPluginRegistry: NSObject, FlutterPluginRegistry {
     private let registry: FlutterPluginRegistry
     private let frameHandler: (CVPixelBuffer, Int64) -> Void
+    private let renderingOverride: KazumiPipRendering?
+    private let isForeground: () -> Bool
     private var videoRegistrar: KazumiPipRegistrar?
-    fileprivate var videoDelegate: FlutterPlugin?
-    private var outputArguments: [String: [String: Any]] = [:]
-    private var generations: [String: UInt] = [:]
-    private var softwareHandles: Set<String> = []
-    private var recreatingHandles: Set<String> = []
+    private var recreatingHandles: Set<Int64> = []
+    private var waitingForRegistration: Set<Int64> = []
+    private var registrationGeneration: UInt = 0
     private var restorationCompletions: [() -> Void] = []
     private var softwareRendering = false
-    private var pendingRestore = false
 
     var videoOutputWillChange: ((Int64, @escaping (Bool) -> Void) -> Void)?
-    var videoOutputDidChange: ((Int64, @escaping (Bool) -> Void) -> Void)?
+    var videoOutputDidChange: ((Int64, Bool, @escaping (Bool) -> Void) -> Void)?
 
-    init(registry: FlutterPluginRegistry, frameHandler: @escaping (CVPixelBuffer, Int64) -> Void) {
+    private var renderer: KazumiPipRendering? {
+        renderingOverride ?? registry.valuePublished(byPlugin: "MediaKitVideoPlugin") as? MediaKitVideoPlugin
+    }
+
+    init(registry: FlutterPluginRegistry,
+         rendering: KazumiPipRendering? = nil,
+         isForeground: @escaping () -> Bool = { UIApplication.shared.applicationState == .active },
+         frameHandler: @escaping (CVPixelBuffer, Int64) -> Void) {
         self.registry = registry
         self.frameHandler = frameHandler
+        self.renderingOverride = rendering
+        self.isForeground = isForeground
         super.init()
         NotificationCenter.default.addObserver(self, selector: #selector(restoreIfForeground),
                                                name: UIApplication.didBecomeActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(restoreIfForeground),
                                                name: UIScene.didActivateNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(protectBackgroundOutputs),
+                                               name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(protectBackgroundOutputs),
+                                               name: UIScene.didEnterBackgroundNotification, object: nil)
     }
 
     func registrar(forPlugin pluginKey: String) -> FlutterPluginRegistrar? {
         guard let registrar = registry.registrar(forPlugin: pluginKey) else { return nil }
         guard pluginKey == "MediaKitVideoPlugin" else { return registrar }
-        let textures = KazumiPipTextureRegistry(registry: registrar.textures(), frameHandler: frameHandler)
+        let textures = KazumiPipTextureRegistry(registry: registrar.textures(), frameHandler: frameHandler) { [weak self] in
+            self?.textureRegistered()
+        }
         let adapter = KazumiPipRegistrar(registrar: registrar, textureRegistry: textures)
-        adapter.owner = self
         videoRegistrar = adapter
         return adapter
     }
@@ -148,111 +165,61 @@ final class KazumiPipPluginRegistry: NSObject, FlutterPluginRegistry {
         videoRegistrar?.textureRegistry.copyPixelBuffer(forTexture: textureId)
     }
 
-    fileprivate func handleVideoCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        var forwardedCall = call
-        if let args = call.arguments as? [String: Any], let handle = args["handle"] as? String {
-            switch call.method {
-            case "VideoOutputManager.Create":
-                generations[handle] = (generations[handle] ?? 0) &+ 1
-                outputArguments[handle] = args
-                softwareHandles.remove(handle)
-                let software = softwareRendering ||
-                    (pendingRestore && UIApplication.shared.applicationState != .active)
-                var configuration = args["configuration"] as? [String: Any] ?? [:]
-                if software && configuration["enableHardwareAcceleration"] as? Bool == true {
-                    softwareHandles.insert(handle)
-                    var replacement = args
-                    configuration["enableHardwareAcceleration"] = false
-                    replacement["configuration"] = configuration
-                    forwardedCall = FlutterMethodCall(methodName: call.method, arguments: replacement)
-                }
-            case "VideoOutputManager.SetSize":
-                if var saved = outputArguments[handle] {
-                    var configuration = saved["configuration"] as? [String: Any] ?? [:]
-                    configuration["width"] = args["width"]
-                    configuration["height"] = args["height"]
-                    saved["configuration"] = configuration
-                    outputArguments[handle] = saved
-                }
-            case "VideoOutputManager.Dispose":
-                generations[handle] = (generations[handle] ?? 0) &+ 1
-                outputArguments.removeValue(forKey: handle)
-                softwareHandles.remove(handle)
-            default:
-                break
-            }
-        }
-        videoDelegate?.handle?(forwardedCall, result: result)
-    }
-
-    // Recreate only the native video output. The mpv player, audio, source, playback
-    // position, decoder and shader settings all remain owned by the same player.
-    private func recreateOutput(_ handle: String, completion: @escaping (Bool) -> Void) {
-        guard !recreatingHandles.contains(handle),
+    private func changeRendering(_ handle: Int64, software: Bool,
+                                 completion: @escaping (Bool) -> Void) {
+        guard !recreatingHandles.contains(handle), let renderer = renderer,
               let willChange = videoOutputWillChange,
               let didChange = videoOutputDidChange else { completion(false); return }
         recreatingHandles.insert(handle)
-        let generation = generations[handle] ?? 0
+        var retryGeneration: UInt?
         let finish: (Bool) -> Void = { ready in
             self.recreatingHandles.remove(handle)
             completion(ready)
-            // Closing PiP may race with a software output still being created.
-            // Revisit a successful transition that now needs foreground restoration.
-            if ready && !self.softwareRendering && self.softwareHandles.contains(handle) &&
-                UIApplication.shared.applicationState == .active {
+            // Closing PiP can race with entry. Restore after its track has been
+            // resumed, before acknowledging native session disposal to Dart.
+            if software && !self.softwareRendering && self.isForeground() {
                 self.restoreIfForeground()
+            } else if let generation = retryGeneration,
+                      generation != self.registrationGeneration {
+                self.retryRegisteredOutputs()
             }
             self.finishRestorationIfIdle()
         }
-        let resume: (Bool) -> Void = { created in
-            didChange(Int64(handle) ?? 0) { resumed in finish(created && resumed) }
-        }
-        // Freeing an active mpv render context forcibly disables video. Suspend
-        // the current video track first, then resume it after the new texture is registered.
-        willChange(Int64(handle) ?? 0) { suspended in
+        willChange(handle) { suspended in
             guard suspended else { finish(false); return }
-            guard self.outputArguments[handle] != nil,
-                  generation == self.generations[handle] else { resume(false); return }
-            let dispose = FlutterMethodCall(methodName: "VideoOutputManager.Dispose", arguments: ["handle": handle])
-            self.videoDelegate?.handle?(dispose, result: { value in
-                guard var args = self.outputArguments[handle],
-                      generation == self.generations[handle],
-                      !(value is FlutterError) else { resume(false); return }
-                var configuration = args["configuration"] as? [String: Any] ?? [:]
-                let software = self.softwareRendering || UIApplication.shared.applicationState != .active
-                if software && configuration["enableHardwareAcceleration"] as? Bool == true {
-                    configuration["enableHardwareAcceleration"] = false
-                    self.softwareHandles.insert(handle)
+            // Suspension crosses the Dart channel. The app may have entered
+            // background or started another PiP session while it was pending.
+            guard software || (!self.softwareRendering && self.isForeground()) else {
+                renderer.setSoftwareRenderingForNewOutputs(true)
+                didChange(handle, false) { _ in finish(false) }
+                return
+            }
+            renderer.setSoftwareRendering(handle: handle, enabled: software) { result in
+                if !software && result == .notReady {
+                    self.waitingForRegistration.insert(handle)
+                    retryGeneration = self.registrationGeneration
                 } else {
-                    self.softwareHandles.remove(handle)
+                    self.waitingForRegistration.remove(handle)
                 }
-                args["configuration"] = configuration
-                let create = FlutterMethodCall(methodName: "VideoOutputManager.Create", arguments: args)
-                self.videoDelegate?.handle?(create, result: { result in
-                    // Dart waits for VideoController.id to change before restoring vid;
-                    // media-kit's immediate Create reply precedes context initialization.
-                    resume(!(result is FlutterError))
-                })
-            })
+                // Even a failed or unchanged transition must restore the track.
+                // The dependency completes only once output work has drained.
+                didChange(handle, result == .changed) { resumed in
+                    finish((result == .changed || result == .unchanged) && resumed)
+                }
+            }
         }
     }
 
     func useSoftwareRendering(forHandle handle: Int64, completion: @escaping (Bool) -> Void) {
-        let key = String(handle)
-        guard let args = outputArguments[key], videoDelegate != nil else { completion(false); return }
+        guard let renderer = renderer else { completion(false); return }
         softwareRendering = true
-        pendingRestore = false
-        let configuration = args["configuration"] as? [String: Any] ?? [:]
-        if configuration["enableHardwareAcceleration"] as? Bool != true || softwareHandles.contains(key) {
-            completion(true)
-            return
-        }
-        recreateOutput(key, completion: completion)
+        // A replacement player created while PiP is active must also avoid GL.
+        renderer.setSoftwareRenderingForNewOutputs(true)
+        changeRendering(handle, software: true, completion: completion)
     }
 
     func restoreRendering(completion: @escaping () -> Void) {
         softwareRendering = false
-        pendingRestore = !softwareHandles.isEmpty || !recreatingHandles.isEmpty
         restorationCompletions.append(completion)
         restoreIfForeground()
         finishRestorationIfIdle()
@@ -266,11 +233,32 @@ final class KazumiPipPluginRegistry: NSObject, FlutterPluginRegistry {
     }
 
     @objc private func restoreIfForeground() {
-        guard !softwareRendering, UIApplication.shared.applicationState == .active else { return }
-        pendingRestore = false
-        for handle in softwareHandles {
-            recreateOutput(handle) { _ in }
+        guard !softwareRendering, isForeground(), let renderer = renderer else { return }
+        renderer.setSoftwareRenderingForNewOutputs(false)
+        for handle in renderer.softwareRenderingHandles where !recreatingHandles.contains(handle) {
+            changeRendering(handle, software: false) { _ in }
         }
+    }
+
+    private func textureRegistered() {
+        registrationGeneration &+= 1
+        retryRegisteredOutputs()
+    }
+
+    private func retryRegisteredOutputs() {
+        guard !softwareRendering, isForeground(), let renderer = renderer else { return }
+        let liveHandles = Set(renderer.softwareRenderingHandles)
+        waitingForRegistration.formIntersection(liveHandles)
+        for handle in waitingForRegistration where !recreatingHandles.contains(handle) {
+            waitingForRegistration.remove(handle)
+            changeRendering(handle, software: false) { _ in }
+        }
+    }
+
+    @objc private func protectBackgroundOutputs() {
+        guard let renderer = renderer,
+              softwareRendering || !renderer.softwareRenderingHandles.isEmpty || !recreatingHandles.isEmpty else { return }
+        renderer.setSoftwareRenderingForNewOutputs(true)
     }
 
     deinit {

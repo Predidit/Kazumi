@@ -71,6 +71,98 @@ void main() {
     expect(current.textureId.hasRegisteredListeners, isFalse);
   });
 
+  test('an unchanged output resumes without a replacement texture', () async {
+    expect(await transition.suspendVideo(7), isTrue);
+    expect(await transition.resumeVideo(7, waitForTexture: false), isTrue);
+    expect(current.textureId.value, 42);
+    expect(current.vid, '3');
+    expect(current.events, [
+      'read:3',
+      'write:no',
+      'read:no',
+      'write:3',
+      'read:3',
+    ]);
+    expect(current.textureId.hasRegisteredListeners, isFalse);
+  });
+
+  test('an unchanged output still reports failed track restoration', () async {
+    expect(await transition.suspendVideo(7), isTrue);
+    current.onWrite = (value) async {
+      if (value == '3') current.vid = 'no';
+    };
+    expect(await transition.resumeVideo(7, waitForTexture: false), isFalse);
+    expect(current.vid, 'no');
+    expect(current.textureId.hasRegisteredListeners, isFalse);
+  });
+
+  test(
+    'an unchanged output drains pending suspension before restoring',
+    () async {
+      final writing = Completer<void>();
+      final written = Completer<void>();
+      current.onWrite = (value) async {
+        if (value == 'no') {
+          writing.complete();
+          await written.future;
+        }
+      };
+      final suspended = transition.suspendVideo(7);
+      await writing.future;
+      final resumed = transition.resumeVideo(7, waitForTexture: false);
+      await Future<void>.delayed(Duration.zero);
+      expect(current.vid, 'no');
+      expect(current.events, ['read:3', 'write:no']);
+      written.complete();
+      expect(await suspended, isTrue);
+      expect(await resumed, isTrue);
+      expect(current.vid, '3');
+      expect(current.events, [
+        'read:3',
+        'write:no',
+        'read:no',
+        'write:3',
+        'read:3',
+      ]);
+    },
+  );
+
+  test('rejects another suspension while the track is being read', () async {
+    final reading = Completer<void>();
+    final read = Completer<String>();
+    current.onRead = () {
+      reading.complete();
+      return read.future;
+    };
+    final suspended = transition.suspendVideo(7);
+    await reading.future;
+    expect(await transition.suspendVideo(7), isFalse);
+    expect(current.events, ['read:3']);
+    current.onRead = null;
+    read.complete('3');
+    expect(await suspended, isTrue);
+    expect(current.events, ['read:3', 'write:no', 'read:no']);
+  });
+
+  test(
+    'concurrent resumes share registration and restore the track once',
+    () async {
+      expect(await transition.suspendVideo(7), isTrue);
+      final first = transition.resumeVideo(7);
+      final second = transition.resumeVideo(7);
+      current.textureId.value = 43;
+      expect(await Future.wait([first, second]), [true, true]);
+      expect(current.events, [
+        'read:3',
+        'write:no',
+        'read:no',
+        'write:3',
+        'read:3',
+      ]);
+      expect(current.textureId.hasRegisteredListeners, isFalse);
+    },
+  );
+
   test(
     'both output changes preserve the track selected for that transition',
     () async {
@@ -123,6 +215,11 @@ void main() {
     expect(current.vid, '3');
     expect(current.events, ['read:3', 'write:no', 'write:3', 'read:3']);
     expect(current.textureId.hasRegisteredListeners, isFalse);
+    current.onWrite = null;
+    expect(await transition.suspendVideo(7), isTrue);
+    current.textureId.value = 43;
+    expect(await transition.resumeVideo(7), isTrue);
+    expect(current.vid, '3');
   });
 
   test(
@@ -183,6 +280,38 @@ void main() {
     expect(current.events, isEmpty);
     expect(old.events, ['read:3']);
   });
+
+  test(
+    'replacement before a queued suspension cannot disable the old player',
+    () async {
+      await transition.dispose();
+      final old = current;
+      transition = IosPipVideoOutputTransition(
+        resolveBinding: (handle) async => IosPipVideoOutputBinding(
+          handle: old.handle,
+          textureId: old.textureId,
+          isCurrent: () => identical(current, old),
+          readVid: () {
+            final read = Future.value(old.vid);
+            read.then((_) {
+              // Run after the read has resumed, but before its queued write.
+              scheduleMicrotask(() {
+                current = _Player(8, 100);
+                players.add(current);
+              });
+            });
+            return read;
+          },
+          writeVid: old.writeVid,
+        ),
+      );
+      expect(await transition.suspendVideo(7), isFalse);
+      expect(current.handle, 8);
+      expect(current.events, isEmpty);
+      expect(old.events, isEmpty);
+      expect(old.vid, '3');
+    },
+  );
 
   test('dispose cancels registration and restores the same player', () async {
     expect(await transition.suspendVideo(7), isTrue);

@@ -66,8 +66,8 @@ final class IosPictureInPictureController: NSObject,
         }
     }
 
-    func videoOutputDidChange(_ handle: Int64, completion: @escaping (Bool) -> Void) {
-        channel.invokeMethod("onVideoOutputDidChange", arguments: ["handle": handle]) {
+    func videoOutputDidChange(_ handle: Int64, waitForTexture: Bool, completion: @escaping (Bool) -> Void) {
+        channel.invokeMethod("onVideoOutputDidChange", arguments: ["handle": handle, "waitForTexture": waitForTexture]) {
             completion($0 as? Bool ?? false)
         }
     }

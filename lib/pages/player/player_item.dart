@@ -145,7 +145,6 @@ class _PlayerItemState extends State<PlayerItem>
   bool? _lastPipDanmakuEnabled;
   Rect? _lastPipSourceRect;
   bool _pipSourceRectSyncScheduled = false;
-  bool _pipEnterRequested = false;
   IosPipController? _iosPip;
   IosPipVideoOutputTransition? _iosVideoOutputTransition;
   late mobx.ReactionDisposer _playerSizeListener;
@@ -302,7 +301,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   void _handleIOSPIPModeChanged(bool active, bool restored) {
     if (!mounted) return;
-    setState(() {});
+    playerController.panel.isIosPipActive = active;
     if (!active && !restored && !backgroundPlayback &&
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.paused) {
       unawaited(_pauseForBackground());
@@ -315,14 +314,18 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
     final pip = _iosPip;
-    if (pip == null || !mounted || _pipEnterRequested || pip.isActive) return;
-    setState(() {
-      _pipEnterRequested = true;
-    });
+    if (pip == null ||
+        !mounted ||
+        playerController.panel.pipEntryPending ||
+        pip.isActive) {
+      return;
+    }
+    playerController.panel.pipEntryPending = true;
     final result = await pip.enter();
     if (!mounted) return;
-    setState(() {
-      _pipEnterRequested = false;
+    mobx.runInAction(() {
+      playerController.panel.isIosPipActive = pip.isActive;
+      playerController.panel.pipEntryPending = false;
     });
     switch (result) {
       case IosPipEntryResult.entered:
@@ -354,9 +357,7 @@ class _PlayerItemState extends State<PlayerItem>
       KazumiDialog.showToast(message: '当前设备不支持画中画');
       return;
     }
-    setState(() {
-      _pipEnterRequested = true;
-    });
+    playerController.panel.pipEntryPending = true;
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted) {
       return;
@@ -370,20 +371,16 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
     KazumiDialog.showToast(message: '进入画中画失败');
-    setState(() {
-      _pipEnterRequested = false;
-    });
+    playerController.panel.pipEntryPending = false;
   }
 
   void _handleAndroidPIPModeChanged(bool inPipMode) {
     if (!mounted || videoPageController.isPip == inPipMode) {
       return;
     }
-    setState(() {
-      videoPageController.isPip = inPipMode;
-    });
+    videoPageController.isPip = inPipMode;
     if (!inPipMode) {
-      _pipEnterRequested = false;
+      playerController.panel.pipEntryPending = false;
       _scheduleAndroidPIPSourceRectSync();
     }
   }
@@ -1647,7 +1644,8 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     ((Platform.isAndroid && videoPageController.isPip) ||
-                            (_iosPip?.isActive ?? false) || _pipEnterRequested)
+                            playerController.panel.isIosPipActive ||
+                            playerController.panel.pipEntryPending)
                         ? const SizedBox.shrink()
                         : PlayerItemPanel(
                             fillsWindow: widget.fillsWindow,

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/async_serial_queue.dart';
+import 'package:kazumi/utils/async_single_flight.dart';
 
 /// Captures one player and its texture notifier, so a late output transition
 /// cannot write properties on a replacement player.
@@ -31,14 +33,16 @@ class IosPipVideoOutputTransition {
 
   final Future<IosPipVideoOutputBinding?> Function(int handle) resolveBinding;
   final Duration registrationTimeout;
+  final AsyncSingleFlight<bool> _suspension = AsyncSingleFlight();
   bool _disposed = false;
-  Object? _reservation;
   _VideoOutputChange? _change;
 
   Future<bool> suspendVideo(int handle) async {
-    if (_disposed || _reservation != null || _change != null) return false;
-    final reservation = Object();
-    _reservation = reservation;
+    if (_disposed || _suspension.isRunning || _change != null) return false;
+    return _suspension.run(() => _suspend(handle));
+  }
+
+  Future<bool> _suspend(int handle) async {
     _VideoOutputChange? change;
     try {
       final binding = await resolveBinding(handle);
@@ -52,13 +56,11 @@ class IosPipVideoOutputTransition {
       if (_disposed || !binding.isCurrent() || vid.isEmpty) return false;
       change = _VideoOutputChange(binding, vid, binding.textureId.value);
       _change = change;
-      var activeVid = '';
-      try {
+      final activeVid = await change.operations.run(() async {
+        if (_disposed || !binding.isCurrent()) return '';
         await binding.writeVid('no');
-        if (binding.isCurrent()) activeVid = await binding.readVid();
-      } finally {
-        change.suspensionDone.complete();
-      }
+        return binding.isCurrent() ? await binding.readVid() : '';
+      });
       if (_disposed || !binding.isCurrent() || activeVid != 'no') {
         await _restoreVid(change);
         _clear(change);
@@ -72,24 +74,24 @@ class IosPipVideoOutputTransition {
         _clear(change);
       }
       return false;
-    } finally {
-      if (identical(_reservation, reservation)) _reservation = null;
     }
   }
 
-  Future<bool> resumeVideo(int handle) async {
+  Future<bool> resumeVideo(int handle, {bool waitForTexture = true}) async {
     final change = _change;
     if (_disposed || change == null || change.binding.handle != handle) {
       return false;
     }
-    return change.resuming ??= _resume(change);
+    return change.resuming.run(() => _resume(change, waitForTexture));
   }
 
-  Future<bool> _resume(_VideoOutputChange change) async {
+  Future<bool> _resume(_VideoOutputChange change, bool waitForTexture) async {
     var registered = false;
     var restored = false;
     try {
-      registered = await _waitForRegistration(change);
+      // Only a changed native output requires waiting for its replacement.
+      // Other results restore the track directly, including failed rollbacks.
+      registered = !waitForTexture || await _waitForRegistration(change);
     } catch (error) {
       KazumiLogger().w('iOS PiP: texture registration failed', error: error);
     } finally {
@@ -137,8 +139,9 @@ class IosPipVideoOutputTransition {
   }
 
   Future<bool> _restoreVid(_VideoOutputChange change) {
-    return change.restoring ??= () async {
-      await change.suspensionDone.future;
+    // Keep the completed result as well: dispose and a failed suspension can
+    // both request restoration for the same transition.
+    return change.restoring ??= change.operations.run(() async {
       if (!change.binding.isCurrent()) return false;
       try {
         await change.binding.writeVid(change.vid);
@@ -156,7 +159,7 @@ class IosPipVideoOutputTransition {
         );
         return false;
       }
-    }();
+    });
   }
 
   void _clear(_VideoOutputChange change) {
@@ -180,8 +183,8 @@ class _VideoOutputChange {
   final IosPipVideoOutputBinding binding;
   final String vid;
   final int? oldTextureId;
-  final Completer<void> suspensionDone = Completer<void>();
-  Future<bool>? resuming;
+  final AsyncSerialQueue operations = AsyncSerialQueue();
+  final AsyncSingleFlight<bool> resuming = AsyncSingleFlight();
   Future<bool>? restoring;
   void Function()? cancelWait;
 }

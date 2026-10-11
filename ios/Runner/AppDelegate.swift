@@ -36,9 +36,9 @@ import AVKit
                 guard let pip = pip else { completion(false); return }
                 pip.videoOutputWillChange(handle, completion: completion)
             }
-            registry.videoOutputDidChange = { [weak pip] handle, completion in
+            registry.videoOutputDidChange = { [weak pip] handle, waitForTexture, completion in
                 guard let pip = pip else { completion(false); return }
-                pip.videoOutputDidChange(handle, completion: completion)
+                pip.videoOutputDidChange(handle, waitForTexture: waitForTexture, completion: completion)
             }
             pipController = pip
             pipPluginRegistry = registry

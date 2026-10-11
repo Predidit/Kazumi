@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/async_single_flight.dart';
 
 enum IosPipEntryResult { entered, unsupported, notReady, failed }
 
@@ -70,7 +71,8 @@ class IosPipController {
   final IosPipPlaybackState Function() playbackState;
   final Future<int?> Function() playerHandle;
   final Future<bool> Function(int handle) suspendVideo;
-  final Future<bool> Function(int handle) resumeVideo;
+  final Future<bool> Function(int handle, {required bool waitForTexture})
+  resumeVideo;
   final Future<void> Function() onPlay;
   final Future<void> Function() onPause;
   final Future<void> Function(Duration position) onSeek;
@@ -78,24 +80,28 @@ class IosPipController {
   final bool Function() canRestore;
   final MethodChannel _channel;
   late final _IosPipChannelBridge _bridge;
+  final AsyncSingleFlight<IosPipEntryResult> _entry = AsyncSingleFlight();
   Future<void>? _disposeFuture;
   bool _active = false;
-  bool _entering = false;
   bool _disposed = false;
 
   bool get _ownsPage => !_disposed && _bridge.isCurrent(this);
   bool get isActive => _ownsPage && _active;
-  bool get keepPlaybackInBackground => _ownsPage && (_active || _entering);
+  bool get keepPlaybackInBackground =>
+      _ownsPage && (_active || _entry.isRunning);
 
   Future<IosPipEntryResult> enter() async {
     if (!_ownsPage) return IosPipEntryResult.failed;
     if (_active) return IosPipEntryResult.entered;
-    if (_entering) return IosPipEntryResult.notReady;
+    if (_entry.isRunning) return IosPipEntryResult.notReady;
     final state = playbackState();
     if (state.textureId == null || state.sourceRect?.isEmpty != false) {
       return IosPipEntryResult.notReady;
     }
-    _entering = true;
+    return _entry.run(() => _enter(state));
+  }
+
+  Future<IosPipEntryResult> _enter(IosPipPlaybackState state) async {
     try {
       final supported = await _channel.invokeMethod<bool>('isSupported');
       if (!_ownsPage) return IosPipEntryResult.failed;
@@ -130,8 +136,6 @@ class IosPipController {
           : IosPipEntryResult.failed;
     } on MissingPluginException {
       return IosPipEntryResult.unsupported;
-    } finally {
-      _entering = false;
     }
   }
 
@@ -157,7 +161,12 @@ class IosPipController {
         return handle is int ? await suspendVideo(handle) : false;
       case 'onVideoOutputDidChange':
         final handle = args['handle'];
-        return handle is int ? await resumeVideo(handle) : false;
+        return handle is int
+            ? await resumeVideo(
+                handle,
+                waitForTexture: args['waitForTexture'] != false,
+              )
+            : false;
       case 'onModeChanged':
         if (!_ownsPage) return null;
         if (args['isInPipMode'] == true && !keepPlaybackInBackground) {
@@ -200,7 +209,6 @@ class IosPipController {
   Future<void> _dispose() async {
     _disposed = true;
     _active = false;
-    _entering = false;
     try {
       if (_bridge.shouldDisposeNative(this)) {
         // Native acknowledges only after in-flight output changes are drained.

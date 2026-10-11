@@ -39,6 +39,11 @@ abstract class _PlayerPanelController with Store {
   int seekDirection = 0;
   @observable
   bool canHidePlayerPanel = true;
+  @observable
+  bool pipEntryPending = false;
+  // iOS renders PiP in a separate native surface without resizing this page.
+  @observable
+  bool isIosPipActive = false;
 
   @action
   void reset() {
@@ -53,5 +58,7 @@ abstract class _PlayerPanelController with Store {
     volumeSeeking = false;
     seekDirection = 0;
     canHidePlayerPanel = true;
+    pipEntryPending = false;
+    isIosPipActive = false;
   }
 }

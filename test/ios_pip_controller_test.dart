@@ -19,7 +19,8 @@ void main() {
   late bool restore;
   late Future<int?> Function() handle;
   late Future<bool> Function(int handle) suspendVideo;
-  late Future<bool> Function(int handle) resumeVideo;
+  late Future<bool> Function(int handle, {required bool waitForTexture})
+  resumeVideo;
   late IosPipPlaybackState state;
 
   Future<Object?> emit(String method, [Object? args]) async {
@@ -44,7 +45,7 @@ void main() {
       actions.add('suspend:$handle');
       return true;
     };
-    resumeVideo = (handle) async {
+    resumeVideo = (handle, {required bool waitForTexture}) async {
       actions.add('resume:$handle');
       return true;
     };
@@ -68,7 +69,8 @@ void main() {
       playbackState: () => state,
       playerHandle: () => handle(),
       suspendVideo: (handle) => suspendVideo(handle),
-      resumeVideo: (handle) => resumeVideo(handle),
+      resumeVideo: (handle, {required bool waitForTexture}) =>
+          resumeVideo(handle, waitForTexture: waitForTexture),
       onPlay: () async {
         actions.add('play');
       },
@@ -92,7 +94,7 @@ void main() {
         replacementActions.add('suspend:$handle');
         return true;
       },
-      resumeVideo: (handle) async {
+      resumeVideo: (handle, {required bool waitForTexture}) async {
         replacementActions.add('resume:$handle');
         return true;
       },
@@ -408,9 +410,33 @@ void main() {
 
   test('output transition callback failures reach native code', () async {
     suspendVideo = (_) async => false;
-    resumeVideo = (_) async => false;
+    resumeVideo = (_, {required bool waitForTexture}) async => false;
     expect(await emit('onVideoOutputWillChange', {'handle': 7}), isFalse);
     expect(await emit('onVideoOutputDidChange', {'handle': 7}), isFalse);
+  });
+
+  test('forwards whether an output switch needs a new texture', () async {
+    final waits = <bool>[];
+    resumeVideo = (handle, {required bool waitForTexture}) async {
+      waits.add(waitForTexture);
+      return true;
+    };
+    expect(await emit('onVideoOutputDidChange', {'handle': 7}), isTrue);
+    expect(
+      await emit('onVideoOutputDidChange', {
+        'handle': 7,
+        'waitForTexture': false,
+      }),
+      isTrue,
+    );
+    expect(
+      await emit('onVideoOutputDidChange', {
+        'handle': 7,
+        'waitForTexture': true,
+      }),
+      isTrue,
+    );
+    expect(waits, [true, false, true]);
   });
 
   test('ignores stale native playback commands after leaving PiP', () async {

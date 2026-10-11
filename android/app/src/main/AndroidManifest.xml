@@ -1,5 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android TV support.
+         android.hardware.touchscreen required=false is the critical entry: without it
+         Android implicitly requires a touchscreen and filters the package out of TV
+         launchers. leanback stays required=false so the same APK still installs on
+         phones and tablets. The banner is the 320x180 image TV launchers show in place
+         of the square icon. -->
+    <uses-feature android:name="android.software.leanback" android:required="false"/>
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
     <application
+        android:banner="@drawable/banner"
         android:label="Kazumi"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
@@ -30,6 +39,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <!-- Makes the app appear in the Android TV / Google TV home launcher. -->
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

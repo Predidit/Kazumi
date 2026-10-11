@@ -12,6 +12,7 @@ import 'package:kazumi/pages/player/controller/player_seek_controller.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_panel_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
+import 'package:kazumi/pages/player/controller/player_quality_controller.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
 import 'package:kazumi/pages/player/controller/player_screenshot_controller.dart';
@@ -52,6 +53,7 @@ class PlayerController implements Disposable {
     videoUrl: () => videoUrl,
     isLocalPlayback: () => isLocalPlayback,
   );
+  late final PlayerQualityController quality = PlayerQualityController();
   late final PlayerSyncPlayController syncplay = PlayerSyncPlayController(
     bangumiId: () => bangumiId,
     currentEpisode: () => currentEpisode,
@@ -84,6 +86,7 @@ class PlayerController implements Disposable {
   late String referer;
   String? coverUrl;
   String videoUrl = '';
+  Map<String, String> httpHeaders = {};
   bool isLocalPlayback = false;
   Timer? hideVolumeUITimer;
   Timer? _volumeGestureSyncTimer;
@@ -170,7 +173,9 @@ class PlayerController implements Disposable {
     final initialization = _initializations.begin();
 
     videoUrl = params.videoUrl;
+    httpHeaders = params.httpHeaders;
     isLocalPlayback = params.isLocalPlayback;
+    final masterUrl = params.videoUrl;
     bangumiId = params.bangumiId;
     currentEpisode = params.episode;
     currentDanmakuEpisodeNumber = params.danmakuEpisodeNumber;
@@ -195,6 +200,18 @@ class PlayerController implements Disposable {
     } catch (_) {}
     if (initialization.isStale) {
       return false;
+    }
+
+    // 在线 HLS：在起播前解析 master playlist，按清晰度偏好选定起始 URL，
+    // 避免先打开最高码率再切换造成的二次加载。离线/非 HLS 会原样返回。
+    if (!isLocalPlayback) {
+      final startUrl = await quality.prepare(masterUrl, params.httpHeaders);
+      if (initialization.isStale) {
+        return false;
+      }
+      videoUrl = startUrl;
+    } else {
+      quality.reset();
     }
 
     final Player? player;
@@ -305,6 +322,30 @@ class PlayerController implements Disposable {
 
   void updateDanmakuSpeed() {
     danmaku.updateDanmakuSpeed(playback.playerSpeed);
+  }
+
+  /// 切换视频清晰度（HLS）。切换时保留当前播放进度，偏好会在本次观看内切集保留。
+  Future<void> changeQuality(String qualityId) async {
+    final target = quality.targetUrlFor(qualityId);
+    if (target == null || target == videoUrl) {
+      return;
+    }
+    final player = playback.mediaPlayer;
+    if (player == null) {
+      return;
+    }
+    final position = playback.playerPosition;
+    quality.applyUserSelection(qualityId);
+    videoUrl = target;
+    try {
+      await player.open(
+        Media(target, httpHeaders: httpHeaders, start: position),
+        play: true,
+      );
+    } catch (e) {
+      KazumiLogger()
+          .w('PlayerController: failed to switch video quality', error: e);
+    }
   }
 
   Future<void> setVolume(double value) async {

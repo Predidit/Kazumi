@@ -579,6 +579,32 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         onSelected: widget.setPlaybackSpeed,
       );
 
+  List<Widget> get _qualityItems => [
+        for (final option in playerController.quality.qualities)
+          KazumiMenuItem(
+            label: option.label,
+            selected: option.id == playerController.quality.currentQualityId,
+            onPressed: () {
+              playerController.changeQuality(option.id);
+            },
+          ),
+      ];
+
+  /// 清晰度菜单按钮（宽屏底部控件）；无多清晰度时隐藏。
+  Widget get _qualityMenuButton => Observer(
+        builder: (context) {
+          final quality = playerController.quality;
+          if (!quality.isAvailable) {
+            return const SizedBox.shrink();
+          }
+          return _menuButton(
+            child: Text(quality.currentLabel,
+                style: const TextStyle(color: Colors.white)),
+            items: _qualityItems,
+          );
+        },
+      );
+
   List<Widget> get _superResolutionItems => _choiceItems(
         SuperResolutionMode.values,
         label: (value) => value.label,
@@ -647,6 +673,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           ] else
             const Spacer(),
         ],
+        _qualityMenuButton,
         _menuButton(
           child: const Text('超分辨率', style: TextStyle(color: Colors.white)),
           items: _superResolutionItems,
@@ -846,6 +873,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 },
                 menuChildren: [
                   if (compact) ...[
+                    Observer(
+                      builder: (context) {
+                        final quality = playerController.quality;
+                        if (!quality.isAvailable) {
+                          return const SizedBox.shrink();
+                        }
+                        return SubmenuButton(
+                          menuChildren: _qualityItems,
+                          child: Text('清晰度（${quality.currentLabel}）'),
+                        );
+                      },
+                    ),
                     SubmenuButton(
                         menuChildren: _aspectRatioItems,
                         child: const Text('视频比例')),

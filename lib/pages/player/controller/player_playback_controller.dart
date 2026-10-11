@@ -456,6 +456,13 @@ abstract class _PlayerPlaybackController with Store {
         }
       }
 
+      // 默认（自动）始终选择网站提供的最高清晰度，即 HLS master 中码率最高的 variant；
+      // 对非 HLS 源无副作用。用户手动选择某清晰度时打开的是子 playlist，不受此选项影响。
+      await pp.setProperty('hls-bitrate', 'max');
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(candidate);
+      }
+
       await player.open(
         Media(videoUrl(),
             start: Duration(seconds: offset), httpHeaders: httpHeaders),

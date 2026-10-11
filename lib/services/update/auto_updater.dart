@@ -31,7 +31,6 @@ class UpdateInfo {
   final String version;
   final String description;
   final String downloadUrl;
-  final String? fallbackDownloadUrl;
   final String releaseNotes;
   final String publishedAt;
   final InstallationType? installationType;
@@ -42,7 +41,6 @@ class UpdateInfo {
     required this.version,
     required this.description,
     required this.downloadUrl,
-    this.fallbackDownloadUrl,
     required this.releaseNotes,
     required this.publishedAt,
     this.installationType,
@@ -70,10 +68,6 @@ Map<String, dynamic>? getUpdateAssetForType(
   } catch (_) {
     return null;
   }
-}
-
-String getUpdateDownloadUrlFromAsset(Map<String, dynamic>? asset) {
-  return getUpdateDownloadUrlsFromAsset(asset).firstOrNull ?? '';
 }
 
 String getUpdateFileHashFromAsset(Map<String, dynamic> asset) {
@@ -371,10 +365,10 @@ class AutoUpdater {
       }
 
       final asset = getUpdateAssetForType(updateInfo.assets, selectedType);
-      final downloadUrls = getUpdateDownloadUrlsFromAsset(asset,
+      final downloadUrl = getUpdateDownloadUrlFromAsset(asset,
           source: UpdateDownloadSource.fromSetting(
               GStorage.getSetting(SettingsKeys.updateDownloadSource)));
-      if (asset == null || downloadUrls.isEmpty) {
+      if (asset == null || downloadUrl.isEmpty) {
         KazumiDialog.showToast(
             message:
                 '没有找到 ${_getInstallationTypeDescription(selectedType)} 的下载链接');
@@ -385,8 +379,7 @@ class AutoUpdater {
       final downloadInfo = UpdateInfo(
         version: updateInfo.version,
         description: updateInfo.description,
-        downloadUrl: downloadUrls.first,
-        fallbackDownloadUrl: downloadUrls.length > 1 ? downloadUrls[1] : null,
+        downloadUrl: downloadUrl,
         releaseNotes: updateInfo.releaseNotes,
         publishedAt: updateInfo.publishedAt,
         installationType: selectedType,
@@ -408,11 +401,8 @@ class AutoUpdater {
       _downloadProgress.value = 0;
       final cancelToken = CancelToken();
       final downloadPath = await task.loading(
-        action: () => _downloadFile([
-          updateInfo.downloadUrl,
-          if (updateInfo.fallbackDownloadUrl != null)
-            updateInfo.fallbackDownloadUrl!,
-        ], updateInfo.version, expectedHash, cancelToken),
+        action: () => _downloadFile(updateInfo.downloadUrl, updateInfo.version,
+            expectedHash, cancelToken),
         onCancel: cancelToken.cancel,
         builder: (context) {
           return AlertDialog(
@@ -578,29 +568,22 @@ class AutoUpdater {
   }
 
   Future<String> _downloadFile(
-    List<String> urls,
+    String url,
     String version,
     String expectedHash,
     CancelToken cancelToken,
   ) async {
     if (cancelToken.isCancelled) throw cancelToken.cancelError!;
-    final fileName = _getFileNameFromUrl(urls.first, version);
+    final fileName = _getFileNameFromUrl(url, version);
     final tempDir = await getTemporaryDirectory();
     if (cancelToken.isCancelled) throw cancelToken.cancelError!;
     final filePath = '${tempDir.path}/$fileName';
     return UpdateDownloader(
-      download:
-          (url, path, {required cancelToken, required onReceiveProgress}) =>
-              _downloadClient.download(
-                url,
-                path,
-                cancelToken: cancelToken,
-                onReceiveProgress: onReceiveProgress,
-              ),
+      download: _downloadClient.download,
       logFailure: (message, error, stackTrace) =>
           KazumiLogger().w(message, error: error),
     ).download(
-      urls: urls,
+      url: url,
       filePath: filePath,
       expectedHash: expectedHash,
       cancelToken: cancelToken,

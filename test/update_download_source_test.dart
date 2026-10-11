@@ -33,7 +33,7 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  test('default and unrecognized source preserve mirror fallback', () {
+  test('default and unrecognized source select mirror', () {
     expect(SettingsKeys.updateDownloadSource.defaultValue, 'mirror');
     expect(UpdateDownloadSource.fromSetting(''), UpdateDownloadSource.mirror);
     expect(
@@ -44,7 +44,7 @@ void main() {
       SettingsKeys.byGroup(SettingGroup.update),
       contains(SettingsKeys.updateDownloadSource),
     );
-    expect(getUpdateDownloadUrlsFromAsset(asset), [mirror, github]);
+    expect(getUpdateDownloadUrlFromAsset(asset), mirror);
   });
 
   test('GitHub selection skips the mirror for the same asset', () async {
@@ -52,33 +52,27 @@ void main() {
     final source = UpdateDownloadSource.fromSetting(
       GStorage.getSetting(SettingsKeys.updateDownloadSource),
     );
-    expect(getUpdateDownloadUrlsFromAsset(asset, source: source), [github]);
+    expect(getUpdateDownloadUrlFromAsset(asset, source: source), github);
     expect(
-      getUpdateDownloadUrlsFromAsset(const {
+      getUpdateDownloadUrlFromAsset(const {
         'mirror_download_url': mirror,
       }, source: source),
       isEmpty,
     );
   });
 
-  test(
-    'mirror selection keeps official fallback when mirror is unavailable',
-    () {
-      expect(
-        getUpdateDownloadUrlsFromAsset(
-          asset,
-          source: UpdateDownloadSource.mirror,
-        ),
-        [mirror, github],
-      );
-      expect(
-        getUpdateDownloadUrlsFromAsset(const {
-          'browser_download_url': github,
-        }, source: UpdateDownloadSource.mirror),
-        [github],
-      );
-    },
-  );
+  test('mirror selection never uses official when mirror is unavailable', () {
+    expect(
+      getUpdateDownloadUrlFromAsset(asset, source: UpdateDownloadSource.mirror),
+      mirror,
+    );
+    expect(
+      getUpdateDownloadUrlFromAsset(const {
+        'browser_download_url': github,
+      }, source: UpdateDownloadSource.mirror),
+      isEmpty,
+    );
+  });
 
   Future<void> mountPage(WidgetTester tester) async {
     await tester.pumpWidget(
@@ -103,7 +97,7 @@ void main() {
       });
       await mountPage(tester);
       expect(find.text('镜像源'), findsOneWidget);
-      expect(find.text('优先使用镜像，失败后自动回退 GitHub'), findsOneWidget);
+      expect(find.text('从镜像源下载应用更新'), findsOneWidget);
 
       await tester.tap(find.text('更新下载源'));
       await tester.pumpAndSettle();
@@ -127,7 +121,7 @@ void main() {
       });
       await tester.pumpAndSettle();
       expect(GStorage.getSetting(SettingsKeys.updateDownloadSource), 'mirror');
-      expect(find.text('优先使用镜像，失败后自动回退 GitHub'), findsOneWidget);
+      expect(find.text('从镜像源下载应用更新'), findsOneWidget);
     },
     variant: TargetPlatformVariant.only(TargetPlatform.windows),
   );

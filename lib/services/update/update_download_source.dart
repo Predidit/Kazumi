@@ -12,6 +12,6 @@ enum UpdateDownloadSource {
 
   String get description => switch (this) {
     github => '直接从 GitHub 下载应用更新',
-    mirror => '优先使用镜像，失败后自动回退 GitHub',
+    mirror => '从镜像源下载应用更新',
   };
 }

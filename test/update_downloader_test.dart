@@ -11,7 +11,7 @@ import 'package:kazumi/services/update/update_downloader.dart';
 typedef _Download =
     Future<void> Function(
       String url,
-      String savePath, {
+      String path, {
       required CancelToken cancelToken,
       required ProgressCallback onReceiveProgress,
     });
@@ -19,639 +19,403 @@ typedef _Download =
 const _mirror = 'https://mirror.example/Kazumi_windows.zip';
 const _official = 'https://github.com/example/releases/Kazumi_windows.zip';
 final _payload = utf8.encode('verified Kazumi Windows release');
-final _expectedHash = sha256.convert(_payload).toString();
+final _hash = sha256.convert(_payload).toString();
 
 void main() {
   late Directory directory;
-  late String filePath;
+  late String path;
 
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('kazumi_update_test_');
-    filePath = '${directory.path}${Platform.pathSeparator}Kazumi_windows.zip';
+    path = '${directory.path}/Kazumi_windows.zip';
   });
 
   tearDown(() async {
-    if (await directory.exists()) await directory.delete(recursive: true);
+    await directory.delete(recursive: true);
   });
 
-  test('asset sources prefer mirror and trim and deduplicate URLs', () {
-    expect(getUpdateDownloadUrlsFromAsset(null), isEmpty);
-    expect(getUpdateDownloadUrlsFromAsset({}), isEmpty);
-    expect(
-      getUpdateDownloadUrlsFromAsset({
-        'mirror_download_url': '  $_mirror  ',
-        'browser_download_url': ' $_official ',
-      }),
-      [_mirror, _official],
-    );
-    expect(
-      getUpdateDownloadUrlsFromAsset({
-        'mirror_download_url': '  $_official ',
-        'browser_download_url': _official,
-      }),
-      [_official],
-    );
-    expect(
-      getUpdateDownloadUrlsFromAsset({
-        'mirror_download_url': '  ',
-        'browser_download_url': _official,
-      }),
-      [_official],
-    );
-  });
+  for (final source in [_mirror, _official]) {
+    test('selected source $source succeeds in one verified download', () async {
+      final harness = _Harness((
+        url,
+        partial, {
+        required cancelToken,
+        required onReceiveProgress,
+      }) async {
+        await File(partial).writeAsBytes(_payload);
+        onReceiveProgress(_payload.length, _payload.length);
+      });
+      final progress = <(int, int)>[];
+      expect(await harness.run(path, url: source, progress: progress), path);
+      expect(harness.urls, [source]);
+      expect(harness.paths.single, isNot(path));
+      expect(await File(path).readAsBytes(), _payload);
+      expect(progress, contains((_payload.length, _payload.length)));
+      expect(await directory.list().length, 1);
+      expect(harness.errors, isEmpty);
+    });
 
-  test('successful mirror is verified without requesting official', () async {
+    test('selected source $source failure never changes source', () async {
+      final failure = _failure(NetworkExceptionType.unknown);
+      final harness = _Harness((
+        url,
+        partial, {
+        required cancelToken,
+        required onReceiveProgress,
+      }) async {
+        await File(partial).writeAsString('partial download');
+        throw failure;
+      });
+      await expectLater(harness.run(path, url: source), throwsA(same(failure)));
+      expect(harness.urls, [source]);
+      expect(harness.errors, [same(failure)]);
+      expect(harness.messages.single, contains('SocketException'));
+      expect(harness.messages.single, contains('original socket failure'));
+      expect(await File(path).exists(), isFalse);
+      expect(await directory.list().length, 0);
+    });
+  }
+
+  test('receive timeout preserves original exception without retry', () async {
+    final failure = _failure(NetworkExceptionType.receiveTimeout);
     final harness = _Harness((
       url,
-      path, {
+      partial, {
       required cancelToken,
       required onReceiveProgress,
     }) async {
-      await File(path).writeAsBytes(_payload);
-      onReceiveProgress(_payload.length, _payload.length);
+      throw failure;
     });
-    final progress = <(int, int)>[];
-
-    final result = await harness.run(filePath, progress: progress);
-
-    expect(result, filePath);
+    await expectLater(harness.run(path), throwsA(same(failure)));
     expect(harness.urls, [_mirror]);
-    expect(harness.paths.single, isNot(filePath));
-    expect(await File(result).readAsBytes(), _payload);
-    expect(progress, contains((_payload.length, _payload.length)));
-    expect(harness.errors, isEmpty);
+    expect(harness.errors.single, same(failure));
   });
 
-  for (final type in [
-    NetworkExceptionType.unknown,
-    NetworkExceptionType.receiveTimeout,
+  test('user cancellation during transfer stops the only request', () async {
+    final token = CancelToken();
+    final harness = _Harness((
+      url,
+      partial, {
+      required cancelToken,
+      required onReceiveProgress,
+    }) async {
+      token.cancel('user cancelled');
+      throw await cancelToken.whenCancel;
+    });
+    await expectLater(harness.run(path, token: token), throwsA(_cancelled));
+    expect(harness.urls, [_mirror]);
+    expect(await File(path).exists(), isFalse);
+  });
+
+  test('pre-cancellation prevents a request', () async {
+    final token = CancelToken()..cancel('cancelled before start');
+    final harness = _Harness(_writeDownload);
+    await expectLater(harness.run(path, token: token), throwsA(_cancelled));
+    expect(harness.urls, isEmpty);
+  });
+
+  test('cancelling during downloaded SHA256 does not publish', () async {
+    final token = CancelToken();
+    final harness = _Harness(
+      _writeDownload,
+      hashFile: (file) async {
+        token.cancel('cancelled during verification');
+        return _hash;
+      },
+    );
+    await expectLater(harness.run(path, token: token), throwsA(_cancelled));
+    expect(harness.urls, [_mirror]);
+    expect(await File(path).exists(), isFalse);
+  });
+
+  test('integrity mismatch is rejected without another source', () async {
+    final harness = _Harness((
+      url,
+      partial, {
+      required cancelToken,
+      required onReceiveProgress,
+    }) async {
+      await File(partial).writeAsString('corrupt release');
+    });
+    await expectLater(
+      harness.run(path),
+      throwsA(isA<UpdateIntegrityException>()),
+    );
+    expect(harness.urls, [_mirror]);
+    expect(await File(path).exists(), isFalse);
+  });
+
+  test('verified cache skips the network', () async {
+    await File(path).writeAsBytes(_payload);
+    final harness = _Harness(_writeDownload);
+    expect(await harness.run(path), path);
+    expect(harness.urls, isEmpty);
+  });
+
+  test(
+    'unreadable cache logs original error and downloads a replacement',
+    () async {
+      await File(path).writeAsString('old cache');
+      final failure = FileSystemException('cache read failed', path);
+      final harness = _Harness(
+        _writeDownload,
+        hashFile: (file) async {
+          if (file.path == path) throw failure;
+          return sha256.convert(await file.readAsBytes()).toString();
+        },
+      );
+      expect(await harness.run(path), path);
+      expect(harness.urls, [_mirror]);
+      expect(harness.errors.first, same(failure));
+      expect(harness.messages.first, contains('stage=cache-verify'));
+      expect(await File(path).readAsBytes(), _payload);
+    },
+  );
+
+  test('cache hash mismatch downloads and verifies a replacement', () async {
+    await File(path).writeAsString('outdated cached bytes');
+    final harness = _Harness(_writeDownload);
+    expect(await harness.run(path), path);
+    expect(harness.urls, [_mirror]);
+    expect(await File(path).readAsBytes(), _payload);
+  });
+
+  test('diagnostic descriptions retain original network and Dio stacks', () {
+    final originalStack = StackTrace.fromString('original stack');
+    final caughtStack = StackTrace.fromString('replacement caught stack');
+    final dio = DioException(
+      requestOptions: RequestOptions(path: _mirror),
+      stackTrace: originalStack,
+    );
+    final network = NetworkException(
+      type: NetworkExceptionType.unknown,
+      message: 'unknown',
+      rawError: dio,
+      stackTrace: originalStack,
+    );
+    for (final error in [dio, network]) {
+      final description = describeUpdateDownloadError(error, caughtStack);
+      expect(description, contains('original stack'));
+      expect(description, isNot(contains('replacement caught stack')));
+    }
+  });
+
+  test(
+    'cache deletion failure is logged and prevents network access',
+    () async {
+      await File(path).writeAsString('old cache');
+      final failure = FileSystemException('cache read failed', path);
+      final harness = _Harness(
+        _writeDownload,
+        hashFile: (file) async {
+          await file.delete();
+          await Directory(file.path).create();
+          await File('${file.path}/retained').writeAsString('nonempty');
+          throw failure;
+        },
+      );
+      await expectLater(harness.run(path), throwsA(isA<FileSystemException>()));
+      expect(harness.urls, isEmpty);
+      expect(harness.errors.first, same(failure));
+      expect(harness.messages.last, contains('stage=cache-delete'));
+      expect(await File('$path/retained').readAsString(), 'nonempty');
+    },
+  );
+
+  test(
+    'cancellation during cache verification preserves cached bytes',
+    () async {
+      await File(path).writeAsBytes(_payload);
+      final token = CancelToken();
+      final harness = _Harness(
+        _writeDownload,
+        hashFile: (file) async {
+          token.cancel('cancel cache verification');
+          throw FileSystemException('interrupted hash read', file.path);
+        },
+      );
+      await expectLater(harness.run(path, token: token), throwsA(_cancelled));
+      expect(harness.urls, isEmpty);
+      expect(await File(path).readAsBytes(), _payload);
+    },
+  );
+
+  test('downloaded hash read error is preserved and cannot publish', () async {
+    final failure = FileSystemException('download read failed', path);
+    final harness = _Harness(
+      _writeDownload,
+      hashFile: (_) async => throw failure,
+    );
+    await expectLater(harness.run(path), throwsA(same(failure)));
+    expect(harness.urls, [_mirror]);
+    expect(harness.errors.single, same(failure));
+    expect(await File(path).exists(), isFalse);
+  });
+
+  test('nested file write failure is retained in diagnostic logs', () async {
+    final failure = NetworkException(
+      type: NetworkExceptionType.unknown,
+      message: 'unknown download failure',
+      rawError: DioException(
+        requestOptions: RequestOptions(path: _mirror),
+        error: FileSystemException(
+          'write failed',
+          path,
+          const OSError('Access is denied', 5),
+        ),
+      ),
+    );
+    final harness = _Harness((
+      url,
+      partial, {
+      required cancelToken,
+      required onReceiveProgress,
+    }) async {
+      throw failure;
+    });
+    await expectLater(harness.run(path), throwsA(same(failure)));
+    expect(harness.urls, [_mirror]);
+    expect(harness.messages.single, contains('FileSystemException'));
+    expect(harness.messages.single, contains('Access is denied'));
+  });
+
+  test('empty URL and missing hash do not start network requests', () async {
+    for (final inputs in [('', _hash), (_mirror, '')]) {
+      final harness = _Harness(_writeDownload);
+      await expectLater(
+        harness.run(path, url: inputs.$1, hash: inputs.$2),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(harness.urls, isEmpty);
+    }
+  });
+
+  for (final scenario in [
+    (true, 5, '无法写入更新文件，请检查临时目录权限'),
+    (true, 112, '磁盘空间不足'),
+    (true, 39, '磁盘空间不足'),
+    (false, 1, '无法写入更新文件，请检查临时目录权限'),
+    (false, 13, '无法写入更新文件，请检查临时目录权限'),
+    (false, 28, '磁盘空间不足'),
+    (true, 13, '更新文件读写失败，请查看错误详情'),
+    (true, 28, '更新文件读写失败，请查看错误详情'),
+    (false, 5, '更新文件读写失败，请查看错误详情'),
   ]) {
     test(
-      '$type mirror failure falls back to verified official asset',
-      () async {
-        final failure = _networkFailure(type, 'mirror disconnected');
-        final harness = _Harness((
-          url,
-          path, {
-          required cancelToken,
-          required onReceiveProgress,
-        }) async {
-          if (url == _mirror) {
-            await File(path).writeAsString('partial mirror download');
-            throw failure;
-          }
-          await File(path).writeAsBytes(_payload);
-        });
-
-        expect(await harness.run(filePath), filePath);
-        expect(harness.urls, [_mirror, _official]);
-        expect(harness.paths.toSet(), hasLength(2));
-        expect(harness.paths, everyElement(isNot(filePath)));
-        expect(harness.errors, [same(failure)]);
-        expect(await File(filePath).readAsBytes(), _payload);
+      'OS code ${scenario.$2} is interpreted for Windows=${scenario.$1}',
+      () {
+        final error = FileSystemException(
+          'I/O failure',
+          path,
+          OSError('I/O failure', scenario.$2),
+        );
+        expect(
+          getUpdateDownloadErrorMessage(error, isWindows: scenario.$1),
+          scenario.$3,
+        );
       },
     );
   }
 
-  test(
-    'both sources fail once and preserve last error and original causes',
-    () async {
-      final mirrorFailure = _networkFailure(
-        NetworkExceptionType.unknown,
-        'original mirror transport error',
-      );
-      final officialFailure = _networkFailure(
-        NetworkExceptionType.connectionError,
-        'original official socket error',
-      );
-      final harness = _Harness((
-        url,
-        path, {
-        required cancelToken,
-        required onReceiveProgress,
-      }) async {
-        throw url == _mirror ? mirrorFailure : officialFailure;
-      });
-
-      await expectLater(harness.run(filePath), throwsA(same(officialFailure)));
-
-      expect(harness.urls, [_mirror, _official]);
-      expect(harness.errors, [same(mirrorFailure), same(officialFailure)]);
-      expect(
-        (harness.errors[0] as NetworkException).rawError,
-        same(mirrorFailure.rawError),
-      );
-      expect(
-        (harness.errors[1] as NetworkException).rawError,
-        same(officialFailure.rawError),
-      );
-      expect(harness.messages[0], contains('original mirror transport error'));
-      expect(harness.messages[1], contains('original official socket error'));
-      expect(harness.messages, everyElement(contains('SocketException')));
-      expect(await File(filePath).exists(), isFalse);
-    },
-  );
-
-  test('cancelling an active mirror never requests official', () async {
-    final userToken = CancelToken();
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      userToken.cancel('user cancelled download');
-      throw await cancelToken.whenCancel;
-    });
-
-    await expectLater(
-      harness.run(filePath, token: userToken),
-      throwsA(_isCancellation),
-    );
-    expect(harness.urls, [_mirror]);
-    expect(await File(filePath).exists(), isFalse);
-  });
-
-  test('a pre-cancelled token makes no network request', () async {
-    final token = CancelToken()..cancel('cancelled before start');
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      fail('pre-cancelled download must not start');
-    });
-
-    await expectLater(
-      harness.run(filePath, token: token),
-      throwsA(_isCancellation),
-    );
-    expect(harness.urls, isEmpty);
-  });
-
-  test(
-    'cancellation at failure boundary suppresses official fallback',
-    () async {
-      final token = CancelToken();
-      final failure = _networkFailure(
-        NetworkExceptionType.receiveTimeout,
-        'mirror timed out',
-      );
-      final harness = _Harness((
-        url,
-        path, {
-        required cancelToken,
-        required onReceiveProgress,
-      }) async {
-        token.cancel('cancel as mirror fails');
-        throw failure;
-      });
-
-      await expectLater(
-        harness.run(filePath, token: token),
-        throwsA(_isCancellation),
-      );
-      expect(harness.urls, [_mirror]);
-      expect(await File(filePath).exists(), isFalse);
-    },
-  );
-
-  test(
-    'cancellation during SHA256 verification cannot publish a file',
-    () async {
-      final token = CancelToken();
-      final harness = _Harness(
-        (url, path, {required cancelToken, required onReceiveProgress}) async {
-          await File(path).writeAsBytes(_payload);
-        },
-        hashFile: (file) async {
-          final bytes = await file.readAsBytes();
-          token.cancel('cancelled during integrity check');
-          return sha256.convert(bytes).toString();
-        },
-      );
-
-      await expectLater(
-        harness.run(filePath, token: token),
-        throwsA(_isCancellation),
-      );
-      expect(harness.urls, [_mirror]);
-      expect(await File(filePath).exists(), isFalse);
-    },
-  );
-
-  test('a network cancellation exception never triggers fallback', () async {
-    final failure = _networkFailure(
-      NetworkExceptionType.cancel,
-      'transport cancellation',
-    );
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      throw failure;
-    });
-
-    await expectLater(harness.run(filePath), throwsA(same(failure)));
-    expect(harness.urls, [_mirror]);
-  });
-
-  test(
-    'nested filesystem failure is not retried as an unknown network error',
-    () async {
-      final cause = FileSystemException(
-        'write denied',
-        filePath,
-        const OSError('Access is denied', 5),
-      );
-      final failure = NetworkException(
-        type: NetworkExceptionType.unknown,
-        message: 'unknown download error',
-        rawError: DioException(
-          requestOptions: RequestOptions(path: _mirror),
-          error: cause,
-        ),
-      );
-      final harness = _Harness((
-        url,
-        path, {
-        required cancelToken,
-        required onReceiveProgress,
-      }) async {
-        throw failure;
-      });
-
-      await expectLater(harness.run(filePath), throwsA(same(failure)));
-      expect(harness.urls, [_mirror]);
-      expect(harness.errors, [same(failure)]);
-      expect(harness.messages.single, contains('FileSystemException'));
-      expect(harness.messages.single, contains('Access is denied'));
-      expect(await File(filePath).exists(), isFalse);
-    },
-  );
-
-  test('direct filesystem failure is not retried', () async {
-    final failure = FileSystemException('disk full', filePath);
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      throw failure;
-    });
-
-    await expectLater(harness.run(filePath), throwsA(same(failure)));
-    expect(harness.urls, [_mirror]);
-  });
-
-  test(
-    'mirror integrity mismatch falls back to verified official bytes',
-    () async {
-      final harness = _Harness((
-        url,
-        path, {
-        required cancelToken,
-        required onReceiveProgress,
-      }) async {
-        await File(path).writeAsBytes(
-          url == _mirror ? utf8.encode('corrupt mirror bytes') : _payload,
-        );
-      });
-
-      expect(await harness.run(filePath), filePath);
-      expect(harness.urls, [_mirror, _official]);
-      expect(harness.errors, hasLength(1));
-      expect(await File(filePath).readAsBytes(), _payload);
-    },
-  );
-
-  test(
-    'integrity mismatch from both sources never publishes the file',
-    () async {
-      final harness = _Harness((
-        url,
-        path, {
-        required cancelToken,
-        required onReceiveProgress,
-      }) async {
-        await File(path).writeAsString('corrupt download from $url');
-      });
-
-      await expectLater(harness.run(filePath), throwsA(isA<Exception>()));
-      expect(harness.urls, [_mirror, _official]);
-      expect(harness.errors, hasLength(2));
-      expect(await File(filePath).exists(), isFalse);
-    },
-  );
-
-  test('verified cached file skips both network sources', () async {
-    await File(filePath).writeAsBytes(_payload);
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      fail('verified cached file must not be downloaded');
-    });
-
-    expect(await harness.run(filePath), filePath);
-    expect(harness.urls, isEmpty);
-    expect(await File(filePath).readAsBytes(), _payload);
-  });
-
-  test('total attempt timeout cancels only mirror and falls back', () async {
-    CancelToken? mirrorToken;
-    final token = CancelToken();
-    final mirrorCancelled = Completer<void>();
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      if (url == _mirror) {
-        mirrorToken = cancelToken;
-        final cancellation = await cancelToken.whenCancel;
-        mirrorCancelled.complete();
-        throw cancellation;
-      }
-      expect(mirrorToken!.isCancelled, isTrue);
-      expect(token.isCancelled, isFalse);
-      await File(path).writeAsBytes(_payload);
-    }, attemptTimeout: const Duration(milliseconds: 100));
-
-    expect(await harness.run(filePath, token: token), filePath);
-    await mirrorCancelled.future;
-    expect(harness.urls, [_mirror, _official]);
-    expect(token.isCancelled, isFalse);
-    expect(harness.errors, hasLength(1));
-    expect(await File(filePath).readAsBytes(), _payload);
-  });
-
-  test('fallback resets progress before reporting official progress', () async {
-    final progress = <(int, int)>[];
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      if (url == _mirror) {
-        onReceiveProgress(75, 100);
-        throw _networkFailure(NetworkExceptionType.unknown, 'mirror stopped');
-      }
-      onReceiveProgress(10, 100);
-      await File(path).writeAsBytes(_payload);
-      onReceiveProgress(100, 100);
-    });
-
-    await harness.run(filePath, progress: progress);
-
-    final mirrorProgress = progress.indexOf((75, 100));
-    final officialProgress = progress.indexOf((10, 100));
-    expect(mirrorProgress, greaterThanOrEqualTo(0));
-    expect(officialProgress, greaterThan(mirrorProgress));
-    expect(
-      progress.sublist(mirrorProgress + 1, officialProgress),
-      contains((0, 0)),
-    );
-  });
-
-  for (final code in [5, 13, 112, 28, 999]) {
-    test('filesystem OS error $code has an accurate download message', () {
-      final failure = NetworkException(
-        type: NetworkExceptionType.unknown,
-        message: 'unknown',
-        rawError: DioException(
-          requestOptions: RequestOptions(path: _mirror),
-          error: FileSystemException(
-            'write failed',
-            filePath,
-            OSError('OS write error', code),
-          ),
-        ),
-      );
-      final expectedMessage = switch (code) {
-        5 || 13 => '无法写入更新文件，请检查临时目录权限',
-        112 || 28 => '磁盘空间不足',
-        _ => '更新文件读写失败，请查看错误详情',
-      };
-      expect(getUpdateDownloadErrorMessage(failure), expectedMessage);
-    });
-  }
-
-  test(
-    'unknown without an identified cause is not called a network failure',
-    () {
-      const failure = NetworkException(
-        type: NetworkExceptionType.unknown,
-        message: 'unidentified failure',
-      );
-      expect(getUpdateDownloadErrorMessage(failure), '下载失败，请查看错误详情');
-    },
-  );
-
-  test('unknown with a socket cause is identified as network failure', () {
+  test('unknown, socket, integrity and timeout retain distinct messages', () {
     expect(
       getUpdateDownloadErrorMessage(
-        _networkFailure(NetworkExceptionType.unknown, 'connection reset'),
+        const NetworkException(
+          type: NetworkExceptionType.unknown,
+          message: 'unknown',
+        ),
       ),
+      '下载失败，请查看错误详情',
+    );
+    expect(
+      getUpdateDownloadErrorMessage(_failure(NetworkExceptionType.unknown)),
       '网络连接错误',
     );
-  });
-
-  test('integrity and timeout messages explain their distinct failures', () {
     expect(
-      getUpdateDownloadErrorMessage(
-        const UpdateIntegrityException('expected hash', 'actual hash'),
-      ),
+      getUpdateDownloadErrorMessage(const UpdateIntegrityException('a', 'b')),
       '文件完整性验证失败，可能是网络传输错误',
     );
     expect(
       getUpdateDownloadErrorMessage(
-        _networkFailure(
-          NetworkExceptionType.receiveTimeout,
-          'receive timed out',
-        ),
+        _failure(NetworkExceptionType.receiveTimeout),
       ),
       '下载超时，请稍后重试',
     );
   });
 
-  test('empty source list fails before requesting a download', () async {
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      fail('empty sources cannot request a download');
-    });
-
-    await expectLater(
-      harness.run(filePath, sourceUrls: []),
-      throwsA(isA<ArgumentError>()),
-    );
-    expect(harness.urls, isEmpty);
-    expect(await File(filePath).exists(), isFalse);
-  });
-
-  test('an official-only asset is downloaded and verified directly', () async {
-    expect(
-      getUpdateDownloadUrlsFromAsset({'browser_download_url': _official}),
-      [_official],
-    );
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      await File(path).writeAsBytes(_payload);
-    });
-
-    expect(await harness.run(filePath, sourceUrls: [_official]), filePath);
-    expect(harness.urls, [_official]);
-    expect(await File(filePath).readAsBytes(), _payload);
-  });
-
-  test('source list is deduplicated and bounded to two attempts', () async {
-    final failure = _networkFailure(
-      NetworkExceptionType.connectionError,
-      'all sources unavailable',
-    );
-    final harness = _Harness((
-      url,
-      path, {
-      required cancelToken,
-      required onReceiveProgress,
-    }) async {
-      throw failure;
-    });
-
-    await expectLater(
-      harness.run(
-        filePath,
-        sourceUrls: [
-          ' $_mirror ',
-          _mirror,
-          _official,
-          'https://third.example/file.zip',
-        ],
-      ),
-      throwsA(same(failure)),
-    );
-    expect(harness.urls, [_mirror, _official]);
-    expect(harness.errors, hasLength(2));
-  });
-
-  for (final invalidHash in ['', 'sha256:not-a-valid-hash']) {
-    test('invalid SHA256 "$invalidHash" fails without network', () async {
+  testWidgets('continuing progress can download beyond 120 seconds', (
+    tester,
+  ) async {
+    final files = <String, List<int>>{};
+    await IOOverrides.runZoned(() async {
+      final token = CancelToken();
+      final progress = <(int, int)>[];
       final harness = _Harness((
         url,
-        path, {
+        partial, {
         required cancelToken,
         required onReceiveProgress,
-      }) async {
-        fail('download without valid SHA256 must not start');
-      });
-
-      await expectLater(
-        harness.run(filePath, expectedHash: invalidHash),
-        throwsA(isA<ArgumentError>()),
-      );
-      expect(harness.urls, isEmpty);
-      expect(await File(filePath).exists(), isFalse);
-    });
-  }
-
-  test(
-    'failure reading downloaded bytes for SHA256 does not change source',
-    () async {
-      final failure = FileSystemException(
-        'cannot read download',
-        filePath,
-        const OSError('Access is denied', 5),
-      );
-      final harness = _Harness((
-        url,
-        path, {
-        required cancelToken,
-        required onReceiveProgress,
-      }) async {
-        await File(path).writeAsBytes(_payload);
-      }, hashFile: (_) async => throw failure);
-
-      await expectLater(harness.run(filePath), throwsA(same(failure)));
+      }) {
+        final done = Completer<void>();
+        Timer.periodic(const Duration(seconds: 1), (timer) {
+          onReceiveProgress(timer.tick, 130);
+          if (timer.tick == 130) {
+            timer.cancel();
+            files[partial] = _payload;
+            done.complete();
+          }
+        });
+        return done.future;
+      }, hashFile: (_) async => _hash);
+      String? result;
+      final pending = harness
+          .run(path, token: token, progress: progress)
+          .then((value) => result = value);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 121));
+      expect(result, isNull);
+      expect(token.isCancelled, isFalse);
+      expect(progress, contains((121, 130)));
+      await tester.pump(const Duration(seconds: 9));
+      await pending;
+      expect(result, path);
+      expect(files[path], _payload);
       expect(harness.urls, [_mirror]);
-      expect(harness.errors, [same(failure)]);
-      expect(harness.messages.single, contains('stage=verify'));
-      expect(await File(filePath).exists(), isFalse);
-    },
-  );
-
-  test(
-    'failure reading cached SHA256 preserves cache and makes no request',
-    () async {
-      await File(filePath).writeAsBytes(_payload);
-      final failure = FileSystemException('cache read denied', filePath);
-      final harness = _Harness((
-        url,
-        path, {
-        required cancelToken,
-        required onReceiveProgress,
-      }) async {
-        fail('unreadable cache must not trigger a network fallback');
-      }, hashFile: (_) async => throw failure);
-
-      await expectLater(harness.run(filePath), throwsA(same(failure)));
-      expect(harness.urls, isEmpty);
-      expect(harness.messages.single, contains('stage=cache-verify'));
-      expect(await File(filePath).readAsBytes(), _payload);
-    },
-  );
+      expect(harness.errors, isEmpty);
+    }, createFile: (name) => _MemoryFile(name, files));
+  });
 }
 
-final _isCancellation = predicate<Object>(
+Future<void> _writeDownload(
+  String url,
+  String path, {
+  required CancelToken cancelToken,
+  required ProgressCallback onReceiveProgress,
+}) async {
+  await File(path).writeAsBytes(_payload);
+}
+
+final _cancelled = predicate<Object>(
   (error) =>
       error is DioException && error.type == DioExceptionType.cancel ||
       error is NetworkException && error.type == NetworkExceptionType.cancel,
 );
 
-NetworkException _networkFailure(NetworkExceptionType type, String message) {
-  final dioType = switch (type) {
-    NetworkExceptionType.cancel => DioExceptionType.cancel,
-    NetworkExceptionType.receiveTimeout => DioExceptionType.receiveTimeout,
-    NetworkExceptionType.connectionError => DioExceptionType.connectionError,
-    _ => DioExceptionType.unknown,
-  };
-  return NetworkException(
-    type: type,
-    message: message,
-    rawError: DioException(
-      requestOptions: RequestOptions(path: _mirror),
-      type: dioType,
-      error: SocketException(message),
-      message: message,
-    ),
-    stackTrace: StackTrace.current,
-  );
-}
+NetworkException _failure(NetworkExceptionType type) => NetworkException(
+  type: type,
+  message: 'download failed',
+  rawError: DioException(
+    requestOptions: RequestOptions(path: _mirror),
+    type: type == NetworkExceptionType.receiveTimeout
+        ? DioExceptionType.receiveTimeout
+        : DioExceptionType.unknown,
+    error: const SocketException('original socket failure'),
+  ),
+);
 
 class _Harness {
-  _Harness(
-    this.download, {
-    this.attemptTimeout = const Duration(seconds: 120),
-    this.hashFile,
-  });
-
+  _Harness(this.download, {this.hashFile});
   final _Download download;
-  final Duration attemptTimeout;
   final Future<String> Function(File)? hashFile;
   final urls = <String>[];
   final paths = <String>[];
@@ -659,37 +423,72 @@ class _Harness {
   final messages = <String>[];
 
   Future<String> run(
-    String filePath, {
+    String path, {
+    String url = _mirror,
+    String? hash,
     CancelToken? token,
     List<(int, int)>? progress,
-    List<String> sourceUrls = const [_mirror, _official],
-    String? expectedHash,
-  }) {
-    final downloader = UpdateDownloader(
-      download:
-          (url, savePath, {required cancelToken, required onReceiveProgress}) {
-            urls.add(url);
-            paths.add(savePath);
-            return download(
-              url,
-              savePath,
-              cancelToken: cancelToken,
-              onReceiveProgress: onReceiveProgress,
-            );
-          },
-      logFailure: (message, error, stackTrace) {
-        messages.add(message);
-        errors.add(error);
-      },
-      attemptTimeout: attemptTimeout,
-      hashFile: hashFile,
-    );
-    return downloader.download(
-      urls: sourceUrls,
-      filePath: filePath,
-      expectedHash: expectedHash ?? _expectedHash,
-      cancelToken: token ?? CancelToken(),
-      onReceiveProgress: (received, total) => progress?.add((received, total)),
-    );
+  }) =>
+      UpdateDownloader(
+        download:
+            (url, partial, {required cancelToken, required onReceiveProgress}) {
+              urls.add(url);
+              paths.add(partial);
+              return download(
+                url,
+                partial,
+                cancelToken: cancelToken,
+                onReceiveProgress: onReceiveProgress,
+              );
+            },
+        logFailure: (message, error, stack) {
+          messages.add(message);
+          errors.add(error);
+        },
+        hashFile: hashFile,
+      ).download(
+        url: url,
+        filePath: path,
+        expectedHash: hash ?? _hash,
+        cancelToken: token ?? CancelToken(),
+        onReceiveProgress: (received, total) =>
+            progress?.add((received, total)),
+      );
+}
+
+class _MemoryFile implements File {
+  _MemoryFile(this.path, this.files);
+  @override
+  final String path;
+  final Map<String, List<int>> files;
+  @override
+  Directory get parent => _MemoryDirectory('$path-parent', files);
+  @override
+  Future<bool> exists() async => files.containsKey(path);
+  @override
+  Future<File> rename(String newPath) async {
+    files[newPath] = files.remove(path)!;
+    return _MemoryFile(newPath, files);
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _MemoryDirectory implements Directory {
+  _MemoryDirectory(this.path, this.files);
+  @override
+  final String path;
+  final Map<String, List<int>> files;
+  @override
+  Future<Directory> createTemp([String? prefix]) async =>
+      _MemoryDirectory('$path/${prefix ?? ''}unique', files);
+  @override
+  Future<Directory> delete({bool recursive = false}) async {
+    files.removeWhere((name, _) => name.startsWith('$path/'));
+    return this;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -37,22 +38,28 @@ class _UpdateSettingsPageState extends State<UpdateSettingsPage> {
         title: const Text('更新设置'),
         body: SettingsList(
           sections: [
-            SettingsSection(
-              title: const Text('应用更新下载'),
-              tiles: [
-                SettingsDropdownTile<UpdateDownloadSource>(
-                  leading: Icons.download_rounded,
-                  title: const Text('更新下载源'),
-                  description: Text(_downloadSource.description),
-                  value: _downloadSource,
-                  options: {
-                    for (final source in UpdateDownloadSource.values)
-                      source: source.label,
-                  },
-                  onChanged: _setDownloadSource,
-                ),
-              ],
-            ),
+            if (!kIsWeb &&
+                const {
+                  TargetPlatform.android,
+                  TargetPlatform.windows,
+                  TargetPlatform.macOS,
+                }.contains(defaultTargetPlatform))
+              SettingsSection(
+                title: const Text('应用更新下载'),
+                tiles: [
+                  SettingsDropdownTile<UpdateDownloadSource>(
+                    leading: Icons.download_rounded,
+                    title: const Text('更新下载源'),
+                    description: Text(_downloadSource.description),
+                    value: _downloadSource,
+                    options: {
+                      for (final source in UpdateDownloadSource.values)
+                        source: source.label,
+                    },
+                    onChanged: _setDownloadSource,
+                  ),
+                ],
+              ),
             SettingsSection(
               title: const Text('启动时检查更新'),
               tiles: [

@@ -129,7 +129,41 @@ void main() {
       expect(GStorage.getSetting(SettingsKeys.updateDownloadSource), 'mirror');
       expect(find.text('优先使用镜像，失败后自动回退 GitHub'), findsOneWidget);
     },
+    variant: TargetPlatformVariant.only(TargetPlatform.windows),
   );
+
+  for (final platform in TargetPlatform.values) {
+    testWidgets('download source visibility matches $platform update support', (
+      tester,
+    ) async {
+      final supportsDownload = const {
+        TargetPlatform.android,
+        TargetPlatform.windows,
+        TargetPlatform.macOS,
+      }.contains(platform);
+      final savedSource = GStorage.getSetting(
+        SettingsKeys.updateDownloadSource,
+      );
+
+      await mountPage(tester);
+
+      expect(
+        find.text('更新下载源'),
+        supportsDownload ? findsOneWidget : findsNothing,
+      );
+      expect(
+        find.text('应用更新下载'),
+        supportsDownload ? findsOneWidget : findsNothing,
+      );
+      expect(find.text('启动时检查更新'), findsOneWidget);
+      expect(find.text('应用更新'), findsOneWidget);
+      expect(find.text('规则更新'), findsOneWidget);
+      expect(
+        GStorage.getSetting(SettingsKeys.updateDownloadSource),
+        savedSource,
+      );
+    }, variant: TargetPlatformVariant.only(platform));
+  }
 }
 
 class _TestPaths extends PathProviderPlatform {

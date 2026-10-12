@@ -68,10 +68,7 @@ class DownloadHttpClient {
         onReceiveProgress: onReceiveProgress,
       );
     } on DioException catch (e) {
-      Error.throwWithStackTrace(
-        await NetworkErrorMapper.mapException(e),
-        e.stackTrace,
-      );
+      throw await NetworkErrorMapper.mapException(e);
     }
   }
 }

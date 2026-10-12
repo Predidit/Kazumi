@@ -85,7 +85,7 @@ String getUpdateDownloadErrorMessage(Object error) {
         detail.contains('disk full')) {
       return '磁盘空间不足';
     }
-    return '更新文件读写失败，请查看错误详情';
+    return '更新文件读写失败';
   }
   if (error is UpdateIntegrityException) {
     return '文件完整性验证失败，可能是网络传输错误';
@@ -121,7 +121,7 @@ String getUpdateDownloadErrorMessage(Object error) {
   )) {
     return '网络连接错误';
   }
-  return '下载失败，请查看错误详情';
+  return '下载失败';
 }
 
 class UpdateDownloader {

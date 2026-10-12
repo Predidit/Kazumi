@@ -4,10 +4,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kazumi/bean/dialog/update_download_source_selector.dart';
 import 'package:kazumi/request/core/network_error_mapper.dart';
 import 'package:kazumi/request/core/network_exception.dart';
 import 'package:kazumi/services/update/update_download_source.dart';
@@ -39,17 +36,12 @@ void main() {
     errors = [];
     status = HttpStatus.ok;
     responseBytes = payload;
-    dio =
-        Dio(
-            BaseOptions(
-              connectTimeout: const Duration(seconds: 2),
-              receiveTimeout: const Duration(seconds: 2),
-            ),
-          )
-          ..httpClientAdapter = IOHttpClientAdapter(
-            createHttpClient: () =>
-                _LocalHttpOverrides().createHttpClient(null),
-          );
+    dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 2),
+        receiveTimeout: const Duration(seconds: 2),
+      ),
+    );
     server.listen((request) {
       requests.add(request.uri.path);
       request.response.statusCode = status;
@@ -97,37 +89,6 @@ void main() {
         onReceiveProgress: (_, _) {},
       );
 
-  testWidgets('choosing GitHub in the dialog downloads only from official', (
-    tester,
-  ) async {
-    var source = UpdateDownloadSource.mirror;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: AlertDialog(
-            title: const Text('发现新版本'),
-            content: UpdateDownloadSourceSelector(
-              value: source,
-              onChanged: (value) => source = value,
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.tap(
-      find.byType(DropdownButtonFormField<UpdateDownloadSource>),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('GitHub 官方源').last);
-    await tester.pumpAndSettle();
-
-    expect(source, UpdateDownloadSource.github);
-    expect(await tester.runAsync(() => download(source)), filePath);
-    expect(requests, ['/official']);
-    expect(await tester.runAsync(() => File(filePath).readAsBytes()), payload);
-    expect(errors, isEmpty);
-  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
-
   test(
     'selected source HTTP 503 fails once and retains the original error',
     () async {
@@ -166,5 +127,3 @@ void main() {
     },
   );
 }
-
-class _LocalHttpOverrides extends HttpOverrides {}

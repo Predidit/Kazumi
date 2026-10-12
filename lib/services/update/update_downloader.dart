@@ -67,13 +67,13 @@ String describeUpdateDownloadError(Object error, StackTrace stackTrace) {
   return '$causes | stack=$originalStack';
 }
 
-String getUpdateDownloadErrorMessage(Object error, {bool? isWindows}) {
+String getUpdateDownloadErrorMessage(Object error) {
   final causes = _errorChain(error).toList();
   final fileError = causes.whereType<FileSystemException>().firstOrNull;
   if (fileError != null) {
     final code = fileError.osError?.errorCode;
     final detail = fileError.toString().toLowerCase();
-    final windows = isWindows ?? Platform.isWindows;
+    final windows = Platform.isWindows;
     if ((windows ? code == 5 : code == 1 || code == 13) ||
         detail.contains('permission denied') ||
         detail.contains('access is denied') ||
@@ -128,12 +128,9 @@ class UpdateDownloader {
   UpdateDownloader({
     required UpdateDownloadRequest download,
     required this.logFailure,
-    Future<String> Function(File)? hashFile,
-  }) : _download = download,
-       _hashFile = hashFile ?? calculateFileHash;
+  }) : _download = download;
 
   final UpdateDownloadRequest _download;
-  final Future<String> Function(File) _hashFile;
   final void Function(String message, Object error, StackTrace stackTrace)
   logFailure;
 
@@ -171,7 +168,7 @@ class UpdateDownloader {
         stage = 'cache-verify';
         String? localHash;
         try {
-          localHash = await _hashFile(file);
+          localHash = await calculateFileHash(file);
         } catch (error, stackTrace) {
           checkCancelled();
           log(error, stackTrace);
@@ -201,7 +198,7 @@ class UpdateDownloader {
       );
       checkCancelled();
       stage = 'verify';
-      final downloadedHash = await _hashFile(partial);
+      final downloadedHash = await calculateFileHash(partial);
       checkCancelled();
       if (downloadedHash != hash) {
         throw UpdateIntegrityException(hash, downloadedHash);

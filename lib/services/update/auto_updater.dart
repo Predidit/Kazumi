@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/update_download_source_selector.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -188,9 +189,10 @@ class AutoUpdater {
   }
 
   void _showUpdateDialog(UpdateInfo updateInfo, {bool isAutoCheck = false}) {
+    var downloadSource = UpdateDownloadSource.mirror;
     KazumiDialog.show(
-      builder: (context) {
-        return AlertDialog(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
           title: Text('发现新版本 ${updateInfo.version}'),
           content: SingleChildScrollView(
             child: Column(
@@ -217,6 +219,12 @@ class AutoUpdater {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        UpdateDownloadSourceSelector(
+                          value: downloadSource,
+                          onChanged: (source) =>
+                              setState(() => downloadSource = source),
+                        ),
+                        const SizedBox(height: 8),
                         Text(
                           '选择安装类型:',
                           style: Theme.of(context).textTheme.labelSmall,
@@ -231,7 +239,8 @@ class AutoUpdater {
                                 borderRadius: BorderRadius.circular(4),
                                 onTap: () {
                                   KazumiDialog.dismiss();
-                                  _downloadUpdateWithType(updateInfo, type);
+                                  _downloadUpdateWithType(
+                                      updateInfo, type, downloadSource);
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -318,14 +327,15 @@ class AutoUpdater {
                 KazumiDialog.dismiss();
                 if (updateInfo.availableInstallationTypes.isNotEmpty) {
                   _downloadUpdateWithType(
-                      updateInfo, updateInfo.availableInstallationTypes.first);
+                      updateInfo, updateInfo.availableInstallationTypes.first,
+                      downloadSource);
                 }
               },
               child: const Text('立即更新'),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -351,7 +361,8 @@ class AutoUpdater {
   }
 
   Future<void> _downloadUpdateWithType(
-      UpdateInfo updateInfo, InstallationType selectedType) async {
+      UpdateInfo updateInfo, InstallationType selectedType,
+      UpdateDownloadSource source) async {
     try {
       if (selectedType == InstallationType.ios ||
           selectedType == InstallationType.linuxDeb ||
@@ -365,9 +376,7 @@ class AutoUpdater {
       }
 
       final asset = getUpdateAssetForType(updateInfo.assets, selectedType);
-      final downloadUrl = getUpdateDownloadUrlFromAsset(asset,
-          source: UpdateDownloadSource.fromSetting(
-              GStorage.getSetting(SettingsKeys.updateDownloadSource)));
+      final downloadUrl = getUpdateDownloadUrlFromAsset(asset, source: source);
       if (asset == null || downloadUrl.isEmpty) {
         KazumiDialog.showToast(
             message:
@@ -442,29 +451,11 @@ class AutoUpdater {
         builder: (context) {
           return AlertDialog(
             title: const Text('下载失败'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(errorMessage),
-                const SizedBox(height: 8),
-                Text(
-                  '错误详情: ${e.toString()}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
+            content: Text(errorMessage),
             actions: [
               TextButton(
                 onPressed: () => KazumiDialog.dismiss(context: context),
                 child: const Text('确定'),
-              ),
-              TextButton(
-                onPressed: () {
-                  KazumiDialog.dismiss(context: context);
-                  _downloadUpdate(updateInfo, expectedHash);
-                },
-                child: const Text('重试'),
               ),
             ],
           );

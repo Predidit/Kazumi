@@ -13,6 +13,7 @@ import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/media_error_widget.dart';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
@@ -303,46 +304,48 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          setState(() => _isExiting = true);
-          playerController.beginShutdown();
-        }
-      },
-      child: Observer(builder: (context) {
-        final bool isPip = videoPageController.isPip;
-        return VideoSystemBars(
-          fullscreen: videoPageController.isFullscreen,
-          isPip: isPip,
-          child: Scaffold(
-            body: VideoPageLayout(
-              fullscreen: videoPageController.isFullscreen,
-              isPip: isPip,
-              playerBuilder: (context, layout) => ColoredBox(
-                color: Colors.black,
-                child: Focus(
-                  focusNode: keyboardFocus,
-                  autofocus: true,
-                  // Cleanup resets loading while the route is still visible.
-                  child: _isExiting
-                      ? const SizedBox.expand()
-                      : Observer(builder: (_) => _buildPlayerBody(layout)),
+    return MouseBackNavigationBlocker(
+      child: PopScope(
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (didPop) {
+            setState(() => _isExiting = true);
+            playerController.beginShutdown();
+          }
+        },
+        child: Observer(builder: (context) {
+          final bool isPip = videoPageController.isPip;
+          return VideoSystemBars(
+            fullscreen: videoPageController.isFullscreen,
+            isPip: isPip,
+            child: Scaffold(
+              body: VideoPageLayout(
+                fullscreen: videoPageController.isFullscreen,
+                isPip: isPip,
+                playerBuilder: (context, layout) => ColoredBox(
+                  color: Colors.black,
+                  child: Focus(
+                    focusNode: keyboardFocus,
+                    autofocus: true,
+                    // Cleanup resets loading while the route is still visible.
+                    child: _isExiting
+                        ? const SizedBox.expand()
+                        : Observer(builder: (_) => _buildPlayerBody(layout)),
+                  ),
+                ),
+                tabs: tabBody,
+                sidePanel: VideoSidePanel(
+                  key: _sidePanelKey,
+                  fullscreen: videoPageController.isFullscreen,
+                  disableAnimations: disableAnimations,
+                  onOpened: _revealCurrentEpisode,
+                  onClosed: keyboardFocus.requestFocus,
+                  child: tabBody,
                 ),
               ),
-              tabs: tabBody,
-              sidePanel: VideoSidePanel(
-                key: _sidePanelKey,
-                fullscreen: videoPageController.isFullscreen,
-                disableAnimations: disableAnimations,
-                onOpened: _revealCurrentEpisode,
-                onClosed: keyboardFocus.requestFocus,
-                child: tabBody,
-              ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 

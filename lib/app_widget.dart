@@ -315,6 +315,9 @@ class _AppWidgetState extends State<AppWidget>
           themeMode: themeProvider.themeMode,
           scaffoldMessengerKey: rootScaffoldMessengerKey,
           routerConfig: ModularApp.routerConfigOf(context),
+          builder: (context, child) => DesktopMouseBackNavigation(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

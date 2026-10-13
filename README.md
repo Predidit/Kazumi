@@ -96,16 +96,23 @@ brew install --cask ChiaKi-Li/cask/kazumi
 brew install --cask --adopt ChiaKi-Li/cask/kazumi
 ```
 
-接管前，建议先更新 tap 信息，再查看 Cask 提供的版本：
+接管前运行以下命令查看 Cask 版本，并与应用内显示的本地版本比较：
 
 ```bash
 brew update
 brew info --cask ChiaKi-Li/cask/kazumi
 ```
 
-这里显示的是 Cask 提供的版本，不是手动安装的应用版本；请在应用的版本信息页面查看本地版本并进行对比。如果本地版本较旧，请先通过应用自身的更新功能或官方发布页面更新到 Cask 对应的版本，再尝试接管；如果本地版本较新，请等待 tap 更新后再尝试，无需为接管而降级。
+`--adopt` 不会升级应用。本地版本较旧时先更新应用，较新时等待 tap 更新；版本一致后再接管。若仍提示应用不一致，请核对来源和安装位置，不要用 `--force` 绕过检查。
 
-`--adopt` 用于接管已有应用，本身不负责升级旧版应用。版本号相同也不保证一定能接管；如果 Homebrew 提示已有应用与待安装应用不一致，请检查应用来源、版本和安装位置，不要用 `--force` 绕过检查。
+安装或接管后，更新此应用：
+
+```bash
+brew update
+brew upgrade --cask ChiaKi-Li/cask/kazumi
+```
+
+也可以使用 `brew upgrade` 更新全部由 Homebrew 管理的软件。
 
 ### GNU/Linux
 

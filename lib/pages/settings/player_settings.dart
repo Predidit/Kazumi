@@ -12,6 +12,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -44,52 +45,71 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
   late int playerControllerLayerDisappearTime;
+  late String windowsD3D11Adapter;
+  Future<List<WindowsD3D11Adapter>>? _windowsD3D11Adapters;
 
   @override
   void initState() {
     super.initState();
     _loadSettingsFromStorage();
+    if (Platform.isWindows) {
+      _windowsD3D11Adapters = MediaKitVideo.getWindowsD3D11Adapters();
+    }
   }
 
   void _loadSettingsFromStorage() {
-    defaultPlaySpeed =
-        GStorage.getSetting<double>(SettingsKeys.defaultPlaySpeed);
+    defaultPlaySpeed = GStorage.getSetting<double>(
+      SettingsKeys.defaultPlaySpeed,
+    );
     defaultShortcutForwardPlaySpeed = GStorage.getSetting<double>(
-        SettingsKeys.defaultShortcutForwardPlaySpeed);
+      SettingsKeys.defaultShortcutForwardPlaySpeed,
+    );
     defaultAspectRatioMode = PlayerAspectRatio.fromStorageValue(
       GStorage.getSetting<int>(SettingsKeys.defaultAspectRatioType),
     );
     hAenable = GStorage.getSetting<bool>(SettingsKeys.hAenable);
-    androidEnableOpenSLES =
-        GStorage.getSetting<bool>(SettingsKeys.androidEnableOpenSLES);
-    androidAutoEnterPIP =
-        GStorage.getSetting<bool>(SettingsKeys.androidAutoEnterPIP);
+    androidEnableOpenSLES = GStorage.getSetting<bool>(
+      SettingsKeys.androidEnableOpenSLES,
+    );
+    androidAutoEnterPIP = GStorage.getSetting<bool>(
+      SettingsKeys.androidAutoEnterPIP,
+    );
     playResume = GStorage.getSetting<bool>(SettingsKeys.playResume);
     privateMode = GStorage.getSetting<bool>(SettingsKeys.privateMode);
     showPlayerError = GStorage.getSetting<bool>(SettingsKeys.showPlayerError);
     playerDebugMode = GStorage.getSetting<bool>(SettingsKeys.playerDebugMode);
     autoPlayNext = GStorage.getSetting<bool>(SettingsKeys.autoPlayNext);
-    backgroundPlayback =
-        GStorage.getSetting<bool>(SettingsKeys.backgroundPlayback);
-    playerDisableAnimations =
-        GStorage.getSetting<bool>(SettingsKeys.playerDisableAnimations);
+    backgroundPlayback = GStorage.getSetting<bool>(
+      SettingsKeys.backgroundPlayback,
+    );
+    playerDisableAnimations = GStorage.getSetting<bool>(
+      SettingsKeys.playerDisableAnimations,
+    );
     forceAdBlocker = GStorage.getSetting<bool>(SettingsKeys.forceAdBlocker);
     playerLogLevel = GStorage.getSetting<int>(SettingsKeys.playerLogLevel);
 
-    brightnessVolumeGesture =
-        GStorage.getSetting<bool>(SettingsKeys.brightnessVolumeGesture);
+    brightnessVolumeGesture = GStorage.getSetting<bool>(
+      SettingsKeys.brightnessVolumeGesture,
+    );
 
-    playerButtonSkipTime =
-        GStorage.getSetting<int>(SettingsKeys.buttonSkipTime);
-    playerArrowKeySkipTime =
-        GStorage.getSetting<int>(SettingsKeys.arrowKeySkipTime);
+    playerButtonSkipTime = GStorage.getSetting<int>(
+      SettingsKeys.buttonSkipTime,
+    );
+    playerArrowKeySkipTime = GStorage.getSetting<int>(
+      SettingsKeys.arrowKeySkipTime,
+    );
 
     playerControllerLayerDisappearTime = GStorage.getSetting<int>(
-        SettingsKeys.playerControllerLayerDisappearTime);
+      SettingsKeys.playerControllerLayerDisappearTime,
+    );
+    windowsD3D11Adapter = GStorage.getSetting<String>(
+      SettingsKeys.windowsD3D11Adapter,
+    );
   }
 
   Future<void> resetPlayerSettings() async {
-    final bool shouldReset = await KazumiDialog.show<bool>(
+    final bool shouldReset =
+        await KazumiDialog.show<bool>(
           builder: (context) => AlertDialog(
             title: const Text('恢复默认播放设置'),
             content: const Text('播放设置、硬件解码器、视频渲染器和超分辨率设置将恢复为默认值。'),
@@ -126,7 +146,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
 
   void updateDefaultShortcutForwardPlaySpeed(double speed) {
     GStorage.putSetting<double>(
-        SettingsKeys.defaultShortcutForwardPlaySpeed, speed);
+      SettingsKeys.defaultShortcutForwardPlaySpeed,
+      speed,
+    );
     setState(() {
       defaultShortcutForwardPlaySpeed = speed;
     });
@@ -151,7 +173,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
 
   Future<void> updateButtonSkipTime() async {
     final int? newButtonSkipTime = await _showSkipTimeChangeDialog(
-        title: '顶部按钮快进时长', initialValue: playerButtonSkipTime.toString());
+      title: '顶部按钮快进时长',
+      initialValue: playerButtonSkipTime.toString(),
+    );
 
     if (newButtonSkipTime != null &&
         newButtonSkipTime != playerButtonSkipTime) {
@@ -162,61 +186,66 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     }
   }
 
-  Future<int?> _showSkipTimeChangeDialog(
-      {required String title, required String initialValue}) async {
-    return KazumiDialog.show<int>(builder: (context) {
-      String input = "";
-      return AlertDialog(
-        title: Text(title),
-        content: StatefulBuilder(
+  Future<int?> _showSkipTimeChangeDialog({
+    required String title,
+    required String initialValue,
+  }) async {
+    return KazumiDialog.show<int>(
+      builder: (context) {
+        String input = "";
+        return AlertDialog(
+          title: Text(title),
+          content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
-          return TextField(
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-            ],
-            decoration: InputDecoration(
-              floatingLabelBehavior: FloatingLabelBehavior.never,
-              labelText: initialValue,
-            ),
-            onChanged: (value) {
-              input = value;
+              return TextField(
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  floatingLabelBehavior: FloatingLabelBehavior.never,
+                  labelText: initialValue,
+                ),
+                onChanged: (value) {
+                  input = value;
+                },
+              );
             },
-          );
-        }),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => KazumiDialog.dismiss(),
-            child: Text(
-              '取消',
-              style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => KazumiDialog.dismiss(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: () async {
-              final int? newValue = int.tryParse(input);
+            TextButton(
+              onPressed: () async {
+                final int? newValue = int.tryParse(input);
 
-              if (newValue == null) {
-                KazumiDialog.showToast(message: '请输入数字');
-                return;
-              }
+                if (newValue == null) {
+                  KazumiDialog.showToast(message: '请输入数字');
+                  return;
+                }
 
-              if (newValue <= 0) {
-                KazumiDialog.showToast(message: '请输入大于0的数字');
-                return;
-              }
-              KazumiDialog.dismiss(popWith: newValue);
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      );
-    });
+                if (newValue <= 0) {
+                  KazumiDialog.showToast(message: '请输入大于0的数字');
+                  return;
+                }
+                KazumiDialog.dismiss(popWith: newValue);
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   double get playerControllerLayerDisappearSeconds =>
       (playerControllerLayerDisappearTime / Duration.millisecondsPerSecond)
-          .clamp(_minPlayerControllerLayerDisappearSeconds,
-              _maxPlayerControllerLayerDisappearSeconds)
+          .clamp(
+            _minPlayerControllerLayerDisappearSeconds,
+            _maxPlayerControllerLayerDisappearSeconds,
+          )
           .toDouble();
 
   String formatPlayerControllerLayerDisappearSeconds(double seconds) {
@@ -227,13 +256,15 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   }
 
   void updatePlayerControllerLayerDisappearSeconds(double seconds) {
-    final int newDisappearTime =
-        (seconds * Duration.millisecondsPerSecond).round();
+    final int newDisappearTime = (seconds * Duration.millisecondsPerSecond)
+        .round();
     if (newDisappearTime == playerControllerLayerDisappearTime) {
       return;
     }
     GStorage.putSetting<int>(
-        SettingsKeys.playerControllerLayerDisappearTime, newDisappearTime);
+      SettingsKeys.playerControllerLayerDisappearTime,
+      newDisappearTime,
+    );
     setState(() {
       playerControllerLayerDisappearTime = newDisappearTime;
     });
@@ -253,7 +284,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onToggle: (value) async {
                   hAenable = value ?? !hAenable;
                   await GStorage.putSetting<bool>(
-                      SettingsKeys.hAenable, hAenable);
+                    SettingsKeys.hAenable,
+                    hAenable,
+                  );
                   setState(() {});
                 },
                 title: Text('硬件解码'),
@@ -277,6 +310,61 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text('选择视频输出方式'),
                 ),
               ],
+              if (Platform.isWindows)
+                FutureBuilder<List<WindowsD3D11Adapter>>(
+                  future: _windowsD3D11Adapters,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return SettingsTile(
+                        leading: Icons.developer_board_rounded,
+                        title: const Text('超分辨率渲染显卡'),
+                        description: Text('读取图形适配器失败：${snapshot.error}'),
+                        enabled: false,
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const SettingsTile(
+                        leading: Icons.developer_board_rounded,
+                        title: Text('超分辨率渲染显卡'),
+                        description: Text('正在读取 Windows 图形适配器…'),
+                        enabled: false,
+                      );
+                    }
+                    final adapters = snapshot.data!;
+                    if (adapters.isEmpty) {
+                      return const SettingsTile(
+                        leading: Icons.developer_board_rounded,
+                        title: Text('超分辨率渲染显卡'),
+                        description: Text('没有发现可用的硬件图形适配器'),
+                        enabled: false,
+                      );
+                    }
+                    final options = <String, String>{
+                      'auto': '自动（使用 Flutter 显示适配器）',
+                      for (final adapter in adapters)
+                        adapter.id: adapter.displayName,
+                    };
+                    return SettingsDropdownTile<String>(
+                      leading: Icons.developer_board_rounded,
+                      title: const Text('超分辨率渲染显卡'),
+                      description: const Text(
+                        '需启用硬件渲染。跨显卡传帧会经过系统内存，可能增加延迟；更改后重新打开视频生效',
+                      ),
+                      value: windowsD3D11Adapter,
+                      options: options,
+                      fallbackLabel: '所选适配器当前不可用',
+                      onChanged: (adapter) async {
+                        await GStorage.putSetting<String>(
+                          SettingsKeys.windowsD3D11Adapter,
+                          adapter,
+                        );
+                        if (mounted) {
+                          setState(() => windowsD3D11Adapter = adapter);
+                        }
+                      },
+                    );
+                  },
+                ),
               const LowMemoryModeSettingsTile(),
               if (Platform.isAndroid) ...[
                 SettingsTile.switchTile(
@@ -284,8 +372,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   onToggle: (value) async {
                     androidEnableOpenSLES = value ?? !androidEnableOpenSLES;
                     await GStorage.putSetting<bool>(
-                        SettingsKeys.androidEnableOpenSLES,
-                        androidEnableOpenSLES);
+                      SettingsKeys.androidEnableOpenSLES,
+                      androidEnableOpenSLES,
+                    );
                     setState(() {});
                   },
                   title: Text('低延迟音频'),
@@ -310,7 +399,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onToggle: (value) async {
                   backgroundPlayback = value ?? !backgroundPlayback;
                   await GStorage.putSetting<bool>(
-                      SettingsKeys.backgroundPlayback, backgroundPlayback);
+                    SettingsKeys.backgroundPlayback,
+                    backgroundPlayback,
+                  );
                   setState(() {});
                 },
                 title: Text('后台播放'),
@@ -322,7 +413,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onToggle: (value) async {
                   playResume = value ?? !playResume;
                   await GStorage.putSetting<bool>(
-                      SettingsKeys.playResume, playResume);
+                    SettingsKeys.playResume,
+                    playResume,
+                  );
                   setState(() {});
                 },
                 title: Text('自动跳转'),
@@ -334,7 +427,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onToggle: (value) async {
                   autoPlayNext = value ?? !autoPlayNext;
                   await GStorage.putSetting<bool>(
-                      SettingsKeys.autoPlayNext, autoPlayNext);
+                    SettingsKeys.autoPlayNext,
+                    autoPlayNext,
+                  );
                   setState(() {});
                 },
                 title: Text('自动连播'),
@@ -347,9 +442,12 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   onToggle: (value) async {
                     androidAutoEnterPIP = value ?? !androidAutoEnterPIP;
                     await GStorage.putSetting<bool>(
-                        SettingsKeys.androidAutoEnterPIP, androidAutoEnterPIP);
+                      SettingsKeys.androidAutoEnterPIP,
+                      androidAutoEnterPIP,
+                    );
                     await PipUtils.setAndroidAutoEnterPIPEnabled(
-                        androidAutoEnterPIP);
+                      androidAutoEnterPIP,
+                    );
                     setState(() {});
                   },
                   title: Text('自动进入画中画'),
@@ -361,7 +459,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onToggle: (value) async {
                   forceAdBlocker = value ?? !forceAdBlocker;
                   await GStorage.putSetting<bool>(
-                      SettingsKeys.forceAdBlocker, forceAdBlocker);
+                    SettingsKeys.forceAdBlocker,
+                    forceAdBlocker,
+                  );
                   setState(() {});
                 },
                 title: Text('广告过滤'),
@@ -373,8 +473,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onToggle: (value) async {
                   playerDisableAnimations = value ?? !playerDisableAnimations;
                   await GStorage.putSetting<bool>(
-                      SettingsKeys.playerDisableAnimations,
-                      playerDisableAnimations);
+                    SettingsKeys.playerDisableAnimations,
+                    playerDisableAnimations,
+                  );
                   setState(() {});
                 },
                 title: Text('禁用动画'),
@@ -387,8 +488,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   onToggle: (value) async {
                     brightnessVolumeGesture = value ?? !brightnessVolumeGesture;
                     await GStorage.putSetting<bool>(
-                        SettingsKeys.brightnessVolumeGesture,
-                        brightnessVolumeGesture);
+                      SettingsKeys.brightnessVolumeGesture,
+                      brightnessVolumeGesture,
+                    );
                     setState(() {});
                   },
                   title: Text('滑动手势'),
@@ -400,7 +502,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onToggle: (value) async {
                   privateMode = value ?? !privateMode;
                   await GStorage.putSetting<bool>(
-                      SettingsKeys.privateMode, privateMode);
+                    SettingsKeys.privateMode,
+                    privateMode,
+                  );
                   setState(() {});
                 },
                 title: Text('隐身模式'),
@@ -417,7 +521,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onToggle: (value) async {
                   showPlayerError = value ?? !showPlayerError;
                   await GStorage.putSetting<bool>(
-                      SettingsKeys.showPlayerError, showPlayerError);
+                    SettingsKeys.showPlayerError,
+                    showPlayerError,
+                  );
                   setState(() {});
                 },
                 title: Text('错误提示'),
@@ -429,7 +535,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onToggle: (value) async {
                   playerDebugMode = value ?? !playerDebugMode;
                   await GStorage.putSetting<bool>(
-                      SettingsKeys.playerDebugMode, playerDebugMode);
+                    SettingsKeys.playerDebugMode,
+                    playerDebugMode,
+                  );
                   setState(() {});
                 },
                 title: Text('调试模式'),
@@ -459,7 +567,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 divisions: 11,
                 valueLabel: '${defaultPlaySpeed}x',
                 onChanged: (value) => updateDefaultPlaySpeed(
-                    double.parse(value.toStringAsFixed(2))),
+                  double.parse(value.toStringAsFixed(2)),
+                ),
               ),
               SettingsSliderTile(
                 leading: Icons.fast_forward_rounded,
@@ -471,7 +580,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 divisions: 7,
                 valueLabel: '${defaultShortcutForwardPlaySpeed}x',
                 onChanged: (value) => updateDefaultShortcutForwardPlaySpeed(
-                    double.parse(value.toStringAsFixed(2))),
+                  double.parse(value.toStringAsFixed(2)),
+                ),
               ),
               SettingsSliderTile(
                 leading: Icons.swap_horiz_rounded,
@@ -488,7 +598,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     return;
                   }
                   GStorage.putSetting<int>(
-                      SettingsKeys.arrowKeySkipTime, newArrowKeySkipTime);
+                    SettingsKeys.arrowKeySkipTime,
+                    newArrowKeySkipTime,
+                  );
                   setState(() {
                     playerArrowKeySkipTime = newArrowKeySkipTime;
                   });
@@ -512,7 +624,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 max: _maxPlayerControllerLayerDisappearSeconds,
                 divisions: _playerControllerLayerDisappearDivisions,
                 valueLabel: formatPlayerControllerLayerDisappearSeconds(
-                    playerControllerLayerDisappearSeconds),
+                  playerControllerLayerDisappearSeconds,
+                ),
                 onChanged: updatePlayerControllerLayerDisappearSeconds,
               ),
               SettingsDropdownTile<PlayerAspectRatio>(

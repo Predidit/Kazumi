@@ -988,11 +988,9 @@ packages:
   media_kit_video:
     dependency: "direct main"
     description:
-      path: media_kit_video
-      ref: "6b188ae978808a63e5b58b7ce61f7725238c04c5"
-      resolved-ref: "6b188ae978808a63e5b58b7ce61f7725238c04c5"
-      url: "https://github.com/Predidit/media-kit.git"
-    source: git
+      path: "third_party/media_kit_video"
+      relative: true
+    source: path
     version: "1.2.5"
   menu_base:
     dependency: transitive

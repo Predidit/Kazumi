@@ -91,6 +91,9 @@ abstract final class _RuleEditorText {
   static const searchListPath = '搜索结果列表路径（JSONPath）';
   static const itemNamePath = '条目名称路径（JSONPath，相对条目）';
   static const itemSourcePath = '条目来源路径（JSONPath，相对条目）';
+  static const itemSourceTemplate = '详情页链接模板（可选，{source} 占位）';
+  static const itemSourceTemplateHelper = '唯一占位符是 {source}，不支持 @变量。'
+      '例如 https://site/GV{source}/ ；渲染结果即该条目的详情页地址。';
 
   static const chapterMethod = '选集请求方法';
   static const chapterRequestUrl = '选集请求地址（URL）';
@@ -180,6 +183,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final TextEditingController searchApiNamePathController =
       TextEditingController();
   final TextEditingController searchApiSourcePathController =
+      TextEditingController();
+  final TextEditingController searchApiSourceTemplateController =
       TextEditingController();
   final TextEditingController chapterApiURLController = TextEditingController();
   final TextEditingController chapterApiHeadersController =
@@ -300,6 +305,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     searchApiListPathController.text = plugin.searchApiConfig.listPath;
     searchApiNamePathController.text = plugin.searchApiConfig.namePath;
     searchApiSourcePathController.text = plugin.searchApiConfig.sourcePath;
+    searchApiSourceTemplateController.text =
+        plugin.searchApiConfig.sourceTemplate;
     chapterApiMethod = plugin.chapterApiConfig.request.method;
     chapterApiBodyType = plugin.chapterApiConfig.request.bodyType;
     chapterApiFormat = plugin.chapterApiConfig.format;
@@ -373,6 +380,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     searchApiListPathController.dispose();
     searchApiNamePathController.dispose();
     searchApiSourcePathController.dispose();
+    searchApiSourceTemplateController.dispose();
     chapterApiURLController.dispose();
     chapterApiHeadersController.dispose();
     chapterApiQueryController.dispose();
@@ -843,6 +851,11 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           controller: searchApiSourcePathController,
           label: _RuleEditorText.itemSourcePath,
         ),
+        EditorTextField(
+          controller: searchApiSourceTemplateController,
+          label: _RuleEditorText.itemSourceTemplate,
+          helper: _RuleEditorText.itemSourceTemplateHelper,
+        ),
       ];
 
   List<Widget> _buildApiChapterFields() => [
@@ -1035,6 +1048,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       listPath: valueOf(searchApiListPathController),
       namePath: valueOf(searchApiNamePathController),
       sourcePath: valueOf(searchApiSourcePathController),
+      sourceTemplate: valueOf(searchApiSourceTemplateController),
     );
     if (!shouldValidate) return config;
     if (config.request.url.isEmpty) {

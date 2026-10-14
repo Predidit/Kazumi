@@ -75,11 +75,31 @@ class ApiSearchConfig {
   String namePath;
   String sourcePath;
 
+  /// Optional template turning the raw [sourcePath] value into a detail page
+  /// link. Some site search APIs return only a bare id (e.g. `$.id` → `"5395"`)
+  /// while the detail page needs a path prefix such as `/GV5395/`; every
+  /// `{source}` placeholder is replaced by the extracted value. Empty keeps the
+  /// raw value.
+  ///
+  /// `{source}` is used instead of the `@variable` request template syntax
+  /// because the placeholder often sits right after a letter (`/GV{source}/`),
+  /// which the request template's `@`-token boundary rule
+  /// (`(?<![A-Za-z0-9_])@name`, which protects literals such as
+  /// `user@example.com`) would leave untouched.
+  ///
+  /// The rendered value becomes the search item's `src`. Surrounding whitespace
+  /// is ignored, and the value is inserted literally. Only usable when the site
+  /// accepts the detail page URL as-is afterwards: `chapterMode: xpath` resolves
+  /// it against `baseURL`, while an api chapter request receives it as an
+  /// already encoded `@source` variable.
+  String sourceTemplate;
+
   ApiSearchConfig({
     ApiRequestConfig? request,
     this.listPath = r'$.data[*]',
     this.namePath = r'$.name',
     this.sourcePath = r'$.url',
+    this.sourceTemplate = '',
   }) : request = request ?? ApiRequestConfig();
 
   factory ApiSearchConfig.fromJson(Map<String, dynamic> json) {
@@ -88,6 +108,7 @@ class ApiSearchConfig {
       listPath: json['listPath'] as String? ?? r'$.data[*]',
       namePath: json['namePath'] as String? ?? r'$.name',
       sourcePath: json['sourcePath'] as String? ?? r'$.url',
+      sourceTemplate: json['sourceTemplate'] as String? ?? '',
     );
   }
 
@@ -96,6 +117,8 @@ class ApiSearchConfig {
         'listPath': listPath,
         'namePath': namePath,
         'sourcePath': sourcePath,
+        if (sourceTemplate.trim().isNotEmpty)
+          'sourceTemplate': sourceTemplate.trim(),
       };
 }
 

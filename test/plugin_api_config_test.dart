@@ -75,6 +75,71 @@ void main() {
     );
   });
 
+  test('search source template survives JSON round trip', () {
+    final plugin = Plugin.fromJson({
+      ..._legacyRule,
+      'searchMode': 'api',
+      'searchApiConfig': {
+        'request': {'url': 'https://example.com/search'},
+        'listPath': r'$.list[*]',
+        'namePath': r'$.name',
+        'sourcePath': r'$.id',
+        'sourceTemplate': 'https://example.com/GV{source}/',
+      },
+    });
+    final restored = Plugin.fromJson(plugin.toJson());
+
+    expect(
+      plugin.searchApiConfig.sourceTemplate,
+      'https://example.com/GV{source}/',
+    );
+    expect(
+      restored.searchApiConfig.sourceTemplate,
+      'https://example.com/GV{source}/',
+    );
+  });
+
+  test('omits an unset search source template from serialized rules', () {
+    final plugin = Plugin.fromJson({
+      ..._legacyRule,
+      'searchMode': 'api',
+      'searchApiConfig': {
+        'request': {'url': 'https://example.com/search'},
+        'listPath': r'$.data[*]',
+        'namePath': r'$.name',
+        'sourcePath': r'$.url',
+      },
+    });
+
+    expect(
+      (plugin.toJson()['searchApiConfig'] as Map<String, dynamic>)
+          .containsKey('sourceTemplate'),
+      isFalse,
+    );
+  });
+
+  test('omits a whitespace-only search source template as well', () {
+    final plugin = Plugin.fromJson({
+      ..._legacyRule,
+      'searchMode': 'api',
+      'searchApiConfig': {
+        'request': {'url': 'https://example.com/search'},
+        'listPath': r'$.data[*]',
+        'namePath': r'$.name',
+        'sourcePath': r'$.url',
+        'sourceTemplate': '   ',
+      },
+    });
+
+    // 与 validateSearchConfig / parseSearch 保持同一口径：纯空白等于未设置，
+    // 否则会被原样写回规则文件并在下游渲染出空白地址。
+    expect(
+      (plugin.toJson()['searchApiConfig'] as Map<String, dynamic>)
+          .containsKey('sourceTemplate'),
+      isFalse,
+    );
+  });
+
   test('API-only rule may omit legacy XPath fields', () {
     final plugin = Plugin.fromJson({
       'api': '8',

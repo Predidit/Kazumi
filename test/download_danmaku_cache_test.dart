@@ -140,21 +140,32 @@ void main() {
     },
   );
 
-  test('pause and resume retain one in-flight cache request', () async {
-    comments.gate = Completer<void>();
-    final episode = await add(1);
-    manager.report(episode, DownloadStatus.downloading);
-    await _until(() => comments.requests[1] == 1);
-    await controller.pauseDownload(123, 'cache-test', 1);
-    await controller.retryDownload(
-      bangumiId: 123,
-      pluginName: 'cache-test',
-      episodeNumber: 1,
+  for (final pauseAll in [false, true]) {
+    test(
+      'pause ${pauseAll ? 'all' : 'one'} and resume retain one in-flight cache request',
+      () async {
+        comments.gate = Completer<void>();
+        final episode = await add(1);
+        manager.report(episode, DownloadStatus.downloading);
+        await _until(() => comments.requests[1] == 1);
+        controller.refreshRecords();
+        if (pauseAll) {
+          await controller.pauseAllDownloads();
+        } else {
+          await controller.pauseDownload(123, 'cache-test', 1);
+        }
+        expect(repository.getRecord(_key)!.episodes[1], same(episode));
+        await controller.retryDownload(
+          bangumiId: 123,
+          pluginName: 'cache-test',
+          episodeNumber: 1,
+        );
+        comments.release();
+        await downloaded(episode);
+        expect(comments.requests, {1: 1});
+      },
     );
-    comments.release();
-    await downloaded(episode);
-    expect(comments.requests, {1: 1});
-  });
+  }
 
   for (final failure in ['empty', 'error']) {
     test(

@@ -821,7 +821,9 @@ abstract class _DownloadController with Store {
 
     _cancelAllResolves();
 
-    for (final record in records) {
+    // Keep the live episodes used by downloads and their async cache tasks.
+    // `records` contains UI snapshots, which must not replace those objects.
+    for (final record in _repository.getAllRecords()) {
       for (final entry in record.episodes.entries) {
         final episode = entry.value;
         if (episode.status == DownloadStatus.downloading ||

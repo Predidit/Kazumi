@@ -385,6 +385,11 @@ class SettingsKeys {
     'auto',
     group: SettingGroup.player,
   );
+  static const windowsD3D11AdapterId = SettingKey<String?>(
+    'windowsD3D11AdapterId',
+    null,
+    group: SettingGroup.player,
+  );
   static const androidAutoEnterPIP = SettingKey<bool>(
     _SettingBoxKey.androidAutoEnterPIP,
     false,
@@ -632,6 +637,7 @@ class SettingsKeys {
     syncPlayUserName,
     androidEnableOpenSLES,
     androidVideoRenderer,
+    windowsD3D11AdapterId,
     androidAutoEnterPIP,
     defaultSuperResolutionMode,
     disableSuperResolutionWarning,

@@ -12,6 +12,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -44,11 +45,17 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
   late int playerControllerLayerDisappearTime;
+  late String? windowsD3D11AdapterId;
+  Future<List<WindowsD3D11Adapter>>? _windowsD3D11Adapters;
 
   @override
   void initState() {
     super.initState();
     _loadSettingsFromStorage();
+    if (Platform.isWindows) {
+      _windowsD3D11Adapters =
+          VideoController.getAvailableWindowsD3D11Adapters();
+    }
   }
 
   void _loadSettingsFromStorage() {
@@ -86,6 +93,80 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
 
     playerControllerLayerDisappearTime = GStorage.getSetting<int>(
         SettingsKeys.playerControllerLayerDisappearTime);
+    windowsD3D11AdapterId = GStorage.getSetting<String?>(
+      SettingsKeys.windowsD3D11AdapterId,
+    );
+  }
+
+  Future<void> _updateWindowsD3D11Adapter(String? adapterId) async {
+    await GStorage.putSetting<String?>(
+      SettingsKeys.windowsD3D11AdapterId,
+      adapterId,
+    );
+    if (!mounted) return;
+    setState(() {
+      windowsD3D11AdapterId = adapterId;
+    });
+  }
+
+  Widget _buildWindowsD3D11AdapterTile() {
+    return FutureBuilder<List<WindowsD3D11Adapter>>(
+      future: _windowsD3D11Adapters,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return SettingsTile(
+            leading: Icons.developer_board_rounded,
+            title: const Text('视频处理显卡'),
+            description: Text('读取显卡列表失败：${snapshot.error}'),
+            onPressed: (_) {
+              setState(() {
+                _windowsD3D11Adapters =
+                    VideoController.getAvailableWindowsD3D11Adapters();
+              });
+            },
+          );
+        }
+        if (!snapshot.hasData) {
+          return const SettingsTile(
+            leading: Icons.developer_board_rounded,
+            title: Text('视频处理显卡'),
+            description: Text('正在读取显卡列表'),
+            enabled: false,
+          );
+        }
+
+        final adapters = snapshot.data!;
+        final options = <String?, String>{null: '自动（保持系统默认）'};
+        for (final adapter in adapters) {
+          final memory = adapter.dedicatedVideoMemoryMb > 0
+              ? ' · ${adapter.dedicatedVideoMemoryMb} MB'
+              : '';
+          options[adapter.id] = '${adapter.name}$memory';
+        }
+
+        final selectedAdapterId = windowsD3D11AdapterId;
+        final selectedAdapterExists =
+            selectedAdapterId == null ||
+            adapters.any((adapter) => adapter.id == selectedAdapterId);
+        if (!selectedAdapterExists) {
+          options[selectedAdapterId] = '不可用（播放时将使用自动）';
+        }
+
+        return SettingsDropdownTile<String?>(
+          leading: Icons.developer_board_rounded,
+          title: const Text('视频处理显卡'),
+          description: Text(
+            selectedAdapterExists
+                ? '选择视频处理所用显卡；显示输出仍由系统决定，重开视频后生效'
+                : '已选显卡不可用，播放时将回退到自动',
+          ),
+          value: selectedAdapterId,
+          options: options,
+          fallbackLabel: '自动（保持系统默认）',
+          onChanged: _updateWindowsD3D11Adapter,
+        );
+      },
+    );
   }
 
   Future<void> resetPlayerSettings() async {
@@ -277,6 +358,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text('选择视频输出方式'),
                 ),
               ],
+              if (Platform.isWindows) _buildWindowsD3D11AdapterTile(),
               const LowMemoryModeSettingsTile(),
               if (Platform.isAndroid) ...[
                 SettingsTile.switchTile(

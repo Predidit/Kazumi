@@ -1,5 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -75,6 +76,7 @@ abstract class _PlayerPlaybackController with Store {
   _OwnedPlayer? _ownedPlayer;
   Player? get mediaPlayer => _ownedPlayer?.player;
   VideoController? videoController;
+  StreamSubscription<WindowsVideoOutputError>? _rendererErrorSubscription;
 
   final AsyncSerialQueue _prefetchWrites = AsyncSerialQueue();
   bool _prefetchSuspendWanted = false;
@@ -266,6 +268,42 @@ abstract class _PlayerPlaybackController with Store {
     });
   }
 
+  Future<void> _handleWindowsVideoOutputError(
+    WindowsVideoOutputError error,
+  ) async {
+    final player = mediaPlayer;
+    if (player == null) return;
+
+    final int playerHandle;
+    try {
+      playerHandle = await player.handle;
+    } catch (exception, stackTrace) {
+      KazumiLogger().e(
+        'PlayerController: could not match a Windows video output warning',
+        error: exception,
+        stackTrace: stackTrace,
+      );
+      return;
+    }
+    if (!isCurrentPlayer(player) || error.playerHandle != playerHandle) {
+      return;
+    }
+
+    KazumiLogger().w(
+      'PlayerController: Windows video output warning',
+      error: error.message,
+    );
+    KazumiDialog.showToast(
+      message: '视频处理显卡不可用或渲染失败：${error.message}。请在播放设置中选择“自动”或重新选择显卡，并重开视频。',
+      duration: const Duration(seconds: 8),
+    );
+  }
+
+  Future<void> _cancelWindowsVideoOutputErrors() async {
+    await _rendererErrorSubscription?.cancel();
+    _rendererErrorSubscription = null;
+  }
+
   Future<Player?> createVideoController(
     Map<String, String> httpHeaders,
     bool adBlockerEnabled, {
@@ -303,6 +341,12 @@ abstract class _PlayerPlaybackController with Store {
       return null;
     }
     _ownedPlayer = candidate;
+    if (Platform.isWindows && _rendererErrorSubscription == null) {
+      _rendererErrorSubscription = VideoController.windowsVideoOutputErrors
+          .listen((error) {
+            unawaited(_handleWindowsVideoOutputError(error));
+          });
+    }
     cachePolicy.startWatching();
 
     try {
@@ -414,6 +458,9 @@ abstract class _PlayerPlaybackController with Store {
           enableAndroidSurfaceProducer: false,
           hwdec: hAenable ? hardwareDecoder : 'no',
           androidAttachSurfaceAfterVideoParameters: false,
+          windowsD3D11AdapterId: Platform.isWindows
+              ? GStorage.getSetting<String?>(SettingsKeys.windowsD3D11AdapterId)
+              : null,
         ),
       );
       player.setPlaylistMode(PlaylistMode.none);
@@ -475,6 +522,7 @@ abstract class _PlayerPlaybackController with Store {
         cachePolicy.stopWatching();
         _ownedPlayer = null;
         videoController = null;
+        await _cancelWindowsVideoOutputErrors();
       }
       await candidate.dispose();
       Error.throwWithStackTrace(error, stackTrace);
@@ -626,6 +674,7 @@ abstract class _PlayerPlaybackController with Store {
     await Future.wait([
       ownedPlayer?.dispose() ?? Future<void>.value(),
       _cancelDebugInfo(),
+      _cancelWindowsVideoOutputErrors(),
     ]);
   }
 

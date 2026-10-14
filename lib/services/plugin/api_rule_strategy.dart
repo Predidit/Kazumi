@@ -143,23 +143,9 @@ class ApiRuleStrategy {
     RestrictedJsonPath.validate(config.listPath);
     RestrictedJsonPath.validate(config.namePath);
     RestrictedJsonPath.validate(config.sourcePath);
-    final template = config.sourceTemplate.trim();
-    if (template.isEmpty) return;
-    if (!template.contains('{source}')) {
-      throw ApiRuleFormatException('详情页链接模板缺少 {source} 占位符: $template');
-    }
-    if (template.contains('@source')) {
-      throw ApiRuleFormatException('详情页链接模板请使用 {source} 占位符，不支持 @变量: $template');
-    }
-    final unknown = RegExp(r'\{[A-Za-z_][A-Za-z0-9_]*\}')
-        .allMatches(template)
-        .map((match) => match.group(0)!)
-        .where((placeholder) => placeholder != '{source}')
-        .toSet();
-    if (unknown.isNotEmpty) {
-      throw ApiRuleFormatException(
-        '详情页链接模板存在未知占位符 ${unknown.join('、')}，本字段只支持 {source}',
-      );
+    final template = config.sourceTemplate;
+    if (template.isNotEmpty && !template.contains('@source')) {
+      throw const ApiRuleFormatException('详情页地址模板必须引用 @source');
     }
   }
 
@@ -167,6 +153,7 @@ class ApiRuleStrategy {
     validateSearchConfig(config);
     final document = decodeResponse(raw);
     final nodes = RestrictedJsonPath.read(document, config.listPath);
+    final template = config.sourceTemplate;
     final results = <SearchItem>[];
     final fragments = <String>[];
     final diagnostics = <String>[];
@@ -176,25 +163,18 @@ class ApiRuleStrategy {
         final name = _stringValue(
           RestrictedJsonPath.readFirst(node, config.namePath),
         );
-        final rawSource = _stringValue(
+        final source = _stringValue(
           RestrictedJsonPath.readFirst(node, config.sourcePath),
         );
-        // 先校验模板渲染前的原始值：来源缺失时，带模板渲染出的字符串仍然
-        // 非空（如 `…/GV/`），若在渲染后判断就会把坏链接放进结果。
-        if (name.isEmpty || rawSource.isEmpty) {
+        if (name.isEmpty || source.isEmpty) {
           diagnostics.add('搜索节点 $index 缺少名称或来源，已跳过');
           continue;
         }
-        // 站点检索接口只返回裸 id 时，用规则提供的模板拼出详情页地址。
-        // 这里刻意不用 _renderTemplate：它的 @变量 语法要求占位符不能紧跟在
-        // 字母数字之后，而 `/GV{source}/` 这类前缀紧贴的拼接正是本字段的用途。
-        // 与 validateSearchConfig 一致地取 trim 后的值：纯空白模板必须视为未
-        // 设置，否则会渲染出空地址并被当成有效来源。
-        final template = config.sourceTemplate.trim();
-        final source = template.isEmpty
-            ? rawSource
-            : template.replaceAll('{source}', rawSource);
-        results.add(SearchItem(name: name, src: source));
+        // Plain replacement so @source may follow a letter (`/GV@source`).
+        final src = template.isEmpty
+            ? source
+            : template.replaceAll('@source', Uri.encodeComponent(source));
+        results.add(SearchItem(name: name, src: src));
         fragments.add(jsonEncode(node));
       } on ApiRuleFormatException {
         rethrow;

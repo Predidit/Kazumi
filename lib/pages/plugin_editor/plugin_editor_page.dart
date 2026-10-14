@@ -91,9 +91,8 @@ abstract final class _RuleEditorText {
   static const searchListPath = '搜索结果列表路径（JSONPath）';
   static const itemNamePath = '条目名称路径（JSONPath，相对条目）';
   static const itemSourcePath = '条目来源路径（JSONPath，相对条目）';
-  static const itemSourceTemplate = '详情页链接模板（可选，{source} 占位）';
-  static const itemSourceTemplateHelper = '唯一占位符是 {source}，不支持 @变量。'
-      '例如 https://site/GV{source}/ ；渲染结果即该条目的详情页地址。';
+  static const detailPageUrl = '详情页地址模板（URL，可选）';
+  static const detailPageUrlHelper = '@source 替换为条目来源，如 https://site/GV@source';
 
   static const chapterMethod = '选集请求方法';
   static const chapterRequestUrl = '选集请求地址（URL）';
@@ -853,8 +852,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         ),
         EditorTextField(
           controller: searchApiSourceTemplateController,
-          label: _RuleEditorText.itemSourceTemplate,
-          helper: _RuleEditorText.itemSourceTemplateHelper,
+          label: _RuleEditorText.detailPageUrl,
+          helper: _RuleEditorText.detailPageUrlHelper,
         ),
       ];
 

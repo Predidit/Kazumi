@@ -263,6 +263,10 @@ void main() {
   test(
     'real downloads queued beyond 30 seconds both retain offline comments',
     () async {
+      // Keep the deliberate queue wait independent of the transport timeout.
+      DioFactory.downloadDio.options.receiveTimeout = const Duration(
+        minutes: 1,
+      );
       final realManager = DownloadManager();
       controller = DownloadController(repository, realManager, _plugins());
       await controller.init();
@@ -275,6 +279,7 @@ void main() {
       final serving = <Future<void>>[];
       server.listen((request) {
         serving.add(() async {
+          request.response.bufferOutput = false;
           if (request.uri.path.endsWith('.m3u8')) {
             final segment = request.uri.path.startsWith('/1')
                 ? 'first.ts'
@@ -286,7 +291,7 @@ void main() {
             request.response.contentLength = payload.length;
             var sent = 0;
             if (request.uri.path == '/first.ts') {
-              started.complete();
+              if (!started.isCompleted) started.complete();
               while (!release.isCompleted) {
                 request.response.add(payload.sublist(sent, sent + 16));
                 sent += 16;

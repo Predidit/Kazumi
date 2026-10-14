@@ -980,8 +980,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: 4d715c811abdcc8f26ee6e49adadf01a1ee0def8
-      resolved-ref: 4d715c811abdcc8f26ee6e49adadf01a1ee0def8
+      ref: d4e640c0863c9d76f5224f0c8382a35675a3d418
+      resolved-ref: d4e640c0863c9d76f5224f0c8382a35675a3d418
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.11"
@@ -989,8 +989,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: 4d715c811abdcc8f26ee6e49adadf01a1ee0def8
-      resolved-ref: 4d715c811abdcc8f26ee6e49adadf01a1ee0def8
+      ref: d4e640c0863c9d76f5224f0c8382a35675a3d418
+      resolved-ref: d4e640c0863c9d76f5224f0c8382a35675a3d418
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.2.5"

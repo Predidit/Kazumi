@@ -76,25 +76,19 @@ class _InitPageState extends State<InitPage> {
     if (!mounted) {
       return;
     }
-    // First launch: no installed rules yet, hand over to the onboarding flow.
-    // OnboardingPage takes care of navigating to the default page and
-    // triggering the auto update check afterwards.
-    if (pluginsController.pluginList.isEmpty) {
+    // Installs that predate the flag already have rules; don't re-onboard them.
+    if (!GStorage.getSetting(SettingsKeys.onboardingCompleted) &&
+        pluginsController.pluginList.isEmpty) {
       context.navigate('/onboarding');
       return;
     }
 
-    if (!mounted) {
-      return;
-    }
     final updateController = myController;
     unawaited(runStartupUpdateCheck(
       isEnabled: () => GStorage.getSetting(SettingsKeys.autoUpdate),
-      checkForUpdate: () async {
-        await updateController.checkUpdate(type: 'auto');
-      },
+      checkForUpdate: () => updateController.checkUpdate(type: 'auto'),
     ));
-    _startDefaultPage();
+    context.navigate(GStorage.getSetting(SettingsKeys.defaultStartupPage));
   }
 
   void _setupBackgroundDownloadNavigation() {
@@ -144,15 +138,6 @@ class _InitPageState extends State<InitPage> {
       );
       return result ?? false;
     };
-  }
-
-  void _startDefaultPage() {
-    final defaultStartupPage =
-        GStorage.getSetting(SettingsKeys.defaultStartupPage);
-    if (!mounted) {
-      return;
-    }
-    context.navigate(defaultStartupPage);
   }
 
   // migrate collect from old version (favorites)

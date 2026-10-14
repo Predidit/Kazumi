@@ -348,12 +348,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
                             ),
                           ),
                         ),
-                        _footer(
-                          context,
-                          compact: compact,
-                          padding: padding,
-                          showReturn: wide,
-                        ),
+                        _footer(context, compact: compact, padding: padding),
                       ],
                     ],
                   );
@@ -690,7 +685,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     BuildContext context, {
     required bool compact,
     required double padding,
-    bool showReturn = false,
     bool stackActions = false,
   }) {
     final scaler = MediaQuery.textScalerOf(context);
@@ -730,11 +724,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
         builder: (context, constraints) {
           // Rough width the single-row layout needs before it must stack.
           final rowWidth =
-              saveWidth +
-              scaler.scale(96) +
-              scaler.scale(128) +
-              (showReturn ? scaler.scale(56) + 32 : 0) +
-              56;
+              saveWidth + scaler.scale(96) + scaler.scale(128) + 56;
           final stacked = stackActions || constraints.maxWidth < rowWidth;
           final pick = SizedBox(
             height: buttonHeight,
@@ -767,15 +757,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
               const Spacer(),
               selectAll,
               const SizedBox(width: 8),
-              if (showReturn) ...[
-                Observer(
-                  builder: (context) => TextButton(
-                    onPressed: collection.saving ? null : _close,
-                    child: const Text('返回播放'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
               SizedBox(width: saveWidth, child: save),
             ],
           );

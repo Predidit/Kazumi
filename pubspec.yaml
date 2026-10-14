@@ -5,7 +5,7 @@ version: 2.3.8+20308
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
-  flutter: 3.47.6
+  flutter: 3.47.7
 
 dependencies:
   flutter:
@@ -95,12 +95,12 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/sibogentleman/media-kit.git
-      ref: cb118d7d078dd25fbbad3e67180eb5b6639f6044
+      ref: e3511b090385044127f1eabb14c98b01d9c226e9
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/sibogentleman/media-kit.git
-      ref: cb118d7d078dd25fbbad3e67180eb5b6639f6044
+      ref: e3511b090385044127f1eabb14c98b01d9c226e9
       path: ./media_kit_video
   macos_secure_bookmarks: ^0.2.1
 

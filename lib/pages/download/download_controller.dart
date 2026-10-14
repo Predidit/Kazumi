@@ -131,6 +131,7 @@ abstract class _DownloadController with Store {
   }
 
   final Map<String, double> _speeds = {};
+  final _danmakuCacheAttempts = Expando<_DanmakuCacheAttempt>();
   final _backgroundNotificationUpdater = _LatestAsyncRunner();
   DateTime _lastUiUpdateTime = DateTime.now();
   static const _uiUpdateInterval = Duration(milliseconds: 500);
@@ -142,6 +143,25 @@ abstract class _DownloadController with Store {
       return;
     }
     _repository.updateEpisode(recordKey, episodeNumber, episode);
+
+    // The manager reports downloading only after preparing the directory.
+    // Queued episodes reach this point whenever a download slot becomes free.
+    if (episode.status == DownloadStatus.downloading &&
+        episode.downloadDirectory.isNotEmpty &&
+        GStorage.getSetting(SettingsKeys.downloadDanmaku) &&
+        _danmakuCacheAttempts[episode] == null) {
+      final attempt = _DanmakuCacheAttempt();
+      _danmakuCacheAttempts[episode] = attempt;
+      unawaited(
+        _fetchAndCacheDanmaku(
+          recordKey,
+          record.bangumiId,
+          episodeNumber,
+          episode,
+          attempt,
+        ),
+      );
+    }
 
     final key = '${recordKey}_$episodeNumber';
 
@@ -642,16 +662,6 @@ abstract class _DownloadController with Store {
         adBlockerEnabled: adBlockerEnabled,
         episode: freshEpisode,
       ));
-
-      final bool downloadDanmaku =
-          GStorage.getSetting(SettingsKeys.downloadDanmaku);
-      if (downloadDanmaku) {
-        _fetchAndCacheDanmakuAsync(
-          request.recordKey,
-          request.bangumiId,
-          request.episodeNumber,
-        );
-      }
     } finally {
       _releaseResolveLease(key, lease);
     }
@@ -699,64 +709,80 @@ abstract class _DownloadController with Store {
     _resolverPool.cancelAll();
   }
 
-  void _fetchAndCacheDanmakuAsync(
-      String recordKey, int bangumiId, int episodeNumber) {
-    Future(() async {
-      try {
-        KazumiLogger().i(
-            'DownloadController: fetching danmaku for episode $episodeNumber (async)');
-
-        // 获取 DanDan 番剧 ID
-        final danDanBangumiID =
-            await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bangumiId);
-        if (danDanBangumiID == 0) {
-          KazumiLogger().w(
-              'DownloadController: failed to get DanDan bangumiID for $bangumiId');
-          return;
-        }
-
-        // 获取弹幕列表
-        final danmakus =
-            await DanmakuApi.getDanDanmaku(danDanBangumiID, episodeNumber);
-        if (danmakus.isEmpty) {
-          KazumiLogger().i(
-              'DownloadController: no danmaku found for episode $episodeNumber');
-          return;
-        }
-
-        // 等待 downloadDirectory 就绪（下载管理器处理任务后才设置）
-        String downloadDirectory = '';
-        for (int i = 0; i < 10; i++) {
-          final record = _repository.getRecord(recordKey);
-          final episode = record?.episodes[episodeNumber];
-          if (episode == null) return;
-          if (episode.status == DownloadStatus.failed ||
-              episode.status == DownloadStatus.paused) {
-            return;
-          }
-          if (episode.downloadDirectory.isNotEmpty) {
-            downloadDirectory = episode.downloadDirectory;
-            break;
-          }
-          await Future.delayed(const Duration(seconds: 3));
-        }
-        if (downloadDirectory.isEmpty) {
-          KazumiLogger().w(
-              'DownloadController: downloadDirectory not ready for episode $episodeNumber, skipping danmaku cache');
-          return;
-        }
-
-        // 写入独立文件
-        await _writeDanmakuToFile(downloadDirectory, danmakus, danDanBangumiID);
-
-        KazumiLogger().i(
-            'DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber');
-      } catch (e) {
-        // 弹幕获取失败不影响下载
-        KazumiLogger()
-            .w('DownloadController: failed to fetch danmaku', error: e);
+  Future<void> _fetchAndCacheDanmaku(
+    String recordKey,
+    int bangumiId,
+    int episodeNumber,
+    DownloadEpisode episode,
+    _DanmakuCacheAttempt attempt,
+  ) async {
+    bool isCurrent() =>
+        !attempt.cancelled &&
+        identical(
+          _repository.getRecord(recordKey)?.episodes[episodeNumber],
+          episode,
+        );
+    final downloadDirectory = episode.downloadDirectory;
+    try {
+      final cached = await _readDanmakuFromFile(downloadDirectory);
+      if (!isCurrent() || (cached != null && cached.danmakus.isNotEmpty)) {
+        return;
       }
-    });
+      KazumiLogger().i(
+        'DownloadController: fetching danmaku for episode $episodeNumber (async)',
+      );
+
+      // 获取 DanDan 番剧 ID
+      final danDanBangumiID = await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(
+        bangumiId,
+      );
+      if (!isCurrent()) return;
+      if (danDanBangumiID == 0) {
+        KazumiLogger().w(
+          'DownloadController: failed to get DanDan bangumiID for $bangumiId',
+        );
+        return;
+      }
+
+      // 获取弹幕列表
+      final danmakus = await DanmakuApi.getDanDanmaku(
+        danDanBangumiID,
+        episodeNumber,
+      );
+      if (!isCurrent()) return;
+      if (danmakus.isEmpty) {
+        KazumiLogger().i(
+          'DownloadController: no danmaku found for episode $episodeNumber',
+        );
+        return;
+      }
+
+      // 写入独立文件
+      // Deletion waits for an already-started write, never for the network.
+      await (attempt.write = _writeDanmakuToFile(
+        downloadDirectory,
+        danmakus,
+        danDanBangumiID,
+      ));
+
+      KazumiLogger().i(
+        'DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber',
+      );
+    } catch (e) {
+      // 弹幕获取失败不影响下载
+      KazumiLogger().w('DownloadController: failed to fetch danmaku', error: e);
+    } finally {
+      attempt.finished = true;
+    }
+  }
+
+  void _resetDanmakuCacheAttempt(DownloadEpisode episode) {
+    // Keep an in-flight request across pause/resume. A new download attempt
+    // may retry a failed fetch; an existing cache avoids another API request.
+    final attempt = _danmakuCacheAttempts[episode];
+    if (attempt != null && (attempt.finished || attempt.cancelled)) {
+      _danmakuCacheAttempts[episode] = null;
+    }
   }
 
   void _failEpisode(String recordKey, int episodeNumber, String message) {
@@ -824,6 +850,7 @@ abstract class _DownloadController with Store {
     if (record == null) return;
     final episode = record.episodes[episodeNumber];
     if (episode == null) return;
+    _resetDanmakuCacheAttempt(episode);
 
     final plugin = _findPlugin(pluginName);
     if (plugin == null) {
@@ -922,9 +949,15 @@ abstract class _DownloadController with Store {
     for (final episodeNumber in episodes.keys) {
       _downloadManager.cancel(recordKey, episodeNumber);
       _speeds.remove('${recordKey}_$episodeNumber');
+      _danmakuCacheAttempts[episodes[episodeNumber]!]?.cancelled = true;
     }
     for (final entry in episodes.entries) {
       final episode = entry.value;
+      try {
+        await _danmakuCacheAttempts[episode]?.write;
+      } catch (_) {
+        // Cache write failures are logged by the cache task.
+      }
       if (episode.status == DownloadStatus.downloading ||
           episode.status == DownloadStatus.resolving ||
           episode.status == DownloadStatus.pending) {
@@ -944,6 +977,7 @@ abstract class _DownloadController with Store {
     if (record == null) return;
     final episode = record.episodes[episodeNumber];
     if (episode == null) return;
+    _resetDanmakuCacheAttempt(episode);
 
     final plugin = _findPlugin(pluginName);
     if (plugin == null) {
@@ -1027,6 +1061,12 @@ abstract class _DownloadController with Store {
         .where((e) => e.status == DownloadStatus.completed)
         .length;
   }
+}
+
+class _DanmakuCacheAttempt {
+  bool cancelled = false;
+  bool finished = false;
+  Future<void>? write;
 }
 
 class _ResolveRequest {

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dio/dio.dart';
+import 'package:dio/dio.dart' hide ProgressCallback;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/download/download_module.dart';

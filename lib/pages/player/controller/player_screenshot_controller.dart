@@ -48,6 +48,11 @@ abstract class _PlayerScreenshotController with Store {
   @computed
   int get selectedCount => _selected.length;
 
+  // Selection only ever holds ids of current candidates.
+  @computed
+  bool get allSelected =>
+      _candidates.isNotEmpty && _selected.length == _candidates.length;
+
   bool isSelected(ScreenshotCandidate item) => _selected.contains(item.id);
 
   void _report(String message, {bool error = false}) {
@@ -112,6 +117,16 @@ abstract class _PlayerScreenshotController with Store {
       return;
     }
     if (!_selected.remove(item.id)) _selected.add(item.id);
+  }
+
+  @action
+  void setAllSelected(bool selected) {
+    if (_disposed || _saving) return;
+    if (selected) {
+      _selected.addAll(_candidates.map((item) => item.id));
+    } else {
+      _selected.clear();
+    }
   }
 
   void _removeCandidates(Iterable<ScreenshotCandidate> items) {

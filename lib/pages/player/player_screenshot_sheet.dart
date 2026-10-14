@@ -186,14 +186,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     if (item != null) collection.toggle(item);
   }
 
-  void _toggleSelectAll() {
-    if (collection.busy || collection.candidates.isEmpty) return;
-    final all = collection.candidates.every(collection.isSelected);
-    for (final item in collection.candidates) {
-      if (all == collection.isSelected(item)) collection.toggle(item);
-    }
-  }
-
   void _close() {
     if (!collection.saving) Navigator.maybePop(context);
   }
@@ -428,13 +420,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
                   ),
                 ),
                 Center(child: _navigation()),
-                _footer(
-                  context,
-                  compact: true,
-                  padding: 0,
-                  stackActions: true,
-                  denseActions: true,
-                ),
+                _footer(context, compact: true, padding: 0, stackActions: true),
               ],
             ),
           ),
@@ -634,13 +620,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       return Semantics(
         selected: selected,
         child: FilledButton.tonalIcon(
-          style: _actionStyle(selected: selected).copyWith(
-            backgroundColor: WidgetStatePropertyAll(
-              selected
-                  ? Theme.of(context).colorScheme.secondaryContainer
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-          ),
+          style: _toggleStyle(selected: selected),
           onPressed: collection.saving ? null : _toggle,
           icon: Icon(
             selected
@@ -712,7 +692,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     required double padding,
     bool showReturn = false,
     bool stackActions = false,
-    bool denseActions = false,
   }) {
     final scaler = MediaQuery.textScalerOf(context);
     final buttonHeight = math.max(48.0, scaler.scale(20) + 24);
@@ -740,11 +719,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
         ),
       ),
     );
-    final selectAll = _selectAllButton(height: buttonHeight, compact: false);
-    final selectAllCompact = _selectAllButton(
-      height: buttonHeight,
-      compact: true,
-    );
     return Padding(
       padding: EdgeInsets.fromLTRB(
         padding,
@@ -754,46 +728,34 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final stacked =
-              stackActions ||
-              constraints.maxWidth <
-                  saveWidth + scaler.scale(96) + scaler.scale(128) + 48;
+          // Rough width the single-row layout needs before it must stack.
+          final rowWidth =
+              saveWidth +
+              scaler.scale(96) +
+              scaler.scale(128) +
+              (showReturn ? scaler.scale(56) + 32 : 0) +
+              56;
+          final stacked = stackActions || constraints.maxWidth < rowWidth;
           final pick = SizedBox(
             height: buttonHeight,
             child: _pickButton(current!),
           );
+          final selectAll = _selectAllButton(
+            height: buttonHeight,
+            compact: stacked,
+          );
           if (stacked) {
-            if (denseActions) {
-              // 横屏窄栏：把「全选」压成紧凑形态并与「选择这张」同排，
-              // 底栏由 3 行变 2 行，避免大字体下右侧栏溢出。
-              //
-              // 「全选」刻意不参与 flex，只占它文字所需的宽度，
-              // 剩余宽度全部给「选择这张」，这样即使侧栏只有 208px 宽，
-              // 两个按钮的文字也不会被截断。
-              //
-              // 注意：这里不能用 Expanded + Expanded 等分 —— 实测在 208px 侧栏下
-              // 「选择这张」只剩 32px（需要 56px），任何字号都会被截断。
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: pick),
-                      const SizedBox(width: 8),
-                      selectAllCompact,
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  save,
-                ],
-              );
-            }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                pick,
-                const SizedBox(height: 8),
-                selectAll,
+                // Select-all stays intrinsic so the pick label never truncates.
+                Row(
+                  children: [
+                    Expanded(child: pick),
+                    const SizedBox(width: 8),
+                    selectAll,
+                  ],
+                ),
                 const SizedBox(height: 8),
                 save,
               ],
@@ -802,9 +764,9 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
           return Row(
             children: [
               pick,
-              const SizedBox(width: 8),
-              selectAll,
               const Spacer(),
+              selectAll,
+              const SizedBox(width: 8),
               if (showReturn) ...[
                 Observer(
                   builder: (context) => TextButton(
@@ -822,31 +784,20 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     );
   }
 
-  /// 「全选 / 取消全选」按钮。
-  ///
-  /// `compact` 为横屏窄栏使用的紧凑形态：去掉图标并把左右内边距由 20 收到 8，
-  /// 让按钮宽度只取决于文字本身，从而能和「选择这张」并排而不占额外一行。
-  /// 文字标签始终保留。
   Widget _selectAllButton({required double height, required bool compact}) =>
       SizedBox(
         height: height,
         child: Observer(
           builder: (context) {
-            final all = collection.candidates.isNotEmpty &&
-                collection.candidates.every(collection.isSelected);
-            final onPressed = collection.busy || collection.candidates.isEmpty
+            final all = collection.allSelected;
+            final style = _toggleStyle(selected: all);
+            final onPressed = collection.saving
                 ? null
-                : _toggleSelectAll;
-            final background = WidgetStatePropertyAll(
-              all
-                  ? Theme.of(context).colorScheme.secondaryContainer
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
-            );
+                : () => collection.setAllSelected(!all);
             final label = Text(all ? '取消全选' : '全选');
             if (compact) {
               return FilledButton.tonal(
-                style: _actionStyle().copyWith(
-                  backgroundColor: background,
+                style: style.copyWith(
                   padding: const WidgetStatePropertyAll(
                     EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   ),
@@ -856,7 +807,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
               );
             }
             return FilledButton.tonalIcon(
-              style: _actionStyle().copyWith(backgroundColor: background),
+              style: style,
               onPressed: onPressed,
               icon: Icon(
                 all ? Icons.deselect_rounded : Icons.select_all_rounded,
@@ -867,6 +818,15 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
           },
         ),
       );
+
+  ButtonStyle _toggleStyle({required bool selected}) {
+    final colors = Theme.of(context).colorScheme;
+    return _actionStyle(selected: selected).copyWith(
+      backgroundColor: WidgetStatePropertyAll(
+        selected ? colors.secondaryContainer : colors.surfaceContainerHighest,
+      ),
+    );
+  }
 
   ButtonStyle _actionStyle({bool selected = false}) => ButtonStyle(
     minimumSize: const WidgetStatePropertyAll(Size(48, 48)),

@@ -10,10 +10,12 @@ import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/danmaku_destination_sheet.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
+import 'package:kazumi/pages/player/controller/danmaku_edit_pause.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -99,6 +101,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
 
+  final DanmakuEditPauseController _danmakuEditPause =
+      DanmakuEditPauseController();
+
   String? _cachedDanmakuColorHex;
   late Widget _cachedDanmakuOnIcon;
   late final Widget _cachedDanmakuOffIcon;
@@ -117,9 +122,31 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   @override
   void dispose() {
+    textFieldFocus.removeListener(_handleDanmakuEditFocus);
     textController.dispose();
     textFieldFocus.dispose();
     super.dispose();
+  }
+
+  /// Pauses playback while the danmaku composer has focus and resumes it once
+  /// the input loses focus — but only when this panel is what paused it, so a
+  /// video the user paused manually stays paused. Playback changed here stays
+  /// local (`enableSync: false`), otherwise writing a danmaku would pause or
+  /// resume the whole SyncPlay room and could override a peer's pause.
+  void _handleDanmakuEditFocus() {
+    final action = _danmakuEditPause.onFocusChanged(
+      hasFocus: textFieldFocus.hasFocus,
+      enabled: GStorage.getSetting<bool>(SettingsKeys.pauseOnDanmakuEdit),
+      playing: playerController.playback.playing,
+    );
+    switch (action) {
+      case DanmakuEditPauseAction.pause:
+        unawaited(playerController.pause(enableSync: false));
+      case DanmakuEditPauseAction.resume:
+        unawaited(playerController.play(enableSync: false));
+      case DanmakuEditPauseAction.none:
+        break;
+    }
   }
 
   Future<void> _submitDanmakuText(String message) async {
@@ -172,7 +199,19 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   }
 
   Widget get _danmakuTextField {
-    return Observer(builder: (context) {
+    // 编辑期间把输入框之外的点击从手势竞技场里摘掉：这一次点击只用于退出输入框
+    // （失焦即恢复播放），不会再落到视频、播放键或进度条上，因此同一次点击不可能
+    // 既恢复又切回暂停。这与倍速等菜单用的是同一套框架机制
+    // （KazumiMenuButton → MenuAnchor.consumeOutsideTap → TapRegion.consumeOutsideTaps）；
+    // 退出编辑仍由输入框原有的 onTapOutside 完成。
+    return ListenableBuilder(
+      listenable: textFieldFocus,
+      builder: (context, child) => TapRegion(
+        consumeOutsideTaps: textFieldFocus.hasFocus &&
+            GStorage.getSetting<bool>(SettingsKeys.pauseOnDanmakuEdit),
+        child: child!,
+      ),
+      child: Observer(builder: (context) {
       return PlayerPanelHoldFocusRegion(
           acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
           child: Container(
@@ -238,7 +277,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               },
             ),
           ));
-    });
+      }),
+    );
   }
 
   void _showForwardChange() {
@@ -284,6 +324,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   void initState() {
     super.initState();
     playerController = widget.playerController;
+    textFieldFocus.addListener(_handleDanmakuEditFocus);
     final visibility = widget.panelVisibilityController
         .drive(CurveTween(curve: Curves.easeInOut));
     _topOffsetAnimation = visibility.drive(Tween<Offset>(

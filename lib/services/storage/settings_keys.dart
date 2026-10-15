@@ -1,4 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:kazumi/services/player/syncplay_endpoint.dart';
+
+/// 供设置默认值使用：桌面平台(Windows/macOS/Linux)。
+bool get _isDesktopPlatform =>
+    defaultTargetPlatform == TargetPlatform.windows ||
+    defaultTargetPlatform == TargetPlatform.macOS ||
+    defaultTargetPlatform == TargetPlatform.linux;
 
 enum SettingGroup {
   player,
@@ -101,6 +108,16 @@ class SettingsKeys {
     _SettingBoxKey.danmakuEnhance,
     true,
     group: SettingGroup.danmaku,
+  );
+  /// 与 B 站客户端的发弹幕逻辑一致：桌面端编辑弹幕时不暂停视频，移动端暂停。
+  ///
+  /// 想让所有平台都默认暂停：把 `defaultResolver` 这一行删掉即可（`defaultValue`
+  /// 就是 `true`）；用户也可以在「设置 → 弹幕 → 弹幕显示」里自行打开。
+  static final pauseOnDanmakuEdit = SettingKey<bool>(
+    _SettingBoxKey.pauseOnDanmakuEdit,
+    true,
+    group: SettingGroup.danmaku,
+    defaultResolver: (_) => !_isDesktopPlatform,
   );
   static const danmakuBorder = SettingKey<bool>(
     _SettingBoxKey.danmakuBorder,
@@ -585,6 +602,7 @@ class SettingsKeys {
     danmakuBottom,
     danmakuMassive,
     danmakuDeduplication,
+    pauseOnDanmakuEdit,
     danmakuChConvert,
     danmakuArea,
     danmakuColor,
@@ -695,6 +713,7 @@ class _SettingBoxKey {
       buttonSkipTime = 'buttonSkipTime',
       arrowKeySkipTime = 'arrowKeySkipTime',
       danmakuEnhance = 'danmakuEnhance',
+      pauseOnDanmakuEdit = 'pauseOnDanmakuEdit',
       danmakuBorder = 'danmakuBorder',
       danmakuBorderSize = 'danmakuBorderSize',
       danmakuOpacity = 'danmakuOpacity',

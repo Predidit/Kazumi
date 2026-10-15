@@ -58,6 +58,9 @@ class WebDav {
       password: webDavPassword,
       debug: false,
     );
+    client.setConnectTimeout(15000);
+    client.setSendTimeout(60000);
+    client.setReceiveTimeout(60000);
     client.setHeaders({'accept-charset': 'utf-8'});
     client.c.options.contentType = 'application/octet-stream';
     try {
@@ -583,12 +586,8 @@ class WebDav {
     final index = normalized.lastIndexOf('/');
     final parent = index <= 0 ? '/' : normalized.substring(0, index);
     final name = normalized.substring(index + 1);
-    try {
-      final files = await client.readDir(parent);
-      return files.any((file) => file.name == name);
-    } catch (_) {
-      return false;
-    }
+    final files = await client.readDir(parent);
+    return files.any((file) => file.name == name);
   }
 
   Future<bool> _tryImportLegacyHistory(Directory runDirectory) async {

@@ -1,3 +1,5 @@
+import 'package:kazumi/services/logging/logger.dart';
+
 typedef WebDavRemoveRemoteFile = Future<void> Function(String path);
 typedef WebDavUploadRemoteFile = Future<void> Function(
   String sourceFilePath,
@@ -35,11 +37,19 @@ class WebDavRemoteFileCommitter {
       );
       await rename(temporaryPath, destinationPath);
     } catch (_) {
-      await _removeIfExists(
-        temporaryPath,
-        remove: remove,
-        exists: exists,
-      );
+      try {
+        await _removeIfExists(
+          temporaryPath,
+          remove: remove,
+          exists: exists,
+        );
+      } catch (error, stackTrace) {
+        KazumiLogger().w(
+          'WebDav: failed to clean temporary remote file',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
       rethrow;
     }
   }
@@ -49,12 +59,7 @@ class WebDavRemoteFileCommitter {
     required WebDavRemoveRemoteFile remove,
     required WebDavRemoteEntryExists exists,
   }) async {
-    try {
-      await remove(path);
-    } catch (_) {
-      if (await exists(path)) {
-        rethrow;
-      }
-    }
+    if (!await exists(path)) return;
+    await remove(path);
   }
 }

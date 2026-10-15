@@ -53,35 +53,44 @@ class VideoWebviewWindowsImpl
     isVideoSourceLoaded = false;
     videoLoadingEventController.add(true);
     subscriptions.add(headlessWebview!.onM3USourceLoaded.listen((data) {
-      if (headlessWebview == null) return;
-      String url = data['url'] ?? '';
-      if (url.isEmpty) {
-        return;
-      }
-      unloadPage();
-      isIframeLoaded = true;
-      isVideoSourceLoaded = true;
-      videoLoadingEventController.add(false);
-      logEventController.add('Loading m3u8 source: $url');
-      notifyVideoSourceResolved(
-        url,
-        format: VideoSourceFormat.hls,
-      );
+      _resolveVideoSource(data['url'] ?? '', format: VideoSourceFormat.hls);
     }));
     subscriptions.add(headlessWebview!.onVideoSourceLoaded.listen((data) {
-      if (headlessWebview == null) return;
-      String url = data['url'] ?? '';
-      if (url.isEmpty) {
-        return;
+      _resolveVideoSource(data['url'] ?? '');
+    }));
+    subscriptions.add(headlessWebview!.onSourceLoaded.listen((data) {
+      if (_isMp4Resource(data)) {
+        _resolveVideoSource(data['url']!);
       }
-      unloadPage();
-      isIframeLoaded = true;
-      isVideoSourceLoaded = true;
-      videoLoadingEventController.add(false);
-      logEventController.add('Loading video source: $url');
-      notifyVideoSourceResolved(url);
     }));
     await headlessWebview!.loadUrl(url);
+  }
+
+  bool _isMp4Resource(Map<String, String> data) {
+    if (data['method'] != 'GET') return false;
+    final uri = Uri.tryParse(data['url'] ?? '');
+    if (uri == null ||
+        !(uri.isScheme('http') || uri.isScheme('https')) ||
+        uri.host.isEmpty ||
+        !uri.path.toLowerCase().endsWith('.mp4')) {
+      return false;
+    }
+    final mime = (data['contentType'] ?? '').split(';').first.trim().toLowerCase();
+    return mime.isEmpty ||
+        mime == 'audio/mpeg' ||
+        mime == 'application/octet-stream';
+  }
+
+  void _resolveVideoSource(String url,
+      {VideoSourceFormat format = VideoSourceFormat.auto}) {
+    if (headlessWebview == null || isVideoSourceLoaded || url.isEmpty) return;
+    isVideoSourceLoaded = true;
+    isIframeLoaded = true;
+    videoLoadingEventController.add(false);
+    final kind = format == VideoSourceFormat.hls ? 'm3u8' : 'video';
+    logEventController.add('Loading $kind source: $url');
+    notifyVideoSourceResolved(url, format: format);
+    unawaited(unloadPage());
   }
 
   @override

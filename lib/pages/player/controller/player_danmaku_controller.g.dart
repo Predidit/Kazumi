@@ -46,9 +46,11 @@ mixin _$PlayerDanmakuController on _PlayerDanmakuController, Store {
       context: context);
 
   @override
-  Future<bool> getDanDanmakuByEpisodeID(int episodeID) {
+  Future<bool> getDanDanmakuByEpisodeID(int episodeID,
+      {bool? useCustomServer}) {
     return _$getDanDanmakuByEpisodeIDAsyncAction
-        .run(() => super.getDanDanmakuByEpisodeID(episodeID));
+        .run(() => super.getDanDanmakuByEpisodeID(episodeID,
+            useCustomServer: useCustomServer));
   }
 
   late final _$_PlayerDanmakuControllerActionController =

@@ -208,6 +208,24 @@ class SettingsKeys {
     true,
     group: SettingGroup.danmaku,
   );
+  // 自定义弹幕服务器 (danmu_api / LogVar, 兼容弹弹play v2 接口)
+  static const customDanmakuServerEnable = SettingKey<bool>(
+    'customDanmakuServerEnable',
+    false,
+    group: SettingGroup.danmaku,
+  );
+  // base URL, 可携带 token 路径段, 例如 http://192.168.1.7:9321/87654321
+  static const customDanmakuServerUrl = SettingKey<String>(
+    'customDanmakuServerUrl',
+    '',
+    group: SettingGroup.danmaku,
+  );
+  // 播放时是否按番剧标题自动匹配弹幕 (自定义服务器不支持 bgmtv ID 映射)
+  static const customDanmakuServerAutoMatch = SettingKey<bool>(
+    'customDanmakuServerAutoMatch',
+    true,
+    group: SettingGroup.danmaku,
+  );
   static const themeMode = SettingKey<String>(
     _SettingBoxKey.themeMode,
     'system',
@@ -597,6 +615,9 @@ class SettingsKeys {
     danmakuDanDanSource,
     danmakuFontWeight,
     danmakuFollowSpeed,
+    customDanmakuServerEnable,
+    customDanmakuServerUrl,
+    customDanmakuServerAutoMatch,
     themeMode,
     themeColor,
     privateMode,

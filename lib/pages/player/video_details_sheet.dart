@@ -148,6 +148,15 @@ class _VideoDetailsSheetState extends State<_VideoDetailsSheet>
             _statusField(context, '播放列表', debug.playerPlaylist, compact: true),
           ]),
           const SizedBox(height: 24),
+          ContentSection.group(title: '弹幕', children: [
+            _statusField(
+              context,
+              '弹幕来源',
+              playerController.danmaku.danmakuSourceLabel,
+              compact: true,
+            ),
+          ]),
+          const SizedBox(height: 24),
           ContentSection.group(title: '技术信息', children: [
             ExpansionTile(
               key: const PageStorageKey('video-parameters'),

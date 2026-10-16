@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/modules/danmaku/custom_danmaku_server_config.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -706,21 +707,12 @@ abstract class _DownloadController with Store {
         KazumiLogger().i(
             'DownloadController: fetching danmaku for episode $episodeNumber (async)');
 
-        // 获取 DanDan 番剧 ID
-        final danDanBangumiID =
-            await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bangumiId);
-        if (danDanBangumiID == 0) {
-          KazumiLogger().w(
-              'DownloadController: failed to get DanDan bangumiID for $bangumiId');
-          return;
-        }
-
-        // 获取弹幕列表
-        final danmakus =
-            await DanmakuApi.getDanDanmaku(danDanBangumiID, episodeNumber);
-        if (danmakus.isEmpty) {
+        final resolved = await _resolveDanmakusForDownload(
+            recordKey, bangumiId, episodeNumber);
+        final danmakus = resolved.danmakus;
+        if (danmakus == null || danmakus.isEmpty) {
           KazumiLogger().i(
-              'DownloadController: no danmaku found for episode $episodeNumber');
+              'DownloadController: no danmaku available for episode $episodeNumber');
           return;
         }
 
@@ -747,7 +739,8 @@ abstract class _DownloadController with Store {
         }
 
         // 写入独立文件
-        await _writeDanmakuToFile(downloadDirectory, danmakus, danDanBangumiID);
+        await _writeDanmakuToFile(
+            downloadDirectory, danmakus, resolved.danDanBangumiID);
 
         KazumiLogger().i(
             'DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber');
@@ -757,6 +750,48 @@ abstract class _DownloadController with Store {
             .w('DownloadController: failed to fetch danmaku', error: e);
       }
     });
+  }
+
+  /// 下载预取弹幕: 自定义弹幕服务器优先 (按标题匹配), 无弹幕 (或请求失败)
+  /// 时回退弹弹play bgmtv ID 映射。
+  /// danmakus 为 null 表示无法获取 (与「获取到空列表」区分, 两者都跳过缓存);
+  /// danDanBangumiID 仅写入缓存文件留档, 自定义服务器无对应 ID 时记 0。
+  Future<({List<DanmakuEntry>? danmakus, int danDanBangumiID})>
+      _resolveDanmakusForDownload(
+    String recordKey,
+    int bangumiId,
+    int episodeNumber,
+  ) async {
+    if (CustomDanmakuServerConfig.isEnabled) {
+      final record = _repository.getRecord(recordKey);
+      final name = record?.bangumiName.trim() ?? '';
+      if (name.isNotEmpty) {
+        try {
+          final resolved = await DanmakuApi.getCustomDanmakuByBangumiName(
+              name, episodeNumber);
+          if (resolved.danmakus.isNotEmpty) {
+            return (danmakus: resolved.danmakus, danDanBangumiID: 0);
+          }
+        } catch (e) {
+          KazumiLogger().w(
+              'DownloadController: custom danmaku fetch failed', error: e);
+        }
+      }
+      KazumiLogger().i(
+          'DownloadController: custom danmaku unavailable, falling back to弹弹play');
+    }
+    // 获取 DanDan 番剧 ID
+    final danDanBangumiID =
+        await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bangumiId);
+    if (danDanBangumiID == 0) {
+      KazumiLogger().w(
+          'DownloadController: failed to get DanDan bangumiID for $bangumiId');
+      return (danmakus: null, danDanBangumiID: 0);
+    }
+    // 获取弹幕列表
+    final danmakus =
+        await DanmakuApi.getDanDanmaku(danDanBangumiID, episodeNumber);
+    return (danmakus: danmakus, danDanBangumiID: danDanBangumiID);
   }
 
   void _failEpisode(String recordKey, int episodeNumber, String message) {

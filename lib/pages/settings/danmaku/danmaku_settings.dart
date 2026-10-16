@@ -3,6 +3,8 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/modules/danmaku/custom_danmaku_client.dart';
+import 'package:kazumi/modules/danmaku/custom_danmaku_server_config.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_ch_convert_tile.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -32,6 +34,9 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuGamerSource;
   late bool danmakuDanDanSource;
   late bool danmakuFollowSpeed;
+  late bool customDanmakuServerEnabled;
+  late String customDanmakuServerUrl;
+  late bool customDanmakuServerAutoMatch;
 
   @override
   void didChangeDependencies() {
@@ -71,6 +76,12 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         GStorage.getSetting<bool>(SettingsKeys.danmakuDanDanSource);
     danmakuFollowSpeed =
         GStorage.getSetting<bool>(SettingsKeys.danmakuFollowSpeed);
+    customDanmakuServerEnabled =
+        GStorage.getSetting<bool>(SettingsKeys.customDanmakuServerEnable);
+    customDanmakuServerUrl =
+        GStorage.getSetting<String>(SettingsKeys.customDanmakuServerUrl);
+    customDanmakuServerAutoMatch =
+        GStorage.getSetting<bool>(SettingsKeys.customDanmakuServerAutoMatch);
   }
 
   Future<void> resetDanmakuSettings() async {
@@ -148,6 +159,63 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     });
   }
 
+  Future<void> editCustomDanmakuServerUrl() async {
+    final controller =
+        TextEditingController(text: customDanmakuServerUrl);
+    final input = await KazumiDialog.show<String>(
+      builder: (context) => AlertDialog(
+        title: const Text('自定义弹幕服务器地址'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'http(s)://地址[:端口]/[token]',
+            helperText: '需兼容弹弹play v2 接口规范，如 danmu_api（LogVar 弹幕 API）',
+            helperMaxLines: 3,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => KazumiDialog.dismiss(context: context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () =>
+                KazumiDialog.dismiss(popWith: controller.text.trim()),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (input == null) {
+      return;
+    }
+    if (input.isNotEmpty &&
+        CustomDanmakuServerConfig.normalizeBaseUrl(input) == null) {
+      if (!mounted) return;
+      KazumiDialog.showToast(message: '地址格式不正确');
+      return;
+    }
+    await GStorage.putSetting<String>(
+        SettingsKeys.customDanmakuServerUrl, input);
+    if (!mounted) return;
+    setState(() {
+      customDanmakuServerUrl = input;
+    });
+  }
+
+  Future<void> testCustomDanmakuServer() async {
+    if (!CustomDanmakuServerConfig.isEnabled) {
+      KazumiDialog.showToast(message: '请先填写有效的服务器地址');
+      return;
+    }
+    KazumiDialog.showToast(message: '正在测试连接…');
+    final success = await CustomDanmakuClient.instance.testConnection();
+    if (!mounted) return;
+    KazumiDialog.showToast(message: success ? '连接成功' : '连接失败');
+  }
+
   @override
   Widget build(BuildContext context) {
     return SettingsDetailScaffold(
@@ -190,6 +258,56 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                 },
                 title: Text('弹弹play'),
                 initialValue: danmakuDanDanSource,
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: Text('自定义弹幕服务器'),
+            tiles: [
+              SettingsTile.switchTile(
+                leading: Icons.dns_rounded,
+                title: Text('启用自定义弹幕服务器'),
+                description: Text('兼容弹弹play v2 接口，如 danmu_api'),
+                initialValue: customDanmakuServerEnabled,
+                onToggle: (value) async {
+                  final next = value ?? !customDanmakuServerEnabled;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.customDanmakuServerEnable, next);
+                  setState(() {
+                    customDanmakuServerEnabled = next;
+                  });
+                },
+              ),
+              SettingsTile(
+                leading: Icons.link_rounded,
+                title: Text('服务器地址'),
+                value: Text(
+                  customDanmakuServerUrl.isEmpty
+                      ? '未配置'
+                      : customDanmakuServerUrl,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onPressed: (_) => editCustomDanmakuServerUrl(),
+              ),
+              SettingsTile(
+                leading: Icons.network_check_rounded,
+                title: Text('测试连接'),
+                onPressed: (_) => testCustomDanmakuServer(),
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.auto_mode_rounded,
+                title: Text('播放时按标题自动匹配弹幕'),
+                description: Text('关闭后仅在播放页手动搜索选择弹幕'),
+                initialValue: customDanmakuServerAutoMatch,
+                onToggle: (value) async {
+                  final next = value ?? !customDanmakuServerAutoMatch;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.customDanmakuServerAutoMatch, next);
+                  setState(() {
+                    customDanmakuServerAutoMatch = next;
+                  });
+                },
               ),
             ],
           ),

@@ -3,6 +3,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/info/info_page.dart';
 import 'package:kazumi/pages/route_error_page.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 
 final infoModule = createModule(
   path: '/info',
@@ -18,6 +19,7 @@ final infoModule = createModule(
         return InfoPage(
           inputBangumiItem: bangumiItem,
           infoController: context.read<InfoController>(),
+          pluginsController: inject<PluginsController>(),
         );
       },
     );

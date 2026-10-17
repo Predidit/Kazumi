@@ -980,8 +980,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: e3511b090385044127f1eabb14c98b01d9c226e9
-      resolved-ref: e3511b090385044127f1eabb14c98b01d9c226e9
+      ref: a81f7166e9cd036543481e448f1a79cef5c8054a
+      resolved-ref: a81f7166e9cd036543481e448f1a79cef5c8054a
       url: "https://github.com/sibogentleman/media-kit.git"
     source: git
     version: "1.1.11"
@@ -989,8 +989,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: e3511b090385044127f1eabb14c98b01d9c226e9
-      resolved-ref: e3511b090385044127f1eabb14c98b01d9c226e9
+      ref: a81f7166e9cd036543481e448f1a79cef5c8054a
+      resolved-ref: a81f7166e9cd036543481e448f1a79cef5c8054a
       url: "https://github.com/sibogentleman/media-kit.git"
     source: git
     version: "1.2.5"

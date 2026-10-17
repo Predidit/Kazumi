@@ -1,7 +1,7 @@
 name: kazumi
 description: "A new Flutter project."
 publish_to: "none"
-version: 2.3.8+20308
+version: 2.3.9+20309
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
@@ -95,12 +95,12 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/sibogentleman/media-kit.git
-      ref: e3511b090385044127f1eabb14c98b01d9c226e9
+      ref: a81f7166e9cd036543481e448f1a79cef5c8054a
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/sibogentleman/media-kit.git
-      ref: e3511b090385044127f1eabb14c98b01d9c226e9
+      ref: a81f7166e9cd036543481e448f1a79cef5c8054a
       path: ./media_kit_video
   macos_secure_bookmarks: ^0.2.1
 
@@ -157,7 +157,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - assets/plugins/
     - assets/shaders/
     - assets/images/logo/
     - assets/statements/

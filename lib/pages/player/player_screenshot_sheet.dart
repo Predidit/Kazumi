@@ -348,12 +348,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
                             ),
                           ),
                         ),
-                        _footer(
-                          context,
-                          compact: compact,
-                          padding: padding,
-                          showReturn: wide,
-                        ),
+                        _footer(context, compact: compact, padding: padding),
                       ],
                     ],
                   );
@@ -620,13 +615,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       return Semantics(
         selected: selected,
         child: FilledButton.tonalIcon(
-          style: _actionStyle(selected: selected).copyWith(
-            backgroundColor: WidgetStatePropertyAll(
-              selected
-                  ? Theme.of(context).colorScheme.secondaryContainer
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-          ),
+          style: _toggleStyle(selected: selected),
           onPressed: collection.saving ? null : _toggle,
           icon: Icon(
             selected
@@ -696,7 +685,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     BuildContext context, {
     required bool compact,
     required double padding,
-    bool showReturn = false,
     bool stackActions = false,
   }) {
     final scaler = MediaQuery.textScalerOf(context);
@@ -734,36 +722,89 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final stacked =
-              stackActions ||
-              constraints.maxWidth < saveWidth + scaler.scale(96) + 48;
+          // Rough width the single-row layout needs before it must stack.
+          final rowWidth =
+              saveWidth + scaler.scale(96) + scaler.scale(128) + 56;
+          final stacked = stackActions || constraints.maxWidth < rowWidth;
           final pick = SizedBox(
             height: buttonHeight,
             child: _pickButton(current!),
           );
+          final selectAll = _selectAllButton(
+            height: buttonHeight,
+            compact: stacked,
+          );
           if (stacked) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [pick, const SizedBox(height: 8), save],
+              children: [
+                // Select-all stays intrinsic so the pick label never truncates.
+                Row(
+                  children: [
+                    Expanded(child: pick),
+                    const SizedBox(width: 8),
+                    selectAll,
+                  ],
+                ),
+                const SizedBox(height: 8),
+                save,
+              ],
             );
           }
           return Row(
             children: [
               pick,
               const Spacer(),
-              if (showReturn) ...[
-                Observer(
-                  builder: (context) => TextButton(
-                    onPressed: collection.saving ? null : _close,
-                    child: const Text('返回播放'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
+              selectAll,
+              const SizedBox(width: 8),
               SizedBox(width: saveWidth, child: save),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _selectAllButton({required double height, required bool compact}) =>
+      SizedBox(
+        height: height,
+        child: Observer(
+          builder: (context) {
+            final all = collection.allSelected;
+            final style = _toggleStyle(selected: all);
+            final onPressed = collection.saving
+                ? null
+                : () => collection.setAllSelected(!all);
+            final label = Text(all ? '取消全选' : '全选');
+            if (compact) {
+              return FilledButton.tonal(
+                style: style.copyWith(
+                  padding: const WidgetStatePropertyAll(
+                    EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  ),
+                ),
+                onPressed: onPressed,
+                child: label,
+              );
+            }
+            return FilledButton.tonalIcon(
+              style: style,
+              onPressed: onPressed,
+              icon: Icon(
+                all ? Icons.deselect_rounded : Icons.select_all_rounded,
+                size: 20,
+              ),
+              label: label,
+            );
+          },
+        ),
+      );
+
+  ButtonStyle _toggleStyle({required bool selected}) {
+    final colors = Theme.of(context).colorScheme;
+    return _actionStyle(selected: selected).copyWith(
+      backgroundColor: WidgetStatePropertyAll(
+        selected ? colors.secondaryContainer : colors.surfaceContainerHighest,
       ),
     );
   }

@@ -10,7 +10,7 @@ const _menuItemStyle = ButtonStyle(
   visualDensity: VisualDensity.standard,
 );
 
-class KazumiMenuButton extends StatelessWidget {
+class KazumiMenuButton extends StatefulWidget {
   const KazumiMenuButton({
     super.key,
     required this.builder,
@@ -23,6 +23,9 @@ class KazumiMenuButton extends StatelessWidget {
     this.onClose,
     this.style,
   });
+
+  static int _openCount = 0;
+  static bool get hasOpenMenu => _openCount > 0;
 
   final KazumiMenuBuilder builder;
   final List<Widget> menuChildren;
@@ -37,6 +40,38 @@ class KazumiMenuButton extends StatelessWidget {
   final MenuStyle? style;
 
   @override
+  State<KazumiMenuButton> createState() => _KazumiMenuButtonState();
+}
+
+class _KazumiMenuButtonState extends State<KazumiMenuButton> {
+  bool _isOpen = false;
+
+  @override
+  void dispose() {
+    if (_isOpen) {
+      _isOpen = false;
+      KazumiMenuButton._openCount--;
+    }
+    super.dispose();
+  }
+
+  void _handleOpen() {
+    if (!_isOpen) {
+      _isOpen = true;
+      KazumiMenuButton._openCount++;
+    }
+    widget.onOpen?.call();
+  }
+
+  void _handleClose() {
+    if (_isOpen) {
+      _isOpen = false;
+      KazumiMenuButton._openCount--;
+    }
+    widget.onClose?.call();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MenuButtonTheme(
       data: MenuButtonThemeData(
@@ -44,17 +79,17 @@ class KazumiMenuButton extends StatelessWidget {
         style: _menuItemStyle.merge(MenuButtonTheme.of(context).style),
       ),
       child: MenuAnchor(
-        controller: controller,
+        controller: widget.controller,
         consumeOutsideTap: true,
-        crossAxisUnconstrained: crossAxisUnconstrained,
-        animated: animated && !MediaQuery.disableAnimationsOf(context),
-        onOpen: onOpen,
-        onClose: onClose,
-        style: style,
-        menuChildren: menuChildren,
-        builder: (context, controller, _) => builder(
+        crossAxisUnconstrained: widget.crossAxisUnconstrained,
+        animated: widget.animated && !MediaQuery.disableAnimationsOf(context),
+        onOpen: _handleOpen,
+        onClose: _handleClose,
+        style: widget.style,
+        menuChildren: widget.menuChildren,
+        builder: (context, controller, _) => widget.builder(
           context,
-          enabled && menuChildren.isNotEmpty
+          widget.enabled && widget.menuChildren.isNotEmpty
               ? () => controller.isOpen ? controller.close() : controller.open()
               : null,
         ),

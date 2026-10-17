@@ -13,6 +13,9 @@ import 'package:kazumi/pages/player/syncplay_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/player/ios_pip_controller.dart';
+import 'package:kazumi/services/player/ios_pip_video_output_transition.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -142,7 +145,8 @@ class _PlayerItemState extends State<PlayerItem>
   bool? _lastPipDanmakuEnabled;
   Rect? _lastPipSourceRect;
   bool _pipSourceRectSyncScheduled = false;
-  bool _pipEnterRequested = false;
+  IosPipController? _iosPip;
+  IosPipVideoOutputTransition? _iosVideoOutputTransition;
   late mobx.ReactionDisposer _playerSizeListener;
 
   late mobx.ReactionDisposer _fullscreenListener;
@@ -156,16 +160,10 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused && !backgroundPlayback) {
-      // Suspend before awaiting pause so a later resume wins; pause alone keeps prefetching.
-      final suspend = playerController.playback.setPrefetchSuspended(true);
-      if (playerController.playback.mediaPlayer != null &&
-          playerController.playback.playerPlaying) {
-        try {
-          await playerController.pause(enableSync: false);
-        } catch (_) {}
-      }
-      await suspend;
+    if (state == AppLifecycleState.paused &&
+        !backgroundPlayback &&
+        !(_iosPip?.keepPlaybackInBackground ?? false)) {
+      await _pauseForBackground();
       return;
     }
     if (state == AppLifecycleState.resumed) {
@@ -176,6 +174,18 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.danmaku.canvasController.resume();
       }
     } catch (_) {}
+  }
+
+  Future<void> _pauseForBackground() async {
+    // Request prefetch suspension before awaiting pause so a later resume wins.
+    final suspend = playerController.playback.setPrefetchSuspended(true);
+    if (playerController.playback.mediaPlayer != null &&
+        playerController.playback.playerPlaying) {
+      try {
+        await playerController.pause(enableSync: false);
+      } catch (_) {}
+    }
+    await suspend;
   }
 
   Future<void> _syncAndroidAutoEnterPIPSetting() async {
@@ -217,7 +227,7 @@ class _PlayerItemState extends State<PlayerItem>
     // In picture in picture the measured rect is the small window itself.
     final Rect? sourceRect = videoPageController.isPip
         ? _lastPipSourceRect
-        : _androidPIPSourceRect();
+        : _pipSourceRect();
     if (!force &&
         _lastPipPlaying == playing &&
         _lastPipDanmakuEnabled == danmakuEnabled &&
@@ -237,8 +247,8 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
-  // Android PiP expects the letterboxed video bounds in physical pixels.
-  Rect? _androidPIPSourceRect() {
+  // Match the fitted video bounds: Android uses pixels, iOS uses points.
+  Rect? _pipSourceRect({bool physicalPixels = true}) {
     if (!mounted) {
       return null;
     }
@@ -266,13 +276,72 @@ class _PlayerItemState extends State<PlayerItem>
     }
     // Convert the fitted video rectangle to window coordinates for native PiP.
     rect = MatrixUtils.transformRect(renderObject.getTransformTo(null), rect);
-    final double ratio = MediaQuery.devicePixelRatioOf(context);
+    final double ratio = physicalPixels
+        ? MediaQuery.devicePixelRatioOf(context)
+        : 1;
     return Rect.fromLTRB(
       rect.left * ratio,
       rect.top * ratio,
       rect.right * ratio,
       rect.bottom * ratio,
     );
+  }
+
+  IosPipPlaybackState _iosPipPlaybackState() {
+    final playback = playerController.playback;
+    return IosPipPlaybackState(
+      textureId: playback.videoController?.id.value,
+      playing: playback.playerPlaying,
+      position: playback.playerPosition,
+      duration: playback.playerDuration,
+      rate: playback.playerSpeed,
+      sourceRect: _pipSourceRect(physicalPixels: false),
+    );
+  }
+
+  void _handleIOSPIPModeChanged(bool active, bool restored) {
+    if (!mounted) return;
+    playerController.panel.isIosPipActive = active;
+    if (!active && !restored && !backgroundPlayback &&
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.paused) {
+      unawaited(_pauseForBackground());
+    }
+  }
+
+  Future<void> enterMobilePictureInPicture() async {
+    if (Platform.isAndroid) {
+      await enterAndroidPictureInPicture();
+      return;
+    }
+    final pip = _iosPip;
+    if (pip == null ||
+        !mounted ||
+        playerController.panel.pipEntryPending ||
+        pip.isActive) {
+      return;
+    }
+    playerController.panel.pipEntryPending = true;
+    final result = await pip.enter();
+    if (!mounted) return;
+    mobx.runInAction(() {
+      playerController.panel.isIosPipActive = pip.isActive;
+      playerController.panel.pipEntryPending = false;
+    });
+    switch (result) {
+      case IosPipEntryResult.entered:
+        return;
+      case IosPipEntryResult.unsupported:
+        KazumiDialog.showToast(message: '当前设备不支持画中画，需要 iOS 15 或更高版本');
+      case IosPipEntryResult.notReady:
+        KazumiDialog.showToast(message: '视频尚未准备好，请稍后重试');
+      case IosPipEntryResult.failed:
+        KazumiDialog.showToast(message: '进入画中画失败');
+    }
+    // A failed entry must still honor the normal background playback setting.
+    if (!backgroundPlayback &&
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.paused) {
+      await _pauseForBackground();
+    }
   }
 
   // Remove controls before PiP entry to avoid rebuilding during the resize animation.
@@ -288,9 +357,7 @@ class _PlayerItemState extends State<PlayerItem>
       KazumiDialog.showToast(message: '当前设备不支持画中画');
       return;
     }
-    setState(() {
-      _pipEnterRequested = true;
-    });
+    playerController.panel.pipEntryPending = true;
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted) {
       return;
@@ -304,20 +371,16 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
     KazumiDialog.showToast(message: '进入画中画失败');
-    setState(() {
-      _pipEnterRequested = false;
-    });
+    playerController.panel.pipEntryPending = false;
   }
 
   void _handleAndroidPIPModeChanged(bool inPipMode) {
     if (!mounted || videoPageController.isPip == inPipMode) {
       return;
     }
-    setState(() {
-      videoPageController.isPip = inPipMode;
-    });
+    videoPageController.isPip = inPipMode;
     if (!inPipMode) {
-      _pipEnterRequested = false;
+      playerController.panel.pipEntryPending = false;
       _scheduleAndroidPIPSourceRectSync();
     }
   }
@@ -1178,6 +1241,7 @@ class _PlayerItemState extends State<PlayerItem>
     return Timer.periodic(const Duration(seconds: 1), (timer) {
       playerController.syncPlaybackState();
       unawaited(_updateAndroidPIPActions());
+      unawaited(_iosPip?.synchronize());
       _syncAudioServiceState();
       _emitDanmakusForCurrentPosition();
       if (!playerController.panel.volumeSeeking) {
@@ -1309,6 +1373,52 @@ class _PlayerItemState extends State<PlayerItem>
       unawaited(_updateAndroidPIPActions(force: true));
       _scheduleAndroidPIPSourceRectSync();
     }
+    if (Platform.isIOS) {
+      final videoOutputTransition = IosPipVideoOutputTransition(
+        resolveBinding: (expectedHandle) async {
+          final playback = playerController.playback;
+          final player = playback.mediaPlayer;
+          final video = playback.videoController;
+          final native = player?.platform;
+          if (!mounted ||
+              player == null ||
+              video == null ||
+              native is! NativePlayer) {
+            return null;
+          }
+          final handle = await player.handle;
+          bool isCurrent() =>
+              identical(player, playback.mediaPlayer) &&
+              identical(video, playback.videoController);
+          if (!mounted || handle != expectedHandle || !isCurrent()) return null;
+          return IosPipVideoOutputBinding(
+            handle: handle,
+            textureId: video.id,
+            isCurrent: isCurrent,
+            readVid: () => native.getProperty('vid'),
+            writeVid: (value) => native.setProperty('vid', value),
+          );
+        },
+      );
+      _iosVideoOutputTransition = videoOutputTransition;
+      _iosPip = IosPipController(
+        playbackState: _iosPipPlaybackState,
+        suspendVideo: videoOutputTransition.suspendVideo,
+        resumeVideo: videoOutputTransition.resumeVideo,
+        playerHandle: () async {
+          final player = playerController.playback.mediaPlayer;
+          if (player == null) return null;
+          final handle = await player.handle;
+          return mounted && identical(player, playerController.playback.mediaPlayer)
+              ? handle : null;
+        },
+        onPlay: () => playerController.play(),
+        onPause: () => playerController.pause(),
+        onSeek: (position) => playerController.seek(position),
+        onModeChanged: _handleIOSPIPModeChanged,
+        canRestore: () => mounted && (ModalRoute.of(context)?.isCurrent ?? false),
+      );
+    }
     WidgetsBinding.instance.addObserver(this);
     _panelVisibilityController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -1359,6 +1469,13 @@ class _PlayerItemState extends State<PlayerItem>
     showVideoController();
   }
 
+  Future<void> _disposeIOSPip() async {
+    // Keep the captured video track suspended until native output changes have
+    // completed. Restoring it sooner lets the old context disable video again.
+    await _iosPip?.dispose();
+    await _iosVideoOutputTransition?.dispose();
+  }
+
   @override
   void dispose() {
     // The route-scoped PlayerController owns playback disposal.
@@ -1378,6 +1495,7 @@ class _PlayerItemState extends State<PlayerItem>
       unawaited(_syncAndroidPIPPlayerPageState(false));
       PipUtils.disposePipHandler();
     }
+    unawaited(_disposeIOSPip());
     playerController.panel.reset();
     super.dispose();
   }
@@ -1525,8 +1643,9 @@ class _PlayerItemState extends State<PlayerItem>
                         animation: _screenshotFeedbackAnimation,
                       ),
                     ),
-                    (Platform.isAndroid &&
-                            (videoPageController.isPip || _pipEnterRequested))
+                    ((Platform.isAndroid && videoPageController.isPip) ||
+                            playerController.panel.isIosPipActive ||
+                            playerController.panel.pipEntryPending)
                         ? const SizedBox.shrink()
                         : PlayerItemPanel(
                             fillsWindow: widget.fillsWindow,
@@ -1537,8 +1656,8 @@ class _PlayerItemState extends State<PlayerItem>
                             showDanmakuSwitch: showDanmakuSwitch,
                             onToggleSidePanel: widget.onToggleSidePanel,
                             handleFullscreen: handleFullscreen,
-                            enterAndroidPictureInPicture:
-                                enterAndroidPictureInPicture,
+                            enterMobilePictureInPicture:
+                                enterMobilePictureInPicture,
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
                             handleProgressBarSeek: handleProgressBarSeek,

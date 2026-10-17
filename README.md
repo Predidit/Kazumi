@@ -21,7 +21,7 @@
 - Windows 10 及以上
 - MacOS 10.15 及以上
 - Linux (实验性)
-- iOS 13 及以上 (需要 [侧载](https://kazumi.app/docs/misc/how-to-install-in-ios))
+- iOS 15 及以上 (需要 [侧载](https://kazumi.app/docs/misc/how-to-install-in-ios))
 - HarmonyOS 5.0 及以上 (位于 [分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要 [侧载](https://kazumi.app/docs/misc/how-to-install-in-ohos))
 
 ## 屏幕截图
@@ -48,6 +48,7 @@
 - [X]  番剧字幕
 - [X]  分集播放
 - [X]  视频播放器
+- [X]  iOS 画中画（iOS 15+，详见 [使用与验证说明](docs/ios-picture-in-picture.md)）
 - [X]  多视频源支持
 - [X]  规则分享
 - [X]  硬件加速

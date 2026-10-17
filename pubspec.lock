@@ -980,18 +980,18 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: "9c31fe57c5c4492835dcd6fea968920f3b01bcb1"
-      resolved-ref: "9c31fe57c5c4492835dcd6fea968920f3b01bcb1"
-      url: "https://github.com/Predidit/media-kit.git"
+      ref: a81f7166e9cd036543481e448f1a79cef5c8054a
+      resolved-ref: a81f7166e9cd036543481e448f1a79cef5c8054a
+      url: "https://github.com/sibogentleman/media-kit.git"
     source: git
     version: "1.1.11"
   media_kit_video:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: "9c31fe57c5c4492835dcd6fea968920f3b01bcb1"
-      resolved-ref: "9c31fe57c5c4492835dcd6fea968920f3b01bcb1"
-      url: "https://github.com/Predidit/media-kit.git"
+      ref: a81f7166e9cd036543481e448f1a79cef5c8054a
+      resolved-ref: a81f7166e9cd036543481e448f1a79cef5c8054a
+      url: "https://github.com/sibogentleman/media-kit.git"
     source: git
     version: "1.2.5"
   menu_base:

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -9,6 +10,7 @@ import 'package:kazumi/repositories/danmaku_shield_repository.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/services/sync/webdav_remote_file_commit.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
@@ -73,6 +75,199 @@ void main() {
     await expectLater(webDav.setEnabled(true), throwsException);
     expect(GStorage.getSetting(SettingsKeys.webDavEnable), isFalse);
   });
+
+  for (final scenario in ['missing files', 'forbidden lookup', 'lookup timeout']) {
+    test(
+      'real WebDAV first sync handles $scenario',
+      () async {
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        addTearDown(() async {
+          webDav.client.c.close(force: true);
+          await server.close(force: true);
+        });
+        final requests = <String>[];
+        String? uploaded;
+        var failNextLookup = false;
+        server.listen((request) async {
+          requests.add('${request.method} ${request.uri.path}');
+          final body = await utf8.decoder.bind(request).join();
+          switch (request.method) {
+            case 'PROPFIND':
+              final shouldFail = failNextLookup;
+              failNextLookup = false;
+              if (shouldFail && scenario == 'lookup timeout') return;
+              request.response.statusCode = shouldFail ? 403 : 207;
+              request.response.write('<d:multistatus xmlns:d="DAV:"/>');
+            case 'DELETE':
+              request.response.statusCode = 404;
+            case 'MKCOL':
+            case 'PUT':
+              request.response.statusCode = 201;
+              if (request.method == 'PUT') uploaded = body;
+            case 'MOVE':
+              request.response.statusCode = 201;
+            case 'OPTIONS':
+              request.response.statusCode = 200;
+            default:
+              request.response.statusCode = 405;
+          }
+          await request.response.close();
+        });
+        await GStorage.putSetting(
+          SettingsKeys.webDavURL,
+          'http://127.0.0.1:${server.port}',
+        );
+        await webDav.init();
+        if (scenario == 'missing files') {
+          expect(
+            webDav.client.c.options.connectTimeout,
+            const Duration(seconds: 15),
+          );
+          expect(
+            webDav.client.c.options.sendTimeout,
+            const Duration(seconds: 60),
+          );
+          expect(
+            webDav.client.c.options.receiveTimeout,
+            const Duration(seconds: 60),
+          );
+        }
+        final normalReceiveTimeout = webDav.client.c.options.receiveTimeout;
+        await GStorage.putSetting(SettingsKeys.webDavEnable, true);
+        await GStorage.putSetting(SettingsKeys.webDavEnableDanmakuShield, true);
+
+        final sync = webDav.syncDanmakuShield(
+          deviceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          merge: (remote) async {
+            failNextLookup = scenario != 'missing files';
+            if (scenario == 'lookup timeout') {
+              webDav.client.setReceiveTimeout(100);
+            }
+            return remote;
+          },
+        );
+        if (scenario == 'forbidden lookup') {
+          await expectLater(
+            sync,
+            throwsA(
+              isA<DioException>().having(
+                (error) => error.response?.statusCode,
+                'status',
+                403,
+              ),
+            ),
+          );
+          expect(uploaded, isNull);
+          expect(
+            requests.where((request) => request.startsWith('DELETE ')),
+            isEmpty,
+          );
+          return;
+        }
+        if (scenario == 'lookup timeout') {
+          await expectLater(
+            sync,
+            throwsA(
+              isA<DioException>().having(
+                (error) => error.type,
+                'type',
+                DioExceptionType.receiveTimeout,
+              ),
+            ),
+          );
+          expect(uploaded, isNull);
+          webDav.client.c.options.receiveTimeout = normalReceiveTimeout;
+          await webDav.syncDanmakuShield(
+            deviceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            merge: (remote) async => remote,
+          );
+        } else {
+          await sync;
+        }
+        expect(uploaded, isNotNull);
+        expect(
+          requests.where((request) => request.startsWith('DELETE ')),
+          isEmpty,
+          reason: requests.join('\n'),
+        );
+        expect(
+          requests.where((request) => request.startsWith('MOVE ')),
+          hasLength(1),
+        );
+      },
+    );
+  }
+
+  test('remote commit removes leftovers before uploading', () async {
+    final files = {'temp', 'target'};
+    final operations = <String>[];
+    await const WebDavRemoteFileCommitter().replaceFile(
+      sourceFilePath: 'local',
+      temporaryPath: 'temp',
+      destinationPath: 'target',
+      exists: (path) async => files.contains(path),
+      remove: (path) async {
+        operations.add('delete $path');
+        files.remove(path);
+      },
+      uploadFromFile: (_, path) async {
+        operations.add('upload');
+        files.add(path);
+      },
+      rename: (_, _) async {
+        operations.add('rename');
+      },
+    );
+    expect(operations, ['delete temp', 'upload', 'delete target', 'rename']);
+  });
+
+  test(
+    'remote commit stops when deleting an existing file is forbidden',
+    () async {
+      final denied = DioException(
+        requestOptions: RequestOptions(path: 'temp'),
+        response: Response(
+          requestOptions: RequestOptions(path: 'temp'),
+          statusCode: 403,
+        ),
+      );
+      await expectLater(
+        const WebDavRemoteFileCommitter().replaceFile(
+          sourceFilePath: 'local',
+          temporaryPath: 'temp',
+          destinationPath: 'target',
+          exists: (_) async => true,
+          remove: (_) async => throw denied,
+          uploadFromFile: (_, _) async => fail('must not upload'),
+          rename: (_, _) async => fail('must not rename'),
+        ),
+        throwsA(same(denied)),
+      );
+    },
+  );
+
+  test(
+    'remote commit preserves upload failure when cleanup also fails',
+    () async {
+      final original = StateError('upload failed');
+      var uploaded = false;
+      await expectLater(
+        const WebDavRemoteFileCommitter().replaceFile(
+          sourceFilePath: 'local',
+          temporaryPath: 'temp',
+          destinationPath: 'target',
+          exists: (_) async => uploaded,
+          remove: (_) async => throw StateError('cleanup failed'),
+          uploadFromFile: (_, _) async {
+            uploaded = true;
+            throw original;
+          },
+          rename: (_, _) async => fail('must not rename'),
+        ),
+        throwsA(same(original)),
+      );
+    },
+  );
 
   group('danmaku shield sync', () {
     late DanmakuShieldRepository repository;

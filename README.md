@@ -82,6 +82,38 @@
   alt="Get it on F-Droid" width="200">
 </a>
 
+### macOS
+
+可以通过社区维护的非官方 [ChiaKi-Li/cask tap](https://github.com/ChiaKi-Li/homebrew-cask) 安装（需要 macOS 12 或更新版本）：
+
+```bash
+brew install --cask ChiaKi-Li/cask/kazumi
+```
+
+如果已通过 DMG 将应用安装到 `/Applications/Kazumi.app`，可以使用 `--adopt` 让 Homebrew 接管现有应用：
+
+```bash
+brew install --cask --adopt ChiaKi-Li/cask/kazumi
+```
+
+接管前运行以下命令查看 Cask 版本，并与应用内显示的本地版本比较：
+
+```bash
+brew update
+brew info --cask ChiaKi-Li/cask/kazumi
+```
+
+`--adopt` 不会升级应用。本地版本较旧时先更新应用，较新时等待 tap 更新；版本一致后再接管。若仍提示应用不一致，请核对来源和安装位置，不要用 `--force` 绕过检查。
+
+安装或接管后，更新此应用：
+
+```bash
+brew update
+brew upgrade --cask ChiaKi-Li/cask/kazumi
+```
+
+也可以使用 `brew upgrade` 更新全部由 Homebrew 管理的软件。
+
 ### GNU/Linux
 
 <a href="https://flathub.org/apps/io.github.Predidit.Kazumi">

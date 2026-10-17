@@ -132,6 +132,14 @@ class ApiEndpoints {
   /// 获取弹弹番剧元数据（通过BGM番剧ID）
   static const String dandanAPIInfoByBgmBangumiId = "/api/v2/bangumi/bgmtv/{0}";
 
+  /// 自定义弹幕服务器 (danmu_api / LogVar, 兼容弹弹play v2 接口) 路径
+  /// 完整地址由用户在设置中填写的 base URL 拼接, base 可带 token 路径段
+  static const String customDanmuAPISearchEpisodes = "/api/v2/search/episodes";
+  static const String customDanmuAPIBangumi = "/api/v2/bangumi/";
+  static const String customDanmuAPIComment = "/api/v2/comment/";
+  static const String customDanmuAPIMatch = "/api/v2/match";
+  static const String customDanmuAPICacheAnimes = "/api/cache/animes";
+
   /// 图片识别番剧
   static const String traceApi = 'https://api.trace.moe/search';
 

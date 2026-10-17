@@ -13,6 +13,7 @@ import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/side_panel_transition.dart';
 import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
+import 'package:kazumi/modules/danmaku/custom_danmaku_server_config.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
@@ -114,6 +115,10 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   bool _loading = false;
   bool _hasMore = false;
 
+  /// 当前搜索结果来自自定义弹幕服务器;
+  /// 分集列表与弹幕请求按此路由, 来源标签也按此展示。
+  bool _resultsFromCustomServer = false;
+
   @override
   void initState() {
     super.initState();
@@ -158,12 +163,35 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
       }));
     }
     try {
-      final response = await DanmakuApi.searchAnimes(keyword);
+      // 自定义弹幕服务器优先搜索; 无结果 (或请求失败) 时回退弹弹play,
+      // 保证内置弹幕源在自定义开启时仍可手动检索。
+      if (CustomDanmakuServerConfig.isEnabled) {
+        try {
+          final customResponse =
+              await DanmakuApi.searchAnimes(keyword, useCustomServer: true);
+          if (!mounted) return;
+          if (customResponse.animes.isNotEmpty) {
+            setState(() {
+              _loading = false;
+              _animes = customResponse.animes;
+              _hasMore = customResponse.hasMore;
+              _resultsFromCustomServer = true;
+            });
+            return;
+          }
+        } catch (error) {
+          KazumiLogger()
+              .w('Custom danmaku source search failed', error: error);
+        }
+      }
+      final response =
+          await DanmakuApi.searchAnimes(keyword, useCustomServer: false);
       if (!mounted) return;
       setState(() {
         _loading = false;
         _animes = response.animes;
         _hasMore = response.hasMore;
+        _resultsFromCustomServer = false;
         if (response.animes.isEmpty) _error = '未找到番剧';
       });
     } catch (error) {
@@ -188,8 +216,10 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
       _segmentStart = null;
     });
     try {
-      final response =
-          await DanmakuApi.getDanDanEpisodesByDanDanBangumiID(anime.animeId);
+      final response = await DanmakuApi.getDanDanEpisodesByDanDanBangumiID(
+        anime.animeId,
+        useCustomServer: _resultsFromCustomServer,
+      );
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -211,8 +241,17 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
     try {
       widget.onBeforeApply();
       final hasDanmakus = await widget.danmakuController
-          .getDanDanmakuByEpisodeID(episode.episodeId);
+          .getDanDanmakuByEpisodeID(episode.episodeId,
+              useCustomServer: _resultsFromCustomServer);
       if (!mounted) return;
+      final animeTitle = _animeTitle ?? widget.initialKeyword;
+      widget.danmakuController.setDanmakuSource(
+        animeTitle: animeTitle,
+        episodeTitle: episode.episodeTitle,
+        serverName: _resultsFromCustomServer
+            ? customDanmakuServerName
+            : builtInDanmakuServerName,
+      );
       widget.danmakuController.setDanmakuEnabled(hasDanmakus);
       KazumiDialog.dismiss(context: context);
       KazumiDialog.showToast(

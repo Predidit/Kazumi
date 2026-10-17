@@ -28,6 +28,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuColor;
   late bool danmakuMassive;
   late bool danmakuDeduplication;
+  late bool pauseOnDanmakuEdit;
   late bool danmakuBiliBiliSource;
   late bool danmakuGamerSource;
   late bool danmakuDanDanSource;
@@ -63,6 +64,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     danmakuMassive = GStorage.getSetting(SettingsKeys.danmakuMassive);
     danmakuDeduplication =
         GStorage.getSetting<bool>(SettingsKeys.danmakuDeduplication);
+    pauseOnDanmakuEdit =
+        GStorage.getSetting<bool>(SettingsKeys.pauseOnDanmakuEdit);
     danmakuBiliBiliSource =
         GStorage.getSetting<bool>(SettingsKeys.danmakuBiliBiliSource);
     danmakuGamerSource =
@@ -309,6 +312,18 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                 title: Text('弹幕去重'),
                 description: Text('相同内容弹幕过多时合并为一条弹幕'),
                 initialValue: danmakuDeduplication,
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.pause_circle_outline_rounded,
+                onToggle: (value) async {
+                  pauseOnDanmakuEdit = value ?? !pauseOnDanmakuEdit;
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.pauseOnDanmakuEdit, pauseOnDanmakuEdit);
+                  setState(() {});
+                },
+                title: Text('编辑弹幕时暂停播放'),
+                description: Text('聚焦弹幕输入框时暂停，输入结束后继续；一起看房间内不生效'),
+                initialValue: pauseOnDanmakuEdit,
               ),
             ],
           ),

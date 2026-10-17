@@ -1240,6 +1240,7 @@ class _PlayerItemState extends State<PlayerItem>
       context,
       bangumiId: videoPageController.bangumiItem.id,
       initialKeyword: videoPageController.title,
+      currentEpisodeNumber: playerController.currentDanmakuEpisodeNumber,
       danmakuController: playerController.danmaku,
       onBeforeApply: videoPageController.cancelAutomaticDanmakuLoad,
     ));

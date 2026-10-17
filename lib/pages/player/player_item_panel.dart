@@ -14,6 +14,7 @@ import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -98,6 +99,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   late final PlayerController playerController;
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
+  int? _danmakuPauseTick;
+
+  /// Whether this editor currently owns a pause. The sleep timer bumps
+  /// [TimedShutdownService.expiryTicks] when it actually expires, which revokes
+  /// the ownership even if the panel was rebuilt in between.
+  bool get _pausedByDanmakuEdit =>
+      _danmakuPauseTick == TimedShutdownService().expiryTicks.value;
+  bool _holdResumeForDestinationSheet = false;
 
   String? _cachedDanmakuColorHex;
   late Widget _cachedDanmakuOnIcon;
@@ -117,21 +126,30 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   @override
   void dispose() {
+    textFieldFocus.removeListener(_onDanmakuEditFocusChanged);
     textController.dispose();
     textFieldFocus.dispose();
     super.dispose();
   }
 
   Future<void> _submitDanmakuText(String message) async {
+    _holdResumeForDestinationSheet = true;
     textFieldFocus.unfocus();
 
     if (message.trim().isEmpty) {
       KazumiDialog.showToast(message: '弹幕内容为空');
+      _holdResumeForDestinationSheet = false;
+      _onDanmakuEditFocusChanged();
       return;
     }
 
     final destination = await showDanmakuDestinationSheet(context);
-    if (!mounted || destination == null) {
+    _holdResumeForDestinationSheet = false;
+    if (!mounted) {
+      return;
+    }
+    _onDanmakuEditFocusChanged();
+    if (destination == null) {
       return;
     }
 
@@ -169,6 +187,46 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           .addDanmaku(DanmakuContentItem(message, selfSend: true));
     }
     textController.clear();
+  }
+
+  // A SyncPlay room is left alone: a local pause there is either broadcast to
+  // everyone or undone by the next server state message.
+  void _onDanmakuEditFocusChanged() {
+    if (playerController.syncplay.hasSession) return;
+    if (textFieldFocus.hasFocus) {
+      if (GStorage.getSetting<bool>(SettingsKeys.pauseOnDanmakuEdit) &&
+          playerController.playback.playing) {
+        _danmakuPauseTick = TimedShutdownService().expiryTicks.value;
+        unawaited(playerController.pause(enableSync: false));
+      }
+    } else if (_canResumeAfterDanmakuEdit) {
+      _danmakuPauseTick = null;
+      unawaited(playerController.play(enableSync: false));
+    }
+  }
+
+  /// Only undoes a pause this editor created, and only when nothing else owns
+  /// playback: no destination sheet, no app in the background (desktop window
+  /// switches report inactive), and no dialog on top.
+  bool get _canResumeAfterDanmakuEdit =>
+      _pausedByDanmakuEdit &&
+      !_holdResumeForDestinationSheet &&
+      (WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed) ==
+          AppLifecycleState.resumed &&
+      (ModalRoute.of(context)?.isCurrent ?? false);
+
+
+  // Keeps the tap that dismisses the composer away from the video and the play
+  // button. The region must stay in the text field's group, or the paste/copy/
+  // select-all toolbar stops responding.
+  Widget _danmakuEditBarrier(Widget child) {
+    return ListenableBuilder(
+      listenable: textFieldFocus,
+      builder: (context, _) => TextFieldTapRegion(
+        consumeOutsideTaps: textFieldFocus.hasFocus && _pausedByDanmakuEdit,
+        child: child,
+      ),
+    );
   }
 
   Widget get _danmakuTextField {
@@ -284,6 +342,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   void initState() {
     super.initState();
     playerController = widget.playerController;
+    textFieldFocus.addListener(_onDanmakuEditFocusChanged);
     final visibility = widget.panelVisibilityController
         .drive(CurveTween(curve: Curves.easeInOut));
     _topOffsetAnimation = visibility.drive(Tween<Offset>(
@@ -614,7 +673,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             children: [
               _buildDanmakuToggleButton(context),
               _danmakuSettingsButton,
-              if (constraints.maxWidth > 600) _danmakuTextField,
+              if (constraints.maxWidth > 600)
+                _danmakuEditBarrier(_danmakuTextField),
             ],
           ),
         ),
@@ -643,7 +703,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           ),
           if (playerController.danmaku.danmakuOn) ...[
             _danmakuSettingsButton,
-            Expanded(child: _danmakuTextField),
+            Expanded(child: _danmakuEditBarrier(_danmakuTextField)),
           ] else
             const Spacer(),
         ],

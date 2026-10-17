@@ -9,6 +9,17 @@ import 'package:flutter/scheduler.dart';
 import 'package:kazumi/utils/format.dart';
 import 'package:window_manager/window_manager.dart';
 
+Size _labelSize(String text, TextScaler textScaler) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: PlayerProgressHover.labelStyle),
+    textDirection: TextDirection.ltr,
+    textScaler: textScaler,
+  )..layout();
+  final size = painter.size;
+  painter.dispose();
+  return size;
+}
+
 /// Geometry of audio_video_progress_bar 2.0.3's _updateThumbPosition and
 /// _drawProgressBarWithLabelsOnSides. Its seek endpoints use barHeight / 2,
 /// not thumbRadius; thumbGlowRadius affects painting only. Labels stay LTR
@@ -19,7 +30,6 @@ class PlayerProgressTrackGeometry {
     required Duration progress,
     required Duration total,
     required TimeLabelLocation timeLabelLocation,
-    required TextStyle labelStyle,
     required TextScaler textScaler,
   }) {
     double labelWidth(Duration time) {
@@ -28,14 +38,7 @@ class PlayerProgressTrackGeometry {
       final text = time.inHours > 0
           ? '${time.inHours}:${minutes.padLeft(2, '0')}:$seconds'
           : '$minutes:$seconds';
-      final painter = TextPainter(
-        text: TextSpan(text: text, style: labelStyle),
-        textDirection: TextDirection.ltr,
-        textScaler: textScaler,
-      )..layout();
-      final width = painter.width;
-      painter.dispose();
-      return width;
+      return _labelSize(text, textScaler).width;
     }
 
     final sides = timeLabelLocation == TimeLabelLocation.sides;
@@ -113,22 +116,16 @@ class PlayerProgressHover extends StatefulWidget {
 class _PlayerProgressHoverState extends State<PlayerProgressHover>
     with WidgetsBindingObserver, WindowListener {
   final _portal = OverlayPortalController();
-  final _link = LayerLink();
-  final _barKey = GlobalKey();
-  Offset? _position;
-  Duration? _preview;
+  ({Offset position, Duration time})? _preview;
   final _pointers = <int>{};
   PointerDeviceKind? _pointerKind;
   bool _cancelledPointer = false;
   bool _dragging = false;
   bool _focused = true;
-  bool _listeningToWindow = false;
-  Size? _viewport;
+  (Size, TextScaler)? _metrics;
   BoxConstraints? _constraints;
-  TextScaler? _textScaler;
-  int _generation = 0;
 
-  bool get _desktop => switch (defaultTargetPlatform) {
+  late final _desktop = switch (defaultTargetPlatform) {
     TargetPlatform.windows ||
     TargetPlatform.macOS ||
     TargetPlatform.linux => true,
@@ -139,20 +136,18 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (_desktop) {
-      windowManager.addListener(this);
-      _listeningToWindow = true;
-    }
+    if (_desktop) windowManager.addListener(this);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final viewport = MediaQuery.sizeOf(context);
-    final textScaler = MediaQuery.textScalerOf(context);
-    if (_viewport != viewport || _textScaler != textScaler) _cancelPointer();
-    _viewport = viewport;
-    _textScaler = textScaler;
+    final metrics = (
+      MediaQuery.sizeOf(context),
+      MediaQuery.textScalerOf(context),
+    );
+    if (_metrics != metrics) _cancelPointer();
+    _metrics = metrics;
   }
 
   @override
@@ -166,32 +161,25 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
         widget.total <= Duration.zero) {
       _cancelPointer();
     } else if (!_dragging &&
-        _position != null &&
+        _preview != null &&
         (widget.total != oldWidget.total ||
             (widget.timeLabelLocation == TimeLabelLocation.sides &&
                 widget.progress != oldWidget.progress))) {
-      final generation = _generation;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted &&
-            generation == _generation &&
-            !_dragging &&
-            _position != null) {
-          _updatePreview(_position!);
+        if (mounted && !_dragging && _preview != null) {
+          _updatePreview(_preview!.position);
         }
       });
     }
   }
 
   void _hide() {
-    _generation++;
-    _position = null;
     _preview = null;
     if (!_portal.isShowing) return;
     if (SchedulerBinding.instance.schedulerPhase ==
         SchedulerPhase.persistentCallbacks) {
-      final generation = _generation;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && generation == _generation && _portal.isShowing) {
+        if (mounted && _preview == null && _portal.isShowing) {
           _portal.hide();
         }
       });
@@ -219,10 +207,7 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
   void onWindowFocus() => _focused = true;
 
   void _onHover(PointerEvent event) {
-    if (!_desktop ||
-        !widget.enabled ||
-        !_focused ||
-        _pointers.isNotEmpty ||
+    if (_pointers.isNotEmpty ||
         _dragging ||
         event.kind != PointerDeviceKind.mouse) {
       return;
@@ -230,61 +215,41 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
     _updatePreview(event.localPosition);
   }
 
-  void _updatePreview(Offset position) {
-    final box = _barKey.currentContext?.findRenderObject() as RenderBox?;
+  void _updatePreview(Offset position, {Duration? dragTime}) {
+    if (!_desktop ||
+        !widget.enabled ||
+        !_focused ||
+        (dragTime != null && _pointerKind != PointerDeviceKind.mouse)) {
+      return;
+    }
+    final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
     final geometry = PlayerProgressTrackGeometry(
       size: box.size,
       progress: widget.progress,
       total: widget.total,
       timeLabelLocation: widget.timeLabelLocation,
-      labelStyle: PlayerProgressHover.labelStyle,
       textScaler: MediaQuery.textScalerOf(context),
     );
-    final preview = geometry.timeAt(position, widget.total);
-    if (preview == null) {
+    final time = dragTime ?? geometry.timeAt(position, widget.total);
+    if (time == null ||
+        widget.total <= Duration.zero ||
+        geometry.end <= geometry.start) {
       _hide();
       return;
     }
-    if (_position == position && _preview?.inSeconds == preview.inSeconds) {
-      return;
-    }
-    setState(() {
-      _position = position;
-      _preview = preview;
-    });
-    if (!_portal.isShowing) _portal.show();
-  }
-
-  void _updateDragPreview(ThumbDragDetails details) {
-    if (!_desktop ||
-        _pointerKind != PointerDeviceKind.mouse ||
-        !widget.enabled ||
-        !_focused ||
-        _cancelledPointer ||
-        widget.total <= Duration.zero) {
-      return;
-    }
-    final box = _barKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return;
-    final geometry = PlayerProgressTrackGeometry(
-      size: box.size,
-      progress: widget.progress,
-      total: widget.total,
-      timeLabelLocation: widget.timeLabelLocation,
-      labelStyle: PlayerProgressHover.labelStyle,
-      textScaler: MediaQuery.textScalerOf(context),
-    );
-    if (geometry.end <= geometry.start) return;
-    setState(() {
-      _position = Offset(
-        details.localPosition.dx.clamp(geometry.start, geometry.end),
+    if (dragTime != null) {
+      position = Offset(
+        position.dx.clamp(geometry.start, geometry.end),
         box.size.height / 2,
       );
-      // The package owns drag mapping, including its cached side-label widths.
-      // Recomputing this from hover geometry can disagree during playback ticks.
-      _preview = details.timeStamp;
-    });
+    }
+    if (_preview?.position == position &&
+        _preview?.time.inSeconds == time.inSeconds) {
+      return;
+    }
+    // Use the package's drag timestamp: it caches side-label widths while held.
+    setState(() => _preview = (position: position, time: time));
     if (!_portal.isShowing) _portal.show();
   }
 
@@ -306,54 +271,47 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
     }
   }
 
-  Widget _buildPreview(BuildContext context) {
-    final position = _position;
+  Widget _buildPreview(BuildContext context, OverlayChildLayoutInfo info) {
     final preview = _preview;
-    if (position == null || preview == null) return const SizedBox.shrink();
-    final box = _barKey.currentContext!.findRenderObject()! as RenderBox;
-    final text = durationToString(preview);
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: PlayerProgressHover.labelStyle),
-      textDirection: TextDirection.ltr,
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout();
-    final width = painter.width + 20;
-    final height = painter.height + 12;
-    painter.dispose();
-    final origin = box.localToGlobal(Offset.zero);
-    final overlay =
-        Overlay.of(context).context.findRenderObject()! as RenderBox;
-    var visible = overlay.localToGlobal(Offset.zero) & overlay.size;
+    if (preview == null) return const SizedBox.shrink();
+    final text = durationToString(preview.time);
+    final textSize = _labelSize(text, MediaQuery.textScalerOf(context));
+    final width = textSize.width + 20;
+    final height = textSize.height + 12;
+    final anchor = MatrixUtils.transformPoint(
+      info.childPaintTransform,
+      Offset(preview.position.dx, 0),
+    );
+    var visible = Offset.zero & info.overlaySize;
     // The player's ClipRect supplies the horizontal boundary, while the
     // portal paints above it in the current page's overlay (also in fullscreen).
     final clip = this.context.findAncestorRenderObjectOfType<RenderClipRect>();
     if (clip != null && clip.hasSize) {
-      visible = visible.intersect(clip.localToGlobal(Offset.zero) & clip.size);
+      final overlay = Overlay.of(context).context.findRenderObject()!;
+      visible = visible.intersect(
+        MatrixUtils.transformRect(
+          clip.getTransformTo(overlay),
+          Offset.zero & clip.size,
+        ),
+      );
     }
     final minX = visible.left + 4;
     final maxX = math.max(minX, visible.right - width - 4);
-    final x = (origin.dx + position.dx - width / 2).clamp(minX, maxX);
-    final y = math.max(4.0, origin.dy - height - 8);
     return Positioned(
-      left: 0,
-      top: 0,
-      child: CompositedTransformFollower(
-        link: _link,
-        showWhenUnlinked: false,
-        offset: Offset(x - origin.dx, y - origin.dy),
-        child: IgnorePointer(
-          child: ExcludeSemantics(
-            child: Container(
-              key: PlayerProgressHover.previewKey,
-              width: width,
-              height: height,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(text, style: PlayerProgressHover.labelStyle),
+      left: (anchor.dx - width / 2).clamp(minX, maxX),
+      top: math.max(4.0, anchor.dy - height - 8),
+      child: IgnorePointer(
+        child: ExcludeSemantics(
+          child: Container(
+            key: PlayerProgressHover.previewKey,
+            width: width,
+            height: height,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(5),
             ),
+            child: Text(text, style: PlayerProgressHover.labelStyle),
           ),
         ),
       ),
@@ -361,7 +319,7 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
   }
 
   @override
-  Widget build(BuildContext context) => OverlayPortal(
+  Widget build(BuildContext context) => OverlayPortal.overlayChildLayoutBuilder(
     controller: _portal,
     overlayChildBuilder: _buildPreview,
     child: LayoutBuilder(
@@ -372,65 +330,67 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
           _cancelPointer();
         }
         _constraints = constraints;
-        return CompositedTransformTarget(
-          link: _link,
-          child: MouseRegion(
-            onEnter: _onHover,
-            onHover: _onHover,
-            onExit: (_) {
-              if (!_dragging) _hide();
+        return MouseRegion(
+          onEnter: _onHover,
+          onHover: _onHover,
+          onExit: (_) {
+            if (!_dragging) _hide();
+          },
+          child: Listener(
+            onPointerDown: (event) {
+              if (_pointers.isEmpty) {
+                _cancelledPointer = false;
+                _pointerKind = event.kind;
+              } else {
+                _pointerKind = null;
+              }
+              _pointers.add(event.pointer);
+              _hide();
             },
-            child: Listener(
-              onPointerDown: (event) {
-                if (_pointers.isEmpty) {
-                  _cancelledPointer = false;
-                  _pointerKind = event.kind;
-                } else {
-                  _pointerKind = null;
-                }
-                _pointers.add(event.pointer);
+            onPointerUp: (event) {
+              if (!_pointers.remove(event.pointer)) return;
+              if (_pointers.isEmpty) _pointerKind = null;
+              _hide();
+            },
+            onPointerCancel: (event) {
+              if (!_pointers.remove(event.pointer)) return;
+              _cancelPointer();
+              if (_pointers.isEmpty) _pointerKind = null;
+            },
+            child: ProgressBar(
+              thumbRadius: 8,
+              thumbGlowRadius: 18,
+              timeLabelLocation: widget.timeLabelLocation,
+              timeLabelTextStyle: PlayerProgressHover.labelStyle,
+              progress: widget.progress,
+              buffered: widget.buffered,
+              total: widget.total,
+              onSeek: (time) {
+                // A cancelled accepted horizontal drag also calls onEnd
+                // in Flutter. Do not commit the package's resulting seek.
+                if (!_cancelledPointer) widget.onSeek(time);
+              },
+              onDragStart: (details) {
+                if (_cancelledPointer) return;
+                _dragging = true;
+                _updatePreview(
+                  details.localPosition,
+                  dragTime: details.timeStamp,
+                );
+                widget.onDragStart();
+              },
+              onDragUpdate: (details) {
+                if (_cancelledPointer) return;
+                _updatePreview(
+                  details.localPosition,
+                  dragTime: details.timeStamp,
+                );
+                widget.onDragUpdate(details);
+              },
+              onDragEnd: () {
+                _dragging = false;
                 _hide();
               },
-              onPointerUp: (event) {
-                if (!_pointers.remove(event.pointer)) return;
-                if (_pointers.isEmpty) _pointerKind = null;
-                _hide();
-              },
-              onPointerCancel: (event) {
-                if (!_pointers.remove(event.pointer)) return;
-                _cancelPointer();
-                if (_pointers.isEmpty) _pointerKind = null;
-              },
-              child: ProgressBar(
-                key: _barKey,
-                thumbRadius: 8,
-                thumbGlowRadius: 18,
-                timeLabelLocation: widget.timeLabelLocation,
-                timeLabelTextStyle: PlayerProgressHover.labelStyle,
-                progress: widget.progress,
-                buffered: widget.buffered,
-                total: widget.total,
-                onSeek: (time) {
-                  // A cancelled accepted horizontal drag also calls onEnd
-                  // in Flutter. Do not commit the package's resulting seek.
-                  if (!_cancelledPointer) widget.onSeek(time);
-                },
-                onDragStart: (details) {
-                  if (_cancelledPointer) return;
-                  _dragging = true;
-                  _updateDragPreview(details);
-                  widget.onDragStart();
-                },
-                onDragUpdate: (details) {
-                  if (_cancelledPointer) return;
-                  _updateDragPreview(details);
-                  widget.onDragUpdate(details);
-                },
-                onDragEnd: () {
-                  _dragging = false;
-                  _hide();
-                },
-              ),
             ),
           ),
         );
@@ -446,9 +406,8 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
 
   @override
   void dispose() {
-    _generation++;
     WidgetsBinding.instance.removeObserver(this);
-    if (_listeningToWindow) windowManager.removeListener(this);
+    if (_desktop) windowManager.removeListener(this);
     super.dispose();
   }
 }

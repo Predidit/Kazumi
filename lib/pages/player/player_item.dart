@@ -1542,6 +1542,9 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
                             handleProgressBarSeek: handleProgressBarSeek,
+                            handleProgressBarDragCancel: () => unawaited(
+                              _finishInteractiveSeek(cancelled: true),
+                            ),
                             handleSuperResolutionChange:
                                 handleSuperResolutionChange,
                             onNextEpisode: () => handlePreNextEpisode('next'),

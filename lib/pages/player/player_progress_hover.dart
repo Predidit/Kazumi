@@ -366,7 +366,9 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
     overlayChildBuilder: _buildPreview,
     child: LayoutBuilder(
       builder: (context, constraints) {
-        if (_constraints != null && _constraints != constraints) {
+        // Compact time labels can resize the bar as the drag target changes.
+        // Keep the drag active; the package remaps on the next pointer update.
+        if (_constraints != null && _constraints != constraints && !_dragging) {
           _cancelPointer();
         }
         _constraints = constraints;

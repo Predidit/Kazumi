@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/pages/player/player_progress_hover.dart';
+import 'package:kazumi/pages/player/player_transport_bar.dart';
 import 'package:kazumi/utils/format.dart';
 
 void main() {
@@ -230,6 +231,102 @@ void main() {
     await mouse.removePointer();
   });
 
+  testDesktop('compact time label resizing preserves drag', (tester) async {
+    for (final kind in [PointerDeviceKind.mouse, PointerDeviceKind.touch]) {
+      for (final forward in [true, false]) {
+        final events = _Events();
+        var progress = forward
+            ? const Duration(minutes: 59, seconds: 59)
+            : const Duration(hours: 1, seconds: 1);
+        await tester.pumpWidget(
+          _Host(
+            width: 500,
+            child: StatefulBuilder(
+              builder: (context, setState) => Directionality(
+                textDirection: TextDirection.ltr,
+                child: PlayerTransportBar(
+                  compact: true,
+                  playPause: const SizedBox(width: 48),
+                  nextEpisode: const SizedBox.shrink(),
+                  fullscreen: const SizedBox(width: 48),
+                  controls: const SizedBox.shrink(),
+                  timePlacement: PlayerTimeLabelPlacement.afterPlaybackButtons,
+                  timeLabel: Text(
+                    '    ${durationToString(progress)} / 02:00:00',
+                    style: PlayerProgressHover.labelStyle,
+                  ),
+                  progressBuilder: (location) => PlayerProgressHover(
+                    progress: progress,
+                    buffered: Duration.zero,
+                    total: const Duration(hours: 2),
+                    timeLabelLocation: location,
+                    mediaIdentity: 1,
+                    layoutIdentity: 1,
+                    enabled: true,
+                    onSeek: events.seeks.add,
+                    onDragStart: events.start,
+                    onDragCancel: events.cancel,
+                    onDragUpdate: (details) {
+                      events.update(details);
+                      setState(() => progress = details.timeStamp);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        final rect = tester.progressRect;
+        final direction = forward ? 1.0 : -1.0;
+        final pointer = await tester.startGesture(
+          Offset(
+            rect.left + rect.width * (forward ? 0.4 : 0.6),
+            rect.center.dy,
+          ),
+          kind: kind,
+        );
+        await tester.pumpAfter(
+          pointer.moveBy(Offset(direction * rect.width * 0.3, 0)),
+        );
+        expect(
+          progress,
+          forward
+              ? greaterThan(const Duration(hours: 1))
+              : lessThan(const Duration(hours: 1)),
+        );
+        expect(
+          tester.progressRect.width,
+          forward ? lessThan(rect.width) : greaterThan(rect.width),
+        );
+        expect(events.cancels, 0);
+        _expectPreview(
+          visible: kind == PointerDeviceKind.mouse,
+          time: kind == PointerDeviceKind.mouse
+              ? events.lastUpdate!.timeStamp
+              : null,
+        );
+        final updates = events.updates;
+        await tester.pumpAfter(pointer.moveBy(Offset(direction * 10, 0)));
+        expect(events.updates, greaterThan(updates));
+        _expectPreview(
+          visible: kind == PointerDeviceKind.mouse,
+          time: kind == PointerDeviceKind.mouse
+              ? events.lastUpdate!.timeStamp
+              : null,
+        );
+        final target = events.lastUpdate!.timeStamp;
+        await tester.pumpAfter(pointer.up());
+        expect(events.seeks, [target]);
+        expect(events.starts, 1);
+        expect(events.cancels, 0);
+        _expectPreview(visible: false);
+        await pointer.removePointer();
+        await tester.pumpWidget(const SizedBox.shrink());
+        expect(tester.takeException(), isNull);
+      }
+    }
+  });
+
   testDesktop('state changes and disposal clear the preview', (tester) async {
     var enabled = true;
     var identity = 1;
@@ -327,7 +424,7 @@ void main() {
       'layout',
       'hidden',
       'duration',
-      'width',
+      'metrics',
       'scale',
     ]) {
       Widget host({bool changed = false}) => _Host(
@@ -337,7 +434,6 @@ void main() {
         total: change == 'duration' && changed
             ? Duration.zero
             : const Duration(hours: 2),
-        width: change == 'width' && changed ? 220 : 300,
         scale: change == 'scale' && changed ? 2 : 1,
         events: events,
       );
@@ -348,6 +444,10 @@ void main() {
       await mouse.moveBy(const Offset(20, 0));
       final before = events.cancels;
       await tester.pumpWidget(host(changed: true));
+      if (change == 'metrics') {
+        final dynamic state = tester.state(find.byType(PlayerProgressHover));
+        state.didChangeMetrics();
+      }
       await tester.pump();
       expect(events.cancels, before + 1);
       _expectPreview(visible: false);
@@ -417,6 +517,7 @@ class _Host extends StatelessWidget {
     this.layout = 1,
     this.enabled = true,
     this.events,
+    this.child,
   });
   final double width;
   final TimeLabelLocation location;
@@ -427,6 +528,7 @@ class _Host extends StatelessWidget {
   final int layout;
   final bool enabled;
   final _Events? events;
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -443,19 +545,21 @@ class _Host extends StatelessWidget {
             child: ClipRect(
               child: SizedBox(
                 width: width,
-                child: PlayerProgressHover(
-                  progress: progress,
-                  buffered: Duration.zero,
-                  total: total,
-                  timeLabelLocation: location,
-                  mediaIdentity: identity,
-                  layoutIdentity: layout,
-                  enabled: enabled,
-                  onSeek: events?.seeks.add ?? (_) {},
-                  onDragStart: events?.start ?? () {},
-                  onDragUpdate: events?.update ?? (_) {},
-                  onDragCancel: events?.cancel ?? () {},
-                ),
+                child:
+                    child ??
+                    PlayerProgressHover(
+                      progress: progress,
+                      buffered: Duration.zero,
+                      total: total,
+                      timeLabelLocation: location,
+                      mediaIdentity: identity,
+                      layoutIdentity: layout,
+                      enabled: enabled,
+                      onSeek: events?.seeks.add ?? (_) {},
+                      onDragStart: events?.start ?? () {},
+                      onDragUpdate: events?.update ?? (_) {},
+                      onDragCancel: events?.cancel ?? () {},
+                    ),
               ),
             ),
           ),

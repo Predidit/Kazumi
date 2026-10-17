@@ -57,6 +57,7 @@ class PlayerController implements Disposable {
     currentEpisode: () => currentEpisode,
     currentRoad: () => currentRoad,
     playing: () => playback.playing,
+    playerPlaying: () => playback.playerPlaying,
     currentPosition: () => playback.currentPosition,
     playerPosition: () => playback.playerPosition,
     duration: () => playback.duration,

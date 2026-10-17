@@ -192,24 +192,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   // A SyncPlay room is left alone: a local pause there is either broadcast to
   // everyone or undone by the next server state message.
   void _onDanmakuEditFocusChanged() {
-    if (playerController.syncplay.hasSession) {
-      _danmakuPauseTick = null;
-      return;
-    }
+    if (playerController.syncplay.hasSession) return;
     if (textFieldFocus.hasFocus) {
       if (GStorage.getSetting<bool>(SettingsKeys.pauseOnDanmakuEdit) &&
           playerController.playback.playing) {
         _danmakuPauseTick = TimedShutdownService().expiryTicks.value;
         unawaited(playerController.pause(enableSync: false));
-      } else {
-        _danmakuPauseTick = null;
       }
-    } else if (!_holdResumeForDestinationSheet) {
-      final shouldResume = _canResumeAfterDanmakuEdit;
+    } else if (_canResumeAfterDanmakuEdit) {
       _danmakuPauseTick = null;
-      if (shouldResume) {
-        unawaited(playerController.play(enableSync: false));
-      }
+      unawaited(playerController.play(enableSync: false));
     }
   }
 

@@ -22,11 +22,11 @@ import 'package:kazumi/services/player/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/format.dart';
 import 'package:kazumi/pages/player/player_transport_bar.dart';
 import 'package:kazumi/pages/player/player_screenshot_controls.dart';
+import 'package:kazumi/pages/player/player_progress_hover.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -44,6 +44,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.onNextEpisode,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarSeek,
+    required this.handleProgressBarDragCancel,
     required this.handleSuperResolutionChange,
     required this.panelVisibilityController,
     this.onToggleSidePanel,
@@ -71,6 +72,7 @@ class PlayerItemPanel extends StatefulWidget {
   final VoidCallback showScreenshotCandidates;
   final VoidCallback handleProgressBarDragStart;
   final Future<void> Function(Duration duration) handleProgressBarSeek;
+  final VoidCallback handleProgressBarDragCancel;
   final Future<void> Function(SuperResolutionMode mode)
       handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
@@ -706,20 +708,28 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             ),
             // Playback ticks only rebuild the progress bar and its time labels.
             progressBuilder: (location) => Observer(
-                builder: (context) => ProgressBar(
-                      thumbRadius: 8,
-                      thumbGlowRadius: 18,
+                builder: (context) => PlayerProgressHover(
                       timeLabelLocation: location,
-                      timeLabelTextStyle: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontFeatures: [FontFeature.tabularFigures()],
+                      enabled: playerController.panel.showVideoController &&
+                          !playerController.panel.lockPanel &&
+                          !videoPageController.isPip,
+                      mediaIdentity: (
+                        videoPageController.bangumiItem.id,
+                        videoPageController.selectedEpisode.road,
+                        videoPageController.selectedEpisode.episode,
+                        videoPageController.loading,
+                      ),
+                      layoutIdentity: (
+                        compact,
+                        videoPageController.isFullscreen,
+                        videoPageController.isPip,
                       ),
                       progress: playerController.playback.currentPosition,
                       buffered: playerController.playback.buffer,
                       total: playerController.playback.duration,
                       onSeek: widget.handleProgressBarSeek,
-                      onDragStart: (_) => widget.handleProgressBarDragStart(),
+                      onDragStart: widget.handleProgressBarDragStart,
+                      onDragCancel: widget.handleProgressBarDragCancel,
                       onDragUpdate: (details) => playerController.seeking
                           .updateInteractiveSeek(details.timeStamp),
                     )),

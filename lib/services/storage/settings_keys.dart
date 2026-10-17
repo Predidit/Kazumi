@@ -361,7 +361,7 @@ class SettingsKeys {
   );
   static const showWindowButton = SettingKey<bool>(
     _SettingBoxKey.showWindowButton,
-    false,
+    true,
     group: SettingGroup.theme,
   );
   static const useDynamicColor = SettingKey<bool>(

@@ -116,7 +116,13 @@ void main() {
               expect(updates, 0);
               await mouse.down(rect.topLeft + local);
               await tester.pump();
-              expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
+              expect(
+                find.descendant(
+                  of: find.byKey(PlayerProgressHover.previewKey),
+                  matching: find.text(durationToString(expected)),
+                ),
+                findsOneWidget,
+              );
               await mouse.up();
               await tester.pump();
               expect(sought, expected);
@@ -174,17 +180,21 @@ void main() {
     },
   );
 
-  testDesktop('drag/cancel suppress preview and preserve callbacks', (
+  testDesktop('mouse drag previews time and cancel preserves callbacks', (
     tester,
   ) async {
     var starts = 0;
     var updates = 0;
+    ThumbDragDetails? lastUpdate;
     var cancels = 0;
     final seeks = <Duration>[];
     await tester.pumpWidget(
       _Host(
         onStart: () => starts++,
-        onUpdate: (_) => updates++,
+        onUpdate: (details) {
+          updates++;
+          lastUpdate = details;
+        },
         onCancel: () => cancels++,
         onSeek: seeks.add,
       ),
@@ -195,15 +205,37 @@ void main() {
     await tester.pump();
     expect(find.byKey(PlayerProgressHover.previewKey), findsOneWidget);
     await mouse.down(rect.center);
-    await mouse.moveBy(const Offset(25, 0));
     await tester.pump();
-    expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
+    expect(find.text('01:00:00'), findsOneWidget);
     expect(starts, 1);
-    expect(updates, greaterThan(0));
+    expect(updates, 0);
+    for (final position in [
+      rect.center + const Offset(25, -50),
+      rect.centerRight + const Offset(60, 40),
+      rect.centerLeft - const Offset(60, 40),
+    ]) {
+      await mouse.moveTo(position);
+      await tester.pump();
+      expect(updates, greaterThan(0));
+      expect(
+        find.descendant(
+          of: find.byKey(PlayerProgressHover.previewKey),
+          matching: find.text(durationToString(lastUpdate!.timeStamp)),
+        ),
+        findsOneWidget,
+      );
+      final preview = tester.getRect(
+        find.byKey(PlayerProgressHover.previewKey),
+      );
+      expect(preview.bottom, lessThan(rect.top));
+      expect(preview.left, greaterThanOrEqualTo(rect.left));
+      expect(preview.right, lessThanOrEqualTo(rect.right));
+    }
     await mouse.cancel();
     await tester.pump();
     expect(cancels, 1);
     expect(seeks, isEmpty);
+    expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
     await mouse.removePointer();
     final next = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await next.addPointer(location: rect.center);
@@ -211,14 +243,93 @@ void main() {
     expect(find.byKey(PlayerProgressHover.previewKey), findsOneWidget);
     await next.down(rect.center);
     await next.moveBy(const Offset(20, 0));
+    await tester.pump();
+    final target = lastUpdate!.timeStamp;
     await next.up();
     await tester.pump();
-    expect(seeks, hasLength(1));
+    expect(seeks, [target]);
     expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
     await next.moveBy(const Offset(1, 0));
     await tester.pump();
     expect(find.byKey(PlayerProgressHover.previewKey), findsOneWidget);
     await next.removePointer();
+  });
+
+  testDesktop('side-label playback updates preserve the last drag timestamp', (
+    tester,
+  ) async {
+    var progress = const Duration(minutes: 9, seconds: 59);
+    ThumbDragDetails? lastUpdate;
+    Duration? sought;
+    Widget host() => _Host(
+      location: TimeLabelLocation.sides,
+      progress: progress,
+      onUpdate: (details) => lastUpdate = details,
+      onSeek: (time) => sought = time,
+    );
+    await tester.pumpWidget(host());
+    final rect = tester.getRect(find.byType(ProgressBar));
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: rect.center);
+    await tester.pump();
+    // Queue the old hover's post-frame recompute before starting the drag.
+    progress = const Duration(minutes: 10);
+    await tester.pumpWidget(host());
+    await mouse.down(rect.center);
+    await mouse.moveBy(const Offset(30, 30));
+    await tester.pump();
+    final target = lastUpdate!.timeStamp;
+    expect(target, greaterThan(const Duration(hours: 1)));
+    for (final nextProgress in [target, const Duration(minutes: 1)]) {
+      progress = nextProgress;
+      await tester.pumpWidget(host());
+      await tester.pump();
+      expect(
+        find.descendant(
+          of: find.byKey(PlayerProgressHover.previewKey),
+          matching: find.text(durationToString(target)),
+        ),
+        findsOneWidget,
+      );
+    }
+    await mouse.moveBy(const Offset(1, 0));
+    await tester.pump();
+    expect(
+      find.descendant(
+        of: find.byKey(PlayerProgressHover.previewKey),
+        matching: find.text(durationToString(lastUpdate!.timeStamp)),
+      ),
+      findsOneWidget,
+    );
+    await mouse.up();
+    await tester.pump();
+    expect(sought, lastUpdate!.timeStamp);
+    expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
+    await mouse.removePointer();
+  });
+
+  testDesktop('duration changes cancel a held drag before release', (
+    tester,
+  ) async {
+    var seeks = 0;
+    var cancels = 0;
+    Widget host(Duration total) =>
+        _Host(total: total, onSeek: (_) => seeks++, onCancel: () => cancels++);
+    await tester.pumpWidget(host(const Duration(hours: 2)));
+    final rect = tester.getRect(find.byType(ProgressBar));
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: rect.center);
+    await mouse.down(rect.center);
+    await tester.pump();
+    expect(find.text('01:00:00'), findsOneWidget);
+    await tester.pumpWidget(host(const Duration(hours: 3)));
+    await tester.pump();
+    expect(cancels, 1);
+    expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
+    await mouse.up();
+    await tester.pump();
+    expect(seeks, 0);
+    await mouse.removePointer();
   });
 
   testDesktop(
@@ -306,23 +417,42 @@ void main() {
     await tester.pump();
     expect(find.byKey(PlayerProgressHover.previewKey), findsOneWidget);
     await mouse.down(rect.center);
+    await tester.pump();
+    expect(find.byKey(PlayerProgressHover.previewKey), findsOneWidget);
     state.onWindowBlur();
     await tester.pump();
     expect(cancels, 1);
+    state.onWindowFocus();
+    await mouse.moveBy(const Offset(10, 0));
+    await tester.pump();
+    expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
     await mouse.cancel();
     expect(cancels, 1);
     await mouse.removePointer();
   });
 
   testDesktop(
-    'media/layout changes cancel an active drag without a stale seek',
+    'media, layout, visibility and invalid duration cancel the active drag',
     (tester) async {
       var cancels = 0;
       var seeks = 0;
-      for (final changeMedia in [true, false]) {
+      for (final change in [
+        'media',
+        'layout',
+        'hidden',
+        'duration',
+        'width',
+        'scale',
+      ]) {
         Widget host({bool changed = false}) => _Host(
-          identity: changeMedia && changed ? 2 : 1,
-          layout: !changeMedia && changed ? 2 : 1,
+          identity: change == 'media' && changed ? 2 : 1,
+          layout: change == 'layout' && changed ? 2 : 1,
+          enabled: change != 'hidden' || !changed,
+          total: change == 'duration' && changed
+              ? Duration.zero
+              : const Duration(hours: 2),
+          width: change == 'width' && changed ? 220 : 300,
+          scale: change == 'scale' && changed ? 2 : 1,
           onCancel: () => cancels++,
           onSeek: (_) => seeks++,
         );
@@ -336,10 +466,14 @@ void main() {
         await tester.pumpWidget(host(changed: true));
         await tester.pump();
         expect(cancels, before + 1);
+        expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
         await mouse.moveBy(const Offset(10, 0));
+        await tester.pump();
+        expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
         await mouse.up();
         await tester.pump();
         expect(seeks, 0);
+        await tester.pumpWidget(host());
         await mouse.moveBy(const Offset(1, 0));
         await tester.pump();
         expect(find.byKey(PlayerProgressHover.previewKey), findsOneWidget);
@@ -349,6 +483,30 @@ void main() {
       }
     },
   );
+
+  testDesktop('mixed pointers do not turn touch into a mouse preview', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const _Host());
+    final rect = tester.getRect(find.byType(ProgressBar));
+    final first = await tester.startGesture(rect.center, pointer: 1);
+    final second = await tester.startGesture(rect.center, pointer: 2);
+    await first.up();
+    final mouse = await tester.createGesture(
+      pointer: 3,
+      kind: PointerDeviceKind.mouse,
+    );
+    await mouse.addPointer(location: rect.center);
+    await mouse.down(rect.center);
+    await second.moveBy(const Offset(30, 0));
+    await tester.pump();
+    expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
+    await second.up();
+    await mouse.up();
+    await mouse.removePointer();
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
 
   testDesktop('touch remains a normal drag and never displays hover', (
     tester,
@@ -369,6 +527,8 @@ void main() {
         rect.center,
         kind: PointerDeviceKind.touch,
       );
+      await tester.pump();
+      expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);
       await touch.moveBy(const Offset(30, 0));
       await tester.pump();
       expect(find.byKey(PlayerProgressHover.previewKey), findsNothing);

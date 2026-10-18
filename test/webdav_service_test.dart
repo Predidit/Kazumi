@@ -76,7 +76,7 @@ void main() {
     expect(GStorage.getSetting(SettingsKeys.webDavEnable), isFalse);
   });
 
-  for (final scenario in ['missing files', 'forbidden lookup', 'lookup timeout']) {
+  for (final scenario in ['missing files', 'forbidden lookup']) {
     test(
       'real WebDAV first sync handles $scenario',
       () async {
@@ -95,7 +95,6 @@ void main() {
             case 'PROPFIND':
               final shouldFail = failNextLookup;
               failNextLookup = false;
-              if (shouldFail && scenario == 'lookup timeout') return;
               request.response.statusCode = shouldFail ? 403 : 207;
               request.response.write('<d:multistatus xmlns:d="DAV:"/>');
             case 'DELETE':
@@ -118,21 +117,6 @@ void main() {
           'http://127.0.0.1:${server.port}',
         );
         await webDav.init();
-        if (scenario == 'missing files') {
-          expect(
-            webDav.client.c.options.connectTimeout,
-            const Duration(seconds: 15),
-          );
-          expect(
-            webDav.client.c.options.sendTimeout,
-            const Duration(seconds: 60),
-          );
-          expect(
-            webDav.client.c.options.receiveTimeout,
-            const Duration(seconds: 60),
-          );
-        }
-        final normalReceiveTimeout = webDav.client.c.options.receiveTimeout;
         await GStorage.putSetting(SettingsKeys.webDavEnable, true);
         await GStorage.putSetting(SettingsKeys.webDavEnableDanmakuShield, true);
 
@@ -140,9 +124,6 @@ void main() {
           deviceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           merge: (remote) async {
             failNextLookup = scenario != 'missing files';
-            if (scenario == 'lookup timeout') {
-              webDav.client.setReceiveTimeout(100);
-            }
             return remote;
           },
         );
@@ -164,26 +145,7 @@ void main() {
           );
           return;
         }
-        if (scenario == 'lookup timeout') {
-          await expectLater(
-            sync,
-            throwsA(
-              isA<DioException>().having(
-                (error) => error.type,
-                'type',
-                DioExceptionType.receiveTimeout,
-              ),
-            ),
-          );
-          expect(uploaded, isNull);
-          webDav.client.c.options.receiveTimeout = normalReceiveTimeout;
-          await webDav.syncDanmakuShield(
-            deviceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-            merge: (remote) async => remote,
-          );
-        } else {
-          await sync;
-        }
+        await sync;
         expect(uploaded, isNotNull);
         expect(
           requests.where((request) => request.startsWith('DELETE ')),

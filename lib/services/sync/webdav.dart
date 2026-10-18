@@ -58,9 +58,6 @@ class WebDav {
       password: webDavPassword,
       debug: false,
     );
-    client.setConnectTimeout(15000);
-    client.setSendTimeout(60000);
-    client.setReceiveTimeout(60000);
     client.setHeaders({'accept-charset': 'utf-8'});
     client.c.options.contentType = 'application/octet-stream';
     try {

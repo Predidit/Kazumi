@@ -1,6 +1,8 @@
-import 'package:flutter/foundation.dart';
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/device.dart';
 import 'package:window_manager/window_manager.dart';
 
 class DisplayModeService {
@@ -14,9 +16,7 @@ class DisplayModeService {
 
   static Future<void> applyVideoFullscreen(bool fullscreen) {
     return _pendingFullscreen = _pendingFullscreen.then((_) async {
-      if (defaultTargetPlatform == TargetPlatform.linux ||
-          defaultTargetPlatform == TargetPlatform.macOS ||
-          defaultTargetPlatform == TargetPlatform.windows) {
+      if (isDesktop()) {
         await _attempt(() => windowManager.setFullScreen(fullscreen));
         return;
       }
@@ -59,10 +59,10 @@ class DisplayModeService {
     late final Future<void> request;
     request = (_pendingSystemBars ?? Future<void>.value())
         .then((_) => _attempt(() async {
-              if (defaultTargetPlatform == TargetPlatform.android) {
+              if (Platform.isAndroid) {
                 await _intentChannel.invokeMethod(
                     'setSystemBarsHidden', hidden);
-              } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+              } else if (Platform.isIOS) {
                 await SystemChrome.setEnabledSystemUIMode(
                   hidden
                       ? SystemUiMode.immersiveSticky

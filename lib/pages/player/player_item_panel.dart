@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -23,6 +23,7 @@ import 'package:kazumi/services/player/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/device.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/format.dart';
@@ -112,14 +113,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   late Widget _cachedDanmakuOnIcon;
   late final Widget _cachedDanmakuOffIcon;
   late final Widget _cachedDanmakuSettingsIcon;
-
-  bool get _desktop => switch (defaultTargetPlatform) {
-        TargetPlatform.windows ||
-        TargetPlatform.linux ||
-        TargetPlatform.macOS =>
-          true,
-        _ => false,
-      };
 
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
@@ -234,14 +227,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       return PlayerPanelHoldFocusRegion(
           acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
           child: Container(
-            constraints: _desktop
+            constraints: isDesktop()
                 ? const BoxConstraints(maxWidth: 500, maxHeight: 33)
                 : const BoxConstraints(maxHeight: 33),
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: TextField(
               focusNode: textFieldFocus,
-              style:
-                  TextStyle(fontSize: _desktop ? 15 : 13, color: Colors.white),
+              style: TextStyle(
+                  fontSize: isDesktop() ? 15 : 13, color: Colors.white),
               controller: textController,
               textAlignVertical: TextAlignVertical.center,
               decoration: InputDecoration(
@@ -253,14 +246,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     ? '发个友善的弹幕见证当下'
                     : '已关闭弹幕',
                 hintStyle: TextStyle(
-                    fontSize: _desktop ? 15 : 13, color: Colors.white60),
+                    fontSize: isDesktop() ? 15 : 13, color: Colors.white60),
                 alignLabelWithHint: true,
                 contentPadding: EdgeInsets.symmetric(
-                    vertical: 8, horizontal: _desktop ? 8 : 12),
+                    vertical: 8, horizontal: isDesktop() ? 8 : 12),
                 border: OutlineInputBorder(
                   borderSide: BorderSide.none,
                   borderRadius:
-                      BorderRadius.all(Radius.circular(_desktop ? 8 : 20)),
+                      BorderRadius.all(Radius.circular(isDesktop() ? 8 : 20)),
                 ),
                 suffixIconConstraints: const BoxConstraints(minWidth: 0),
                 suffixIcon: Row(
@@ -279,7 +272,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             : Theme.of(context).disabledColor,
                         shape: RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(_desktop ? 8 : 20),
+                              BorderRadius.circular(isDesktop() ? 8 : 20),
                         ),
                       ),
                       child: const Text('发送'),
@@ -511,7 +504,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             );
           }),
         ),
-        if (!_desktop)
+        if (!isDesktop())
           Positioned(
             right: 0,
             top: 0,
@@ -691,8 +684,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       );
 
   Widget get _wideControls => Row(children: [
-        if (_desktop) Expanded(child: _desktopDanmakuControls),
-        if (!_desktop) ...[
+        if (isDesktop()) Expanded(child: _desktopDanmakuControls),
+        if (!isDesktop()) ...[
           IconButton(
             color: Colors.white,
             icon: playerController.danmaku.danmakuOn
@@ -748,7 +741,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             compact: compact,
             timePlacement: PlayerTimeLabelPlacement.forViewport(
               MediaQuery.sizeOf(context),
-              desktop: _desktop,
+              desktop: isDesktop(),
             ),
             playPause: IconButton(
               tooltip: playerController.playback.playing ? '暂停' : '播放',
@@ -788,7 +781,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       '${compact ? '    ' : ''}${durationToString(playerController.playback.currentPosition)} / ${durationToString(playerController.playback.duration)}',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: !compact && _desktop ? 16 : 12,
+                        fontSize: !compact && isDesktop() ? 16 : 12,
                         fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     )),
@@ -802,7 +795,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     if (videoPageController.isPip) {
       return compact ? const Text('    ') : const SizedBox.shrink();
     }
-    if (!_desktop && widget.fillsWindow && !videoPageController.isFullscreen) {
+    if (!isDesktop() &&
+        widget.fillsWindow &&
+        !videoPageController.isFullscreen) {
       return const SizedBox.shrink();
     }
     return IconButton(
@@ -855,18 +850,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 ),
               ),
               _forwardButton(),
-              if (_desktop)
+              if (isDesktop())
                 PlayerScreenshotControls(
                   controller: playerController.screenshots,
                   onCapture: widget.handleScreenShot,
                   onReview: widget.showScreenshotCandidates,
                 ),
-              if ((_desktop &&
+              if ((isDesktop() &&
                       (compact || !videoPageController.isFullscreen)) ||
-                  (defaultTargetPlatform == TargetPlatform.android))
+                  Platform.isAndroid)
                 IconButton(
                   onPressed: () async {
-                    if (_desktop) {
+                    if (isDesktop()) {
                       if (videoPageController.isPip) {
                         await PipUtils.exitDesktopPIPWindow();
                       } else {

@@ -1,11 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:kazumi/services/player/syncplay_endpoint.dart';
-
-/// Desktop platforms (Windows/macOS/Linux), used for setting defaults.
-bool get _isDesktopPlatform =>
-    defaultTargetPlatform == TargetPlatform.windows ||
-    defaultTargetPlatform == TargetPlatform.macOS ||
-    defaultTargetPlatform == TargetPlatform.linux;
+import 'package:kazumi/utils/device.dart';
 
 enum SettingGroup {
   player,
@@ -114,7 +108,7 @@ class SettingsKeys {
     'pauseOnDanmakuEdit',
     true,
     group: SettingGroup.danmaku,
-    defaultResolver: (_) => !_isDesktopPlatform,
+    defaultResolver: (_) => !isDesktop(),
   );
   static const danmakuBorder = SettingKey<bool>(
     _SettingBoxKey.danmakuBorder,

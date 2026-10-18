@@ -9,7 +9,6 @@ typedef WebDavRenameRemoteFile = Future<void> Function(
   String sourcePath,
   String destinationPath,
 );
-typedef WebDavRemoteEntryExists = Future<bool> Function(String path);
 
 class WebDavRemoteFileCommitter {
   const WebDavRemoteFileCommitter();
@@ -21,28 +20,15 @@ class WebDavRemoteFileCommitter {
     required WebDavRemoveRemoteFile remove,
     required WebDavUploadRemoteFile uploadFromFile,
     required WebDavRenameRemoteFile rename,
-    required WebDavRemoteEntryExists exists,
   }) async {
-    await _removeIfExists(
-      temporaryPath,
-      remove: remove,
-      exists: exists,
-    );
+    await remove(temporaryPath);
     try {
       await uploadFromFile(sourceFilePath, temporaryPath);
-      await _removeIfExists(
-        destinationPath,
-        remove: remove,
-        exists: exists,
-      );
+      await remove(destinationPath);
       await rename(temporaryPath, destinationPath);
     } catch (_) {
       try {
-        await _removeIfExists(
-          temporaryPath,
-          remove: remove,
-          exists: exists,
-        );
+        await remove(temporaryPath);
       } catch (error, stackTrace) {
         KazumiLogger().w(
           'WebDav: failed to clean temporary remote file',
@@ -52,14 +38,5 @@ class WebDavRemoteFileCommitter {
       }
       rethrow;
     }
-  }
-
-  Future<void> _removeIfExists(
-    String path, {
-    required WebDavRemoveRemoteFile remove,
-    required WebDavRemoteEntryExists exists,
-  }) async {
-    if (!await exists(path)) return;
-    await remove(path);
   }
 }

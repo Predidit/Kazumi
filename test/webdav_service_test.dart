@@ -76,105 +76,87 @@ void main() {
     expect(GStorage.getSetting(SettingsKeys.webDavEnable), isFalse);
   });
 
-  for (final scenario in ['missing files', 'forbidden lookup']) {
-    test(
-      'real WebDAV first sync handles $scenario',
-      () async {
-        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-        addTearDown(() async {
-          webDav.client.c.close(force: true);
-          await server.close(force: true);
-        });
-        final requests = <String>[];
-        String? uploaded;
-        var failNextLookup = false;
-        server.listen((request) async {
-          requests.add('${request.method} ${request.uri.path}');
-          final body = await utf8.decoder.bind(request).join();
-          switch (request.method) {
-            case 'PROPFIND':
-              final shouldFail = failNextLookup;
-              failNextLookup = false;
-              request.response.statusCode = shouldFail ? 403 : 207;
-              request.response.write('<d:multistatus xmlns:d="DAV:"/>');
-            case 'DELETE':
-              request.response.statusCode = 404;
-            case 'MKCOL':
-            case 'PUT':
-              request.response.statusCode = 201;
-              if (request.method == 'PUT') uploaded = body;
-            case 'MOVE':
-              request.response.statusCode = 201;
-            case 'OPTIONS':
-              request.response.statusCode = 200;
-            default:
-              request.response.statusCode = 405;
-          }
-          await request.response.close();
-        });
-        await GStorage.putSetting(
-          SettingsKeys.webDavURL,
-          'http://127.0.0.1:${server.port}',
-        );
-        await webDav.init();
-        await GStorage.putSetting(SettingsKeys.webDavEnable, true);
-        await GStorage.putSetting(SettingsKeys.webDavEnableDanmakuShield, true);
-
-        final sync = webDav.syncDanmakuShield(
-          deviceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-          merge: (remote) async {
-            failNextLookup = scenario != 'missing files';
-            return remote;
-          },
-        );
-        if (scenario == 'forbidden lookup') {
-          await expectLater(
-            sync,
-            throwsA(
-              isA<DioException>().having(
-                (error) => error.response?.statusCode,
-                'status',
-                403,
-              ),
-            ),
-          );
-          expect(uploaded, isNull);
-          expect(
-            requests.where((request) => request.startsWith('DELETE ')),
-            isEmpty,
-          );
-          return;
+  for (final deleteStatus in [404, 403]) {
+    test('real WebDAV first sync handles DELETE $deleteStatus', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async {
+        webDav.client.c.close(force: true);
+        await server.close(force: true);
+      });
+      final requests = <String>[];
+      String? uploaded;
+      server.listen((request) async {
+        requests.add(request.method);
+        final body = await utf8.decoder.bind(request).join();
+        switch (request.method) {
+          case 'PROPFIND':
+            request.response.statusCode = 207;
+            request.response.write('<d:multistatus xmlns:d="DAV:"/>');
+          case 'DELETE':
+            request.response.statusCode = deleteStatus;
+          case 'MKCOL':
+          case 'PUT':
+            request.response.statusCode = 201;
+            if (request.method == 'PUT') uploaded = body;
+          case 'MOVE':
+            request.response.statusCode = 201;
+          case 'OPTIONS':
+            request.response.statusCode = 200;
+          default:
+            request.response.statusCode = 405;
         }
+        await request.response.close();
+      });
+      await GStorage.putSetting(
+        SettingsKeys.webDavURL,
+        'http://127.0.0.1:${server.port}',
+      );
+      await webDav.init();
+      await GStorage.putSetting(SettingsKeys.webDavEnable, true);
+      await GStorage.putSetting(SettingsKeys.webDavEnableDanmakuShield, true);
+
+      final sync = webDav.syncDanmakuShield(
+        deviceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        merge: (remote) async {
+          requests.clear();
+          return remote;
+        },
+      );
+      if (deleteStatus == 403) {
+        await expectLater(
+          sync,
+          throwsA(isA<DioException>().having(
+            (error) => error.response?.statusCode,
+            'status',
+            403,
+          )),
+        );
+        expect(uploaded, isNull);
+        expect(requests, ['DELETE']);
+      } else {
         await sync;
         expect(uploaded, isNotNull);
+        expect(requests, isNot(contains('PROPFIND')));
         expect(
-          requests.where((request) => request.startsWith('DELETE ')),
-          isEmpty,
-          reason: requests.join('\n'),
+          requests.where((method) =>
+              method == 'DELETE' || method == 'PUT' || method == 'MOVE'),
+          ['DELETE', 'PUT', 'DELETE', 'MOVE'],
         );
-        expect(
-          requests.where((request) => request.startsWith('MOVE ')),
-          hasLength(1),
-        );
-      },
-    );
+      }
+    });
   }
 
   test('remote commit removes leftovers before uploading', () async {
-    final files = {'temp', 'target'};
     final operations = <String>[];
     await const WebDavRemoteFileCommitter().replaceFile(
       sourceFilePath: 'local',
       temporaryPath: 'temp',
       destinationPath: 'target',
-      exists: (path) async => files.contains(path),
       remove: (path) async {
         operations.add('delete $path');
-        files.remove(path);
       },
       uploadFromFile: (_, path) async {
         operations.add('upload');
-        files.add(path);
       },
       rename: (_, _) async {
         operations.add('rename');
@@ -182,31 +164,6 @@ void main() {
     );
     expect(operations, ['delete temp', 'upload', 'delete target', 'rename']);
   });
-
-  test(
-    'remote commit stops when deleting an existing file is forbidden',
-    () async {
-      final denied = DioException(
-        requestOptions: RequestOptions(path: 'temp'),
-        response: Response(
-          requestOptions: RequestOptions(path: 'temp'),
-          statusCode: 403,
-        ),
-      );
-      await expectLater(
-        const WebDavRemoteFileCommitter().replaceFile(
-          sourceFilePath: 'local',
-          temporaryPath: 'temp',
-          destinationPath: 'target',
-          exists: (_) async => true,
-          remove: (_) async => throw denied,
-          uploadFromFile: (_, _) async => fail('must not upload'),
-          rename: (_, _) async => fail('must not rename'),
-        ),
-        throwsA(same(denied)),
-      );
-    },
-  );
 
   test(
     'remote commit preserves upload failure when cleanup also fails',
@@ -218,8 +175,9 @@ void main() {
           sourceFilePath: 'local',
           temporaryPath: 'temp',
           destinationPath: 'target',
-          exists: (_) async => uploaded,
-          remove: (_) async => throw StateError('cleanup failed'),
+          remove: (_) async {
+            if (uploaded) throw StateError('cleanup failed');
+          },
           uploadFromFile: (_, _) async {
             uploaded = true;
             throw original;

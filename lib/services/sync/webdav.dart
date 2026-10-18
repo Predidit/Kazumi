@@ -526,7 +526,6 @@ class WebDav {
           client.writeFromFile(sourceFilePath, remotePath),
       rename: (sourcePath, targetPath) =>
           client.rename(sourcePath, targetPath, true),
-      exists: _remoteEntryExists,
     );
   }
 
@@ -583,8 +582,12 @@ class WebDav {
     final index = normalized.lastIndexOf('/');
     final parent = index <= 0 ? '/' : normalized.substring(0, index);
     final name = normalized.substring(index + 1);
-    final files = await client.readDir(parent);
-    return files.any((file) => file.name == name);
+    try {
+      final files = await client.readDir(parent);
+      return files.any((file) => file.name == name);
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<bool> _tryImportLegacyHistory(Directory runDirectory) async {

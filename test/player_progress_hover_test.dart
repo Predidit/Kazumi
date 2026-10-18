@@ -1,8 +1,8 @@
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kazumi/pages/player/player_progress_bar.dart';
 import 'package:kazumi/pages/player/player_progress_hover.dart';
 import 'package:kazumi/pages/player/player_transport_bar.dart';
 import 'package:kazumi/utils/format.dart';
@@ -27,7 +27,7 @@ void main() {
         size: Size(width, 24),
         progress: const Duration(minutes: 1),
         total: _total,
-        timeLabelLocation: TimeLabelLocation.none,
+        sideLabels: false,
         textScaler: TextScaler.noScaling,
       );
 
@@ -57,8 +57,8 @@ void main() {
   testDesktop('hover matches seek across layouts and scales', (tester) async {
     for (final width in [180.0, 640.0]) {
       for (final location in [
-        TimeLabelLocation.none,
-        TimeLabelLocation.sides,
+        PlayerTimeLabelLocation.none,
+        PlayerTimeLabelLocation.sides,
       ]) {
         for (final scale in [1.0, 2.0]) {
           final events = _Events();
@@ -76,7 +76,7 @@ void main() {
             size: rect.size,
             progress: const Duration(minutes: 12),
             total: _total,
-            timeLabelLocation: location,
+            sideLabels: location == PlayerTimeLabelLocation.sides,
             textScaler: TextScaler.linear(scale),
           );
           if (track.end <= track.start) continue;
@@ -102,7 +102,7 @@ void main() {
             events.seeks.clear();
             events.starts = 0;
           }
-          if (location == TimeLabelLocation.sides) {
+          if (location == PlayerTimeLabelLocation.sides) {
             final mouse = await tester.mouseAt(
               rect.centerLeft + const Offset(2, 0),
             );
@@ -203,7 +203,7 @@ void main() {
     var progress = const Duration(minutes: 9, seconds: 59);
     final events = _Events();
     Widget host() => _host(
-      location: TimeLabelLocation.sides,
+      location: PlayerTimeLabelLocation.sides,
       progress: progress,
       events: events,
     );
@@ -246,8 +246,7 @@ void main() {
               compact: true,
               progress: progress,
               events: events,
-              onUpdate: (details) =>
-                  setState(() => progress = details.timeStamp),
+              onUpdate: (timeStamp) => setState(() => progress = timeStamp),
             ),
           ),
         );
@@ -469,7 +468,7 @@ void main() {
 
 Widget _host({
   double width = 300,
-  TimeLabelLocation location = TimeLabelLocation.none,
+  PlayerTimeLabelLocation location = PlayerTimeLabelLocation.none,
   double scale = 1,
   Duration total = _total,
   Duration progress = const Duration(minutes: 1),
@@ -479,9 +478,9 @@ Widget _host({
   bool compact = false,
   Alignment alignment = Alignment.centerLeft,
   _Events? events,
-  ValueChanged<ThumbDragDetails>? onUpdate,
+  ValueChanged<Duration>? onUpdate,
 }) {
-  Widget progressBar(TimeLabelLocation location) => PlayerProgressHover(
+  Widget progressBar(PlayerTimeLabelLocation location) => PlayerProgressBar(
     progress: progress,
     buffered: Duration.zero,
     total: total,
@@ -491,9 +490,9 @@ Widget _host({
     enabled: enabled,
     onSeek: events?.seeks.add ?? (_) {},
     onDragStart: events?.start ?? () {},
-    onDragUpdate: (details) {
-      events?.update(details);
-      onUpdate?.call(details);
+    onDragUpdate: (timeStamp) {
+      events?.update(timeStamp);
+      onUpdate?.call(timeStamp);
     },
     onDragCancel: events?.cancel ?? () {},
   );
@@ -552,7 +551,7 @@ void _expectPreview({bool visible = true, Duration? time}) {
 }
 
 extension on WidgetTester {
-  Rect get progressRect => getRect(find.byType(ProgressBar));
+  Rect get progressRect => getRect(find.byType(PlayerProgressBar));
 
   Future<TestGesture> mouseAt(Offset location, {int? pointer}) async {
     final mouse = await createGesture(
@@ -569,12 +568,18 @@ extension on WidgetTester {
   }
 }
 
+class _DragUpdate {
+  const _DragUpdate(this.timeStamp);
+
+  final Duration timeStamp;
+}
+
 class _Events {
   final seeks = <Duration>[];
   var starts = 0;
   var updates = 0;
   var cancels = 0;
-  ThumbDragDetails? lastUpdate;
+  _DragUpdate? lastUpdate;
 
   void expectDragPreview(PointerDeviceKind kind) => _expectPreview(
     visible: kind == PointerDeviceKind.mouse,
@@ -583,8 +588,8 @@ class _Events {
 
   void start() => starts++;
   void cancel() => cancels++;
-  void update(ThumbDragDetails details) {
+  void update(Duration timeStamp) {
     updates++;
-    lastUpdate = details;
+    lastUpdate = _DragUpdate(timeStamp);
   }
 }

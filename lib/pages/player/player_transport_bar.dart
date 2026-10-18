@@ -1,5 +1,8 @@
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
+
+/// Project-owned counterpart of the progress bar package's time label
+/// placement. Only [PlayerProgressBar] translates it to the package type.
+enum PlayerTimeLabelLocation { none, sides }
 
 enum PlayerTimeLabelPlacement {
   aboveProgress,
@@ -31,7 +34,7 @@ class PlayerTransportBar extends StatelessWidget {
   final bool compact;
   final Widget playPause;
   final Widget nextEpisode;
-  final Widget Function(TimeLabelLocation location) progressBuilder;
+  final Widget Function(PlayerTimeLabelLocation location) progressBuilder;
   final Widget timeLabel;
   final PlayerTimeLabelPlacement timePlacement;
   final Widget controls;
@@ -41,7 +44,7 @@ class PlayerTransportBar extends StatelessWidget {
   Widget build(BuildContext context) => compact
       ? Row(children: [
           playPause,
-          Expanded(child: progressBuilder(TimeLabelLocation.none)),
+          Expanded(child: progressBuilder(PlayerTimeLabelLocation.none)),
           timeLabel,
           fullscreen,
         ])
@@ -58,8 +61,8 @@ class PlayerTransportBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: progressBuilder(
                 timePlacement == PlayerTimeLabelPlacement.besideProgress
-                    ? TimeLabelLocation.sides
-                    : TimeLabelLocation.none,
+                    ? PlayerTimeLabelLocation.sides
+                    : PlayerTimeLabelLocation.none,
               ),
             ),
             Padding(

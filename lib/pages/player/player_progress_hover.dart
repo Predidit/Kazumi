@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -20,16 +19,17 @@ Size _labelSize(String text, TextScaler textScaler) {
   return size;
 }
 
-/// Geometry of audio_video_progress_bar 2.0.3's _updateThumbPosition and
-/// _drawProgressBarWithLabelsOnSides. Its seek endpoints use barHeight / 2,
-/// not thumbRadius; thumbGlowRadius affects painting only. Labels stay LTR
-/// even in RTL layouts and use MediaQuery's TextScaler, just like the package.
+/// Geometry of the track owned by [PlayerProgressBar].
+///
+/// It mirrors that adapter's fixed configuration: `thumbRadius` 8,
+/// `barHeight` 5, `thumbCanPaintOutsideBar` true, `timeLabelPadding` 0 and
+/// total-time labels. Keep these values in sync when the adapter changes.
 class PlayerProgressTrackGeometry {
   PlayerProgressTrackGeometry({
     required Size size,
     required Duration progress,
     required Duration total,
-    required TimeLabelLocation timeLabelLocation,
+    required bool sideLabels,
     required TextScaler textScaler,
   }) {
     double labelWidth(Duration time) {
@@ -41,19 +41,20 @@ class PlayerProgressTrackGeometry {
       return _labelSize(text, textScaler).width;
     }
 
-    final sides = timeLabelLocation == TimeLabelLocation.sides;
-    // The widget below explicitly fixes thumbRadius=8, barHeight=5,
-    // thumbCanPaintOutsideBar=true, timeLabelPadding=0, totalTime labels.
-    final before = sides ? labelWidth(progress) + 8 + 5 : 0.0;
-    final after = sides ? labelWidth(total) + 8 + 5 : 0.0;
+    final before = sideLabels
+        ? labelWidth(progress) + PlayerProgressHover.sideLabelPadding
+        : 0.0;
+    final after = sideLabels
+        ? labelWidth(total) + PlayerProgressHover.sideLabelPadding
+        : 0.0;
     bounds = Rect.fromLTRB(
       before,
-      (size.height - 16) / 2,
+      (size.height - PlayerProgressHover.barExtent) / 2,
       size.width - after,
-      (size.height + 16) / 2,
+      (size.height + PlayerProgressHover.barExtent) / 2,
     );
-    start = before + 2.5;
-    end = size.width - after - 2.5;
+    start = before + PlayerProgressHover.trackCapInset;
+    end = size.width - after - PlayerProgressHover.trackCapInset;
   }
 
   late final Rect bounds;
@@ -69,38 +70,71 @@ class PlayerProgressTrackGeometry {
   }
 }
 
-/// A mouse-only preview around the existing progress bar. It observes pointer
-/// events without joining the gesture arena and never changes playback state.
+/// Callbacks handed to the bar builder. They are already wrapped with the
+/// hover state's pointer-cancel handling, so the bar does not need to know
+/// about previews or cancellation.
+class PlayerProgressHoverCallbacks {
+  const PlayerProgressHoverCallbacks({
+    required this.onSeek,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+  });
+
+  final ValueChanged<Duration> onSeek;
+  final void Function(Offset localPosition, Duration timeStamp) onDragStart;
+  final void Function(Offset localPosition, Duration timeStamp) onDragUpdate;
+  final VoidCallback onDragEnd;
+}
+
+typedef PlayerProgressBarBuilder =
+    Widget Function(
+      BuildContext context,
+      PlayerProgressHoverCallbacks callbacks,
+    );
+
+/// Adds a mouse time preview to [PlayerProgressBar] without owning rendering,
+/// gestures, or seek state. The bar comes from [barBuilder]; geometry comes
+/// from [geometryBuilder].
 class PlayerProgressHover extends StatefulWidget {
   const PlayerProgressHover({
     super.key,
     required this.progress,
-    required this.buffered,
     required this.total,
-    required this.timeLabelLocation,
+    required this.enabled,
     required this.mediaIdentity,
     required this.layoutIdentity,
-    required this.enabled,
     required this.onSeek,
     required this.onDragStart,
     required this.onDragUpdate,
     required this.onDragCancel,
-  }) : assert(
-         timeLabelLocation == TimeLabelLocation.none ||
-             timeLabelLocation == TimeLabelLocation.sides,
-       );
+    required this.geometryBuilder,
+    required this.barBuilder,
+  });
 
   final Duration progress;
-  final Duration buffered;
   final Duration total;
-  final TimeLabelLocation timeLabelLocation;
+  final bool enabled;
   final Object mediaIdentity;
   final Object layoutIdentity;
-  final bool enabled;
   final ValueChanged<Duration> onSeek;
   final VoidCallback onDragStart;
-  final ValueChanged<ThumbDragDetails> onDragUpdate;
+  final ValueChanged<Duration> onDragUpdate;
   final VoidCallback onDragCancel;
+  final PlayerProgressTrackGeometry Function(Size size, TextScaler textScaler)
+  geometryBuilder;
+  final PlayerProgressBarBuilder barBuilder;
+
+  /// Bar configuration shared with [PlayerProgressTrackGeometry].
+  static const double thumbRadius = 8;
+  static const double thumbGlowRadius = 18;
+  static const double barHeight = 5;
+  static const double timeLabelPadding = 0;
+
+  /// `thumbRadius + 5` mirrors the package's `_defaultSidePadding`.
+  static const double sideLabelPadding = thumbRadius + 5 + timeLabelPadding;
+  static const double trackCapInset = barHeight / 2;
+  static const double barExtent = 2 * thumbRadius;
 
   static const labelStyle = TextStyle(
     color: Colors.white,
@@ -132,6 +166,28 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
     _ => false,
   };
 
+  late final PlayerProgressHoverCallbacks _callbacks =
+      PlayerProgressHoverCallbacks(
+        onSeek: (time) {
+          if (!_cancelledPointer) widget.onSeek(time);
+        },
+        onDragStart: (position, timeStamp) {
+          if (_cancelledPointer) return;
+          _dragging = true;
+          _updatePreview(position, dragTime: timeStamp);
+          widget.onDragStart();
+        },
+        onDragUpdate: (position, timeStamp) {
+          if (_cancelledPointer) return;
+          _updatePreview(position, dragTime: timeStamp);
+          widget.onDragUpdate(timeStamp);
+        },
+        onDragEnd: () {
+          _dragging = false;
+          _hide();
+        },
+      );
+
   @override
   void initState() {
     super.initState();
@@ -156,15 +212,13 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
     if (!widget.enabled ||
         widget.mediaIdentity != oldWidget.mediaIdentity ||
         widget.layoutIdentity != oldWidget.layoutIdentity ||
-        widget.timeLabelLocation != oldWidget.timeLabelLocation ||
         (_dragging && widget.total != oldWidget.total) ||
         widget.total <= Duration.zero) {
       _cancelPointer();
     } else if (!_dragging &&
         _preview != null &&
         (widget.total != oldWidget.total ||
-            (widget.timeLabelLocation == TimeLabelLocation.sides &&
-                widget.progress != oldWidget.progress))) {
+            widget.progress != oldWidget.progress)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_dragging && _preview != null) {
           _updatePreview(_preview!.position);
@@ -224,12 +278,9 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
     }
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
-    final geometry = PlayerProgressTrackGeometry(
-      size: box.size,
-      progress: widget.progress,
-      total: widget.total,
-      timeLabelLocation: widget.timeLabelLocation,
-      textScaler: MediaQuery.textScalerOf(context),
+    final geometry = widget.geometryBuilder(
+      box.size,
+      MediaQuery.textScalerOf(context),
     );
     final time = dragTime ?? geometry.timeAt(position, widget.total);
     if (time == null ||
@@ -248,7 +299,6 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
         _preview?.time.inSeconds == time.inSeconds) {
       return;
     }
-    // Use the package's drag timestamp: it caches side-label widths while held.
     setState(() => _preview = (position: position, time: time));
     if (!_portal.isShowing) _portal.show();
   }
@@ -258,8 +308,6 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
     if (_pointers.isNotEmpty || wasDragging) _cancelledPointer = true;
     _dragging = false;
     _hide();
-    // 2.0.3 has no public drag-cancel callback. The listener observes native
-    // cancellation while leaving its recognizer's normal callbacks intact.
     if (wasDragging) {
       final cancel = widget.onDragCancel;
       if (SchedulerBinding.instance.schedulerPhase ==
@@ -324,8 +372,9 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
     overlayChildBuilder: _buildPreview,
     child: LayoutBuilder(
       builder: (context, constraints) {
-        // Compact time labels can resize the bar as the drag target changes.
-        // Keep the drag active; the package remaps on the next pointer update.
+        // Compact time labels can resize the bar as the drag target
+        // changes. Keep the drag active; the bar remaps on the next
+        // pointer update.
         if (_constraints != null && _constraints != constraints && !_dragging) {
           _cancelPointer();
         }
@@ -357,41 +406,7 @@ class _PlayerProgressHoverState extends State<PlayerProgressHover>
               _cancelPointer();
               if (_pointers.isEmpty) _pointerKind = null;
             },
-            child: ProgressBar(
-              thumbRadius: 8,
-              thumbGlowRadius: 18,
-              timeLabelLocation: widget.timeLabelLocation,
-              timeLabelTextStyle: PlayerProgressHover.labelStyle,
-              progress: widget.progress,
-              buffered: widget.buffered,
-              total: widget.total,
-              onSeek: (time) {
-                // A cancelled accepted horizontal drag also calls onEnd
-                // in Flutter. Do not commit the package's resulting seek.
-                if (!_cancelledPointer) widget.onSeek(time);
-              },
-              onDragStart: (details) {
-                if (_cancelledPointer) return;
-                _dragging = true;
-                _updatePreview(
-                  details.localPosition,
-                  dragTime: details.timeStamp,
-                );
-                widget.onDragStart();
-              },
-              onDragUpdate: (details) {
-                if (_cancelledPointer) return;
-                _updatePreview(
-                  details.localPosition,
-                  dragTime: details.timeStamp,
-                );
-                widget.onDragUpdate(details);
-              },
-              onDragEnd: () {
-                _dragging = false;
-                _hide();
-              },
-            ),
+            child: widget.barBuilder(context, _callbacks),
           ),
         );
       },

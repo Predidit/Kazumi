@@ -26,7 +26,7 @@ import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/format.dart';
 import 'package:kazumi/pages/player/player_transport_bar.dart';
 import 'package:kazumi/pages/player/player_screenshot_controls.dart';
-import 'package:kazumi/pages/player/player_progress_hover.dart';
+import 'package:kazumi/pages/player/player_progress_bar.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -708,7 +708,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             ),
             // Playback ticks only rebuild the progress bar and its time labels.
             progressBuilder: (location) => Observer(
-                builder: (context) => PlayerProgressHover(
+                builder: (context) => PlayerProgressBar(
                       timeLabelLocation: location,
                       enabled: playerController.panel.showVideoController &&
                           !playerController.panel.lockPanel &&
@@ -730,8 +730,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       onSeek: widget.handleProgressBarSeek,
                       onDragStart: widget.handleProgressBarDragStart,
                       onDragCancel: widget.handleProgressBarDragCancel,
-                      onDragUpdate: (details) => playerController.seeking
-                          .updateInteractiveSeek(details.timeStamp),
+                      onDragUpdate: (timeStamp) => playerController.seeking
+                          .updateInteractiveSeek(timeStamp),
                     )),
             timeLabel: Observer(
                 builder: (context) => Text(

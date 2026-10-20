@@ -12,6 +12,7 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  app_links: ^7.2.2
   cupertino_icons: ^1.0.6
   flutter_modular: ^7.1.0
   mobx: ^2.6.0

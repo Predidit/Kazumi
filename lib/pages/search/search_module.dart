@@ -16,6 +16,7 @@ final searchModule = createModule(
         provide: _provideSearchController,
         child: (context, state) => SearchPage(
           controller: context.read<SearchPageController>(),
+          initialQuery: state.uri.queryParameters['query'] ?? '',
         ),
       )
       ..route(

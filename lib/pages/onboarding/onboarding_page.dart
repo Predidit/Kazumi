@@ -12,6 +12,7 @@ import 'package:kazumi/pages/onboarding/steps/mirror_settings_step.dart';
 import 'package:kazumi/pages/onboarding/steps/plugin_shop_step.dart';
 import 'package:kazumi/pages/onboarding/steps/update_source_step.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/services/deep_links/app_deep_links.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
 
@@ -131,6 +132,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       checkForUpdate: () => myController.checkUpdate(type: 'auto'),
     ));
     context.navigate(GStorage.getSetting(SettingsKeys.defaultStartupPage));
+    appDeepLinks.markReady();
   }
 
   Widget _buildBottomBar(BuildContext context) {

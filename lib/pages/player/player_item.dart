@@ -684,12 +684,8 @@ class _PlayerItemState extends State<PlayerItem>
     _progressBarDragHold = acquirePlayerPanelHold();
   }
 
-  Future<void> handleProgressBarSeek(Duration duration) async {
-    if (!playerController.seeking.updateInteractiveSeek(duration)) {
-      await playerController.seek(duration);
-      return;
-    }
-    await _finishInteractiveSeek();
+  void handleProgressBarDragEnd(bool cancelled) {
+    unawaited(_finishInteractiveSeek(cancelled: cancelled));
   }
 
   void _beginInteractiveSeek() {
@@ -1538,10 +1534,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 enterAndroidPictureInPicture,
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
-                            handleProgressBarSeek: handleProgressBarSeek,
-                            handleProgressBarDragCancel: () => unawaited(
-                              _finishInteractiveSeek(cancelled: true),
-                            ),
+                            handleProgressBarDragEnd: handleProgressBarDragEnd,
                             handleSuperResolutionChange:
                                 handleSuperResolutionChange,
                             onNextEpisode: () => handlePreNextEpisode('next'),

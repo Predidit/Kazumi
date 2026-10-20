@@ -45,8 +45,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showScreenshotCandidates,
     required this.onNextEpisode,
     required this.handleProgressBarDragStart,
-    required this.handleProgressBarSeek,
-    required this.handleProgressBarDragCancel,
+    required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
     required this.panelVisibilityController,
     this.onToggleSidePanel,
@@ -73,8 +72,7 @@ class PlayerItemPanel extends StatefulWidget {
   final VoidCallback handleScreenShot;
   final VoidCallback showScreenshotCandidates;
   final VoidCallback handleProgressBarDragStart;
-  final Future<void> Function(Duration duration) handleProgressBarSeek;
-  final VoidCallback handleProgressBarDragCancel;
+  final void Function(bool cancelled) handleProgressBarDragEnd;
   final Future<void> Function(SuperResolutionMode mode)
       handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
@@ -760,31 +758,17 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               onPressed: widget.onNextEpisode,
             ),
             // Playback ticks only rebuild the progress bar and its time labels.
-            progressBuilder: (location) => Observer(
+            progressBuilder: ({required sideLabels}) => Observer(
                 builder: (context) => PlayerProgressBar(
-                      timeLabelLocation: location,
-                      enabled: playerController.panel.showVideoController &&
-                          !playerController.panel.lockPanel &&
-                          !videoPageController.isPip,
-                      mediaIdentity: (
-                        videoPageController.bangumiItem.id,
-                        videoPageController.selectedEpisode.road,
-                        videoPageController.selectedEpisode.episode,
-                        videoPageController.loading,
-                      ),
-                      layoutIdentity: (
-                        compact,
-                        videoPageController.isFullscreen,
-                        videoPageController.isPip,
-                      ),
+                      sideLabels: sideLabels,
                       progress: playerController.playback.currentPosition,
                       buffered: playerController.playback.buffer,
                       total: playerController.playback.duration,
-                      onSeek: widget.handleProgressBarSeek,
                       onDragStart: widget.handleProgressBarDragStart,
-                      onDragCancel: widget.handleProgressBarDragCancel,
-                      onDragUpdate: (timeStamp) => playerController.seeking
-                          .updateInteractiveSeek(timeStamp),
+                      onDragUpdate: (position) => playerController.seeking
+                          .updateInteractiveSeek(position),
+                      onDragEnd: widget.handleProgressBarDragEnd,
+                      onSeek: playerController.seek,
                     )),
             timeLabel: Observer(
                 builder: (context) => Text(

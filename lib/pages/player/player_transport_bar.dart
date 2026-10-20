@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Project-owned counterpart of the progress bar package's time label
-/// placement. Only [PlayerProgressBar] translates it to the package type.
-enum PlayerTimeLabelLocation { none, sides }
-
 enum PlayerTimeLabelPlacement {
   aboveProgress,
   besideProgress,
@@ -34,7 +30,7 @@ class PlayerTransportBar extends StatelessWidget {
   final bool compact;
   final Widget playPause;
   final Widget nextEpisode;
-  final Widget Function(PlayerTimeLabelLocation location) progressBuilder;
+  final Widget Function({required bool sideLabels}) progressBuilder;
   final Widget timeLabel;
   final PlayerTimeLabelPlacement timePlacement;
   final Widget controls;
@@ -44,7 +40,7 @@ class PlayerTransportBar extends StatelessWidget {
   Widget build(BuildContext context) => compact
       ? Row(children: [
           playPause,
-          Expanded(child: progressBuilder(PlayerTimeLabelLocation.none)),
+          Expanded(child: progressBuilder(sideLabels: false)),
           timeLabel,
           fullscreen,
         ])
@@ -60,9 +56,8 @@ class PlayerTransportBar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: progressBuilder(
-                timePlacement == PlayerTimeLabelPlacement.besideProgress
-                    ? PlayerTimeLabelLocation.sides
-                    : PlayerTimeLabelLocation.none,
+                sideLabels:
+                    timePlacement == PlayerTimeLabelPlacement.besideProgress,
               ),
             ),
             Padding(

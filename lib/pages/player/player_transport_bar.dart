@@ -1,4 +1,3 @@
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 
 enum PlayerTimeLabelPlacement {
@@ -31,7 +30,7 @@ class PlayerTransportBar extends StatelessWidget {
   final bool compact;
   final Widget playPause;
   final Widget nextEpisode;
-  final Widget Function(TimeLabelLocation location) progressBuilder;
+  final Widget Function({required bool sideLabels}) progressBuilder;
   final Widget timeLabel;
   final PlayerTimeLabelPlacement timePlacement;
   final Widget controls;
@@ -41,7 +40,7 @@ class PlayerTransportBar extends StatelessWidget {
   Widget build(BuildContext context) => compact
       ? Row(children: [
           playPause,
-          Expanded(child: progressBuilder(TimeLabelLocation.none)),
+          Expanded(child: progressBuilder(sideLabels: false)),
           timeLabel,
           fullscreen,
         ])
@@ -57,9 +56,8 @@ class PlayerTransportBar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: progressBuilder(
-                timePlacement == PlayerTimeLabelPlacement.besideProgress
-                    ? TimeLabelLocation.sides
-                    : TimeLabelLocation.none,
+                sideLabels:
+                    timePlacement == PlayerTimeLabelPlacement.besideProgress,
               ),
             ),
             Padding(

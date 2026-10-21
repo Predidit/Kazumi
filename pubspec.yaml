@@ -1,7 +1,7 @@
 name: kazumi
 description: "A new Flutter project."
 publish_to: "none"
-version: 2.3.8+20308
+version: 2.3.9+20309
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
@@ -26,13 +26,12 @@ dependencies:
   hive_ce_flutter: ^2.3.3
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
-  ech_http: ^0.2.1
+  ech_http: ^0.2.2
   http: ^1.6.0
   image: ^4.8.0
   file_picker: ^10.3.7
 
   flutter_volume_controller: ^2.0.1
-  audio_video_progress_bar: ^2.0.2
   audio_service: ^0.18.15
   audio_service_mpris:
     git:
@@ -96,12 +95,12 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 803c4a27912091db6f839d48d1b984a0d9f588c7
+      ref: 83b7ca63772856e1ea0158916177e136f7b7b0be
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 803c4a27912091db6f839d48d1b984a0d9f588c7
+      ref: 83b7ca63772856e1ea0158916177e136f7b7b0be
       path: ./media_kit_video
   macos_secure_bookmarks: ^0.2.1
 
@@ -158,7 +157,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - assets/plugins/
     - assets/shaders/
     - assets/images/logo/
     - assets/statements/

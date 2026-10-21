@@ -6,15 +6,12 @@ import 'package:flutter_modular/flutter_modular.dart';
 
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/onboarding/steps/disclaimer_step.dart';
 import 'package:kazumi/pages/onboarding/steps/mirror_settings_step.dart';
 import 'package:kazumi/pages/onboarding/steps/plugin_shop_step.dart';
 import 'package:kazumi/pages/onboarding/steps/update_source_step.dart';
-import 'package:kazumi/plugins/plugins.dart' show pluginNameKey;
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
 
@@ -53,10 +50,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
   ];
   int _currentIndex = 0;
   bool _agreed = false;
-  bool _installingBundled = false;
   bool _busy = false;
   late bool _useGithubUpdate;
-  late Set<String> _initialPluginNames;
 
   PluginsController get _pluginsController => widget.pluginsController;
   bool get _isLastStep => _currentIndex == _steps.length - 1;
@@ -96,8 +91,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (_busy || (!forward && _currentIndex == 0)) return;
     _busy = true;
     try {
-      if (forward && !_agreed && !await _installBundledRules()) return;
-      if (!mounted) return;
+      if (forward && !_agreed) setState(() => _agreed = true);
       if (forward && _isLastStep) {
         await _finish();
       } else {
@@ -121,43 +115,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
-  Future<bool> _installBundledRules() async {
-    setState(() => _installingBundled = true);
-    try {
-      await _pluginsController.copyPluginsToExternalDirectory();
-    } catch (error, stackTrace) {
-      KazumiLogger().e(
-        'Plugin: failed to install bundled rules',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      if (!mounted) return false;
-      setState(() => _installingBundled = false);
-      KazumiDialog.showToast(context: context, message: '初始化规则失败');
-      return false;
-    }
-    if (!mounted) return false;
-    _initialPluginNames = _pluginsController.pluginList
-        .map((plugin) => pluginNameKey(plugin.name))
-        .toSet();
-    setState(() {
-      _agreed = true;
-      _installingBundled = false;
-    });
-    return true;
-  }
-
   Future<void> _finish() async {
-    // Updating a bundled rule must not count as installing an extra source.
-    final hasExtraRules = _pluginsController.pluginList.any(
-        (plugin) => !_initialPluginNames.contains(pluginNameKey(plugin.name)));
-    if (!hasExtraRules) {
+    if (_pluginsController.pluginList.isEmpty) {
       final confirmed = await KazumiDialog.show<bool>(
         context: context,
         builder: (_) => const _SkipRulesDialog(),
       );
       if (confirmed != true) return;
     }
+    await GStorage.putSetting(SettingsKeys.onboardingCompleted, true);
     if (!mounted) return;
     final myController = widget.myController;
     unawaited(runStartupUpdateCheck(
@@ -177,11 +143,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
           minimumSize: const Size(88, 56),
           foregroundColor: theme.colorScheme.onSurfaceVariant,
         ),
-        onPressed: _installingBundled
-            ? null
-            : _currentIndex == 0
-                ? () => exit(0)
-                : () => _navigate(forward: false),
+        onPressed: _currentIndex == 0
+            ? () => exit(0)
+            : () => _navigate(forward: false),
         child: Text(_currentIndex == 0 ? '退出' : '上一步'),
       );
       final primary = FilledButton.icon(
@@ -191,14 +155,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
           textStyle: theme.textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.w600),
         ),
-        onPressed: _installingBundled ? null : () => _navigate(forward: true),
+        onPressed: () => _navigate(forward: true),
         iconAlignment: IconAlignment.end,
-        icon: _installingBundled
-            ? const LoadingIndicator(size: 24, semanticsLabel: '正在准备内置规则')
-            : Icon(_isLastStep
-                ? Icons.check_rounded
-                : Icons.arrow_forward_rounded),
-        label: Text(_installingBundled ? '正在准备' : _primaryLabel),
+        icon: Icon(
+            _isLastStep ? Icons.check_rounded : Icons.arrow_forward_rounded),
+        label: Text(_primaryLabel),
       );
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -274,7 +235,7 @@ class _SkipRulesDialog extends StatelessWidget {
         icon: const Icon(Icons.warning_amber_rounded),
         title: const Text('暂不添加规则？'),
         content: const Text(
-          '你还没有安装额外规则。仅使用内置规则可能导致部分番剧无法搜索或播放，影响观看体验。\n\n确定仍要继续吗？',
+          '没有规则时无法搜索和播放番剧。之后也可以在规则管理中添加。',
         ),
         actions: [
           TextButton(
@@ -284,7 +245,7 @@ class _SkipRulesDialog extends StatelessWidget {
           FilledButton(
             autofocus: true,
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('返回安装'),
+            child: const Text('返回添加'),
           ),
         ],
       );

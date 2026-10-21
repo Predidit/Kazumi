@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -14,6 +14,7 @@ import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -22,11 +23,12 @@ import 'package:kazumi/services/player/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/format.dart';
 import 'package:kazumi/pages/player/player_transport_bar.dart';
 import 'package:kazumi/pages/player/player_screenshot_controls.dart';
+import 'package:kazumi/pages/player/player_progress_bar.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -43,7 +45,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showScreenshotCandidates,
     required this.onNextEpisode,
     required this.handleProgressBarDragStart,
-    required this.handleProgressBarSeek,
+    required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
     required this.panelVisibilityController,
     this.onToggleSidePanel,
@@ -70,7 +72,7 @@ class PlayerItemPanel extends StatefulWidget {
   final VoidCallback handleScreenShot;
   final VoidCallback showScreenshotCandidates;
   final VoidCallback handleProgressBarDragStart;
-  final Future<void> Function(Duration duration) handleProgressBarSeek;
+  final void Function(bool cancelled) handleProgressBarDragEnd;
   final Future<void> Function(SuperResolutionMode mode)
       handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
@@ -98,40 +100,49 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   late final PlayerController playerController;
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
+  int? _danmakuPauseTick;
+
+  /// Whether this editor currently owns a pause. The sleep timer bumps
+  /// [TimedShutdownService.expiryTicks] when it actually expires, which revokes
+  /// the ownership even if the panel was rebuilt in between.
+  bool get _pausedByDanmakuEdit =>
+      _danmakuPauseTick == TimedShutdownService().expiryTicks.value;
+  bool _holdResumeForDestinationSheet = false;
 
   String? _cachedDanmakuColorHex;
   late Widget _cachedDanmakuOnIcon;
   late final Widget _cachedDanmakuOffIcon;
   late final Widget _cachedDanmakuSettingsIcon;
 
-  bool get _desktop => switch (defaultTargetPlatform) {
-        TargetPlatform.windows ||
-        TargetPlatform.linux ||
-        TargetPlatform.macOS =>
-          true,
-        _ => false,
-      };
-
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
 
   @override
   void dispose() {
+    textFieldFocus.removeListener(_onDanmakuEditFocusChanged);
     textController.dispose();
     textFieldFocus.dispose();
     super.dispose();
   }
 
   Future<void> _submitDanmakuText(String message) async {
+    _holdResumeForDestinationSheet = true;
     textFieldFocus.unfocus();
 
     if (message.trim().isEmpty) {
       KazumiDialog.showToast(message: '弹幕内容为空');
+      _holdResumeForDestinationSheet = false;
+      _onDanmakuEditFocusChanged();
       return;
     }
 
     final destination = await showDanmakuDestinationSheet(context);
-    if (!mounted || destination == null) {
+    _holdResumeForDestinationSheet = false;
+    if (!mounted) {
+      return;
+    }
+    _onDanmakuEditFocusChanged();
+    if (destination == null) {
       return;
     }
 
@@ -171,19 +182,59 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     textController.clear();
   }
 
+  // A SyncPlay room is left alone: a local pause there is either broadcast to
+  // everyone or undone by the next server state message.
+  void _onDanmakuEditFocusChanged() {
+    if (playerController.syncplay.hasSession) return;
+    if (textFieldFocus.hasFocus) {
+      if (GStorage.getSetting<bool>(SettingsKeys.pauseOnDanmakuEdit) &&
+          playerController.playback.playing) {
+        _danmakuPauseTick = TimedShutdownService().expiryTicks.value;
+        unawaited(playerController.pause(enableSync: false));
+      }
+    } else if (_canResumeAfterDanmakuEdit) {
+      _danmakuPauseTick = null;
+      unawaited(playerController.play(enableSync: false));
+    }
+  }
+
+  /// Only undoes a pause this editor created, and only when nothing else owns
+  /// playback: no destination sheet, no app in the background (desktop window
+  /// switches report inactive), and no dialog on top.
+  bool get _canResumeAfterDanmakuEdit =>
+      _pausedByDanmakuEdit &&
+      !_holdResumeForDestinationSheet &&
+      (WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed) ==
+          AppLifecycleState.resumed &&
+      (ModalRoute.of(context)?.isCurrent ?? false);
+
+
+  // Keeps the tap that dismisses the composer away from the video and the play
+  // button. The region must stay in the text field's group, or the paste/copy/
+  // select-all toolbar stops responding.
+  Widget _danmakuEditBarrier(Widget child) {
+    return ListenableBuilder(
+      listenable: textFieldFocus,
+      builder: (context, _) => TextFieldTapRegion(
+        consumeOutsideTaps: textFieldFocus.hasFocus && _pausedByDanmakuEdit,
+        child: child,
+      ),
+    );
+  }
+
   Widget get _danmakuTextField {
     return Observer(builder: (context) {
       return PlayerPanelHoldFocusRegion(
           acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
           child: Container(
-            constraints: _desktop
+            constraints: isDesktop()
                 ? const BoxConstraints(maxWidth: 500, maxHeight: 33)
                 : const BoxConstraints(maxHeight: 33),
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: TextField(
               focusNode: textFieldFocus,
-              style:
-                  TextStyle(fontSize: _desktop ? 15 : 13, color: Colors.white),
+              style: TextStyle(
+                  fontSize: isDesktop() ? 15 : 13, color: Colors.white),
               controller: textController,
               textAlignVertical: TextAlignVertical.center,
               decoration: InputDecoration(
@@ -195,14 +246,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     ? '发个友善的弹幕见证当下'
                     : '已关闭弹幕',
                 hintStyle: TextStyle(
-                    fontSize: _desktop ? 15 : 13, color: Colors.white60),
+                    fontSize: isDesktop() ? 15 : 13, color: Colors.white60),
                 alignLabelWithHint: true,
                 contentPadding: EdgeInsets.symmetric(
-                    vertical: 8, horizontal: _desktop ? 8 : 12),
+                    vertical: 8, horizontal: isDesktop() ? 8 : 12),
                 border: OutlineInputBorder(
                   borderSide: BorderSide.none,
                   borderRadius:
-                      BorderRadius.all(Radius.circular(_desktop ? 8 : 20)),
+                      BorderRadius.all(Radius.circular(isDesktop() ? 8 : 20)),
                 ),
                 suffixIconConstraints: const BoxConstraints(minWidth: 0),
                 suffixIcon: Row(
@@ -221,7 +272,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             : Theme.of(context).disabledColor,
                         shape: RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(_desktop ? 8 : 20),
+                              BorderRadius.circular(isDesktop() ? 8 : 20),
                         ),
                       ),
                       child: const Text('发送'),
@@ -284,6 +335,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   void initState() {
     super.initState();
     playerController = widget.playerController;
+    textFieldFocus.addListener(_onDanmakuEditFocusChanged);
     final visibility = widget.panelVisibilityController
         .drive(CurveTween(curve: Curves.easeInOut));
     _topOffsetAnimation = visibility.drive(Tween<Offset>(
@@ -452,7 +504,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             );
           }),
         ),
-        if (!_desktop)
+        if (!isDesktop())
           Positioned(
             right: 0,
             top: 0,
@@ -614,7 +666,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             children: [
               _buildDanmakuToggleButton(context),
               _danmakuSettingsButton,
-              if (constraints.maxWidth > 600) _danmakuTextField,
+              if (constraints.maxWidth > 600)
+                _danmakuEditBarrier(_danmakuTextField),
             ],
           ),
         ),
@@ -631,8 +684,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       );
 
   Widget get _wideControls => Row(children: [
-        if (_desktop) Expanded(child: _desktopDanmakuControls),
-        if (!_desktop) ...[
+        if (isDesktop()) Expanded(child: _desktopDanmakuControls),
+        if (!isDesktop()) ...[
           IconButton(
             color: Colors.white,
             icon: playerController.danmaku.danmakuOn
@@ -643,7 +696,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           ),
           if (playerController.danmaku.danmakuOn) ...[
             _danmakuSettingsButton,
-            Expanded(child: _danmakuTextField),
+            Expanded(child: _danmakuEditBarrier(_danmakuTextField)),
           ] else
             const Spacer(),
         ],
@@ -688,7 +741,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             compact: compact,
             timePlacement: PlayerTimeLabelPlacement.forViewport(
               MediaQuery.sizeOf(context),
-              desktop: _desktop,
+              desktop: isDesktop(),
             ),
             playPause: IconButton(
               tooltip: playerController.playback.playing ? '暂停' : '播放',
@@ -705,30 +758,24 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               onPressed: widget.onNextEpisode,
             ),
             // Playback ticks only rebuild the progress bar and its time labels.
-            progressBuilder: (location) => Observer(
-                builder: (context) => ProgressBar(
-                      thumbRadius: 8,
-                      thumbGlowRadius: 18,
-                      timeLabelLocation: location,
-                      timeLabelTextStyle: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
+            progressBuilder: ({required sideLabels}) => Observer(
+                builder: (context) => PlayerProgressBar(
+                      sideLabels: sideLabels,
                       progress: playerController.playback.currentPosition,
                       buffered: playerController.playback.buffer,
                       total: playerController.playback.duration,
-                      onSeek: widget.handleProgressBarSeek,
-                      onDragStart: (_) => widget.handleProgressBarDragStart(),
-                      onDragUpdate: (details) => playerController.seeking
-                          .updateInteractiveSeek(details.timeStamp),
+                      onDragStart: widget.handleProgressBarDragStart,
+                      onDragUpdate: (position) => playerController.seeking
+                          .updateInteractiveSeek(position),
+                      onDragEnd: widget.handleProgressBarDragEnd,
+                      onSeek: playerController.seek,
                     )),
             timeLabel: Observer(
                 builder: (context) => Text(
                       '${compact ? '    ' : ''}${durationToString(playerController.playback.currentPosition)} / ${durationToString(playerController.playback.duration)}',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: !compact && _desktop ? 16 : 12,
+                        fontSize: !compact && isDesktop() ? 16 : 12,
                         fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     )),
@@ -742,7 +789,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     if (videoPageController.isPip) {
       return compact ? const Text('    ') : const SizedBox.shrink();
     }
-    if (!_desktop && widget.fillsWindow && !videoPageController.isFullscreen) {
+    if (!isDesktop() &&
+        widget.fillsWindow &&
+        !videoPageController.isFullscreen) {
       return const SizedBox.shrink();
     }
     return IconButton(
@@ -795,18 +844,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 ),
               ),
               _forwardButton(),
-              if (_desktop)
+              if (isDesktop())
                 PlayerScreenshotControls(
                   controller: playerController.screenshots,
                   onCapture: widget.handleScreenShot,
                   onReview: widget.showScreenshotCandidates,
                 ),
-              if ((_desktop &&
+              if ((isDesktop() &&
                       (compact || !videoPageController.isFullscreen)) ||
-                  (defaultTargetPlatform == TargetPlatform.android))
+                  Platform.isAndroid)
                 IconButton(
                   onPressed: () async {
-                    if (_desktop) {
+                    if (isDesktop()) {
                       if (videoPageController.isPip) {
                         await PipUtils.exitDesktopPIPWindow();
                       } else {

@@ -142,33 +142,25 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
               child: CustomScrollView(
                 controller: _scrollController,
                 slivers: [
-                  if (widget.groups.isEmpty)
-                    const SliverToBoxAdapter(
-                      child: GeneralEmptyState(
-                        icon: Icons.extension_rounded,
-                        title: '请先在规则管理中添加来源',
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      sliver: SliverList.builder(
-                        itemCount: widget.groups.length,
-                        findChildIndexCallback: (key) {
-                          final index = widget.groups.indexWhere(
-                              (group) => ValueKey(group.name) == key);
-                          return index < 0 ? null : index;
-                        },
-                        itemBuilder: (context, index) {
-                          final group = widget.groups[index];
-                          return Padding(
-                            key: ValueKey(group.name),
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildSourceGroup(group),
-                          );
-                        },
-                      ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverList.builder(
+                      itemCount: widget.groups.length,
+                      findChildIndexCallback: (key) {
+                        final index = widget.groups
+                            .indexWhere((group) => ValueKey(group.name) == key);
+                        return index < 0 ? null : index;
+                      },
+                      itemBuilder: (context, index) {
+                        final group = widget.groups[index];
+                        return Padding(
+                          key: ValueKey(group.name),
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildSourceGroup(group),
+                        );
+                      },
                     ),
+                  ),
                   const SliverToBoxAdapter(
                     child: SafeArea(top: false, child: SizedBox(height: 24)),
                   ),

@@ -1,5 +1,7 @@
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:media_kit/media_kit.dart';
 
 class _InteractiveSeekSession {
@@ -37,7 +39,7 @@ class PlayerSeekController {
   final Future<void> Function({bool enableSync}) _play;
   final Future<void> Function(bool enableSync) _onSeekCompleted;
 
-  Future<void> _seekTail = Future<void>.value();
+  final AsyncSerialQueue _seekQueue = AsyncSerialQueue();
   _InteractiveSeekSession? _interactiveSession;
 
   bool get hasActiveInteractiveSeek => _interactiveSession != null;
@@ -55,7 +57,7 @@ class PlayerSeekController {
     _playback.currentPosition = normalizedTarget;
     _danmaku.clearAndInvalidateScheduledDanmakus();
 
-    final operation = _seekTail.then((_) async {
+    return _seekQueue.run(() async {
       if (!_playback.isCurrentPlayer(player)) {
         return;
       }
@@ -64,12 +66,17 @@ class PlayerSeekController {
       } catch (_) {
         return;
       }
-      if (_playback.isCurrentPlayer(player)) {
+      if (!_playback.isCurrentPlayer(player)) {
+        return;
+      }
+      try {
         await _onSeekCompleted(enableSync);
+      } catch (e) {
+        // Callers often drop this future; it must not complete with an error.
+        KazumiLogger()
+            .w('PlayerSeekController: seek completion failed', error: e);
       }
     });
-    _seekTail = _settle(operation);
-    return operation;
   }
 
   Future<void> seekBy(
@@ -168,12 +175,4 @@ class PlayerSeekController {
   bool _isCurrent(_InteractiveSeekSession session) =>
       identical(_interactiveSession, session) &&
       identical(_playback.mediaPlayer, session.player);
-
-  Future<void> _settle(Future<void> operation) async {
-    try {
-      await operation;
-    } catch (_) {
-      // The caller receives the error; the queue only needs to remain usable.
-    }
-  }
 }

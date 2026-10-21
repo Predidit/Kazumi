@@ -23,6 +23,13 @@ mixin _$PlayerScreenshotController on _PlayerScreenshotController, Store {
     () => super.selectedCount,
     name: '_PlayerScreenshotController.selectedCount',
   )).value;
+  Computed<bool>? _$allSelectedComputed;
+
+  @override
+  bool get allSelected => (_$allSelectedComputed ??= Computed<bool>(
+    () => super.allSelected,
+    name: '_PlayerScreenshotController.allSelected',
+  )).value;
 
   late final _$_capturingAtom = Atom(
     name: '_PlayerScreenshotController._capturing',
@@ -200,6 +207,17 @@ mixin _$PlayerScreenshotController on _PlayerScreenshotController, Store {
   }
 
   @override
+  void setAllSelected(bool selected) {
+    final _$actionInfo = _$_PlayerScreenshotControllerActionController
+        .startAction(name: '_PlayerScreenshotController.setAllSelected');
+    try {
+      return super.setAllSelected(selected);
+    } finally {
+      _$_PlayerScreenshotControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void removeSelected() {
     final _$actionInfo = _$_PlayerScreenshotControllerActionController
         .startAction(name: '_PlayerScreenshotController.removeSelected');
@@ -236,7 +254,8 @@ mixin _$PlayerScreenshotController on _PlayerScreenshotController, Store {
   String toString() {
     return '''
 busy: ${busy},
-selectedCount: ${selectedCount}
+selectedCount: ${selectedCount},
+allSelected: ${allSelected}
     ''';
   }
 }

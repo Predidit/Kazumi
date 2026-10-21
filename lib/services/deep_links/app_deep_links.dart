@@ -15,6 +15,8 @@ import 'kazumi_deep_link.dart';
 
 final appDeepLinks = AppDeepLinks();
 
+const _vetoRetryInterval = Duration(milliseconds: 300);
+
 class AppDeepLinks {
   StreamSubscription<Uri>? _subscription;
   late final _dispatcher = DeepLinkDispatcher(
@@ -57,14 +59,42 @@ class AppDeepLinks {
           KazumiDialog.showToast(message: '无法获取番组详情，请稍后重试');
           return;
         }
-        final context = rootNavigatorKey.currentContext;
-        if (context == null || !context.mounted) return;
-        unawaited(context.pushNamed('/info/', arguments: item));
+        await _push('/info/', isCurrent, arguments: item);
       case SearchDeepLink(:final query):
-        final context = rootNavigatorKey.currentContext;
-        if (!isCurrent() || context == null || !context.mounted) return;
         final route = Uri(path: '/search/', queryParameters: {'query': query});
-        unawaited(context.pushNamed(route.toString()));
+        await _push(route.toString(), isCurrent);
     }
+  }
+
+  Future<void> _push(
+    String path,
+    bool Function() isCurrent, {
+    Object? arguments,
+  }) async {
+    if (!await _closePlayer(isCurrent)) return;
+    final context = rootNavigatorKey.currentContext;
+    if (!isCurrent() || context == null || !context.mounted) return;
+    unawaited(context.pushNamed(path, arguments: arguments));
+  }
+
+  /// Closes the open player before a deep link navigates.
+  ///
+  /// Playback is closed rather than covered; other pages stay on the stack.
+  /// While something on the way vetoes popping (e.g. a screenshot export), the
+  /// link waits instead of discarding that work. Returns false once superseded.
+  Future<bool> _closePlayer(bool Function() isCurrent) async {
+    var notified = false;
+    while (isCurrent()) {
+      final navigator = rootNavigatorKey.currentState;
+      final player = activePlayerRoute;
+      if (navigator == null || player == null) return true;
+      if (popThroughRoute(navigator, player)) return true;
+      if (!notified) {
+        notified = true;
+        KazumiDialog.showToast(message: '当前操作完成后将打开链接');
+      }
+      await Future<void>.delayed(_vetoRetryInterval);
+    }
+    return false;
   }
 }

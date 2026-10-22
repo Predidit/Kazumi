@@ -33,6 +33,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.13.2"
+  app_links:
+    dependency: "direct main"
+    description:
+      name: app_links
+      sha256: "08ba88bf19d9edea33130cb71c8ced2cb982b4e00b82efef4a434d1357bc69c3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.2.2"
+  app_links_linux:
+    dependency: transitive
+    description:
+      name: app_links_linux
+      sha256: "9ccb5802085a1e57bb07b6256fd1d61a78c7ec104944d4965e62938b4fefd9cb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
+  app_links_platform_interface:
+    dependency: transitive
+    description:
+      name: app_links_platform_interface
+      sha256: "7546f09a6e93f4a2df2fe2bd40a5c6c64310ac461b036d82b43033be7a59f809"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.4"
+  app_links_web:
+    dependency: transitive
+    description:
+      name: app_links_web
+      sha256: "382d32c6f486f15b1d7f5d6a37a70a481a4fc08382eef419d373169921a3e765"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.5"
   archive:
     dependency: transitive
     description:
@@ -1905,5 +1937,5 @@ packages:
     source: hosted
     version: "2.1.0"
 sdks:
-  dart: ">=3.11.0 <4.0.0"
+  dart: ">=3.12.0 <4.0.0"
   flutter: "3.47.7"

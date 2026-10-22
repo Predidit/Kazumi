@@ -10,10 +10,12 @@
              android:name="io.flutter.embedding.android.EnableImpeller"
              android:value="false" 
         />
+        <!-- singleTask: links from other apps must not start a second activity
+             on the shared audio_service engine. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:supportsPictureInPicture="true"
             android:resizeableActivity="true"
             android:theme="@style/LaunchTheme"
@@ -28,9 +30,20 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="kazumi" android:host="bangumi"/>
+                <data android:scheme="kazumi" android:host="search"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

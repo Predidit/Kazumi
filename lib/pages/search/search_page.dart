@@ -23,10 +23,14 @@ part 'search_filter_sheet.dart';
 part 'search_widgets.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, required this.controller, this.inputTag = ''});
+  const SearchPage({
+    super.key,
+    required this.controller,
+    this.initialQuery = '',
+  });
 
   final SearchPageController controller;
-  final String inputTag;
+  final String initialQuery;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -49,11 +53,9 @@ class _SearchPageState extends State<SearchPage> {
     super.initState();
     _scroll.addListener(_loadMoreOnScroll);
     _controller.loadSearchHistories();
-    if (widget.inputTag.isNotEmpty) {
+    if (widget.initialQuery.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _applyFilters(
-            SearchFilterState(tags: [Uri.decodeComponent(widget.inputTag)]));
+        if (mounted) _submit(widget.initialQuery);
       });
     }
   }

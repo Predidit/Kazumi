@@ -1,6 +1,7 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
+#include <app_links/app_links_plugin_c_api.h>
 
 #include "flutter_window.h"
 #include "utils.h"
@@ -28,6 +29,9 @@ bool ActivateExistingWindow()
   HWND hwnd = ::FindWindow(kWindowClassName, L"kazumi");
   if (hwnd != NULL)
   {
+    // Forward the kazumi:// link this instance was launched with, if any.
+    SendAppLink(hwnd);
+
     // Check if window is hidden (e.g., minimized to tray)
     if (!::IsWindowVisible(hwnd))
     {

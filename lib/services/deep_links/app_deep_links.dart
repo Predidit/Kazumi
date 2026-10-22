@@ -24,7 +24,7 @@ class AppDeepLinks {
   final _ready = Completer<void>();
 
   void start() {
-    if (Platform.isWindows || Platform.isLinux || _subscription != null) return;
+    if (Platform.isLinux || _subscription != null) return;
     _subscription = AppLinks().uriLinkStream.listen(
       _receive,
       onError: (Object error) {
@@ -52,6 +52,7 @@ class AppDeepLinks {
   Future<void> _open(KazumiDeepLink link, AsyncSession session) async {
     await _ready.future;
     if (session.isStale) return;
+    // Windows: raised by the forwarding instance (main.cpp). Mobile: the OS.
     if (Platform.isMacOS) {
       if (await windowManager.isMinimized()) await windowManager.restore();
       await windowManager.show();

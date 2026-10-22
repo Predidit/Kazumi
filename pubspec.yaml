@@ -153,6 +153,7 @@ msix_config:
   sign_msix: false
   install_certificate: false
   build_windows: false
+  protocol_activation: kazumi
 
 flutter:
   uses-material-design: true

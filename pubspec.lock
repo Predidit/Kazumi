@@ -416,10 +416,10 @@ packages:
     dependency: "direct main"
     description:
       name: ech_http
-      sha256: e879a1461f4acdc6b07bc2ff3ff3b163a794a0f4b48c4fbea3b85dfa0c9ffe1a
+      sha256: "7b179bbb0cba2f517d5f8fc526e6bb98d96530e6d7a75f7057fce74652967643"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.2"
+    version: "0.2.3"
   equatable:
     dependency: transitive
     description:

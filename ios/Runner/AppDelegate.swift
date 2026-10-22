@@ -10,9 +10,8 @@ import app_links
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        // Claim our URLs after app_links receives them. Otherwise Flutter's
-        // scene fallback replays didFinishLaunching to legacy plugins, causing
-        // flutter_foreground_task to register the same background task twice.
+        // Unclaimed URLs make Flutter replay launch callbacks to legacy plugins,
+        // registering flutter_foreground_task's background task twice.
         AppLinks.shared.urlHandledCallBack = { url in
             url.scheme?.lowercased() == "kazumi"
         }

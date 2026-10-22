@@ -13,8 +13,6 @@ import 'package:window_manager/window_manager.dart';
 
 import 'kazumi_deep_link.dart';
 
-/// Opens links once the main shell is up. A newer link supersedes older ones,
-/// including their loading dialog.
 class AppDeepLinks {
   static final AppDeepLinks _instance = AppDeepLinks._internal();
   factory AppDeepLinks() => _instance;
@@ -26,8 +24,7 @@ class AppDeepLinks {
   final _ready = Completer<void>();
 
   void start() {
-    // Other platforms keep their current launch behavior until configured.
-    if (!(Platform.isIOS || Platform.isMacOS) || _subscription != null) return;
+    if (Platform.isWindows || Platform.isLinux || _subscription != null) return;
     _subscription = AppLinks().uriLinkStream.listen(
       _receive,
       onError: (Object error) {
@@ -41,12 +38,7 @@ class AppDeepLinks {
   }
 
   void _receive(Uri uri) {
-    final KazumiDeepLink? link;
-    try {
-      link = KazumiDeepLink.parse(uri);
-    } on FormatException {
-      return;
-    }
+    final link = KazumiDeepLink.parse(uri);
     if (link == null) return;
     final session = _sessions.begin();
     _dialogs.cancel();
@@ -85,8 +77,6 @@ class AppDeepLinks {
     }
   }
 
-  /// Runs only after loading succeeds, so a failed or cancelled link leaves
-  /// routes marked to close on external navigation open.
   void _push(AsyncSession session, String path, {Object? arguments}) {
     final navigator = rootNavigatorKey.currentState;
     if (session.isStale || navigator == null || !navigator.mounted) return;

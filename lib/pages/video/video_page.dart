@@ -105,7 +105,6 @@ class _VideoPageState extends State<VideoPage>
     }
     _didInitializePlayback = true;
     _route = ModalRoute.of(context)!;
-    // Pages opened from outside replace playback instead of covering it.
     closeOnExternalNavigation(_route);
     videoPageController.fullscreen.attach(_route);
     if (isDesktop()) {

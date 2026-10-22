@@ -15,8 +15,7 @@ class _IndexPageState extends State<IndexPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    // Startup and onboarding both end here; links pushed earlier would be
-    // cleared by their navigate().
+    // Startup and onboarding both end here; earlier pushes would be cleared.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AppDeepLinks().markReady();
     });

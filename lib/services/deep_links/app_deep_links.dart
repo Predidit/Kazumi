@@ -24,7 +24,7 @@ class AppDeepLinks {
   final _ready = Completer<void>();
 
   void start() {
-    if (Platform.isLinux || _subscription != null) return;
+    if (_subscription != null) return;
     _subscription = AppLinks().uriLinkStream.listen(
       _receive,
       onError: (Object error) {

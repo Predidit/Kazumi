@@ -6,7 +6,6 @@ import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
-import 'package:kazumi/services/deep_links/app_deep_links.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -90,7 +89,6 @@ class _InitPageState extends State<InitPage> {
       checkForUpdate: () => updateController.checkUpdate(type: 'auto'),
     ));
     context.navigate(GStorage.getSetting(SettingsKeys.defaultStartupPage));
-    appDeepLinks.markReady();
   }
 
   void _setupBackgroundDownloadNavigation() {

@@ -10,9 +10,9 @@ sealed class KazumiDeepLink {
     }
     if (uri.host == 'bangumi' && uri.pathSegments.length == 1) {
       final raw = uri.pathSegments.single;
-      if (!RegExp(r'^[0-9]+$').hasMatch(raw)) return null;
       final id = int.tryParse(raw);
-      if (id != null && id > 0) return BangumiDeepLink(id);
+      // Plain digits only: no sign, whitespace or leading zeros.
+      if (id != null && id > 0 && '$id' == raw) return BangumiDeepLink(id);
     }
     if (uri.host == 'search' &&
         (uri.path.isEmpty || uri.path == '/') &&

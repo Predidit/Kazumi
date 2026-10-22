@@ -26,7 +26,7 @@ import 'package:kazumi/navigation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  appDeepLinks.start();
+  AppDeepLinks().start();
   registerEchHttpLicenses();
   MediaKit.ensureInitialized();
   if (Platform.isAndroid || Platform.isIOS) {

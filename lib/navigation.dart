@@ -9,20 +9,31 @@ final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 /// PopupRoutes, and sitting under one does not make a page hidden.
 final rootRouteObserver = RouteObserver<PageRoute<void>>();
 
-/// The route of the open player page, if any.
-///
-/// Deep links close the player instead of stacking pages above it.
-ModalRoute<Object?>? activePlayerRoute;
+final _closedByExternalNavigation = <Route<Object?>>{};
 
-/// Pops [route] and every route above it the way the back button would, so
-/// [PopScope] callbacks and local history entries (fullscreen, PiP) unwind.
+/// Marks [route] to close, not be covered, when a page opens from outside the
+/// app (deep links).
+void closeOnExternalNavigation(Route<Object?> route) {
+  _closedByExternalNavigation.add(route);
+}
+
+void clearExternalNavigationMark(Route<Object?> route) {
+  _closedByExternalNavigation.remove(route);
+}
+
+/// Pops the marked routes on [navigator], and every route above them, the way
+/// the back button would, so [PopScope] callbacks and local history entries
+/// (fullscreen, PiP) unwind.
 ///
 /// Stops at the first route that vetoes popping (e.g. a screenshot export in
-/// progress) and returns false; [route] then stays open.
-bool popThroughRoute(NavigatorState navigator, Route<Object?> route) {
+/// progress) and returns false; the marked route then stays open.
+bool popForExternalNavigation(NavigatorState navigator) {
+  bool hasMarkedRoute() => _closedByExternalNavigation
+      .any((route) => route.isActive && route.navigator == navigator);
+
   var vetoed = false;
   navigator.popUntil((current) {
-    if (!route.isActive) return true;
+    if (!hasMarkedRoute()) return true;
     vetoed = current.popDisposition == RoutePopDisposition.doNotPop;
     return vetoed;
   });

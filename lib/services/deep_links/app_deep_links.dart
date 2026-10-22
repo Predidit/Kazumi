@@ -53,7 +53,7 @@ class AppDeepLinks {
     await _ready.future;
     if (session.isStale) return;
     // Windows: raised by the forwarding instance (main.cpp). Mobile: the OS.
-    if (Platform.isMacOS || Platform.isLinux) {
+    if (Platform.isMacOS) {
       if (await windowManager.isMinimized()) await windowManager.restore();
       await windowManager.show();
       await windowManager.focus();

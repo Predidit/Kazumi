@@ -24,7 +24,7 @@ class AppDeepLinks {
   final _ready = Completer<void>();
 
   void start() {
-    if (Platform.isLinux || _subscription != null) return;
+    if (_subscription != null) return;
     _subscription = AppLinks().uriLinkStream.listen(
       _receive,
       onError: (Object error) {
@@ -53,7 +53,7 @@ class AppDeepLinks {
     await _ready.future;
     if (session.isStale) return;
     // Windows: raised by the forwarding instance (main.cpp). Mobile: the OS.
-    if (Platform.isMacOS) {
+    if (Platform.isMacOS || Platform.isLinux) {
       if (await windowManager.isMinimized()) await windowManager.restore();
       await windowManager.show();
       await windowManager.focus();

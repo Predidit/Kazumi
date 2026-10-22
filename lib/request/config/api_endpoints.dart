@@ -21,8 +21,7 @@ class ApiEndpoints {
       'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
 
   /// 规则仓库镜像
-  static const String pluginShopMirror =
-      'https://raw.gitcode.com/gh_mirrors/ka/KazumiRules/raw/main/';
+  static const String pluginShopMirror = 'https://cdn.gh-proxy.org/$pluginShop';
 
   /// 在线升级
   static const String latestApp =

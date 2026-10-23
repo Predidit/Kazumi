@@ -148,7 +148,18 @@
               --dart-define=DANDANAPI_KEY=$env:DANDANAPI_KEY
               --dart-define=KAZUMI_APPID=$env:KAZUMI_APPID
               --dart-define=KAZUMI_KEY=$env:KAZUMI_KEY
+          - name: Generate Windows portable manifest
+            run: >-
+              dart tools/generate_portable_manifest.dart
+              --root build/windows/x64/runner/Release
+              --package-type windowsPortable
+              --architecture x64
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_${env:tag}.zip
+          - name: Remove portable manifest from Windows build output
+            shell: pwsh
+            run: |
+              # The ZIP already owns its copy; prevent later packages from inheriting this file.
+              Remove-Item -LiteralPath 'build/windows/x64/runner/Release/file-manifest.json' -ErrorAction Stop
           - name: Upload windows outputs
             uses: actions/upload-artifact@v4
             id: unsigned-windows-zip-artifacts
@@ -181,6 +192,16 @@
           # Replace Unpacked Artifact with Signed Artifact
           - name: Replace Unpacked Artifact with Signed Artifact
             run: Expand-Archive -Path "build/windows/zip_signed_output/Kazumi_windows_${env:tag}.zip" -DestinationPath "build/windows/x64/runner/Release" -Force
+          - name: Remove portable manifest before MSIX packaging
+            shell: pwsh
+            run: |
+              $ErrorActionPreference = 'Stop'
+              # Extraction can restore the manifest. Remove only the unpacked copy, never
+              # modify the signed ZIP. Missing is acceptable; deletion errors must stop MSIX.
+              $manifestPath = 'build/windows/x64/runner/Release/file-manifest.json'
+              if (Test-Path -LiteralPath $manifestPath) {
+                Remove-Item -LiteralPath $manifestPath -ErrorAction Stop
+              }
           
           # Build Unsigned MSIX
           - name: Build unsigned msix
@@ -271,10 +292,20 @@
           #     token: ${{ secrets.GITHUB_TOKEN }}
           # - run: rm -f build/linux/x64/release/bundle/lib/libffmpeg.so.7
           # - run: unzip ffmpeg_linux_amd64.zip -d build/linux/x64/release/bundle/lib
+          - name: Generate Linux amd64 portable manifest
+            run: >-
+              dart tools/generate_portable_manifest.dart
+              --root build/linux/x64/release/bundle
+              --package-type linuxPortable
+              --architecture x64
           - name: Package linux amd64 build output
             run: |
+              set -e
               # Tarball package
               tar -zcvf Kazumi_linux_${{ env.tag }}_amd64.tar.gz -C build/linux/x64/release/bundle .
+
+              # The tarball retains its copy. Abort on cleanup failure so DEB cannot inherit it.
+              rm -- build/linux/x64/release/bundle/file-manifest.json
 
               # Debian package
               mkdir Kazumi_linux_${{ env.tag }}_amd64
@@ -354,10 +385,20 @@
               --dart-define=KAZUMI_APPID=$KAZUMI_APPID
               --dart-define=KAZUMI_KEY=$KAZUMI_KEY
             shell: bash
+          - name: Generate Linux arm64 portable manifest
+            run: >-
+              dart tools/generate_portable_manifest.dart
+              --root build/linux/arm64/release/bundle
+              --package-type linuxPortable
+              --architecture arm64
           - name: Package linux arm64 build output
             run: |
+              set -e
               # Tarball package
               tar -zcvf Kazumi_linux_${{ env.tag }}_arm64.tar.gz -C build/linux/arm64/release/bundle .
+
+              # The tarball retains its copy. Abort on cleanup failure so DEB cannot inherit it.
+              rm -- build/linux/arm64/release/bundle/file-manifest.json
 
               # Debian package
               mkdir Kazumi_linux_${{ env.tag }}_arm64

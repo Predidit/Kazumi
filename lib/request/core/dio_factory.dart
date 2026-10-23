@@ -1,10 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/request/core/bangumi_transport.dart';
+import 'package:kazumi/request/core/acceleration_interceptors.dart';
 import 'package:kazumi/request/core/dio_logger_interceptor.dart';
+import 'package:kazumi/request/core/ech_adapter.dart';
 import 'package:kazumi/request/core/network_config.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/http_headers.dart';
 
 class DioFactory {
@@ -21,25 +19,18 @@ class DioFactory {
     defaultHeaders: {'referer': '', 'user-agent': getRandomUA()},
   );
 
-  static Dio get bangumiDio {
-    if (_bangumiDio != null) return _bangumiDio!;
-    final config = NetworkConfig.fromSettings();
-    final dio = _create(
-      config,
-      defaultHeaders: {'referer': ''},
-      interceptors: [BangumiAccelerationInterceptor()],
-    );
-    dio.httpClientAdapter = BangumiEchAdapter(
-      fallback: dio.httpClientAdapter,
-      config: config,
-    );
-    return _bangumiDio = dio;
-  }
+  static Dio get bangumiDio => _bangumiDio ??= _create(
+    NetworkConfig.fromSettings(),
+    defaultHeaders: {'referer': ''},
+    interceptors: [BangumiAccelerationInterceptor()],
+    ech: true,
+  );
 
   static Dio get rulesRepoDio => _rulesRepoDio ??= _create(
     NetworkConfig.fromSettings(),
     defaultHeaders: {'user-agent': getRandomUA()},
-    interceptors: [_RulesMirrorInterceptor()],
+    interceptors: [RulesMirrorInterceptor()],
+    ech: true,
   );
 
   static Dio get pluginDio => _pluginDio ??= _create(
@@ -80,6 +71,7 @@ class DioFactory {
     NetworkConfig config, {
     Map<String, dynamic> defaultHeaders = const {},
     List<Interceptor> interceptors = const [],
+    bool ech = false,
   }) {
     final dio = Dio(
       BaseOptions(
@@ -91,35 +83,13 @@ class DioFactory {
             status != null && status >= 200 && status < 300,
       ),
     );
-    dio.httpClientAdapter = config.createAdapter();
+    dio.httpClientAdapter = ech
+        ? EchAdapter(fallback: config.createAdapter(), config: config)
+        : config.createAdapter();
     dio.interceptors.addAll(interceptors);
     if (config.enableLog) {
       dio.interceptors.add(DioLoggerInterceptor());
     }
     return dio;
-  }
-}
-
-class _RulesMirrorInterceptor extends Interceptor {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
-    if (!enableGitProxy) {
-      handler.next(options);
-      return;
-    }
-
-    final url = options.uri.toString();
-    if (!url.startsWith(ApiEndpoints.pluginShop)) {
-      handler.next(options);
-      return;
-    }
-
-    final mirrored =
-        ApiEndpoints.pluginShopMirror +
-        url.substring(ApiEndpoints.pluginShop.length);
-    KazumiLogger().d('Rules mirror: $mirrored');
-    options.path = mirrored;
-    handler.next(options);
   }
 }

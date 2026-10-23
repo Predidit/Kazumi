@@ -38,22 +38,21 @@ class NetworkConfig {
     return null;
   }
 
-  IOHttpClientAdapter createAdapter() {
-    return IOHttpClientAdapter(
-      createHttpClient: () {
-        final client = HttpClient();
-        if (hasProxy) {
-          client.findProxy = (_) => 'PROXY $proxyHost:$proxyPort';
-        } else if (Platform.isWindows) {
-          client.findProxy = SystemProxyService.findProxy;
-        }
-        if (allowBadCertificates) {
-          client.badCertificateCallback = (cert, host, port) => true;
-        }
-        return client;
-      },
-    );
+  HttpClient createHttpClient() {
+    final client = HttpClient();
+    if (hasProxy) {
+      client.findProxy = (_) => 'PROXY $proxyHost:$proxyPort';
+    } else if (Platform.isWindows) {
+      client.findProxy = SystemProxyService.findProxy;
+    }
+    if (allowBadCertificates) {
+      client.badCertificateCallback = (cert, host, port) => true;
+    }
+    return client;
   }
+
+  IOHttpClientAdapter createAdapter() =>
+      IOHttpClientAdapter(createHttpClient: createHttpClient);
 
   NetworkConfig copyWith({
     Duration? connectTimeout,

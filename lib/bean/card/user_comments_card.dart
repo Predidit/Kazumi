@@ -209,6 +209,7 @@ class _CommentBody extends StatelessWidget {
           : BBCodeWidget(
               bbcode: content,
               textScaler: MediaQuery.textScalerOf(context),
+              imageHeroTagBuilder: ImageViewer.heroTagFor,
               onImageTap: (imageUrls, currentIndex, heroTag) => ImageViewer.show(
                 context,
                 imageUrls: imageUrls,

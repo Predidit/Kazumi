@@ -2,7 +2,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:antlr4/antlr4.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:kazumi/bean/widget/image_preview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'bbcode_base_listener.dart';
@@ -15,10 +14,14 @@ class BBCodeWidget extends StatefulWidget {
     super.key,
     required this.bbcode,
     this.textScaler = TextScaler.noScaling,
+    this.onImageTap,
   });
 
   final String bbcode;
   final TextScaler textScaler;
+
+  final void Function(List<String> imageUrls, int index, Object heroTag)?
+      onImageTap;
 
   @override
   State<StatefulWidget> createState() => _BBCodeWidgetState();
@@ -123,16 +126,16 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                 );
               } else if (e is BBCodeImg) {
                 final currentIndex = imageIndex++;
-                final heroTag =
-                    ImageViewer.heroTagFor(e.imageUrl, currentIndex);
+                final heroTag = '${e.imageUrl}-$currentIndex';
                 return WidgetSpan(
                   child: GestureDetector(
-                    onTap: () => ImageViewer.show(
-                      context,
-                      imageUrls: imageUrls,
-                      initialIndex: currentIndex,
-                      heroTag: heroTag,
-                    ),
+                    onTap: widget.onImageTap == null
+                        ? null
+                        : () => widget.onImageTap!(
+                              imageUrls,
+                              currentIndex,
+                              heroTag,
+                            ),
                     child: Hero(
                       tag: heroTag,
                       child: CachedNetworkImage(

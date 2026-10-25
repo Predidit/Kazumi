@@ -187,6 +187,7 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | <img src="https://kilo.ai/favicon/favicon.svg" width="50">                                                                                                                      | **Automatic PR review provided by [Kilo Code](https://kilo.ai/), sponsored by the [Kilo OSS Program](https://kilo.ai/oss)**                   |
 | <a href="https://m.do.co/c/0062035db3e4"><img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_icon_blue.svg" width="50" height="50"></a> | **Cloud infrastructure is supported by [DigitalOcean](https://m.do.co/c/0062035db3e4)**                                                       |
+| <a href="https://fyrastack.com"><img src="https://fyrastack.com/logo.svg" width="50" height="50"></a>                                                                           | **Virtual machines provided by [Fyra Stack](https://fyrastack.com/), sponsored by [Fyra Labs](https://fyralabs.com/)**                        |
 
 ## 致谢
 

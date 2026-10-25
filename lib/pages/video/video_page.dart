@@ -13,6 +13,7 @@ import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/media_error_widget.dart';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
@@ -75,6 +76,7 @@ class _VideoPageState extends State<VideoPage>
   StreamSubscription<SyncPlayChatMessage>? _syncChatSubscription;
   late final mobx.ReactionDisposer _pipModeListener;
   LocalHistoryEntry? _desktopPipEntry;
+  late ModalRoute<Object?> _route;
 
   static const Duration _offlinePlayerInitDelay = Duration(milliseconds: 400);
 
@@ -102,7 +104,9 @@ class _VideoPageState extends State<VideoPage>
       return;
     }
     _didInitializePlayback = true;
-    videoPageController.fullscreen.attach(ModalRoute.of(context)!);
+    _route = ModalRoute.of(context)!;
+    closeOnExternalNavigation(_route);
+    videoPageController.fullscreen.attach(_route);
     if (isDesktop()) {
       unawaited(videoPageController.fullscreen
           .initializeDesktop(windowManager.isFullScreen));
@@ -205,6 +209,7 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
+    clearExternalNavigationMark(_route);
     try {
       windowManager.removeListener(this);
     } catch (_) {}

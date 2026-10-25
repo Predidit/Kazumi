@@ -1,4 +1,5 @@
 import 'package:kazumi/services/player/syncplay_endpoint.dart';
+import 'package:kazumi/utils/device.dart';
 
 enum SettingGroup {
   player,
@@ -106,6 +107,13 @@ class SettingsKeys {
     _SettingBoxKey.danmakuEnhance,
     true,
     group: SettingGroup.danmaku,
+  );
+  /// Off on desktop and on on mobile, like the B 站 client.
+  static final pauseOnDanmakuEdit = SettingKey<bool>(
+    'pauseOnDanmakuEdit',
+    true,
+    group: SettingGroup.danmaku,
+    defaultResolver: (_) => !isDesktop(),
   );
   static const danmakuBorder = SettingKey<bool>(
     _SettingBoxKey.danmakuBorder,
@@ -273,9 +281,14 @@ class SettingsKeys {
     'ech',
     group: SettingGroup.proxy,
   );
-  // An unset mode inherits the old mirror switch (enabled by default).
+  // Unset modes inherit the old mirror switches (enabled by default).
   static const bangumiAcceleration = SettingKey<String>(
     'bangumiAcceleration',
+    '',
+    group: SettingGroup.proxy,
+  );
+  static const rulesMirror = SettingKey<String>(
+    'rulesMirror',
     '',
     group: SettingGroup.proxy,
   );
@@ -507,6 +520,11 @@ class SettingsKeys {
     false,
     group: SettingGroup.misc,
   );
+  static const onboardingCompleted = SettingKey<bool>(
+    'onboardingCompleted',
+    false,
+    group: SettingGroup.misc,
+  );
   static const bangumiSyncEnable = SettingKey<bool>(
     _SettingBoxKey.bangumiSyncEnable,
     false,
@@ -577,6 +595,7 @@ class SettingsKeys {
     buttonSkipTime,
     arrowKeySkipTime,
     danmakuEnhance,
+    pauseOnDanmakuEdit,
     danmakuBorder,
     danmakuBorderSize,
     danmakuOpacity,
@@ -611,6 +630,7 @@ class SettingsKeys {
     enableBangumiProxy,
     imageAcceleration,
     bangumiAcceleration,
+    rulesMirror,
     enableSystemProxy,
     defaultStartupPage,
     webDavEnable,
@@ -656,6 +676,7 @@ class SettingsKeys {
     downloadDirectory,
     downloadDirectoryBookmark,
     shortcutDialogShown,
+    onboardingCompleted,
     bangumiSyncEnable,
     bangumiAccessToken,
     bangumiSyncPriority,

@@ -120,6 +120,7 @@ class VideoSidePanelState extends State<VideoSidePanel>
               child: MediaQuery.removePadding(
                 context: context,
                 removeTop: true,
+                removeLeft: true,
                 child: SafeArea(child: widget.child),
               ),
             ),

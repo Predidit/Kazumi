@@ -3,27 +3,35 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/update_available_dialog.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/update/update_download_source.dart';
+import 'package:kazumi/services/update/update_downloader.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/utils/date_time.dart';
-import 'package:kazumi/utils/crypto.dart';
 import 'package:kazumi/utils/version.dart';
 
 enum InstallationType {
-  windowsMsix,
-  windowsPortable,
-  linuxDeb,
-  linuxTar,
-  macosDmg,
-  androidApk,
-  ios,
-  unknown,
+  windowsMsix('MSIX'),
+  windowsPortable('ZIP'),
+  linuxDeb('DEB'),
+  linuxTar('TAR'),
+  macosDmg('DMG'),
+  androidApk('APK'),
+  ios('IPA'),
+  unknown('未知类型');
+
+  const InstallationType(this.label);
+
+  final String label;
+
+  /// Types without a matching asset are updated from the release page.
+  bool get downloadsInApp => getUpdateFilePatterns(this).isNotEmpty;
 }
 
 class UpdateInfo {
@@ -67,17 +75,6 @@ Map<String, dynamic>? getUpdateAssetForType(
   } catch (_) {
     return null;
   }
-}
-
-String getUpdateDownloadUrlFromAsset(Map<String, dynamic>? asset) {
-  if (asset == null) {
-    return '';
-  }
-  final mirrorUrl = asset['mirror_download_url'] as String? ?? '';
-  if (mirrorUrl.isNotEmpty) {
-    return mirrorUrl;
-  }
-  return asset['browser_download_url'] as String? ?? '';
 }
 
 String getUpdateFileHashFromAsset(Map<String, dynamic> asset) {
@@ -197,175 +194,30 @@ class AutoUpdater {
     }
   }
 
-  void _showUpdateDialog(UpdateInfo updateInfo, {bool isAutoCheck = false}) {
-    KazumiDialog.show(
-      builder: (context) {
-        return AlertDialog(
-          title: Text('发现新版本 ${updateInfo.version}'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(updateInfo.description),
-                if (updateInfo.publishedAt.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    '发布时间: ${formatDate(updateInfo.publishedAt)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-                const SizedBox(height: 8),
-                if (!Platform.isLinux && !Platform.isIOS) ...[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '选择安装类型:',
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        ...updateInfo.availableInstallationTypes.map((type) {
-                          return Container(
-                            margin: const EdgeInsets.symmetric(vertical: 2),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(4),
-                                onTap: () {
-                                  KazumiDialog.dismiss();
-                                  _downloadUpdateWithType(updateInfo, type);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outline
-                                          .withValues(alpha: 0.3),
-                                    ),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.download,
-                                        size: 16,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _getInstallationTypeDescription(type),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 12,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outline,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            if (isAutoCheck)
-              TextButton(
-                onPressed: () {
-                  GStorage.putSetting(SettingsKeys.autoUpdate, false);
-                  KazumiDialog.dismiss();
-                  KazumiDialog.showToast(message: '已关闭自动更新');
-                },
-                child: Text(
-                  '关闭自动更新',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
-                ),
-              ),
-            TextButton(
-              onPressed: () => KazumiDialog.dismiss(),
-              child: Text(
-                '稍后提醒',
-                style: TextStyle(color: Theme.of(context).colorScheme.outline),
-              ),
-            ),
-            if (updateInfo.releaseNotes.isNotEmpty)
-              TextButton(
-                onPressed: () {
-                  launchUrl(Uri.parse(updateInfo.releaseNotes),
-                      mode: LaunchMode.externalApplication);
-                },
-                child: const Text('查看详情'),
-              ),
-            TextButton(
-              onPressed: () {
-                KazumiDialog.dismiss();
-                if (updateInfo.availableInstallationTypes.isNotEmpty) {
-                  _downloadUpdateWithType(
-                      updateInfo, updateInfo.availableInstallationTypes.first);
-                }
-              },
-              child: const Text('立即更新'),
-            ),
-          ],
-        );
-      },
+  Future<void> _showUpdateDialog(UpdateInfo updateInfo,
+      {bool isAutoCheck = false}) async {
+    var disableAutoUpdate = false;
+    final choice = await KazumiDialog.show<UpdateDialogChoice>(
+      builder: (context) => UpdateAvailableDialog(
+        updateInfo: updateInfo,
+        onDisableAutoUpdateChanged:
+            isAutoCheck ? (value) => disableAutoUpdate = value : null,
+      ),
     );
-  }
-
-  String _getInstallationTypeDescription(InstallationType type) {
-    switch (type) {
-      case InstallationType.windowsMsix:
-        return 'Windows MSIX 包';
-      case InstallationType.windowsPortable:
-        return 'Windows 便携版 (ZIP)';
-      case InstallationType.linuxDeb:
-        return 'Linux DEB 包';
-      case InstallationType.linuxTar:
-        return 'Linux TAR 包';
-      case InstallationType.macosDmg:
-        return 'macOS DMG 镜像';
-      case InstallationType.androidApk:
-        return 'Android APK';
-      case InstallationType.ios:
-        return 'iOS ipa';
-      case InstallationType.unknown:
-        return '未知安装类型';
+    if (disableAutoUpdate) {
+      GStorage.putSetting(SettingsKeys.autoUpdate, false);
+      KazumiDialog.showToast(message: '已关闭自动更新');
+    }
+    if (choice != null) {
+      _downloadUpdateWithType(updateInfo, choice.type, choice.source);
     }
   }
 
   Future<void> _downloadUpdateWithType(
-      UpdateInfo updateInfo, InstallationType selectedType) async {
+      UpdateInfo updateInfo, InstallationType selectedType,
+      UpdateDownloadSource source) async {
     try {
-      if (selectedType == InstallationType.ios ||
-          selectedType == InstallationType.linuxDeb ||
-          selectedType == InstallationType.linuxTar) {
+      if (!selectedType.downloadsInApp) {
         String releaseUrl = updateInfo.releaseNotes;
         if (releaseUrl.isEmpty) {
           releaseUrl = ApiEndpoints.latestApp;
@@ -375,11 +227,9 @@ class AutoUpdater {
       }
 
       final asset = getUpdateAssetForType(updateInfo.assets, selectedType);
-      final downloadUrl = getUpdateDownloadUrlFromAsset(asset);
+      final downloadUrl = getUpdateDownloadUrlFromAsset(asset, source);
       if (asset == null || downloadUrl.isEmpty) {
-        KazumiDialog.showToast(
-            message:
-                '没有找到 ${_getInstallationTypeDescription(selectedType)} 的下载链接');
+        KazumiDialog.showToast(message: '没有找到 ${selectedType.label} 的下载链接');
         return;
       }
 
@@ -443,53 +293,28 @@ class AutoUpdater {
       );
 
       _showDownloadCompleteDialog(downloadPath, updateInfo);
-    }, onError: (e, _) {
-      String errorMessage = '下载失败';
-      if (e.toString().contains('Permission denied') ||
-          e.toString().contains('Operation not permitted')) {
-        errorMessage = '权限不足，文件已保存到应用临时目录';
-      } else if (e.toString().contains('No space left')) {
-        errorMessage = '磁盘空间不足';
-      } else if (e.toString().contains('Network')) {
-        errorMessage = '网络连接错误';
-      } else if (e.toString().contains('文件完整性验证失败')) {
-        errorMessage = '文件完整性验证失败，可能是网络传输错误';
-      }
+    }, onError: (e, stackTrace) {
+      final errorMessage = getUpdateDownloadErrorMessage(e);
 
       KazumiDialog.show(
         builder: (context) {
           return AlertDialog(
             title: const Text('下载失败'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(errorMessage),
-                const SizedBox(height: 8),
-                Text(
-                  '错误详情: ${e.toString()}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
+            content: Text(errorMessage),
             actions: [
               TextButton(
                 onPressed: () => KazumiDialog.dismiss(context: context),
                 child: const Text('确定'),
-              ),
-              TextButton(
-                onPressed: () {
-                  KazumiDialog.dismiss(context: context);
-                  _downloadUpdate(updateInfo, expectedHash);
-                },
-                child: const Text('重试'),
               ),
             ],
           );
         },
       );
 
-      KazumiLogger().e('Update: download update failed', error: e);
+      KazumiLogger().e(
+          'Update: download failed | source=${updateInfo.downloadUrl} | '
+          '${describeUpdateDownloadError(e, stackTrace)}',
+          error: e);
     });
   }
 
@@ -584,63 +409,16 @@ class AutoUpdater {
 
   Future<String> _downloadFile(String url, String version, String expectedHash,
       CancelToken cancelToken) async {
-    // Dio cancellation does not cover filesystem preparation or hash checks.
-    void checkCancelled() {
-      if (cancelToken.isCancelled) throw cancelToken.cancelError!;
-    }
-
-    checkCancelled();
-    final fileName = _getFileNameFromUrl(url, version);
     final tempDir = await getTemporaryDirectory();
-    checkCancelled();
-    final filePath = '${tempDir.path}/$fileName';
-    final file = File(filePath);
-    if (await file.exists()) {
-      try {
-        final localHash = await calculateFileHash(file);
-        checkCancelled();
-        if (localHash == expectedHash) {
-          KazumiLogger().i(
-              'Update: file already exists and hash verified, skipping download: $filePath');
-          _downloadProgress.value = 1.0;
-          return filePath;
-        } else {
-          KazumiLogger().i(
-              'Update: file hash mismatch detected (local: $localHash, expected: $expectedHash), deleting and re-downloading');
-          await file.delete();
-        }
-      } catch (e) {
-        checkCancelled();
-        KazumiLogger().w(
-            'Update: file verification failed, deleting and re-downloading',
-            error: e);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      }
-    }
-
-    checkCancelled();
-
-    await _downloadClient.download(
-      url,
-      filePath,
+    return downloadUpdateFile(
+      url: url,
+      filePath: '${tempDir.path}/${_getFileNameFromUrl(url, version)}',
+      expectedHash: expectedHash,
       cancelToken: cancelToken,
       onReceiveProgress: (received, total) {
-        if (!cancelToken.isCancelled && total > 0) {
-          _downloadProgress.value = received / total;
-        }
+        _downloadProgress.value = total > 0 ? received / total : 0;
       },
     );
-    final downloadedHash = await calculateFileHash(file);
-    checkCancelled();
-    if (downloadedHash != expectedHash) {
-      await file.delete();
-      throw Exception('文件完整性验证失败: 期望 $expectedHash，实际 $downloadedHash');
-    }
-    KazumiLogger().i('Update: file downloaded and hash verified: $filePath');
-
-    return filePath;
   }
 
   void _installUpdate(

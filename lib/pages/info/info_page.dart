@@ -19,6 +19,7 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/platform/desktop_window_config.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -29,10 +30,12 @@ class InfoPage extends StatefulWidget {
     super.key,
     required this.inputBangumiItem,
     required this.infoController,
+    required this.pluginsController,
   });
 
   final BangumiItem inputBangumiItem;
   final InfoController infoController;
+  final PluginsController pluginsController;
 
   @override
   State<InfoPage> createState() => _InfoPageState();
@@ -297,6 +300,26 @@ class _InfoPageState extends State<InfoPage>
     }
   }
 
+  void _startWatching() {
+    if (widget.pluginsController.pluginList.isEmpty) {
+      KazumiDialog.showToast(
+        message: '还没有规则，无法开始观看',
+        showActionButton: true,
+        actionLabel: '添加规则',
+        onActionPressed: () {
+          if (mounted) context.pushNamed('/settings/plugin/');
+        },
+        duration: const Duration(seconds: 4),
+      );
+      return;
+    }
+    showAdaptiveBottomSheet<void>(
+      context: context,
+      maxHeightFactor: 0.88,
+      builder: (_) => SourceSheet(infoController: infoController),
+    );
+  }
+
   Future<void> _waitForMinimumBangumiInfoLoadingDuration(
       DateTime loadingStartedAt) async {
     final elapsed = DateTime.now().difference(loadingStartedAt);
@@ -447,15 +470,7 @@ class _InfoPageState extends State<InfoPage>
       ),
       floatingActionButton: FloatingActionButton.extended(
         tooltip: '开始观看',
-        onPressed: () {
-          showAdaptiveBottomSheet<void>(
-            context: context,
-            maxHeightFactor: 0.88,
-            builder: (context) {
-              return SourceSheet(infoController: infoController);
-            },
-          );
-        },
+        onPressed: _startWatching,
         label: const Text('开始观看'),
         icon: const Icon(Icons.play_arrow_rounded),
       ),

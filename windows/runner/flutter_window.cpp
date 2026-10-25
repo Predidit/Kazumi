@@ -10,6 +10,7 @@
 #include <flutter/standard_method_codec.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <windows.h>
+#include <commctrl.h>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -101,6 +102,25 @@ bool ApplyWindowBounds(Win32Window& host, const RECT& requested,
   return !IsIconic(window) && !IsZoomed(window) &&
          ReadWindowBounds(window, applied);
 }
+
+// The engine turns on semantics the first time any UIA/MSAA client sends
+// WM_GETOBJECT to the Flutter view, and never turns them off again. Answering
+// with the system default keeps the accessibility bridge from ever being
+// created, which avoids the engine's AXTree crashes
+// (flutter/flutter#175041).
+LRESULT CALLBACK FlutterViewSubclassProc(HWND hwnd, UINT message,
+                                         WPARAM wparam, LPARAM lparam,
+                                         UINT_PTR subclass_id, DWORD_PTR) {
+  switch (message) {
+    case WM_GETOBJECT:
+      return DefWindowProc(hwnd, message, wparam, lparam);
+    case WM_NCDESTROY:
+      RemoveWindowSubclass(hwnd, FlutterViewSubclassProc, subclass_id);
+      break;
+  }
+  return DefSubclassProc(hwnd, message, wparam, lparam);
+}
+
 }  // namespace
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -124,7 +144,9 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
-  SetChildContent(flutter_controller_->view()->GetNativeWindow());
+  HWND flutter_view = flutter_controller_->view()->GetNativeWindow();
+  SetWindowSubclass(flutter_view, FlutterViewSubclassProc, 0, 0);
+  SetChildContent(flutter_view);
 
   // Removed automatic window show to let window_manager plugin control visibility
   // This prevents window flashing during startup

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/settings/settings_dropdown_tile.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/modules/collect/collect_layout.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -18,12 +19,9 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   late String defaultPage;
   late CollectLayout _defaultCollectLayout;
   bool _savingCollectLayout = false;
-  final _collectLayoutMenuController = MenuController();
-  final _exitBehaviorMenuController = MenuController();
   static const _exitBehaviorTitles = ['退出 Kazumi', '最小化至托盘', '每次都询问'];
   int _exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior)
       .clamp(0, _exitBehaviorTitles.length - 1);
-  final MenuController defaultPageMenuController = MenuController();
 
   static const Map<String, String> defaultPageMap = {
     '/tab/popular/': '推荐',
@@ -62,27 +60,6 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
     }
   }
 
-  Widget _menuItem({
-    required String label,
-    required bool selected,
-    required VoidCallback? onPressed,
-  }) =>
-      MenuItemButton(
-        requestFocusOnHover: false,
-        onPressed: onPressed,
-        child: Container(
-          height: 48,
-          constraints: const BoxConstraints(minWidth: 112),
-          alignment: Alignment.centerLeft,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? Theme.of(context).colorScheme.primary : null,
-            ),
-          ),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
     return SettingsDetailScaffold(
@@ -90,60 +67,27 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
       body: SettingsList(
         sections: [
           SettingsSection(title: Text('启动'), tiles: [
-            SettingsTile(
+            SettingsDropdownTile<String>(
               leading: Icons.home_rounded,
-              onPressed: (_) async {
-                if (defaultPageMenuController.isOpen) {
-                  defaultPageMenuController.close();
-                } else {
-                  defaultPageMenuController.open();
-                }
-              },
-              title: Text('启动界面设置'),
-              description: Text('设置应用开启时的默认页面'),
-              value: MenuAnchor(
-                consumeOutsideTap: true,
-                controller: defaultPageMenuController,
-                builder: (_, __, ___) {
-                  return Text(
-                    defaultPageMap[defaultPage] ?? '推荐',
-                  );
-                },
-                menuChildren: [
-                  for (final entry in defaultPageMap.entries)
-                    _menuItem(
-                      label: entry.value,
-                      selected: entry.key == defaultPage,
-                      onPressed: () => updateDefaultPage(entry.key),
-                    ),
-                ],
-              ),
+              title: const Text('启动界面设置'),
+              description: const Text('设置应用开启时的默认页面'),
+              value: defaultPage,
+              options: defaultPageMap,
+              fallbackLabel: '推荐',
+              onChanged: updateDefaultPage,
             ),
           ]),
           SettingsSection(title: Text('展示信息'), tiles: [
-            SettingsTile(
+            SettingsDropdownTile<CollectLayout>(
               leading: Icons.view_agenda_rounded,
               title: const Text('追番默认布局'),
               description: const Text('下次打开追番页时使用，页面内切换不会改变此设置'),
               enabled: !_savingCollectLayout,
-              onPressed: (_) => _collectLayoutMenuController.isOpen
-                  ? _collectLayoutMenuController.close()
-                  : _collectLayoutMenuController.open(),
-              value: MenuAnchor(
-                controller: _collectLayoutMenuController,
-                consumeOutsideTap: true,
-                menuChildren: [
-                  for (final layout in CollectLayout.values)
-                    _menuItem(
-                      label: layout.label,
-                      selected: layout == _defaultCollectLayout,
-                      onPressed: _savingCollectLayout
-                          ? null
-                          : () => _updateDefaultCollectLayout(layout),
-                    ),
-                ],
-                builder: (_, __, ___) => Text(_defaultCollectLayout.label),
-              ),
+              value: _defaultCollectLayout,
+              options: {
+                for (final layout in CollectLayout.values) layout: layout.label,
+              },
+              onChanged: _updateDefaultCollectLayout,
             ),
             SettingsTile.switchTile(
               leading: Icons.star_rounded,
@@ -161,30 +105,19 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
             SettingsSection(
               title: const Text('窗口行为'),
               tiles: [
-                SettingsTile(
+                SettingsDropdownTile<int>(
                   leading: Icons.exit_to_app_rounded,
                   title: const Text('关闭窗口时'),
                   description: const Text('设置点击窗口关闭按钮后的行为'),
-                  onPressed: (_) => _exitBehaviorMenuController.isOpen
-                      ? _exitBehaviorMenuController.close()
-                      : _exitBehaviorMenuController.open(),
-                  value: MenuAnchor(
-                    controller: _exitBehaviorMenuController,
-                    consumeOutsideTap: true,
-                    builder: (_, __, ___) =>
-                        Text(_exitBehaviorTitles[_exitBehavior]),
-                    menuChildren: [
-                      for (var i = 0; i < _exitBehaviorTitles.length; i++)
-                        _menuItem(
-                          label: _exitBehaviorTitles[i],
-                          selected: i == _exitBehavior,
-                          onPressed: () {
-                            setState(() => _exitBehavior = i);
-                            GStorage.putSetting(SettingsKeys.exitBehavior, i);
-                          },
-                        ),
-                    ],
-                  ),
+                  value: _exitBehavior,
+                  options: {
+                    for (var i = 0; i < _exitBehaviorTitles.length; i++)
+                      i: _exitBehaviorTitles[i],
+                  },
+                  onChanged: (value) {
+                    setState(() => _exitBehavior = value);
+                    GStorage.putSetting(SettingsKeys.exitBehavior, value);
+                  },
                 ),
               ],
             ),

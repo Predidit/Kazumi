@@ -166,7 +166,6 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final _outletKey = GlobalKey<RouterOutletState>();
   Object? _categoryNavigation;
-  // Nested pushes do not update the root route state.
   late String _location = _normalizePath(widget.location);
 
   String get _selectedCategoryPath => _categoryPath(_location);
@@ -183,9 +182,16 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _replaceCategory(String path) {
+    final outlet = _outletKey.currentState!;
+    // Nested pushes leave _location unchanged, so check the stack as well.
+    if (!outlet.canPop &&
+        !_isSecondaryRoute &&
+        _selectedCategoryPath == path) {
+      return;
+    }
     _categoryNavigation = null;
-    _outletKey.currentState!.navigate(path);
-    setState(() => _location = _normalizePath(path));
+    outlet.navigate(path);
+    setState(() => _location = path);
   }
 
   Future<void> _pushCategory(String path) async {
@@ -193,7 +199,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final navigation = Object();
     final previousLocation = _location;
     _categoryNavigation = navigation;
-    setState(() => _location = _normalizePath(path));
+    setState(() => _location = path);
     await _outletKey.currentState!.push<void>(path);
     // Ignore completions from history replaced by a rail selection.
     if (!mounted || _categoryNavigation != navigation) return;

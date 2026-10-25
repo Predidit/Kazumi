@@ -17,6 +17,10 @@ class TimedShutdownService {
   VoidCallback? _onExpiredCallback;
 
   final ValueNotifier<int> remainingSecondsNotifier = ValueNotifier<int>(0);
+
+  /// Bumped every time the timer actually expires, so the mounted player panel
+  /// can drop its resume ownership without the service holding a stale widget.
+  final ValueNotifier<int> expiryTicks = ValueNotifier<int>(0);
   final ValueNotifier<int> setMinutesNotifier = ValueNotifier<int>(0);
 
   bool get isActive => _shutdownTimer != null && _shutdownTimer!.isActive;
@@ -62,6 +66,7 @@ class TimedShutdownService {
 
   void _onTimerExpired() {
     setMinutesNotifier.value = 0;
+    expiryTicks.value++;
     try {
       _onExpiredCallback?.call();
     } catch (e) {

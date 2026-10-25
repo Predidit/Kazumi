@@ -259,7 +259,6 @@ class _TimelinePageState extends State<TimelinePage> {
                                         columns: columns,
                                         inset: inset,
                                         compact: narrowPortrait,
-                                        loading: loading,
                                       ),
                                   ],
                                 ),
@@ -372,7 +371,6 @@ class _TimelinePageState extends State<TimelinePage> {
     required int columns,
     required double inset,
     required bool compact,
-    required bool loading,
   }) {
     final cardHeight = BangumiTimelineCard.heightFor(
         MediaQuery.textScalerOf(context),
@@ -382,13 +380,6 @@ class _TimelinePageState extends State<TimelinePage> {
     return _TimelineScrollView(
       key: PageStorageKey('timeline-day-$day'),
       slivers: [
-        if (loading)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(inset, 0, inset, 12),
-              child: const LinearProgressIndicator(),
-            ),
-          ),
         if (items.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,

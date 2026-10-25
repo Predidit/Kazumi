@@ -4,42 +4,17 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:ech_http/ech_http.dart';
 import 'package:http/http.dart' as http;
-import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/core/network_config.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/network/bangumi_acceleration.dart';
-import 'package:kazumi/services/network/bangumi_ech_resolver.dart';
+import 'package:kazumi/request/core/ech_transport.dart';
 
-const _echRequestKey = 'bangumiEch';
+const _echKey = 'ech';
 
-class BangumiAccelerationInterceptor extends Interceptor {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    options.extra.remove(_echRequestKey);
-    final uri = options.uri;
-    if (ApiEndpoints.bangumiPublicApiHosts.contains(uri.host)) {
-      switch (BangumiAcceleration.current) {
-        case BangumiAcceleration.direct:
-          break;
-        case BangumiAcceleration.ech:
-          options.path = uri.replace(scheme: 'https').toString();
-          options.queryParameters = {};
-          options.extra[_echRequestKey] = true;
-        case BangumiAcceleration.mirror:
-          options.path =
-              ApiEndpoints.bangumiMirrorDomain +
-              uri.path +
-              (uri.hasQuery ? '?${uri.query}' : '');
-          options.queryParameters = {};
-          KazumiLogger().d('Bangumi mirror: ${options.path}');
-      }
-    }
-    handler.next(options);
-  }
+extension EchRequestOptions on RequestOptions {
+  void requireEch() => extra[_echKey] = true;
 }
 
-class BangumiEchAdapter implements HttpClientAdapter {
-  BangumiEchAdapter({
+class EchAdapter implements HttpClientAdapter {
+  EchAdapter({
     required HttpClientAdapter fallback,
     required NetworkConfig config,
   }) : _fallback = fallback,
@@ -47,36 +22,6 @@ class BangumiEchAdapter implements HttpClientAdapter {
 
   final HttpClientAdapter _fallback;
   final NetworkConfig _config;
-  final _resolvers = <Uri?, DohEchResolver>{};
-  final _clients = <(Uri?, Uri?, Duration, Duration), EchClient>{};
-  final _activeRequests = <Completer<void>>{};
-  bool _closed = false;
-
-  EchClient _clientFor(RequestOptions options) {
-    final proxy = _config.proxyForUri(options.uri);
-    final dohProxy = _config.proxyForUri(BangumiEchResolver.endpoint);
-    final connectTimeout = _positive(
-      options.connectTimeout,
-      _config.connectTimeout,
-    );
-    final timeout =
-        connectTimeout +
-        _positive(options.receiveTimeout, _config.receiveTimeout) +
-        _positive(options.sendTimeout, const Duration(seconds: 12));
-    // Native timeouts are client-wide; only matching settings share a pool.
-    return _clients.putIfAbsent(
-      (proxy, dohProxy, connectTimeout, timeout),
-      () => EchClient(
-        proxy: proxy,
-        resolver: _resolvers.putIfAbsent(
-          dohProxy,
-          () => BangumiEchResolver.create(EchClient(proxy: dohProxy)),
-        ),
-        connectTimeout: connectTimeout,
-        timeout: timeout,
-      ),
-    );
-  }
 
   static Duration _positive(Duration? value, Duration fallback) =>
       value != null && value > Duration.zero ? value : fallback;
@@ -87,8 +32,7 @@ class BangumiEchAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
-    if (_closed) throw StateError('Bangumi ECH adapter is closed');
-    if (options.extra[_echRequestKey] != true) {
+    if (options.extra[_echKey] != true) {
       return _fallback.fetch(options, requestStream, cancelFuture);
     }
 
@@ -98,15 +42,29 @@ class BangumiEchAdapter implements HttpClientAdapter {
     }
 
     cancelFuture?.then((_) => cancel());
-    _activeRequests.add(abort);
+    EchLease? lease;
     void release() {
-      if (!_activeRequests.remove(abort)) return;
       cancel();
-      if (_closed && _activeRequests.isEmpty) _closeClients();
+      lease?.release();
     }
 
     try {
-      final client = _clientFor(options);
+      final connectTimeout = _positive(
+        options.connectTimeout,
+        _config.connectTimeout,
+      );
+      final receiveTimeout = _positive(
+        options.receiveTimeout,
+        _config.receiveTimeout,
+      );
+      lease = EchTransport.lease(
+        options.uri,
+        connectTimeout: connectTimeout,
+        timeout:
+            connectTimeout +
+            receiveTimeout +
+            _positive(options.sendTimeout, const Duration(seconds: 12)),
+      );
       final request =
           _EchRequest(options.method, options.uri, requestStream, abort.future)
             ..followRedirects = options.followRedirects
@@ -121,10 +79,8 @@ class BangumiEchAdapter implements HttpClientAdapter {
         }
       }
       // Native connect timeouts exclude DoH discovery.
-      final timeout =
-          _positive(options.connectTimeout, _config.connectTimeout) +
-          _positive(options.receiveTimeout, _config.receiveTimeout);
-      final response = await client
+      final timeout = connectTimeout + receiveTimeout;
+      final response = await lease
           .send(request)
           .timeout(
             timeout,
@@ -194,23 +150,8 @@ class BangumiEchAdapter implements HttpClientAdapter {
     );
   }
 
-  void _closeClients() {
-    for (final client in _clients.values) {
-      client.close();
-    }
-    _clients.clear();
-    for (final resolver in _resolvers.values) {
-      resolver.client.close();
-    }
-    _resolvers.clear();
-  }
-
   @override
-  void close({bool force = false}) {
-    _closed = true;
-    _fallback.close(force: force);
-    if (force || _activeRequests.isEmpty) _closeClients();
-  }
+  void close({bool force = false}) => _fallback.close(force: force);
 }
 
 class _EchRequest extends http.BaseRequest with http.Abortable {

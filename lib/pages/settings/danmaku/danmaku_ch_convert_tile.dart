@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/bean/settings/settings_dropdown_tile.dart';
 import 'package:kazumi/modules/danmaku/danmaku_ch_convert.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -20,7 +20,6 @@ class DanmakuChConvertTile extends StatefulWidget {
 }
 
 class _DanmakuChConvertTileState extends State<DanmakuChConvertTile> {
-  final _menuController = MenuController();
   late final _settingsChanges = GStorage.watchSettings([
     SettingsKeys.danmakuChConvert,
   ]);
@@ -48,33 +47,16 @@ class _DanmakuChConvertTileState extends State<DanmakuChConvertTile> {
         final mode = DanmakuChConvert.fromValue(
           GStorage.getSetting(SettingsKeys.danmakuChConvert),
         );
-        return SettingsTile(
+        return SettingsDropdownTile<DanmakuChConvert>(
           leading: Icons.translate_rounded,
           title: const Text('简繁转换'),
           description: const Text('下次联网加载弹幕时生效，已缓存弹幕保留下载时的文字'),
           enabled: !_saving,
-          onPressed: (_) => _menuController.isOpen
-              ? _menuController.close()
-              : _menuController.open(),
-          value: MenuAnchor(
-            controller: _menuController,
-            consumeOutsideTap: true,
-            menuChildren: [
-              for (final option in DanmakuChConvert.values)
-                MenuItemButton(
-                  requestFocusOnHover: false,
-                  onPressed: _saving ? null : () => _selectMode(option),
-                  leadingIcon: Icon(
-                    option == mode
-                        ? Icons.radio_button_checked_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                  ),
-                  child: Text(option.label),
-                ),
-            ],
-            builder: (_, _, _) => Text(mode.label),
-          ),
-          trailing: const Icon(Icons.arrow_drop_down_rounded),
+          value: mode,
+          options: {
+            for (final option in DanmakuChConvert.values) option: option.label,
+          },
+          onChanged: _selectMode,
         );
       },
     );

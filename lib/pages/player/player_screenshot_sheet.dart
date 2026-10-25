@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/pages/player/controller/player_screenshot_controller.dart';
 import 'package:kazumi/pages/player/player_screenshot_image.dart';
 import 'package:kazumi/services/player/screenshot_candidate.dart';
@@ -190,8 +191,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
   }
 
   Future<void> _save() async {
-    _noticeTimer?.cancel();
-    setState(() => _notice = null);
+    _hideNotice();
     await collection.save(
       chooseDestination: _exportService.chooseDestination,
       write: _exportService.write,
@@ -209,6 +209,11 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     _noticeTimer = Timer(const Duration(seconds: 5), () {
       if (mounted) setState(() => _notice = null);
     });
+  }
+
+  void _hideNotice() {
+    _noticeTimer?.cancel();
+    setState(() => _notice = null);
   }
 
   void _removeSelected() {
@@ -240,7 +245,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     _focus.requestFocus();
     if (confirmed != true || collection.busy) return;
     collection.clearCandidates();
-    _showNotice();
+    _hideNotice();
   }
 
   @override
@@ -343,12 +348,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
                             ),
                           ),
                         ),
-                        _footer(
-                          context,
-                          compact: compact,
-                          padding: padding,
-                          showReturn: wide,
-                        ),
+                        _footer(context, compact: compact, padding: padding),
                       ],
                     ],
                   );
@@ -490,24 +490,27 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
           ),
         ),
         if (current != null)
-          PopupMenuButton<bool>(
-            tooltip: '管理截图',
+          KazumiMenuButton(
+            animated: true,
             enabled: !collection.busy,
-            icon: const Icon(Icons.more_vert_rounded),
-            onSelected: (clear) {
-              if (clear) {
-                unawaited(_clearCandidates());
-              } else {
-                _removeSelected();
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: false,
-                enabled: collection.selectedCount > 0,
-                child: const Text('移除所选'),
+            builder: (context, toggle) => IconButton(
+              tooltip: '管理截图',
+              icon: const Icon(Icons.more_vert_rounded),
+              onPressed: toggle,
+            ),
+            menuChildren: [
+              KazumiMenuItem(
+                label: '移除所选',
+                onPressed: !collection.busy && collection.selectedCount > 0
+                    ? _removeSelected
+                    : null,
               ),
-              const PopupMenuItem(value: true, child: Text('清空候选')),
+              KazumiMenuItem(
+                label: '清空候选',
+                onPressed: collection.busy
+                    ? null
+                    : () => unawaited(_clearCandidates()),
+              ),
             ],
           ),
         if (current != null)
@@ -612,13 +615,7 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       return Semantics(
         selected: selected,
         child: FilledButton.tonalIcon(
-          style: _actionStyle(selected: selected).copyWith(
-            backgroundColor: WidgetStatePropertyAll(
-              selected
-                  ? Theme.of(context).colorScheme.secondaryContainer
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-          ),
+          style: _toggleStyle(selected: selected),
           onPressed: collection.saving ? null : _toggle,
           icon: Icon(
             selected
@@ -688,7 +685,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
     BuildContext context, {
     required bool compact,
     required double padding,
-    bool showReturn = false,
     bool stackActions = false,
   }) {
     final scaler = MediaQuery.textScalerOf(context);
@@ -726,36 +722,89 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final stacked =
-              stackActions ||
-              constraints.maxWidth < saveWidth + scaler.scale(96) + 48;
+          // Rough width the single-row layout needs before it must stack.
+          final rowWidth =
+              saveWidth + scaler.scale(96) + scaler.scale(128) + 56;
+          final stacked = stackActions || constraints.maxWidth < rowWidth;
           final pick = SizedBox(
             height: buttonHeight,
             child: _pickButton(current!),
           );
+          final selectAll = _selectAllButton(
+            height: buttonHeight,
+            compact: stacked,
+          );
           if (stacked) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [pick, const SizedBox(height: 8), save],
+              children: [
+                // Select-all stays intrinsic so the pick label never truncates.
+                Row(
+                  children: [
+                    Expanded(child: pick),
+                    const SizedBox(width: 8),
+                    selectAll,
+                  ],
+                ),
+                const SizedBox(height: 8),
+                save,
+              ],
             );
           }
           return Row(
             children: [
               pick,
               const Spacer(),
-              if (showReturn) ...[
-                Observer(
-                  builder: (context) => TextButton(
-                    onPressed: collection.saving ? null : _close,
-                    child: const Text('返回播放'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
+              selectAll,
+              const SizedBox(width: 8),
               SizedBox(width: saveWidth, child: save),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _selectAllButton({required double height, required bool compact}) =>
+      SizedBox(
+        height: height,
+        child: Observer(
+          builder: (context) {
+            final all = collection.allSelected;
+            final style = _toggleStyle(selected: all);
+            final onPressed = collection.saving
+                ? null
+                : () => collection.setAllSelected(!all);
+            final label = Text(all ? '取消全选' : '全选');
+            if (compact) {
+              return FilledButton.tonal(
+                style: style.copyWith(
+                  padding: const WidgetStatePropertyAll(
+                    EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  ),
+                ),
+                onPressed: onPressed,
+                child: label,
+              );
+            }
+            return FilledButton.tonalIcon(
+              style: style,
+              onPressed: onPressed,
+              icon: Icon(
+                all ? Icons.deselect_rounded : Icons.select_all_rounded,
+                size: 20,
+              ),
+              label: label,
+            );
+          },
+        ),
+      );
+
+  ButtonStyle _toggleStyle({required bool selected}) {
+    final colors = Theme.of(context).colorScheme;
+    return _actionStyle(selected: selected).copyWith(
+      backgroundColor: WidgetStatePropertyAll(
+        selected ? colors.secondaryContainer : colors.surfaceContainerHighest,
       ),
     );
   }

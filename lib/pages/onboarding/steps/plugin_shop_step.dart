@@ -19,8 +19,8 @@ class PluginShopStep extends StatelessWidget {
             icon: Icons.extension_rounded,
             shape: OnboardingIconShape.flower,
           ),
-          title: '发现更多番剧来源',
-          subtitle: '添加喜欢的规则，拓展搜索来源。也可以先开始使用，稍后在规则管理中添加。',
+          title: '添加番剧来源',
+          subtitle: '规则决定从哪些站点搜索和播放番剧，添加至少一条即可开始观看。',
           slivers: slivers,
         ),
       );

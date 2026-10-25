@@ -248,7 +248,7 @@ class _EpisodeHeader extends StatelessWidget {
             : '第 $number 集';
     final subtitle = originalTitle.isNotEmpty && originalTitle != title
         ? originalTitle
-        : 'Bangumi 分集讨论';
+        : '';
     final episodeType = info?.readType().toUpperCase() ?? 'EP';
 
     return Material(

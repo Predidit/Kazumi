@@ -23,6 +23,7 @@
 - Linux (实验性)
 - iOS 13 及以上 (需要 [侧载](https://kazumi.app/docs/misc/how-to-install-in-ios))
 - HarmonyOS 5.0 及以上 (位于 [分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要 [侧载](https://kazumi.app/docs/misc/how-to-install-in-ohos))
+- Web 浏览器 (位于 [分支仓库](https://github.com/0Chencc/KazumiWeb/releases/latest)，需要在 Windows / Linux / MacOS 电脑或通过 Docker 运行服务端，同一局域网内的设备通过浏览器访问)
 
 ## 屏幕截图
 
@@ -186,6 +187,7 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | <img src="https://kilo.ai/favicon/favicon.svg" width="50">                                                                                                                      | **Automatic PR review provided by [Kilo Code](https://kilo.ai/), sponsored by the [Kilo OSS Program](https://kilo.ai/oss)**                   |
 | <a href="https://m.do.co/c/0062035db3e4"><img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_icon_blue.svg" width="50" height="50"></a> | **Cloud infrastructure is supported by [DigitalOcean](https://m.do.co/c/0062035db3e4)**                                                       |
+| <a href="https://fyrastack.com"><img src="https://fyrastack.com/logo.svg" width="50" height="50"></a>                                                                           | **Virtual machines provided by [Fyra Stack](https://fyrastack.com/), sponsored by [Fyra Labs](https://fyralabs.com/)**                        |
 
 ## 致谢
 

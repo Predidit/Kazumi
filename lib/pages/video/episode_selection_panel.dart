@@ -373,8 +373,6 @@ class _RoadSelectorState extends State<_RoadSelector> {
                     ),
             )),
           ),
-          trailingIcon:
-              selected ? const Icon(Icons.check_rounded, size: 20) : null,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

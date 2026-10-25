@@ -684,12 +684,8 @@ class _PlayerItemState extends State<PlayerItem>
     _progressBarDragHold = acquirePlayerPanelHold();
   }
 
-  Future<void> handleProgressBarSeek(Duration duration) async {
-    if (!playerController.seeking.updateInteractiveSeek(duration)) {
-      await playerController.seek(duration);
-      return;
-    }
-    await _finishInteractiveSeek();
+  void handleProgressBarDragEnd(bool cancelled) {
+    unawaited(_finishInteractiveSeek(cancelled: cancelled));
   }
 
   void _beginInteractiveSeek() {
@@ -969,7 +965,10 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.panel.canHidePlayerPanel && _playerPanelHolds.isEmpty;
 
   void showVideoController({bool restartHideTimer = true}) {
-    _panelVisibilityController.forward();
+    // Re-forwarding restarts the ticker and stalls a frame, so hover must not.
+    if (!_panelVisibilityController.isForwardOrCompleted) {
+      _panelVisibilityController.forward();
+    }
     playerController.panel.showVideoController = true;
     if (restartHideTimer && _canHidePlayerPanel) {
       _startHideTimer();
@@ -1183,10 +1182,7 @@ class _PlayerItemState extends State<PlayerItem>
               .applyExternalVolume(playerController.playback.playerVolume);
         }
       }
-      if (!Platform.isWindows &&
-          !Platform.isMacOS &&
-          !Platform.isLinux &&
-          !playerController.panel.brightnessSeeking) {
+      if (!isDesktop() && !playerController.panel.brightnessSeeking) {
         ScreenBrightnessPlatform.instance.application.then((value) {
           if (!mounted) return;
           playerController.panel.brightness = value;
@@ -1538,7 +1534,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 enterAndroidPictureInPicture,
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
-                            handleProgressBarSeek: handleProgressBarSeek,
+                            handleProgressBarDragEnd: handleProgressBarDragEnd,
                             handleSuperResolutionChange:
                                 handleSuperResolutionChange,
                             onNextEpisode: () => handlePreNextEpisode('next'),

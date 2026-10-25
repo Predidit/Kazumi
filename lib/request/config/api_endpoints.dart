@@ -5,7 +5,7 @@ class ApiEndpoints {
   static const String version = appBuildName ?? '0.0.0';
 
   /// 规则API级别
-  static const int apiLevel = 8;
+  static const int apiLevel = 9;
 
   /// 项目主页
   static const String projectUrl = "https://kazumi.app/";
@@ -21,7 +21,10 @@ class ApiEndpoints {
       'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
 
   /// 规则仓库镜像
-  static const String pluginShopMirror =
+  static const String ghProxyHost = 'gh-proxy.org';
+  static const String ghProxyMirror = 'https://$ghProxyHost/';
+  static const String ghfastMirror = 'https://ghfast.top/';
+  static const String gitcodeMirror =
       'https://raw.gitcode.com/gh_mirrors/ka/KazumiRules/raw/main/';
 
   /// 在线升级

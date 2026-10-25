@@ -167,84 +167,102 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '放送开始:',
-                            ),
-                            Text(
-                              widget.bangumiItem.airDate == ''
-                                  ? '2000-11-11' // Skeleton Loader 占位符
-                                  : widget.bangumiItem.airDate,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              widget.showRating
-                                  ? '${widget.bangumiItem.votes} 人评分:'
-                                  : '*** 人评分:',
-                            ),
-                            if (widget.isLoading)
-                              // Skeleton Loader 占位符
-                              Text(
-                                '10.0 ********',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            if (!widget.isLoading)
-                              Row(
+                        // Shrink under large system font so the collect button
+                        // stays inside the fixed-height card.
+                        Flexible(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.topLeft,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    widget.showRating
-                                        ? '${widget.bangumiItem.ratingScore}'
-                                        : '***',
+                                    '放送开始:',
+                                  ),
+                                  Text(
+                                    widget.bangumiItem.airDate == ''
+                                        ? '2000-11-11' // Skeleton Loader 占位符
+                                        : widget.bangumiItem.airDate,
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                       color:
                                           Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  RatingBarIndicator(
-                                    itemCount: 5,
-                                    rating: widget.showRating
-                                        ? widget.bangumiItem.ratingScore
-                                                .toDouble() /
-                                            2
-                                        : 0,
-                                    itemBuilder: (context, index) => Icon(
-                                      Icons.star_rounded,
+                                  SizedBox(height: 8),
+                                  Text(
+                                    widget.showRating
+                                        ? '${widget.bangumiItem.votes} 人评分:'
+                                        : '*** 人评分:',
+                                  ),
+                                  if (widget.isLoading)
+                                    // Skeleton Loader 占位符
+                                    Text(
+                                      '10.0 ********',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                    ),
+                                  if (!widget.isLoading)
+                                    Row(
+                                      children: [
+                                        Text(
+                                          widget.showRating
+                                              ? '${widget.bangumiItem.ratingScore}'
+                                              : '***',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        RatingBarIndicator(
+                                          itemCount: 5,
+                                          rating: widget.showRating
+                                              ? widget.bangumiItem.ratingScore
+                                                      .toDouble() /
+                                                  2
+                                              : 0,
+                                          itemBuilder: (context, index) => Icon(
+                                            Icons.star_rounded,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          ),
+                                          itemSize: 20.0,
+                                        ),
+                                      ],
+                                    ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Bangumi Ranked:',
+                                  ),
+                                  Text(
+                                    widget.showRating
+                                        ? '#${widget.bangumiItem.rank}'
+                                        : '***',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
                                       color:
                                           Theme.of(context).colorScheme.primary,
                                     ),
-                                    itemSize: 20.0,
                                   ),
                                 ],
                               ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Bangumi Ranked:',
                             ),
-                            Text(
-                              widget.showRating
-                                  ? '#${widget.bangumiItem.rank}'
-                                  : '***',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                         SizedBox(
                           width: 120,

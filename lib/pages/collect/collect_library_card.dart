@@ -367,13 +367,8 @@ class _CollectEntryMenu extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final type = CollectType.fromValue(entry.type);
     final title = CollectLibraryQuery.titleOf(entry);
-    const itemStyle = ButtonStyle(
-      visualDensity: VisualDensity.standard,
-      minimumSize: WidgetStatePropertyAll(Size(192, 48)),
-      padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
-    );
-    return MenuAnchor(
-      consumeOutsideTap: true,
+    return KazumiMenuButton(
+      enabled: onChanged != null,
       style: MenuStyle(
         shape: WidgetStatePropertyAll(RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(showStatusLabel ? 16 : 20),
@@ -382,27 +377,22 @@ class _CollectEntryMenu extends StatelessWidget {
       menuChildren: [
         for (final status
             in CollectType.values.where((type) => type.isCollected))
-          MenuItemButton(
-            style: itemStyle,
-            trailingIcon:
-                status == type ? const Icon(Icons.check_rounded) : null,
+          KazumiMenuItem(
+            selected: status == type,
             onPressed: onChanged == null || status == type
                 ? null
                 : () => onChanged!(status),
-            child: Text(status.label),
+            label: status.label,
           ),
         const Divider(indent: 16, endIndent: 16),
-        MenuItemButton(
-          style: itemStyle,
+        KazumiMenuItem(
           onPressed:
               onChanged == null ? null : () => onChanged!(CollectType.none),
-          child: Text('取消收藏', style: TextStyle(color: colors.error)),
+          label: '取消收藏',
+          destructive: true,
         ),
       ],
-      builder: (context, controller, child) {
-        final VoidCallback? toggle = onChanged == null
-            ? null
-            : () => controller.isOpen ? controller.close() : controller.open();
+      builder: (context, toggle) {
         return showStatusLabel
             ? Tooltip(
                 message: '调整《$title》的观看状态',

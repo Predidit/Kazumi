@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/services/network/acceleration_mode.dart';
 import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:kazumi/services/network/image_acceleration.dart';
+import 'package:kazumi/services/network/rules_mirror.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class NetworkMirrorSettings extends StatefulWidget {
@@ -15,138 +17,106 @@ class NetworkMirrorSettings extends StatefulWidget {
 }
 
 class _NetworkMirrorSettingsState extends State<NetworkMirrorSettings> {
-  Future<void> _save<T>(SettingKey<T> key, T value) async {
-    await GStorage.putSetting(key, value);
-    if (mounted) setState(() {});
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final bangumiAcceleration = BangumiAcceleration.current;
-    final gitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
-    final imageAcceleration = ImageAcceleration.fromSetting(
-      GStorage.getSetting(SettingsKeys.imageAcceleration),
-    );
-    return SettingsSection(
-      title: const Text('访问加速'),
-      margin: widget.margin,
-      tiles: [
-        SettingsTile(
-          leading: Icons.travel_explore_rounded,
-          title: const Text('番剧条目加速'),
-          description: const Text(
-            '番剧信息与评论',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          value: SizedBox(
-            width: 60,
-            child: Text(bangumiAcceleration.label, textAlign: TextAlign.center),
-          ),
-          onPressed: (context) => _selectAcceleration(
-            context,
-            title: '番剧条目加速',
-            current: bangumiAcceleration,
-            modes: BangumiAcceleration.values,
-            label: (mode) => mode.label,
-            description: (mode) => mode.description,
-            setting: SettingsKeys.bangumiAcceleration,
-          ),
-        ),
-        SettingsTile.switchTile(
-          leading: Icons.extension_rounded,
-          title: const Text('规则仓库镜像'),
-          description: const Text('加速规则的下载与更新'),
-          initialValue: gitProxy,
-          onToggle: (value) =>
-              _save(SettingsKeys.enableGitProxy, value ?? !gitProxy),
-        ),
-        SettingsTile(
-          leading: Icons.image_rounded,
-          title: const Text('图片加速'),
-          description: const Text(
-            '封面与头像',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          value: SizedBox(
-            width: 60,
-            child: Text(imageAcceleration.label, textAlign: TextAlign.center),
-          ),
-          onPressed: (context) => _selectAcceleration(
-            context,
-            title: '图片加速',
-            current: imageAcceleration,
-            modes: ImageAcceleration.values,
-            label: (mode) => mode.label,
-            description: (mode) => mode.description,
-            setting: SettingsKeys.imageAcceleration,
+  Widget build(BuildContext context) => SettingsSection(
+    title: const Text('访问加速'),
+    margin: widget.margin,
+    tiles: [
+      _tile(
+        icon: Icons.travel_explore_rounded,
+        title: '番剧条目加速',
+        description: '番剧信息与评论',
+        current: BangumiAcceleration.current,
+        modes: BangumiAcceleration.values,
+        setting: SettingsKeys.bangumiAcceleration,
+      ),
+      _tile(
+        icon: Icons.extension_rounded,
+        title: '规则仓库加速',
+        description: '规则下载与更新',
+        current: RulesMirror.current,
+        modes: RulesMirror.values,
+        setting: SettingsKeys.rulesMirror,
+      ),
+      _tile(
+        icon: Icons.image_rounded,
+        title: '图片加速',
+        description: '封面与头像',
+        current: ImageAcceleration.current,
+        modes: ImageAcceleration.values,
+        setting: SettingsKeys.imageAcceleration,
+      ),
+    ],
+  );
+
+  SettingsTile _tile<T extends AccelerationMode>({
+    required IconData icon,
+    required String title,
+    required String description,
+    required T current,
+    required List<T> modes,
+    required SettingKey<String> setting,
+  }) => SettingsTile(
+    leading: icon,
+    title: Text(title),
+    description: Text(
+      description,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+    value: SizedBox(
+      width: 72,
+      child: Text(current.label, textAlign: TextAlign.center),
+    ),
+    onPressed: (context) async {
+      final changed = await selectAccelerationMode(
+        context,
+        title: title,
+        current: current,
+        modes: modes,
+        setting: setting,
+      );
+      if (changed && mounted) setState(() {});
+    },
+  );
+}
+
+/// Shows a picker for [modes] and saves the choice; returns whether it changed.
+Future<bool> selectAccelerationMode<T extends AccelerationMode>(
+  BuildContext context, {
+  required String title,
+  required T current,
+  required List<T> modes,
+  required SettingKey<String> setting,
+}) async {
+  final selected = await KazumiDialog.show<T>(
+    context: context,
+    builder: (context) => SimpleDialog(
+      title: Text(title),
+      children: [
+        RadioGroup<T>(
+          groupValue: current,
+          onChanged: (value) => Navigator.of(context).pop(value),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final mode in modes)
+                RadioListTile<T>(
+                  value: mode,
+                  title: Text(mode.label),
+                  subtitle: Text(
+                    mode.description,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
           ),
         ),
       ],
-    );
-  }
-
-  Future<void> _selectAcceleration<T extends Enum>(
-    BuildContext context, {
-    required String title,
-    required T current,
-    required List<T> modes,
-    required String Function(T) label,
-    required String Function(T) description,
-    required SettingKey<String> setting,
-  }) async {
-    final selected = await KazumiDialog.show<T>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: Text(title),
-        children: [
-          RadioGroup<T>(
-            groupValue: current,
-            onChanged: (value) => Navigator.of(context).pop(value),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final mode in modes)
-                  RadioListTile<T>(
-                    value: mode,
-                    title: Text(label(mode)),
-                    subtitle: Text(
-                      description(mode),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    if (mounted && selected != null && selected != current) {
-      await _save(setting, selected.name);
-    }
-  }
-}
-
-extension on BangumiAcceleration {
-  String get description => switch (this) {
-    BangumiAcceleration.direct => '访问官方接口',
-    BangumiAcceleration.ech => '启用加密握手',
-    BangumiAcceleration.mirror => '镜像接口（默认）',
-  };
-}
-
-extension on ImageAcceleration {
-  String get label => switch (this) {
-    ImageAcceleration.direct => '直连',
-    ImageAcceleration.ech => 'ECH',
-    ImageAcceleration.mirror => '镜像',
-  };
-
-  String get description => switch (this) {
-    ImageAcceleration.direct => '加载原始图片',
-    ImageAcceleration.ech => '加密握手（推荐）',
-    ImageAcceleration.mirror => '使用图片镜像',
-  };
+    ),
+  );
+  if (selected == null || selected == current) return false;
+  await GStorage.putSetting(setting, selected.name);
+  return true;
 }

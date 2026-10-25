@@ -12,7 +12,7 @@ class MirrorSettingsStep extends StatelessWidget {
       shape: OnboardingIconShape.clover,
     ),
     title: '让连接更顺畅',
-    subtitle: '番剧信息与评论默认使用镜像，也可选择 ECH 或直连。图片默认使用 ECH 加速。',
+    subtitle: '番剧信息、规则仓库与图片默认已开启加速，可按网络情况调整。',
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

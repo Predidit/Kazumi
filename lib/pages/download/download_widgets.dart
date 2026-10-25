@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/utils/format.dart';
@@ -120,30 +121,20 @@ class DownloadRecordCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert,
-                      color: colorScheme.onSurfaceVariant,
+                  KazumiMenuButton(
+                    animated: false,
+                    builder: (context, toggle) => IconButton(
+                      icon: Icon(Icons.more_vert,
+                          color: colorScheme.onSurfaceVariant),
+                      tooltip: '更多操作',
+                      onPressed: toggle,
                     ),
-                    tooltip: '更多操作',
-                    onSelected: (value) {
-                      if (value == 'resume_all') {
-                        onResumeAll();
-                      } else if (value == 'delete') {
-                        onDeleteAll();
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'resume_all',
-                        child: Text('全部开始'),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Text(
-                          '全部删除',
-                          style: TextStyle(color: colorScheme.error),
-                        ),
+                    menuChildren: [
+                      KazumiMenuItem(label: '全部开始', onPressed: onResumeAll),
+                      KazumiMenuItem(
+                        label: '全部删除',
+                        destructive: true,
+                        onPressed: onDeleteAll,
                       ),
                     ],
                   ),

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/settings/settings_dropdown_tile.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/settings/low_memory_mode_settings.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -43,8 +44,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
   late int playerControllerLayerDisappearTime;
-  final MenuController playerAspectRatioMenuController = MenuController();
-  final MenuController playerLogLevelMenuController = MenuController();
 
   @override
   void initState() {
@@ -437,48 +436,14 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 description: Text('记录播放器内部日志'),
                 initialValue: playerDebugMode,
               ),
-              SettingsTile(
+              SettingsDropdownTile<int>(
                 leading: Icons.receipt_long_rounded,
-                onPressed: (_) async {
-                  if (playerLogLevelMenuController.isOpen) {
-                    playerLogLevelMenuController.close();
-                  } else {
-                    playerLogLevelMenuController.open();
-                  }
-                },
-                title: Text('日志等级'),
-                description: Text('播放器内部日志等级'),
-                value: MenuAnchor(
-                  consumeOutsideTap: true,
-                  controller: playerLogLevelMenuController,
-                  builder: (_, __, ___) {
-                    return Text(
-                      playerLogLevelMap[playerLogLevel] ?? '???',
-                    );
-                  },
-                  menuChildren: [
-                    for (final entry in playerLogLevelMap.entries)
-                      MenuItemButton(
-                        requestFocusOnHover: false,
-                        onPressed: () => updatePlayerLogLevel(entry.key),
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              entry.value,
-                              style: TextStyle(
-                                color: entry.key == playerLogLevel
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                title: const Text('日志等级'),
+                description: const Text('播放器内部日志等级'),
+                value: playerLogLevel,
+                options: playerLogLevelMap,
+                fallbackLabel: '???',
+                onChanged: updatePlayerLogLevel,
               ),
             ],
           ),
@@ -550,48 +515,14 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     playerControllerLayerDisappearSeconds),
                 onChanged: updatePlayerControllerLayerDisappearSeconds,
               ),
-              SettingsTile(
+              SettingsDropdownTile<PlayerAspectRatio>(
                 leading: Icons.aspect_ratio_rounded,
-                onPressed: (_) async {
-                  if (playerAspectRatioMenuController.isOpen) {
-                    playerAspectRatioMenuController.close();
-                  } else {
-                    playerAspectRatioMenuController.open();
-                  }
+                title: const Text('默认视频比例'),
+                value: defaultAspectRatioMode,
+                options: {
+                  for (final mode in PlayerAspectRatio.values) mode: mode.label,
                 },
-                title: Text('默认视频比例'),
-                value: MenuAnchor(
-                  consumeOutsideTap: true,
-                  controller: playerAspectRatioMenuController,
-                  builder: (_, __, ___) {
-                    return Text(
-                      defaultAspectRatioMode.label,
-                    );
-                  },
-                  menuChildren: [
-                    for (final aspectRatioMode in PlayerAspectRatio.values)
-                      MenuItemButton(
-                        requestFocusOnHover: false,
-                        onPressed: () =>
-                            updateDefaultAspectRatioMode(aspectRatioMode),
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              aspectRatioMode.label,
-                              style: TextStyle(
-                                color: aspectRatioMode == defaultAspectRatioMode
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                onChanged: updateDefaultAspectRatioMode,
               ),
             ],
           ),

@@ -142,33 +142,25 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
               child: CustomScrollView(
                 controller: _scrollController,
                 slivers: [
-                  if (widget.groups.isEmpty)
-                    const SliverToBoxAdapter(
-                      child: GeneralEmptyState(
-                        icon: Icons.extension_rounded,
-                        title: '请先在规则管理中添加来源',
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      sliver: SliverList.builder(
-                        itemCount: widget.groups.length,
-                        findChildIndexCallback: (key) {
-                          final index = widget.groups.indexWhere(
-                              (group) => ValueKey(group.name) == key);
-                          return index < 0 ? null : index;
-                        },
-                        itemBuilder: (context, index) {
-                          final group = widget.groups[index];
-                          return Padding(
-                            key: ValueKey(group.name),
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildSourceGroup(group),
-                          );
-                        },
-                      ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverList.builder(
+                      itemCount: widget.groups.length,
+                      findChildIndexCallback: (key) {
+                        final index = widget.groups
+                            .indexWhere((group) => ValueKey(group.name) == key);
+                        return index < 0 ? null : index;
+                      },
+                      itemBuilder: (context, index) {
+                        final group = widget.groups[index];
+                        return Padding(
+                          key: ValueKey(group.name),
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildSourceGroup(group),
+                        );
+                      },
                     ),
+                  ),
                   const SliverToBoxAdapter(
                     child: SafeArea(top: false, child: SizedBox(height: 24)),
                   ),
@@ -357,26 +349,29 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
 
   Widget _buildSourceMenu(_SourceSearchGroup group) => TooltipVisibility(
         visible: false,
-        child: PopupMenuButton<VoidCallback>(
-          tooltip: '${group.name} 的更多操作',
-          icon: const Icon(Icons.more_horiz_rounded, size: 20),
-          onSelected: (action) => action(),
-          itemBuilder: (_) => [
-            PopupMenuItem(
-              value: () => widget.onSourceSearch(group.name),
-              child: const Text('修改此来源的检索词'),
+        child: KazumiMenuButton(
+          animated: true,
+          builder: (context, toggle) => IconButton(
+            tooltip: '${group.name} 的更多操作',
+            icon: const Icon(Icons.more_horiz_rounded, size: 20),
+            onPressed: toggle,
+          ),
+          menuChildren: [
+            KazumiMenuItem(
+              label: '修改此来源的检索词',
+              onPressed: () => widget.onSourceSearch(group.name),
             ),
-            PopupMenuItem(
-              value: () => widget.onSourceAliasSearch(group.name),
-              child: const Text('使用别名检索此来源'),
+            KazumiMenuItem(
+              label: '使用别名检索此来源',
+              onPressed: () => widget.onSourceAliasSearch(group.name),
             ),
-            PopupMenuItem(
-              value: () => widget.onRetry(group.name),
-              child: const Text('重新检索此来源'),
+            KazumiMenuItem(
+              label: '重新检索此来源',
+              onPressed: () => widget.onRetry(group.name),
             ),
-            PopupMenuItem(
-              value: () => widget.onOpenBrowser(group.name),
-              child: const Text('在浏览器中打开'),
+            KazumiMenuItem(
+              label: '在浏览器中打开',
+              onPressed: () => widget.onOpenBrowser(group.name),
             ),
           ],
         ),

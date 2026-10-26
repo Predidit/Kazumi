@@ -73,6 +73,11 @@ class SettingsKeys {
     false,
     group: SettingGroup.misc,
   );
+  static const windowsWindowState = SettingKey<Object?>(
+    'windowsWindowState',
+    null,
+    group: SettingGroup.misc,
+  );
   static const defaultPlaySpeed = SettingKey<double>(
     _SettingBoxKey.defaultPlaySpeed,
     1.0,
@@ -583,6 +588,7 @@ class SettingsKeys {
     autoUpdate,
     checkPluginUpdateOnStartup,
     alwaysOntop,
+    windowsWindowState,
     defaultPlaySpeed,
     defaultShortcutForwardPlaySpeed,
     defaultAspectRatioType,

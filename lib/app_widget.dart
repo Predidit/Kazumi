@@ -8,6 +8,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/metered_network_service.dart';
+import 'package:kazumi/services/platform/window_state_service.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/exit_confirmation_dialog.dart';
@@ -177,12 +178,19 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   @override
-  void onTrayMenuItemClick(MenuItem menuItem) {
+  Future<void> onTrayMenuItemClick(MenuItem menuItem) async {
     switch (menuItem.key) {
       case 'show_window':
         windowManager.show();
       case 'exit':
-        exit(0);
+        try {
+          if (Platform.isWindows) {
+            // Await the shared write chain before terminating the process.
+            await WindowStateService.instance.saveBeforeExit();
+          }
+        } finally {
+          exit(0);
+        }
     }
   }
 
@@ -218,7 +226,14 @@ class _AppWidgetState extends State<AppWidget>
       if (!mounted) return;
       switch (action) {
         case ExitDialogAction.exit:
-          exit(0);
+          try {
+            if (Platform.isWindows) {
+              // Only confirmed exit stops sampling.
+              await WindowStateService.instance.saveBeforeExit();
+            }
+          } finally {
+            exit(0);
+          }
         case ExitDialogAction.minimizeToTray:
           await windowManager.hide();
       }

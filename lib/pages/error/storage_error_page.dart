@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
+import 'package:kazumi/services/platform/app_exit.dart';
 
 class StorageErrorPage extends StatelessWidget {
   const StorageErrorPage({super.key});
@@ -28,7 +29,7 @@ class StorageErrorPage extends StatelessWidget {
               actions: [
                 StateActionButton(
                   onPressed: () {
-                    exit(0);
+                    AppExit.instance.quit();
                   },
                   text: '退出程序',
                   icon: Icons.close_rounded,

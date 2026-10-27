@@ -17,6 +17,7 @@ import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/services/download/background_download_service.dart';
 import 'package:kazumi/services/platform/windows_shortcut.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
+import 'package:kazumi/services/platform/app_exit.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
 import 'package:kazumi/navigation.dart';
 
@@ -219,7 +220,7 @@ class _InitPageState extends State<InitPage> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    exit(0);
+                    AppExit.instance.quit();
                   },
                   child: Text(
                     '退出',

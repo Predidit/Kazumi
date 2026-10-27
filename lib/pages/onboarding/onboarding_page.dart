@@ -12,6 +12,7 @@ import 'package:kazumi/pages/onboarding/steps/mirror_settings_step.dart';
 import 'package:kazumi/pages/onboarding/steps/plugin_shop_step.dart';
 import 'package:kazumi/pages/onboarding/steps/update_source_step.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/services/platform/app_exit.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
 
@@ -144,7 +145,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           foregroundColor: theme.colorScheme.onSurfaceVariant,
         ),
         onPressed: _currentIndex == 0
-            ? () => exit(0)
+            ? () => AppExit.instance.quit()
             : () => _navigate(forward: false),
         child: Text(_currentIndex == 0 ? '退出' : '上一步'),
       );

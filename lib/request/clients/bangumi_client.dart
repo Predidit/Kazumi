@@ -146,6 +146,12 @@ class BangumiClient {
     if (uri == null || !ApiEndpoints.bangumiPublicApiHosts.contains(uri.host)) {
       return null;
     }
+    // 免签名镜像没有实现 /p1/calendar（实测返回 404，body 为
+    // {"request":"/p1/calendar","code":404}）。降级过去只会把「超时」
+    // 换成「404」，反而更难判断，这里直接放弃降级。
+    if (uri.path == '/p1/calendar') {
+      return null;
+    }
     final Uri mirror = Uri.parse(ApiEndpoints.bangumiUnsignedMirrorDomain);
     return mirror
         .replace(

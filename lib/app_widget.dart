@@ -273,6 +273,7 @@ class _AppWidgetState extends State<AppWidget>
       MenuItem(key: 'exit', label: '退出 Kazumi')
     ]);
     await trayManager.setContextMenu(trayMenu);
+    AppExit.instance.markTrayIconRegistered();
   }
 
   @override

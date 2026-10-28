@@ -24,9 +24,24 @@ class AppExit {
   final TrayIconDisposer _disposeTray;
   final AppExitCallback _exitProcess;
 
+  bool _trayIconRegistered = false;
+
+  /// Records that a tray icon now exists.
+  ///
+  /// Startup can fail before the icon is created, for example when storage
+  /// initialization throws and the error page takes over. Asking the plugin to
+  /// remove an icon it never added reaches `Shell_NotifyIcon` with a handle the
+  /// plugin has not filled in yet, so the exit path stays away from the plugin
+  /// until this is called.
+  void markTrayIconRegistered() {
+    _trayIconRegistered = true;
+  }
+
   Future<void> quit({int code = 0}) async {
     try {
-      await _disposeTray().timeout(const Duration(seconds: 2));
+      if (_trayIconRegistered) {
+        await _disposeTray().timeout(const Duration(seconds: 2));
+      }
     } catch (e, stackTrace) {
       KazumiLogger().w('AppExit: failed to remove the tray icon',
           error: e, stackTrace: stackTrace);

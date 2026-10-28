@@ -29,7 +29,7 @@ void main() {
     final appExit = AppExit(
       disposeTray: () async => events.add('dispose'),
       exitProcess: (code) => events.add('exit $code'),
-    );
+    )..markTrayIconRegistered();
 
     await appExit.quit();
 
@@ -41,7 +41,7 @@ void main() {
     final appExit = AppExit(
       disposeTray: () async => throw PlatformException(code: 'error'),
       exitProcess: codes.add,
-    );
+    )..markTrayIconRegistered();
 
     await appExit.quit(code: 1);
 
@@ -49,11 +49,22 @@ void main() {
   });
 
   test('asks the tray plugin to destroy the registered icon', () async {
-    final appExit = AppExit(exitProcess: (_) {});
+    final appExit = AppExit(exitProcess: (_) {})
+      ..markTrayIconRegistered();
 
     await appExit.quit();
 
     expect(trayCalls, ['destroy']);
+  });
+
+  test('leaves the tray plugin alone when no icon was ever created', () async {
+    final codes = <int>[];
+    final appExit = AppExit(exitProcess: codes.add);
+
+    await appExit.quit(code: 2);
+
+    expect(trayCalls, isEmpty);
+    expect(codes, [2]);
   });
 
   test('every quit path goes through the tray cleanup', () {

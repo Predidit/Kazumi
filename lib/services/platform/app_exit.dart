@@ -26,7 +26,7 @@ class AppExit {
 
   Future<void> quit({int code = 0}) async {
     try {
-      await _disposeTray();
+      await _disposeTray().timeout(const Duration(seconds: 2));
     } catch (e, stackTrace) {
       KazumiLogger().w('AppExit: failed to remove the tray icon',
           error: e, stackTrace: stackTrace);

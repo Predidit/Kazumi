@@ -262,6 +262,9 @@ class _AppWidgetState extends State<AppWidget>
     } else {
       await trayManager.setIcon('assets/images/logo/logo_rounded.png');
     }
+    // The icon is in the notification area from here on, so the exit path must
+    // remove it even when a later setup step fails.
+    AppExit.instance.markTrayIconRegistered();
 
     if (!Platform.isLinux) {
       await trayManager.setToolTip('Kazumi');
@@ -273,7 +276,6 @@ class _AppWidgetState extends State<AppWidget>
       MenuItem(key: 'exit', label: '退出 Kazumi')
     ]);
     await trayManager.setContextMenu(trayMenu);
-    AppExit.instance.markTrayIconRegistered();
   }
 
   @override

@@ -339,7 +339,11 @@ class BangumiApi {
         if (jsonItem is Map<String, dynamic>) {
           try {
             BangumiItem bangumiItem = BangumiItem.fromJson(jsonItem);
-            if (bangumiItem.nameCn != '') {
+            // 只留中文名会把没收录中文名的条目（新番生肉、冷门作品）整条丢掉，
+            // 搜索看起来就是「一条都没有」。有原名就先用原名顶上。
+            final bool hasName = bangumiItem.nameCn.isNotEmpty ||
+                bangumiItem.name.isNotEmpty;
+            if (hasName) {
               bangumiList.add(bangumiItem);
             }
           } catch (e) {

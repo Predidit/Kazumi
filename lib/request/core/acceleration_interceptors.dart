@@ -3,12 +3,17 @@ import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/core/ech_adapter.dart';
 import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:kazumi/services/network/rules_mirror.dart';
+import 'package:kazumi/utils/bangumi_mirror_credentials.dart';
 
 class BangumiAccelerationInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final uri = options.uri;
     if (ApiEndpoints.bangumiPublicApiHosts.contains(uri.host)) {
+      // 未注入签名凭据时镜像必然拒绝请求（401），退回免签名镜像保证可用
+      final String mirrorBase = hasBangumiMirrorCredentials
+          ? ApiEndpoints.bangumiMirrorDomain
+          : ApiEndpoints.bangumiUnsignedMirrorDomain;
       switch (BangumiAcceleration.current) {
         case BangumiAcceleration.direct:
           break;
@@ -18,9 +23,7 @@ class BangumiAccelerationInterceptor extends Interceptor {
           options.requireEch();
         case BangumiAcceleration.mirror:
           options.path =
-              ApiEndpoints.bangumiMirrorDomain +
-              uri.path +
-              (uri.hasQuery ? '?${uri.query}' : '');
+              mirrorBase + uri.path + (uri.hasQuery ? '?${uri.query}' : '');
           options.queryParameters = {};
       }
     }

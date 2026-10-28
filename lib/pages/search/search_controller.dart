@@ -100,6 +100,9 @@ abstract class _SearchPageController with Store {
       return;
     }
     var pagesFetched = 0;
+    // 「接口没响应」和「确实没有这个番剧」要分开：前者给重试按钮，
+    // 后者老老实实显示「没有找到番剧」，别把正常空结果说成网络故障。
+    var requestFailed = false;
     do {
       final page = await BangumiApi.bangumiSearch(filterState.keyword,
           tags: filterState.tags,
@@ -113,6 +116,7 @@ abstract class _SearchPageController with Store {
       // Discard stale responses before mutating the current search.
       if (generation != _searchGeneration) return;
       if (page == null) {
+        requestFailed = true;
         break;
       }
       pagesFetched++;
@@ -127,8 +131,7 @@ abstract class _SearchPageController with Store {
       }
     } while (hasMoreSearchResults && pagesFetched < _maxPagesPerSearch);
     isLoading = false;
-    isTimeOut =
-        bangumiList.isEmpty && (pagesFetched == 0 || !hasMoreSearchResults);
+    isTimeOut = bangumiList.isEmpty && requestFailed;
   }
 
   @action

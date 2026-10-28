@@ -34,6 +34,12 @@ class ApiEndpoints {
   /// Bangumi 镜像测试后端
   static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
 
+  /// Bangumi 免签名镜像后端
+  ///
+  /// 本地编译（未注入 KAZUMI_APPID / KAZUMI_KEY）时使用，走同一套 v0 / p1 接口，
+  /// 但不校验 X-Signature，避免镜像模式在自编译版本上恒返回 401、搜索恒为空。
+  static const String bangumiUnsignedMirrorDomain = 'https://api.bgmapi.com';
+
   /// Kazumi 镜像后端应用更新
   static const String latestAppMirror =
       '$bangumiMirrorDomain/kazumi/v1/app/latest';

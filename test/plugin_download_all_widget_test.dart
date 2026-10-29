@@ -126,7 +126,7 @@ void main() {
     expect(find.text('规则仓库 · 已安装 2'), findsOneWidget);
     expect(find.text('安装成功 2 条'), findsOneWidget);
     expect(find.text('已安装'), findsNWidgets(2));
-    expect(find.byType(DownloadAllRulesButton), findsOneWidget);
+    expect(find.byType(DownloadAllRulesButton), findsNothing);
     expect(find.byTooltip('刷新规则列表'), findsOneWidget);
   });
 
@@ -149,9 +149,88 @@ void main() {
     expect(find.text('全部 2'), findsOneWidget);
     expect(find.text('安装成功 2 条'), findsOneWidget);
 
+    expect(find.byType(DownloadAllRulesButton), findsNothing);
+  });
+
+  for (final onboarding in [true, false]) {
+    final page = onboarding ? 'onboarding' : 'catalog';
+    testWidgets(
+      '$page hides completed installs and shows newly available rules',
+      (tester) async {
+        var catalog = [_item('one')];
+        final controller = PluginsController(
+          catalogLoader: () async => catalog,
+          pluginLoader: (name) async => Plugin.fromTemplate()
+            ..name = name
+            ..version = catalog.firstWhere((item) => item.name == name).version,
+          pluginJsonWriter: (_) async {},
+        );
+        controller.pluginList.add(
+          Plugin.fromTemplate()
+            ..name = 'one'
+            ..version = '1.0',
+        );
+        await _mount(
+          tester,
+          onboarding
+              ? PluginShopStep(controller: controller)
+              : PluginShopPage(controller: controller),
+        );
+
+        expect(find.byType(DownloadAllRulesButton), findsNothing);
+        expect(find.byTooltip('刷新规则列表'), findsOneWidget);
+
+        catalog = [_item('one'), _item('two')];
+        await tester.tap(find.byTooltip('刷新规则列表'));
+        await tester.pumpAndSettle();
+        expect(find.text('安装全部规则'), findsOneWidget);
+
+        await tester.tap(find.text('安装全部规则'));
+        await tester.pumpAndSettle();
+        expect(controller.pluginList, hasLength(2));
+        expect(find.byType(DownloadAllRulesButton), findsNothing);
+
+        catalog = [_item('one')..version = '2.0', _item('two')];
+        await tester.tap(find.byTooltip('刷新规则列表'));
+        await tester.pumpAndSettle();
+        expect(find.byType(DownloadAllRulesButton), findsNothing);
+
+        await tester.tap(find.text('更新'));
+        await tester.pumpAndSettle();
+        expect(controller.pluginList.first.version, '2.0');
+        expect(find.byType(DownloadAllRulesButton), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('catalog keeps install all available after partial failure', (
+    tester,
+  ) async {
+    var offline = true;
+    final controller = PluginsController(
+      catalogLoader: () async => [_item('one'), _item('two')],
+      pluginLoader: (name) async {
+        if (offline && name == 'two') throw StateError('offline');
+        return Plugin.fromTemplate()
+          ..name = name
+          ..version = '1.0';
+      },
+      pluginJsonWriter: (_) async {},
+      errorReporter: (_, _, _) {},
+    );
+    await _mount(tester, PluginShopPage(controller: controller));
+
     await tester.tap(find.text('安装全部规则'));
     await tester.pumpAndSettle();
-    expect(find.text('所有规则均已安装且为最新'), findsOneWidget);
+    expect(controller.pluginList, hasLength(1));
+    expect(find.text('安装全部规则'), findsOneWidget);
+
+    offline = false;
+    await tester.tap(find.text('安装全部规则'));
+    await tester.pumpAndSettle();
+    expect(controller.pluginList, hasLength(2));
+    expect(find.byType(DownloadAllRulesButton), findsNothing);
   });
 
   testWidgets('catalog retries installation after a load error', (
@@ -262,7 +341,7 @@ void main() {
               ..version = '1.0',
           );
           await tester.pumpAndSettle();
-          expect(install, findsOneWidget);
+          expect(install, findsNothing);
           expect(refresh, findsOneWidget);
         },
       );

@@ -181,6 +181,7 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _header(int total, int installed, int updates) {
     final theme = Theme.of(context);
+    final allInstalled = total > 0 && installed == total;
     final leading = widget._onboarding
         ? Text('规则仓库 · 已安装 $installed',
             style: theme.textTheme.titleSmall?.copyWith(
@@ -193,12 +194,13 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        DownloadAllRulesButton(
-          downloading: _downloading,
-          onPressed: _loading || total == 0 || _installing.isNotEmpty
-              ? null
-              : _downloadAll,
-        ),
+        if (_downloading || !allInstalled)
+          DownloadAllRulesButton(
+            downloading: _downloading,
+            onPressed: _loading || total == 0 || _installing.isNotEmpty
+                ? null
+                : _downloadAll,
+          ),
         IconButton.filledTonal(
             style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
             tooltip: '刷新规则列表',

@@ -163,6 +163,8 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _sortButton() => KazumiMenuButton(
         builder: (context, toggle) => TextButton.icon(
+          style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 4)),
           onPressed: toggle,
           icon: const Icon(Icons.sort_rounded, size: 20),
           label: Text(_sort == _CatalogSort.name ? '名称排序' : '最近更新'),
@@ -191,13 +193,12 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        if (widget._onboarding)
-          DownloadAllRulesButton(
-            downloading: _downloading,
-            onPressed: _loading || total == 0 || _installing.isNotEmpty
-                ? null
-                : _downloadAll,
-          ),
+        DownloadAllRulesButton(
+          downloading: _downloading,
+          onPressed: _loading || total == 0 || _installing.isNotEmpty
+              ? null
+              : _downloadAll,
+        ),
         IconButton.filledTonal(
             style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
             tooltip: '刷新规则列表',

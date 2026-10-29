@@ -219,9 +219,7 @@ class _InitPageState extends State<InitPage> {
                   '检测到您当前运行在X11环境下，Kazumi在X11环境下可能出现性能问题或界面异常，建议切换到Wayland以获得更好的体验。您是否希望在X11下继续使用Kazumi？'),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    AppExit.instance.quit();
-                  },
+                  onPressed: AppExit.quit,
                   child: Text(
                     '退出',
                     style:

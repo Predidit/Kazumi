@@ -28,9 +28,7 @@ class StorageErrorPage extends StatelessWidget {
               errMsg: '当前存储位置：\n$path\n\n可在退出后删除该目录以重置本地存储，此操作会清除本地数据。',
               actions: [
                 StateActionButton(
-                  onPressed: () {
-                    AppExit.instance.quit();
-                  },
+                  onPressed: AppExit.quit,
                   text: '退出程序',
                   icon: Icons.close_rounded,
                 ),

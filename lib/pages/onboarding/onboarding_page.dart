@@ -144,9 +144,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
           minimumSize: const Size(88, 56),
           foregroundColor: theme.colorScheme.onSurfaceVariant,
         ),
-        onPressed: _currentIndex == 0
-            ? () => AppExit.instance.quit()
-            : () => _navigate(forward: false),
+        onPressed:
+            _currentIndex == 0 ? AppExit.quit : () => _navigate(forward: false),
         child: Text(_currentIndex == 0 ? '退出' : '上一步'),
       );
       final primary = FilledButton.icon(

@@ -441,11 +441,11 @@ class AutoUpdater {
           await Process.start('explorer.exe', [filePath], runInShell: true);
         }
         await Future.delayed(const Duration(seconds: 1));
-        await AppExit.instance.quit();
+        await AppExit.quit();
       } else if (Platform.isMacOS) {
         if (filePath.endsWith('.dmg')) {
           await Process.start('open', [filePath]);
-          await AppExit.instance.quit();
+          await AppExit.quit();
         }
       } else if (Platform.isAndroid) {
         final result = await OpenFilex.open(filePath);

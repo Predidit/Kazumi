@@ -75,6 +75,8 @@ abstract class _PluginsController with Store {
   final AsyncSingleFlight<List<PluginHTTPItem>> _catalogRefreshSingleFlight =
       AsyncSingleFlight<List<PluginHTTPItem>>();
   final AsyncSerialQueue _mutations = AsyncSerialQueue();
+  final AsyncSingleFlight<PluginBatchUpdateResult> _downloadAllSingleFlight =
+      AsyncSingleFlight<PluginBatchUpdateResult>();
   Map<String, PluginHTTPItem> _pluginCatalogByName = const {};
   DateTime? _pluginCatalogRefreshedAt;
   int _optimisticReorderRevision = 0;
@@ -420,7 +422,24 @@ abstract class _PluginsController with Store {
       throw StateError('Plugin catalog has not been loaded');
     }
 
-    final candidates = _updatablePluginNames();
+    return _applyPluginUpdates(_updatablePluginNames());
+  }
+
+  Future<PluginBatchUpdateResult> tryDownloadAllPlugins() {
+    return _downloadAllSingleFlight.run(() => _mutations.run(() async {
+          await ensurePluginCatalog();
+          final candidates = <String, String>{
+            for (final item in pluginHTTPList)
+              if (pluginStatus(item) != PluginCatalogItemStatus.installed)
+                pluginNameKey(item.name): item.name,
+          };
+          return _applyPluginUpdates(candidates.values.toList());
+        }));
+  }
+
+  Future<PluginBatchUpdateResult> _applyPluginUpdates(
+    List<String> candidates,
+  ) async {
     final attempts = await _preparePluginUpdates(candidates);
     var updated = 0;
     var requiresNewerClient = 0;

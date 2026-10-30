@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/duo_page_chrome.dart';
-import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/info/info_actions_menu.dart';
 import 'package:kazumi/services/platform/duo_navigation.dart';
@@ -28,19 +27,6 @@ class DuoInfoChrome extends StatelessWidget {
   Widget build(BuildContext context) => DuoPageChrome(
     leading: DuoAction(label: '返回', icon: Icons.arrow_back, onPressed: onBack),
     actionOwners: [
-      DuoMenuOwner(
-        label: '追番状态',
-        icon: Icons.favorite_border,
-        selectionIcons: const [
-          Icons.favorite_border,
-          Icons.favorite,
-          Icons.star_rounded,
-          Icons.pending_actions,
-          Icons.done,
-          Icons.heart_broken,
-        ],
-        child: CollectButton(bangumiItem: item),
-      ),
       DuoMenuOwner(
         label: '更多操作',
         icon: Icons.more_horiz_rounded,

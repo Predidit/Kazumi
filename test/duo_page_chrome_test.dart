@@ -1,3 +1,7 @@
+import 'package:mobx/mobx.dart' show ObservableList;
+import 'package:kazumi/pages/download/download_page.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 import 'dart:async';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/history/history_page.dart';
@@ -98,6 +102,32 @@ void main() {
     ).encode(callbacks, direction: TextDirection.rtl);
     expect((mirrored['icon'] as Map)['rtl'], true);
     expect(normal.containsKey('symbol'), false);
+  });
+
+  testWidgets('download controls clear the Duo sidebar and remain tappable', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(466, 678);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(right: 84);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    final controller = _DownloadFixture();
+    await tester.pumpWidget(
+      MaterialApp(home: DownloadPage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(ListView)).right, 382);
+    for (final label in ['更多操作', '继续', '删除']) {
+      final control = find.byTooltip(label);
+      expect(control.hitTestable(), findsOneWidget);
+      expect(tester.getRect(control).right, lessThanOrEqualTo(382));
+    }
+    await tester.tap(find.byTooltip('继续'));
+    await tester.pumpAndSettle();
+    expect(controller.resumes, 1);
+    await finish(tester);
   });
 
   testWidgets('native badge tracks count changes and disappears at zero', (
@@ -894,6 +924,48 @@ class _EmptyCollects implements ICollectCrudRepository {
 }
 
 class _UnusedPlayback implements HistoryPlaybackService {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _DownloadFixture implements DownloadController {
+  final record = DownloadRecord(1, 'Download item', '', 'Source', {
+    1: DownloadEpisode(
+      1,
+      'Episode 1',
+      0,
+      DownloadStatus.paused,
+      0,
+      10,
+      0,
+      '',
+      '',
+      '',
+      null,
+      '',
+      0,
+      '',
+    ),
+  }, DateTime(2026, 1, 1));
+  int resumes = 0;
+  @override
+  late final ObservableList<String> recordKeys = ObservableList.of([
+    record.key,
+  ]);
+  @override
+  void refreshRecords() {}
+  @override
+  DownloadRecord? getRecordSnapshot(String key) =>
+      recordKeys.contains(key) ? record : null;
+  @override
+  Future<void> retryDownload({
+    required int bangumiId,
+    required String pluginName,
+    required int episodeNumber,
+  }) async {
+    resumes++;
+  }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 /// The Flutter router owns navigation. UIKit owns only the adaptive bars.
 class DuoNavigation {
@@ -37,7 +38,7 @@ class DuoNavigation {
     } on MissingPluginException {
       // Older runners and unsupported devices retain Flutter's navigation.
     } on PlatformException catch (error) {
-      debugPrint('Duo navigation unavailable: $error');
+      KazumiLogger().e('Duo navigation unavailable', error: error);
     }
     if (enabled.value && !_observingFrames) {
       _observingFrames = true;
@@ -90,7 +91,6 @@ class DuoNavigation {
       'visible': _chrome != null && !_chrome!.hidden,
       'dark': _chrome?.dark ?? false,
       'theme': _chrome?.theme,
-      'immersive': _chrome?.immersive ?? false,
       'leading': _chrome?.leading,
       'actions': _chrome?.actions ?? [],
     };
@@ -106,9 +106,9 @@ class DuoNavigation {
     try {
       await channel.invokeMethod<void>(method, args);
     } on PlatformException catch (error) {
-      debugPrint('Duo navigation $method failed: $error');
+      KazumiLogger().e('Duo navigation $method failed', error: error);
     } on MissingPluginException {
-      debugPrint('Duo navigation bridge disconnected');
+      KazumiLogger().w('Duo navigation bridge disconnected');
     }
   }
 
@@ -150,7 +150,6 @@ class DuoChrome {
     required this.dark,
     required this.theme,
     required this.hidden,
-    this.immersive = false,
     this.leading,
     required this.actions,
     required this.callbacks,
@@ -159,7 +158,6 @@ class DuoChrome {
   final bool dark;
   final Map<String, Object?> theme;
   final bool hidden;
-  final bool immersive;
   final Map<String, Object?>? leading;
   final List<Map<String, Object?>> actions;
   final Map<String, VoidCallback> callbacks;

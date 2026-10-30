@@ -161,8 +161,6 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
     private let overlay = DuoChromeOverlay()
     private var badgeBackground: UIColor?
     private var badgeForeground: UIColor?
-    private var immersive = false
-    private var requestedTabBarHidden = true
     private lazy var navigation = UINavigationController(rootViewController: tabs)
     var onChromeAction: ((Int, String) -> Void)?
     var onSelected: ((Int) -> Void)?
@@ -173,8 +171,7 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
     }
 
     func setTabBarHidden(_ hidden: Bool, animated: Bool) {
-        requestedTabBarHidden = hidden
-        tabs.setTabBarHidden(hidden || immersive, animated: animated)
+        tabs.setTabBarHidden(hidden, animated: animated)
         view.setNeedsLayout()
     }
 
@@ -229,11 +226,6 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         navigation.view.layoutIfNeeded()
-        overlay.isHidden = immersive
-        if immersive {
-            flutter.view.frame = view.bounds
-            return
-        }
         // UINavigationController attaches its root lazily. Read the native
         // content guide after layout, rather than constraining across a view
         // hierarchy that may not yet contain the tab controller.
@@ -308,8 +300,7 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
 
     func applyChrome(_ args: [String: Any]) {
         loadViewIfNeeded()
-        immersive = args["immersive"] as? Bool ?? false
-        let visible = (args["visible"] as? Bool ?? false) && !immersive
+        let visible = args["visible"] as? Bool ?? false
         let owner = args["owner"] as? Int ?? 0
         // Page titles remain in Flutter content; only navigation controls
         // belong to the adaptive native bar. A UIKit title creates a second
@@ -327,7 +318,6 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
         // UIKit's trailing items are supplied from the outer edge inward.
         tabs.navigationItem.rightBarButtonItems = actions.reversed().map { barItem($0, owner: owner) }
         navigation.setNavigationBarHidden(!visible, animated: false)
-        tabs.setTabBarHidden(requestedTabBarHidden || immersive, animated: false)
         view.setNeedsLayout()
     }
 

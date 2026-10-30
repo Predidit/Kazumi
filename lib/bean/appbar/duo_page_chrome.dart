@@ -13,8 +13,6 @@ class DuoPageChrome extends StatefulWidget {
     super.key,
     this.leading,
     this.actionOwners = const [],
-    this.hidden = false,
-    this.immersive = false,
     this.dark,
     this.child = const SizedBox.shrink(),
   }) : _adaptChild = false;
@@ -23,8 +21,6 @@ class DuoPageChrome extends StatefulWidget {
   const DuoPageChrome.header({
     super.key,
     this.leading,
-    this.hidden = false,
-    this.immersive = false,
     this.dark,
     required this.child,
   }) : _adaptChild = true,
@@ -33,8 +29,6 @@ class DuoPageChrome extends StatefulWidget {
   final bool _adaptChild;
   final DuoAction? leading;
   final List<Widget> actionOwners;
-  final bool hidden;
-  final bool immersive;
   final bool? dark;
   final Widget child;
 
@@ -94,11 +88,7 @@ class _DuoPageChromeState extends State<DuoPageChrome> {
         orientation: MediaQuery.orientationOf(context),
         dark: widget.dark,
       ),
-      hidden:
-          widget.hidden ||
-          widget.immersive ||
-          (leading == null && actions.isEmpty),
-      immersive: widget.immersive,
+      hidden: leading == null && actions.isEmpty,
       leading: leading,
       actions: actions,
       callbacks: callbacks,

@@ -494,7 +494,6 @@ void main() {
         true,
       ); // Landscape fills the window without isFullscreen.
       expect(chrome()['visible'], false);
-      expect(chrome()['immersive'], false);
       expect(find.byKey(const ValueKey('original-back')), findsOneWidget);
       controls.value = false;
       await tester.pumpAndSettle();
@@ -506,7 +505,6 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(chrome()['visible'], false);
-      expect(chrome()['immersive'], false);
       root.currentState!.pop();
       await dialog;
       await tester.pumpAndSettle();
@@ -522,63 +520,16 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(chrome()['visible'], true);
-      expect(chrome()['immersive'], false);
       root.currentState!.pop();
       await tester.pumpAndSettle();
       expect(chrome()['visible'], false);
-      expect(chrome()['immersive'], false);
       controls.value = true;
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('original-back')));
       await tester.pumpAndSettle();
       expect(chrome()['visible'], true);
-      expect(chrome()['immersive'], false);
       await finish(tester);
       controls.dispose();
-    },
-  );
-
-  testWidgets(
-    'explicit immersive chrome hides native actions and restores them on exit',
-    (tester) async {
-      final fullscreen = ValueNotifier(false);
-      var nativeTaps = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: ValueListenableBuilder<bool>(
-            valueListenable: fullscreen,
-            builder: (_, value, _) => DuoPageChrome(
-              hidden: value,
-              immersive: value,
-              leading: DuoAction(
-                label: '返回',
-                icon: Icons.arrow_back_ios_new_rounded,
-                onPressed: () => nativeTaps++,
-              ),
-              child: const Center(child: Text('Original player surface')),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final windowed = Map.of(chrome());
-      expect(windowed['visible'], true);
-      expect(windowed['immersive'], false);
-      fullscreen.value = true;
-      await tester.pumpAndSettle();
-      expect(chrome()['visible'], false);
-      expect(chrome()['immersive'], true);
-      expect(find.text('Original player surface'), findsOneWidget);
-      await action(windowed, windowed['leading'] as Map);
-      expect(nativeTaps, 0);
-      fullscreen.value = false;
-      await tester.pumpAndSettle();
-      expect(chrome()['visible'], true);
-      expect(chrome()['immersive'], false);
-      await action(chrome(), chrome()['leading'] as Map);
-      expect(nativeTaps, 1);
-      await finish(tester);
-      fullscreen.dispose();
     },
   );
 

@@ -220,7 +220,7 @@ class _ImageViewerState extends State<ImageViewer> {
               ),
             ),
           ),
-          if (_isMultiImage && !DuoImageChrome.enabled)
+          if (_isMultiImage)
             Positioned(
               bottom: MediaQuery.of(context).padding.bottom + 24,
               left: 0,

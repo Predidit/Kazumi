@@ -248,8 +248,7 @@ class _PopularPageState extends State<PopularPage> {
 
   List<Widget> buildActions() {
     return <Widget>[
-      if (DuoHomeActions.enabled ||
-          MediaQuery.of(context).orientation == Orientation.portrait)
+      if (MediaQuery.of(context).orientation == Orientation.portrait)
         IconButton(
           tooltip: '搜索',
           onPressed: () => context.pushNamed('/search/'),
@@ -260,9 +259,7 @@ class _PopularPageState extends State<PopularPage> {
         onPressed: () => context.pushNamed('/settings/history/'),
         icon: const Icon(Icons.history),
       ),
-      if (!DuoHomeActions.enabled &&
-          isDesktop() &&
-          !DesktopWindowConfig.showWindowButton)
+      if (isDesktop() && !DesktopWindowConfig.showWindowButton)
         IconButton(
           tooltip: '退出',
           onPressed: () => windowManager.close(),

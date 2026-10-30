@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/appbar/duo_action.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -67,7 +68,6 @@ class _MyPageState extends State<MyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(
-        keepDuoTitle: true,
         toolbarHeight: 72,
         title: Text(
           '我的',
@@ -80,8 +80,12 @@ class _MyPageState extends State<MyPage> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: MySettingsButton(
+            child: DuoActionBinding(
+              action: DuoAction(label: '全部设置', symbol: 'gearshape',
+                onPressed: () => context.pushNamed('/settings/')),
+              child: MySettingsButton(
               onTap: () => context.pushNamed('/settings/'),
+              ),
             ),
           ),
         ],

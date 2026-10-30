@@ -1,6 +1,5 @@
 import 'dart:ui';
-import 'package:kazumi/bean/appbar/duo_page_chrome.dart';
-import 'package:kazumi/services/platform/duo_navigation.dart';
+import 'package:kazumi/bean/duo/duo_page_adapters.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
@@ -72,13 +71,10 @@ class _PopularPageState extends State<PopularPage> {
       body: CustomScrollView(
         controller: scrollController,
         slivers: [
-          if (DuoNavigation.enabled.value)
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 0,
-                child: DuoPageChrome(actions: buildActions()),
-              ),
-            ),
+          SliverToBoxAdapter(child: DuoHomeActions(
+            onSearch: () => context.pushNamed('/search/'),
+            onHistory: () => context.pushNamed('/settings/history/'),
+          )),
           buildSliverAppBar(),
           SliverToBoxAdapter(
             child: Observer(
@@ -176,7 +172,7 @@ class _PopularPageState extends State<PopularPage> {
       titleSpacing: 0,
       centerTitle: false,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      actions: DuoNavigation.enabled.value ? const [] : buildActions(),
+      actions: DuoHomeActions.enabled ? const [] : buildActions(),
       title: null,
       flexibleSpace: SafeArea(
         child: dtb.DragToMoveArea(
@@ -247,7 +243,7 @@ class _PopularPageState extends State<PopularPage> {
 
   List<Widget> buildActions() {
     return <Widget>[
-      if (DuoNavigation.enabled.value ||
+      if (DuoHomeActions.enabled ||
           MediaQuery.of(context).orientation == Orientation.portrait)
         IconButton(
           tooltip: '搜索',
@@ -259,7 +255,7 @@ class _PopularPageState extends State<PopularPage> {
         onPressed: () => context.pushNamed('/settings/history/'),
         icon: const Icon(Icons.history),
       ),
-      if (!DuoNavigation.enabled.value &&
+      if (!DuoHomeActions.enabled &&
           isDesktop() &&
           !DesktopWindowConfig.showWindowButton)
         IconButton(

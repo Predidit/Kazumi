@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/appbar/duo_action.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -109,7 +110,6 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(
-        keepDuoTitle: true,
         needTopOffset: false,
         toolbarHeight: 72,
         title: Text(
@@ -124,11 +124,15 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
             padding: const EdgeInsets.only(right: 8),
             child: Tooltip(
               message: '同步收藏',
-              child: StateActionButton.tonal(
+              child: DuoActionBinding(
+                action: DuoAction(label: '同步收藏', symbol: 'arrow.triangle.2.circlepath',
+                  onPressed: _syncDialogOpen || _pendingIds.isNotEmpty ? null : _sync),
+                child: StateActionButton.tonal(
                 text: '同步',
                 onPressed:
                     _syncDialogOpen || _pendingIds.isNotEmpty ? null : _sync,
                 icon: Icons.sync_rounded,
+                ),
               ),
             ),
           ),

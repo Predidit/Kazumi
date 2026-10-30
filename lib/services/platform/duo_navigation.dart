@@ -11,7 +11,6 @@ class DuoNavigation {
   static Future<void>? _initialization;
   static bool _observingFrames = false;
   static final _headers = <Object, DuoHeaderRegistration>{};
-  static final _originalSurfaces = <Object>{};
   static DuoHeaderRegistration? _active;
   static DuoChrome? _chrome;
   static String? _lastChrome;
@@ -42,8 +41,8 @@ class DuoNavigation {
     }
     if (enabled.value && !_observingFrames) {
       _observingFrames = true;
-      // Inspect only when Flutter draws a frame, including reactive updates in
-      // header descendants. This never requests a continuous animation loop.
+      // Publish registered action state after Flutter draws a frame. This
+      // includes reactive controls without requesting an animation loop.
       WidgetsBinding.instance.addPersistentFrameCallback((_) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _flush());
       });
@@ -63,14 +62,6 @@ class DuoNavigation {
     await _send('update', args);
   }
 
-  static void setOriginalSurface(Object owner, bool active) {
-    if (active && enabled.value) {
-      _originalSurfaces.add(owner);
-    } else {
-      _originalSurfaces.remove(owner);
-    }
-  }
-
   static void register(Object key, DuoHeaderRegistration registration) {
     _headers[key] = registration;
   }
@@ -81,20 +72,16 @@ class DuoNavigation {
 
   static void _flush() {
     if (!enabled.value) return;
-    final originalSurface = _originalSurfaces.isNotEmpty;
     final candidates =
-        _headers.values
-            .where((header) => !originalSurface && header.isActive)
-            .toList()
+        _headers.values.where((header) => header.isActive).toList()
           ..sort((a, b) => b.depth.compareTo(a.depth));
     _active = candidates.firstOrNull;
-    _chrome = _active?.inspect();
+    _chrome = _active?.snapshot();
     final payload = {
       'header': _active?.id ?? 0,
       'visible': _chrome != null && !_chrome!.hidden,
-      'title': _chrome?.title ?? '',
       'dark': _chrome?.dark ?? false,
-      'immersive': originalSurface || (_chrome?.immersive ?? false),
+      'immersive': _chrome?.immersive ?? false,
       'leading': _chrome?.leading,
       'actions': _chrome?.actions ?? [],
     };
@@ -121,7 +108,6 @@ class DuoNavigation {
     enabled.value = false;
     _initialization = null;
     _headers.clear();
-    _originalSurfaces.clear();
     _active = null;
     _chrome = null;
     _lastChrome = null;
@@ -137,13 +123,13 @@ class DuoHeaderRegistration {
     required this.id,
     required this.depth,
     required this.routes,
-    required this.inspect,
+    required this.snapshot,
   });
 
   final int id;
   final int depth;
   final List<ModalRoute<dynamic>> routes;
-  final DuoChrome Function() inspect;
+  final DuoChrome Function() snapshot;
 
   bool get isActive => routes.every(
     (route) => route is PageRoute && route.isCurrent && route.isActive,
@@ -152,7 +138,6 @@ class DuoHeaderRegistration {
 
 class DuoChrome {
   DuoChrome({
-    required this.title,
     required this.dark,
     required this.hidden,
     this.immersive = false,
@@ -161,7 +146,6 @@ class DuoChrome {
     required this.callbacks,
   });
 
-  final String title;
   final bool dark;
   final bool hidden;
   final bool immersive;

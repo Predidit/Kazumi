@@ -1,5 +1,5 @@
+import 'package:kazumi/bean/duo/duo_app_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/services/platform/duo_navigation.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class SettingsPaneScope extends InheritedWidget {
@@ -50,14 +50,14 @@ class SettingsDetailScaffold extends StatelessWidget {
     final scope = SettingsPaneScope.of(context);
     final PreferredSizeWidget appBar;
 
-    if (scope != null && scope.embedded && !DuoNavigation.enabled.value) {
+    if (scope != null && scope.embedded) {
       final paneLeading =
           leading ??
           ((scope.showBackButton ||
                   (ModalRoute.of(context)?.impliesAppBarDismissal ?? false))
               ? BackButton(onPressed: scope.onBack)
               : null);
-      appBar = AppBar(
+      appBar = DuoAppBar.adapt(AppBar(
         backgroundColor: Colors.transparent,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
@@ -69,7 +69,7 @@ class SettingsDetailScaffold extends StatelessWidget {
         title: title,
         titleTextStyle: Theme.of(context).textTheme.headlineSmall,
         actions: actions,
-      );
+      ), onBack: scope.onBack);
     } else {
       appBar = SysAppBar(
         title: title,

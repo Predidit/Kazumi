@@ -1,10 +1,11 @@
+import 'package:kazumi/bean/duo/duo_menu_owner.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/appbar/duo_page_chrome.dart';
-import 'package:kazumi/bean/appbar/duo_original_surface.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/video/video_page_layout.dart';
 import 'package:kazumi/pages/popular/popular_page.dart';
@@ -61,26 +62,159 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   }
 
-  testWidgets('tab headers keep their original Flutter title', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: Scaffold(
-      appBar: SysAppBar(
-        keepDuoTitle: true,
-        toolbarHeight: 72,
-        title: const Text('时间表'),
-        actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.tune))],
+  Widget nativeAction(String label) => DuoActionBinding(
+    action: DuoAction(
+      label: label,
+      symbol: 'magnifyingglass',
+      onPressed: () {},
+    ),
+    child: const SizedBox.shrink(),
+  );
+
+  PreferredSizeWidget namedHeader(String label) =>
+      SysAppBar(title: Text(label), actions: [nativeAction(label)]);
+
+  testWidgets('unbound actions stay visible and usable in Flutter', (
+    tester,
+  ) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          appBar: SysAppBar(
+            title: const Text('Settings'),
+            leading: BackButton(onPressed: () {}),
+            actions: [
+              IconButton(
+                tooltip: 'New action',
+                icon: const Icon(Icons.add),
+                onPressed: () => taps++,
+              ),
+            ],
+          ),
+        ),
       ),
-      body: const SizedBox.expand(),
-    )));
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Settings').hitTestable(), findsOneWidget);
+    expect(chrome()['actions'], isEmpty);
+    expect((chrome()['leading'] as Map)['label'], '返回');
+    await tester.tap(find.byTooltip('New action'));
+    expect(taps, 1);
+    await finish(tester);
+  });
+
+  testWidgets('embedded settings keep pane back navigation', (tester) async {
+    var backs = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsPaneScope(
+          embedded: true,
+          showBackButton: false,
+          onBack: () => backs++,
+          child: const SettingsDetailScaffold(
+            title: Text('设置项目'),
+            body: SizedBox(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('设置项目').hitTestable(), findsOneWidget);
+    expect(chrome()['visible'], true);
+    await action(chrome(), chrome()['leading'] as Map);
+    expect(backs, 1);
+    await finish(tester);
+  });
+
+  testWidgets('custom page content never exports inline actions', (
+    tester,
+  ) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DuoPageChrome(
+          leading: DuoAction(label: '返回', onPressed: () {}),
+          child: Scaffold(
+            body: DuoActionBinding(
+              action: DuoAction(label: 'inline', onPressed: () => taps++),
+              child: TextButton(
+                onPressed: () => taps++,
+                child: const Text('inline'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(chrome()['actions'], isEmpty);
+    await tester.tap(find.text('inline'));
+    expect(taps, 1);
+    await finish(tester);
+  });
+
+  testWidgets(
+    'action bindings preserve their original control without a native header',
+    (tester) async {
+      var taps = 0;
+      DuoNavigation.enabled.value = false;
+      calls.clear();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DuoActionBinding(
+              action: DuoAction(label: 'native', onPressed: () => taps += 10),
+              child: TextButton(
+                onPressed: () => taps++,
+                child: const Text('original'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('original'));
+      expect(taps, 1);
+      expect(calls.where((call) => call.method == 'chrome'), isEmpty);
+      await finish(tester);
+    },
+  );
+
+  testWidgets('tab headers keep their original Flutter title', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          appBar: SysAppBar(
+            toolbarHeight: 72,
+            title: const Text('时间表'),
+            actions: [
+              DuoActionBinding(
+                action: DuoAction(
+                  label: '筛选',
+                  symbol: 'slider.horizontal.3',
+                  onPressed: () {},
+                ),
+                child: IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.tune),
+                ),
+              ),
+            ],
+          ),
+          body: const SizedBox.expand(),
+        ),
+      ),
+    );
     await tester.pump();
     expect(find.text('时间表').hitTestable(), findsOneWidget);
     expect(tester.getSize(find.byType(AppBar)).height, 72);
-    expect(chrome()['title'], isEmpty);
+    expect(chrome().containsKey('title'), false);
     expect(chrome()['actions'], hasLength(1));
     await finish(tester);
   });
 
   testWidgets(
-    'landscape player keeps original controls and no native chrome through popups',
+    'original landscape player works without a Duo wrapper through popups',
     (tester) async {
       tester.view.physicalSize = const Size(900, 600);
       tester.view.devicePixelRatio = 1;
@@ -96,9 +230,7 @@ void main() {
           home: Scaffold(
             appBar: SysAppBar(
               title: const Text('Home'),
-              actions: [
-                IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
-              ],
+              actions: [nativeAction('搜索')],
             ),
           ),
         ),
@@ -107,30 +239,28 @@ void main() {
       expect(chrome()['visible'], true);
       root.currentState!.push(
         MaterialPageRoute<void>(
-          builder: (_) => DuoOriginalSurface(
-            child: VideoPageLayout(
-              fullscreen: false,
-              isPip: false,
-              tabs: const SizedBox(),
-              playerBuilder: (context, layout) {
-                fillsWindow = layout.fillsWindow;
-                return ValueListenableBuilder<bool>(
-                  valueListenable: controls,
-                  builder: (_, visible, _) => Stack(
-                    children: [
-                      const Positioned.fill(
-                        child: ColoredBox(color: Colors.black),
+          builder: (_) => VideoPageLayout(
+            fullscreen: false,
+            isPip: false,
+            tabs: const SizedBox(),
+            playerBuilder: (context, layout) {
+              fillsWindow = layout.fillsWindow;
+              return ValueListenableBuilder<bool>(
+                valueListenable: controls,
+                builder: (_, visible, _) => Stack(
+                  children: [
+                    const Positioned.fill(
+                      child: ColoredBox(color: Colors.black),
+                    ),
+                    if (visible)
+                      BackButton(
+                        key: const ValueKey('original-back'),
+                        onPressed: () => Navigator.of(context).maybePop(),
                       ),
-                      if (visible)
-                        BackButton(
-                          key: const ValueKey('original-back'),
-                          onPressed: () => Navigator.of(context).maybePop(),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       );
@@ -140,7 +270,7 @@ void main() {
         true,
       ); // Landscape fills the window without isFullscreen.
       expect(chrome()['visible'], false);
-      expect(chrome()['immersive'], true);
+      expect(chrome()['immersive'], false);
       expect(find.byKey(const ValueKey('original-back')), findsOneWidget);
       controls.value = false;
       await tester.pumpAndSettle();
@@ -152,7 +282,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(chrome()['visible'], false);
-      expect(chrome()['immersive'], true);
+      expect(chrome()['immersive'], false);
       root.currentState!.pop();
       await dialog;
       await tester.pumpAndSettle();
@@ -172,7 +302,7 @@ void main() {
       root.currentState!.pop();
       await tester.pumpAndSettle();
       expect(chrome()['visible'], false);
-      expect(chrome()['immersive'], true);
+      expect(chrome()['immersive'], false);
       controls.value = true;
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('original-back')));
@@ -185,7 +315,7 @@ void main() {
   );
 
   testWidgets(
-    'fullscreen removes native bars, uses the whole window, and restores controls on exit',
+    'explicit immersive chrome hides native actions and restores them on exit',
     (tester) async {
       final fullscreen = ValueNotifier(false);
       var nativeTaps = 0;
@@ -194,10 +324,13 @@ void main() {
           home: ValueListenableBuilder<bool>(
             valueListenable: fullscreen,
             builder: (_, value, _) => DuoPageChrome(
-              title: const Text('Player'),
               hidden: value,
               immersive: value,
-              leading: BackButton(onPressed: () => nativeTaps++),
+              leading: DuoAction(
+                label: '返回',
+                symbol: 'chevron.backward',
+                onPressed: () => nativeTaps++,
+              ),
               child: const Center(child: Text('Original player surface')),
             ),
           ),
@@ -269,15 +402,18 @@ void main() {
                 valueListenable: enabled,
                 builder: (_, value, _) => Padding(
                   padding: const EdgeInsets.all(4),
-                  child: IconButton(
-                    tooltip: '执行',
-                    icon: const Icon(Icons.refresh),
-                    onPressed: value
-                        ? () {
-                            count++;
-                            enabled.value = false;
-                          }
-                        : null,
+                  child: DuoActionBinding(
+                    action: DuoAction(
+                      label: '执行',
+                      symbol: 'arrow.clockwise',
+                      onPressed: value
+                          ? () {
+                              count++;
+                              enabled.value = false;
+                            }
+                          : null,
+                    ),
+                    child: const Text('Original action'),
                   ),
                 ),
               ),
@@ -288,11 +424,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(chrome()['title'], '页面');
     expect(
       find.text('页面'),
-      findsNothing,
-    ); // The title is now native, not painted twice.
+      findsOneWidget,
+    ); // Ordinary Flutter titles remain visible.
     expect(find.text('正文'), findsOneWidget);
     final original = Map.of(chrome());
     final button = (original['actions'] as List).single as Map;
@@ -318,13 +453,8 @@ void main() {
               title: const Text('菜单'),
               actions: [
                 StatefulBuilder(
-                  builder: (_, setState) => KazumiMenuButton(
-                    builder: (_, toggle) => IconButton(
-                      tooltip: '更多操作',
-                      icon: const Icon(Icons.more_horiz),
-                      onPressed: toggle,
-                    ),
-                    menuChildren: [
+                  builder: (_, setState) {
+                    final items = [
                       KazumiMenuItem(
                         label: '第一项',
                         selected: selected == 0,
@@ -336,8 +466,19 @@ void main() {
                         destructive: true,
                         onPressed: () => setState(() => selected = 1),
                       ),
-                    ],
-                  ),
+                    ];
+                    return DuoMenuOwner(
+                      label: '更多操作',
+                      symbol: 'ellipsis',
+                      child: KazumiMenuButton(
+                        builder: (_, toggle) => IconButton(
+                          onPressed: toggle,
+                          icon: const Icon(Icons.more_horiz),
+                        ),
+                        menuChildren: items,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -372,18 +513,17 @@ void main() {
         MaterialApp(
           navigatorKey: root,
           home: Scaffold(
-            appBar: const SysAppBar(title: Text('根页面')),
+            appBar: namedHeader('根页面'),
             body: Navigator(
               onGenerateRoute: (_) => MaterialPageRoute<void>(
-                builder: (_) =>
-                    const Scaffold(appBar: SysAppBar(title: Text('嵌套页面'))),
+                builder: (_) => Scaffold(appBar: namedHeader('嵌套页面')),
               ),
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      expect(chrome()['title'], '嵌套页面');
+      expect((chrome()['actions'] as List).first['label'], '嵌套页面');
       root.currentState!.push(
         MaterialPageRoute<void>(
           builder: (context) => StatefulBuilder(
@@ -396,6 +536,7 @@ void main() {
               child: Scaffold(
                 appBar: SysAppBar(
                   title: const Text('详情'),
+                  actions: [nativeAction('详情')],
                   leading: BackButton(
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
@@ -407,7 +548,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(chrome()['title'], '详情');
+      expect((chrome()['actions'] as List).first['label'], '详情');
       final detail = Map.of(chrome());
       final back = detail['leading'] as Map;
       expect(back['symbol'], 'chevron.backward');
@@ -425,12 +566,12 @@ void main() {
       await action(chrome(), chrome()['leading'] as Map);
       await tester.pumpAndSettle();
       expect(attempts, 1);
-      expect(chrome()['title'], '详情');
+      expect((chrome()['actions'] as List).first['label'], '详情');
       await action(chrome(), chrome()['leading'] as Map);
       await tester.pumpAndSettle();
-      expect(chrome()['title'], '嵌套页面');
+      expect((chrome()['actions'] as List).first['label'], '嵌套页面');
       await action(detail, back);
-      expect(chrome()['title'], '嵌套页面');
+      expect((chrome()['actions'] as List).first['label'], '嵌套页面');
       await finish(tester);
     },
   );

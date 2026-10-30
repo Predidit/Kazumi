@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/kazumi_menu_presentation.dart';
 import 'package:flutter/material.dart';
 
 typedef KazumiMenuBuilder =
@@ -38,6 +39,9 @@ class KazumiMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final presentation = KazumiMenuPresentation.of(context)
+        ?.builder(context, menuChildren, enabled);
+    if (presentation != null) return presentation;
     return MenuButtonTheme(
       data: MenuButtonThemeData(
         // Submenu entries must use the same inset as ordinary menu items.

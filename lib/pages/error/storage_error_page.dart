@@ -1,4 +1,3 @@
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -15,7 +14,9 @@ class StorageErrorPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const SysAppBar(title: Text('内部错误')),
+      appBar: AppBar(
+        title: const Text('内部错误'),
+      ),
       body: FutureBuilder<Directory>(
         future: getApplicationSupportDirectory(),
         builder: (context, snapshot) {

@@ -1,4 +1,3 @@
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
@@ -94,7 +93,7 @@ final indexModule = createModule(
       ..route(
         '/error',
         child: (context, state) => Scaffold(
-          appBar: const SysAppBar(title: Text('Kazumi')),
+          appBar: AppBar(title: const Text('Kazumi')),
           body: const GeneralErrorWidget(
             title: '初始化失败',
             errMsg: '请重新启动应用后再试。',

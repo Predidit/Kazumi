@@ -1,3 +1,4 @@
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/duo/duo_menu_owner.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:flutter/foundation.dart';
@@ -357,6 +358,61 @@ void main() {
       fullscreen.dispose();
     },
   );
+
+  testWidgets('home content clears sidebar and native scroll-to-top works', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(466, 678);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(right: 84);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    final controller = _NoNetworkPopularController();
+    controller.trendList.addAll(
+      List.generate(
+        24,
+        (id) => BangumiItem(
+          id: id,
+          type: 2,
+          name: 'Item $id',
+          nameCn: 'Item $id',
+          summary: '',
+          airDate: '',
+          airWeekday: 1,
+          rank: 0,
+          images: {},
+          tags: [],
+          alias: [],
+          ratingScore: 0,
+          votes: 0,
+          votesCount: [],
+          info: '',
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: PopularPage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(CustomScrollView)).right, 382);
+    expect(find.byType(FloatingActionButton), findsNothing);
+    final scroll = tester
+        .widget<CustomScrollView>(find.byType(CustomScrollView))
+        .controller!;
+    scroll.jumpTo(400);
+    await tester.pumpAndSettle();
+    expect(scroll.offset, greaterThan(0));
+    final page = Map.of(chrome());
+    final top = (page['actions'] as List).cast<Map>().singleWhere(
+      (item) => item['label'] == '回到顶部',
+    );
+    expect(top['symbol'], 'arrow.up');
+    await action(page, top);
+    await tester.pumpAndSettle();
+    expect(scroll.offset, 0);
+    await finish(tester);
+  });
 
   testWidgets(
     'home category dropdown stays in Flutter and opens the original menu',

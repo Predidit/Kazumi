@@ -68,12 +68,13 @@ class _PopularPageState extends State<PopularPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
+      body: DuoContentSafeArea(child: CustomScrollView(
         controller: scrollController,
         slivers: [
           SliverToBoxAdapter(child: DuoHomeActions(
             onSearch: () => context.pushNamed('/search/'),
             onHistory: () => context.pushNamed('/settings/history/'),
+            onScrollToTop: _scrollToTop,
           )),
           buildSliverAppBar(),
           SliverToBoxAdapter(
@@ -119,21 +120,25 @@ class _PopularPageState extends State<PopularPage> {
                 );
               })),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => scrollController.animateTo(0,
-            duration: const Duration(milliseconds: 350), curve: Curves.easeOut),
+      )),
+      floatingActionButton: DuoHomeActions.enabled ? null : FloatingActionButton(
+        onPressed: _scrollToTop,
         child: const Icon(Icons.arrow_upward),
       ),
     );
   }
 
+  void _scrollToTop() => scrollController.animateTo(0,
+      duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
+
   Widget contentGrid(List<BangumiItem> bangumiList) {
+    final width = MediaQuery.sizeOf(context).width -
+        (DuoHomeActions.enabled ? MediaQuery.paddingOf(context).horizontal : 0);
     int crossCount = 3;
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
+    if (width > LayoutBreakpoint.compact['width']!) {
       crossCount = 5;
     }
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
+    if (width > LayoutBreakpoint.medium['width']!) {
       crossCount = 6;
     }
     return SliverPadding(
@@ -147,7 +152,7 @@ class _PopularPageState extends State<PopularPage> {
           // 列数
           crossAxisCount: crossCount,
           mainAxisExtent:
-              MediaQuery.of(context).size.width / crossCount / 0.65 +
+              width / crossCount / 0.65 +
                   MediaQuery.textScalerOf(context).scale(32.0),
         ),
         delegate: SliverChildBuilderDelegate(

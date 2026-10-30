@@ -53,10 +53,12 @@ class DuoHomeActions extends StatelessWidget {
     super.key,
     required this.onSearch,
     required this.onHistory,
+    required this.onScrollToTop,
   });
 
   final VoidCallback onSearch;
   final VoidCallback onHistory;
+  final VoidCallback onScrollToTop;
   static bool get enabled => DuoNavigation.enabled.value;
 
   @override
@@ -66,6 +68,7 @@ class DuoHomeActions extends StatelessWidget {
       actionOwners: [
         _action('搜索', 'magnifyingglass', onSearch),
         _action('历史记录', 'clock.arrow.circlepath', onHistory),
+        _action('回到顶部', 'arrow.up', onScrollToTop),
       ],
     ),
   );

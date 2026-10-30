@@ -176,6 +176,7 @@ class _TimelinePageState extends State<TimelinePage> {
         );
         return Scaffold(
           appBar: SysAppBar(
+            keepDuoTitle: true,
             needTopOffset: false,
             toolbarHeight: 72,
             title: narrowPortrait

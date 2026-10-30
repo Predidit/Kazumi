@@ -8,6 +8,7 @@ import 'package:screen_brightness_platform_interface/screen_brightness_platform_
 import 'package:window_manager/window_manager.dart';
 
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
+import 'package:kazumi/bean/appbar/duo_original_surface.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
@@ -307,7 +308,11 @@ class _VideoPageState extends State<VideoPage>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => DuoOriginalSurface(
+        child: _buildOriginalPlayer(context),
+      );
+
+  Widget _buildOriginalPlayer(BuildContext context) {
     return PopScope(
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (didPop) {

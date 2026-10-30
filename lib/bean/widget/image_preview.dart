@@ -1,3 +1,5 @@
+import 'package:kazumi/bean/appbar/duo_page_chrome.dart';
+import 'package:kazumi/services/platform/duo_navigation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -194,34 +196,68 @@ class _ImageViewerState extends State<ImageViewer> {
 
   @override
   Widget build(BuildContext context) {
+    final child = _buildPage(context);
+    if (!DuoNavigation.enabled.value) return child;
+    return DuoPageChrome(
+      dark: true,
+      title: Text(
+        _isMultiImage
+            ? '${_currentIndex + 1} / ${widget.imageUrls.length}'
+            : '图片预览',
+      ),
+      leading: CloseButton(onPressed: _closePreview),
+      actions: [
+        if (_isMultiImage) ...[
+          IconButton(
+            tooltip: '上一张',
+            icon: const Icon(Icons.skip_previous_rounded),
+            onPressed: _currentIndex > 0 ? _goToPreviousImage : null,
+          ),
+          IconButton(
+            tooltip: '下一张',
+            icon: const Icon(Icons.skip_next_rounded),
+            onPressed: _currentIndex < widget.imageUrls.length - 1
+                ? _goToNextImage
+                : null,
+          ),
+        ],
+      ],
+      child: child,
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
           _isMultiImage ? _buildGallery() : _buildSingleImage(),
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            right: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                onPressed: _closePreview,
-                icon: const Icon(Icons.close, color: Colors.white),
+          if (!DuoNavigation.enabled.value)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              right: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  onPressed: _closePreview,
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
               ),
             ),
-          ),
-          if (_isMultiImage)
+          if (_isMultiImage && !DuoNavigation.enabled.value)
             Positioned(
               bottom: MediaQuery.of(context).padding.bottom + 24,
               left: 0,
               right: 0,
               child: Center(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(16),

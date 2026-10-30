@@ -67,6 +67,7 @@ class _MyPageState extends State<MyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(
+        keepDuoTitle: true,
         toolbarHeight: 72,
         title: Text(
           '我的',

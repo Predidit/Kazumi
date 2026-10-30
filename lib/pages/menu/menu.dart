@@ -1,3 +1,4 @@
+import 'package:kazumi/services/platform/duo_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
@@ -20,6 +21,44 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   final _outletKey = GlobalKey<RouterOutletState>();
   late int _selectedIndex = menu.indexForPath(widget.location);
   DateTime? _lastExitPromptAt;
+  bool _nativeTabs = DuoNavigation.enabled.value;
+  bool _nativeTabsVisible = false;
+  (int, bool, bool)? _nativeState;
+
+  @override
+  void initState() {
+    super.initState();
+    _enableDuoTabs();
+  }
+
+  Future<void> _enableDuoTabs() async {
+    await DuoNavigation.initialize();
+    if (!DuoNavigation.enabled.value) return;
+    if (!mounted) return;
+    DuoNavigation.onTabSelected = (index) {
+      if (mounted && _nativeTabsVisible && index >= 0 && index < 4) {
+        _selectDestination(index);
+      }
+    };
+    setState(() => _nativeTabs = true);
+  }
+
+  void _syncNativeTabs(BuildContext context) {
+    final visible = !_isCovered && (ModalRoute.isCurrentOf(context) ?? true);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final state = (_selectedIndex, visible, dark);
+    _nativeTabsVisible = visible;
+    if (_nativeState == state) return;
+    _nativeState = state;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _nativeState != state) return;
+      await DuoNavigation.setTabs(
+        index: state.$1,
+        visible: state.$2,
+        dark: state.$3,
+      );
+    });
+  }
 
   /// The shell sits at the bottom of the root stack and stays mounted while
   /// other pages cover it, so it publishes that state for its subtree.
@@ -45,6 +84,10 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   @override
   void dispose() {
     rootRouteObserver.unsubscribe(this);
+    if (_nativeTabs) {
+      DuoNavigation.onTabSelected = null;
+      DuoNavigation.setTabs(index: _selectedIndex, visible: false, dark: false);
+    }
     super.dispose();
   }
 
@@ -98,6 +141,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    if (_nativeTabs) _syncNativeTabs(context);
     return RouteVisibility(
       isCovered: _isCovered,
       child: PopScope(
@@ -107,13 +151,15 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
             _handleSystemBack(context);
           }
         },
-        child: OrientationBuilder(
-          builder: (context, orientation) {
-            return orientation == Orientation.portrait
-                ? _bottomMenu(context, _selectedIndex)
-                : _sideMenu(context, _selectedIndex);
-          },
-        ),
+        child: _nativeTabs
+            ? Scaffold(body: _outlet(context))
+            : OrientationBuilder(
+                builder: (context, orientation) {
+                  return orientation == Orientation.portrait
+                      ? _bottomMenu(context, _selectedIndex)
+                      : _sideMenu(context, _selectedIndex);
+                },
+              ),
       ),
     );
   }

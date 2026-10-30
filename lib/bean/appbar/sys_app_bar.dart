@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:kazumi/bean/appbar/duo_page_chrome.dart';
+import 'package:kazumi/services/platform/duo_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -14,6 +16,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final Widget? leading;
   final bool needTopOffset;
+  final bool keepDuoTitle;
 
   const SysAppBar({
     super.key,
@@ -23,18 +26,11 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.leading,
     this.needTopOffset = true,
+    this.keepDuoTitle = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final desktop = isDesktop();
-    final appBarActions = <Widget>[...?actions];
-    if (desktop) {
-      if (!DesktopWindowConfig.showWindowButton) {
-        appBarActions.add(CloseButton(onPressed: () => windowManager.close()));
-      }
-      appBarActions.add(const SizedBox(width: 8));
-    }
     final appBarLeading =
         leading ??
         ((ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
@@ -43,6 +39,33 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
                 icon: const Icon(Icons.arrow_back),
               )
             : null);
+
+    if (DuoNavigation.enabled.value) {
+      return DuoPageChrome(
+        title: keepDuoTitle ? null : title,
+        leading: appBarLeading,
+        actions: actions ?? const [],
+        child: keepDuoTitle
+            ? AppBar(
+                toolbarHeight: toolbarHeight,
+                title: title,
+                centerTitle: Platform.isIOS,
+                automaticallyImplyLeading: false,
+                scrolledUnderElevation: 0,
+                backgroundColor: backgroundColor,
+              )
+            : const SizedBox.shrink(),
+      );
+    }
+
+    final desktop = isDesktop();
+    final appBarActions = <Widget>[...?actions];
+    if (desktop) {
+      if (!DesktopWindowConfig.showWindowButton) {
+        appBarActions.add(CloseButton(onPressed: () => windowManager.close()));
+      }
+      appBarActions.add(const SizedBox(width: 8));
+    }
 
     return GestureDetector(
       onPanStart: desktop ? (_) => windowManager.startDragging() : null,
@@ -85,6 +108,11 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
+    if (DuoNavigation.enabled.value) {
+      return keepDuoTitle
+          ? Size.fromHeight(toolbarHeight ?? kToolbarHeight)
+          : Size.zero;
+    }
     // Reserve space for native macOS window controls.
     final topOffset =
         Platform.isMacOS &&

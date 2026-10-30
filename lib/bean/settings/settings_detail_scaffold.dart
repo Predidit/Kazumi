@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/services/platform/duo_navigation.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class SettingsPaneScope extends InheritedWidget {
@@ -49,7 +50,7 @@ class SettingsDetailScaffold extends StatelessWidget {
     final scope = SettingsPaneScope.of(context);
     final PreferredSizeWidget appBar;
 
-    if (scope != null && scope.embedded) {
+    if (scope != null && scope.embedded && !DuoNavigation.enabled.value) {
       final paneLeading =
           leading ??
           ((scope.showBackButton ||

@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'package:kazumi/bean/appbar/duo_page_chrome.dart';
+import 'package:kazumi/services/platform/duo_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
@@ -70,6 +72,13 @@ class _PopularPageState extends State<PopularPage> {
       body: CustomScrollView(
         controller: scrollController,
         slivers: [
+          if (DuoNavigation.enabled.value)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 0,
+                child: DuoPageChrome(actions: buildActions()),
+              ),
+            ),
           buildSliverAppBar(),
           SliverToBoxAdapter(
             child: Observer(
@@ -167,7 +176,7 @@ class _PopularPageState extends State<PopularPage> {
       titleSpacing: 0,
       centerTitle: false,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      actions: buildActions(),
+      actions: DuoNavigation.enabled.value ? const [] : buildActions(),
       title: null,
       flexibleSpace: SafeArea(
         child: dtb.DragToMoveArea(
@@ -238,7 +247,8 @@ class _PopularPageState extends State<PopularPage> {
 
   List<Widget> buildActions() {
     return <Widget>[
-      if (MediaQuery.of(context).orientation == Orientation.portrait)
+      if (DuoNavigation.enabled.value ||
+          MediaQuery.of(context).orientation == Orientation.portrait)
         IconButton(
           tooltip: '搜索',
           onPressed: () => context.pushNamed('/search/'),
@@ -249,7 +259,9 @@ class _PopularPageState extends State<PopularPage> {
         onPressed: () => context.pushNamed('/settings/history/'),
         icon: const Icon(Icons.history),
       ),
-      if (isDesktop() && !DesktopWindowConfig.showWindowButton)
+      if (!DuoNavigation.enabled.value &&
+          isDesktop() &&
+          !DesktopWindowConfig.showWindowButton)
         IconButton(
           tooltip: '退出',
           onPressed: () => windowManager.close(),

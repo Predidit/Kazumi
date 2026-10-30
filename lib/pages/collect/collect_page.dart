@@ -109,6 +109,7 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(
+        keepDuoTitle: true,
         needTopOffset: false,
         toolbarHeight: 72,
         title: Text(

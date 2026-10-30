@@ -43,7 +43,7 @@ class _TimelineOptionsButton extends StatelessWidget {
     );
     return DuoActionBinding(
       action: DuoAction(label: '$_timelineOptionsTitle：$summary',
-        icon: Icons.tune_rounded, onPressed: onPressed),
+        icon: Icons.tune_rounded, badgeCount: filterCount, onPressed: onPressed),
       child: Semantics(
       label: _timelineOptionsTitle,
       value: summary,

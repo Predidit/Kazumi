@@ -7,6 +7,7 @@ class DuoAction {
   const DuoAction({
     required this.label,
     this.icon,
+    this.badgeCount = 0,
     this.onPressed,
     this.menu,
     this.selected = false,
@@ -15,6 +16,7 @@ class DuoAction {
 
   final String label;
   final IconData? icon;
+  final int badgeCount;
   final VoidCallback? onPressed;
   final List<DuoAction>? menu;
   final bool selected;
@@ -30,6 +32,7 @@ class DuoAction {
     return {
       'id': id,
       'label': label,
+      if (badgeCount > 0) 'badgeCount': badgeCount,
       if (icon != null) 'icon': duoIcon(icon!, direction: direction),
       'enabled': menu != null ? menu!.isNotEmpty : onPressed != null,
       'selected': selected,

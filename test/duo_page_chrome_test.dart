@@ -1,3 +1,12 @@
+import 'dart:async';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/history/history_page.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/repositories/history_repository.dart';
+import 'package:kazumi/repositories/collect_crud_repository.dart';
+import 'package:kazumi/services/player/history_playback_service.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/bean/duo/duo_tab_shell.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/duo/duo_menu_owner.dart';
@@ -90,6 +99,121 @@ void main() {
     expect((mirrored['icon'] as Map)['rtl'], true);
     expect(normal.containsKey('symbol'), false);
   });
+
+  testWidgets('native badge tracks count changes and disappears at zero', (
+    tester,
+  ) async {
+    final count = ValueNotifier(0);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          appBar: SysAppBar(
+            actions: [
+              ValueListenableBuilder<int>(
+                valueListenable: count,
+                builder: (_, value, _) => DuoActionBinding(
+                  action: DuoAction(
+                    label: 'Filters',
+                    icon: Icons.tune_rounded,
+                    badgeCount: value,
+                    onPressed: () {},
+                  ),
+                  child: const SizedBox(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    Map button() => (chrome()['actions'] as List).single as Map;
+    await tester.pumpAndSettle();
+    expect(button().containsKey('badgeCount'), false);
+    count.value = 2;
+    await tester.pumpAndSettle();
+    expect(button()['badgeCount'], 2);
+    final colors = chrome()['theme'] as Map;
+    expect(colors['badgeBackground'], ThemeData().colorScheme.error.toARGB32());
+    expect(
+      colors['badgeForeground'],
+      ThemeData().colorScheme.onError.toARGB32(),
+    );
+    count.value = 1;
+    await tester.pumpAndSettle();
+    expect(button()['badgeCount'], 1);
+    count.value = 0;
+    await tester.pumpAndSettle();
+    expect(button().containsKey('badgeCount'), false);
+    await finish(tester);
+    count.dispose();
+  });
+
+  testWidgets(
+    'history sidebar edits, cancels clearing and disables busy controls',
+    (tester) async {
+      final repository = _HistoryFixture();
+      final controller = HistoryController(repository);
+      final module = createModule(
+        register: (c) {
+          c
+            ..addSingleton<CollectController>(
+              () => CollectController(_EmptyCollects()),
+            )
+            ..addSingleton<HistoryPlaybackService>(() => _UnusedPlayback())
+            ..route('/', child: (_, _) => HistoryPage(controller: controller));
+        },
+      );
+      await tester.pumpWidget(
+        ModularApp(
+          module: module,
+          child: Builder(
+            builder: (context) => MaterialApp.router(
+              routerConfig: ModularApp.routerConfigOf(context),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      Map named(String label) => (chrome()['actions'] as List)
+          .cast<Map>()
+          .singleWhere((button) => button['label'] == label);
+      final edit = named('管理历史记录');
+      expect((edit['icon'] as Map)['codePoint'], Icons.edit_outlined.codePoint);
+      await action(chrome(), edit);
+      await tester.pumpAndSettle();
+      expect(named('完成')['enabled'], true);
+      expect((named('完成')['icon'] as Map)['codePoint'], Icons.done.codePoint);
+      final clear = named('清空全部历史记录');
+      expect(
+        (clear['icon'] as Map)['codePoint'],
+        Icons.delete_sweep_outlined.codePoint,
+      );
+      await action(chrome(), clear);
+      await tester.pumpAndSettle();
+      expect(find.text('清空历史记录？'), findsOneWidget);
+      expect(chrome()['visible'], false);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(controller.histories, hasLength(1));
+      await action(chrome(), named('完成'));
+      await tester.pumpAndSettle();
+      expect(named('管理历史记录')['enabled'], true);
+      await action(chrome(), named('管理历史记录'));
+      await tester.pumpAndSettle();
+      await action(chrome(), named('清空全部历史记录'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('清空全部'));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+      expect(named('完成')['enabled'], false);
+      expect(named('清空全部历史记录')['enabled'], false);
+      repository.cleared.complete();
+      await tester.pumpAndSettle();
+      expect(controller.histories, isEmpty);
+      expect(chrome()['actions'], isEmpty);
+      await finish(tester);
+    },
+  );
 
   testWidgets('native tabs and actions follow live theme changes', (
     tester,
@@ -725,4 +849,51 @@ class _NoNetworkPopularController extends PopularController {
 
   @override
   Future<void> queryBangumiByTag({String type = 'add'}) async {}
+}
+
+class _HistoryFixture implements IHistoryRepository {
+  final cleared = Completer<void>();
+  @override
+  List<History> getAllHistories() => [
+    History(
+      BangumiItem(
+        id: 1,
+        type: 2,
+        name: 'History item',
+        nameCn: 'History item',
+        summary: '',
+        airDate: '',
+        airWeekday: 1,
+        rank: 0,
+        images: {},
+        tags: [],
+        alias: [],
+        ratingScore: 0,
+        votes: 0,
+        votesCount: [],
+        info: '',
+      ),
+      1,
+      'Source',
+      DateTime(2026, 1, 1),
+      '',
+      'Episode 1',
+    ),
+  ];
+  @override
+  Future<void> clearAllHistories() => cleared.future;
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _EmptyCollects implements ICollectCrudRepository {
+  @override
+  int getCollectType(int id) => 0;
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _UnusedPlayback implements HistoryPlaybackService {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

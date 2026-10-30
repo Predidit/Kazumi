@@ -33,5 +33,9 @@ Map<String, Object?> duoTheme(
     'unselected': (unselected ?? colors.onSurfaceVariant).toARGB32(),
     'indicator': (indicator ?? colors.secondaryContainer).toARGB32(),
     'action': action.toARGB32(),
+    'badgeBackground': (theme.badgeTheme.backgroundColor ?? colors.error)
+        .toARGB32(),
+    'badgeForeground': (theme.badgeTheme.textColor ?? colors.onError)
+        .toARGB32(),
   };
 }

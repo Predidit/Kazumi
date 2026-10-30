@@ -159,6 +159,8 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
     private let flutter: FlutterViewController
     private let tabs = UITabBarController()
     private let overlay = DuoChromeOverlay()
+    private var badgeBackground: UIColor?
+    private var badgeForeground: UIColor?
     private var immersive = false
     private var requestedTabBarHidden = true
     private lazy var navigation = UINavigationController(rootViewController: tabs)
@@ -276,6 +278,8 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
                            blue: CGFloat(argb & 255) / 255,
                            alpha: CGFloat((argb >> 24) & 255) / 255)
         }
+        badgeBackground = color("badgeBackground")
+        badgeForeground = color("badgeForeground")
         overlay.tintColor = color("primary")
         navigation.navigationBar.tintColor = color("action")
         tabs.tabBar.tintColor = color("selected")
@@ -336,6 +340,12 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
                                    menu: menu)
         item.isEnabled = spec["enabled"] as? Bool ?? false
         item.accessibilityLabel = title
+        if let count = spec["badgeCount"] as? Int, count > 0 {
+            var badge = UIBarButtonItem.Badge.count(count)
+            badge.backgroundColor = badgeBackground
+            badge.foregroundColor = badgeForeground
+            item.badge = badge
+        }
         return item
     }
 

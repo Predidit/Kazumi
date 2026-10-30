@@ -394,7 +394,7 @@ class _InfoPageState extends State<InfoPage>
                 stretch: true,
                 centerTitle: false,
                 expandedHeight:
-                    308 + kTextTabBarHeight + (native ? 0 : kToolbarHeight + topOffset),
+                    308 + kTextTabBarHeight + (native ? 24 : kToolbarHeight + topOffset),
                 collapsedHeight: native ? kTextTabBarHeight : kTextTabBarHeight +
                     kToolbarHeight +
                     MediaQuery.paddingOf(context).top +
@@ -423,8 +423,9 @@ class _InfoPageState extends State<InfoPage>
                             child: Align(
                               alignment: Alignment.topCenter,
                               child: Padding(
-                                padding: EdgeInsets.fromLTRB(
-                                    16, native ? 0 : kToolbarHeight, 16, 0),
+                                padding: native
+                                    ? const EdgeInsets.fromLTRB(24, 24, 24, 0)
+                                    : const EdgeInsets.fromLTRB(16, kToolbarHeight, 16, 0),
                                 child: BangumiInfoCardV(
                                   bangumiItem: infoController.bangumiItem,
                                   isLoading: showBangumiInfoSkeleton,

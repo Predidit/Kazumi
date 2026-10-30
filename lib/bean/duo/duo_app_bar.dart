@@ -33,7 +33,13 @@ class DuoAppBar extends StatelessWidget implements PreferredSizeWidget {
     return DuoPageChrome.header(
       leading: back == null
           ? null
-          : DuoAction(label: '返回', symbol: 'chevron.backward', onPressed: back),
+          : DuoAction(
+              label: '返回',
+              icon: leading is BackButton
+                  ? Icons.arrow_back_ios_new_rounded
+                  : Icons.arrow_back,
+              onPressed: back,
+            ),
       child: AppBar(
         title: original.title,
         leading: back == null ? leading : null,

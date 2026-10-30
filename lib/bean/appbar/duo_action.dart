@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/services/platform/duo_icon.dart';
 
 /// Explicit native representation of an existing Flutter action. Callbacks and
 /// enabled/selection state belong to the control that creates this value.
 class DuoAction {
   const DuoAction({
     required this.label,
-    this.symbol,
+    this.icon,
     this.onPressed,
     this.menu,
     this.selected = false,
@@ -13,25 +14,31 @@ class DuoAction {
   });
 
   final String label;
-  final String? symbol;
+  final IconData? icon;
   final VoidCallback? onPressed;
   final List<DuoAction>? menu;
   final bool selected;
   final bool destructive;
 
-  Map<String, Object?> encode(Map<String, VoidCallback> callbacks) {
+  Map<String, Object?> encode(
+    Map<String, VoidCallback> callbacks, {
+    TextDirection direction = TextDirection.ltr,
+  }) {
     final id = '${callbacks.length}';
     // Menu containers also need a unique id, even without a callback.
     callbacks[id] = onPressed ?? () {};
     return {
       'id': id,
       'label': label,
-      'symbol': symbol,
+      if (icon != null) 'icon': duoIcon(icon!, direction: direction),
       'enabled': menu != null ? menu!.isNotEmpty : onPressed != null,
       'selected': selected,
       'destructive': destructive,
       if (menu != null)
-        'menu': [for (final item in menu!) item.encode(callbacks)],
+        'menu': [
+          for (final item in menu!)
+            item.encode(callbacks, direction: direction),
+        ],
     };
   }
 }

@@ -9,12 +9,14 @@ class DuoMenuOwner extends StatelessWidget {
   const DuoMenuOwner({
     super.key,
     required this.label,
-    required this.symbol,
+    required this.icon,
+    this.selectionIcons,
     required this.child,
   });
 
   final String label;
-  final String symbol;
+  final IconData icon;
+  final List<IconData>? selectionIcons;
   final Widget child;
 
   @override
@@ -22,16 +24,24 @@ class DuoMenuOwner extends StatelessWidget {
     builder: (context, entries, enabled) {
       if (entries.any((item) => item is! KazumiMenuItem)) return null;
       final items = entries.cast<KazumiMenuItem>();
+      final selectedIndex = items.indexWhere((item) => item.selected == true);
       final selected = items.where((item) => item.selected == true).firstOrNull;
       return DuoActionBinding(
         action: DuoAction(
           label: selected?.label ?? label,
-          symbol: symbol,
+          icon:
+              selectedIndex >= 0 &&
+                  selectedIndex < (selectionIcons?.length ?? 0)
+              ? selectionIcons![selectedIndex]
+              : icon,
           menu: enabled
               ? [
                   for (final item in items)
                     DuoAction(
                       label: item.label,
+                      icon: item.leadingIcon is Icon
+                          ? (item.leadingIcon as Icon).icon
+                          : null,
                       onPressed: item.onPressed,
                       selected: item.selected == true,
                       destructive: item.destructive,

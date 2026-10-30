@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/services/platform/duo_navigation.dart';
 import 'duo_action.dart';
+import 'package:kazumi/services/platform/duo_theme.dart';
 
 export 'duo_action.dart' show DuoAction, DuoActionBinding;
 
@@ -80,12 +81,19 @@ class _DuoPageChromeState extends State<DuoPageChrome> {
 
   DuoChrome _snapshot() {
     final callbacks = <String, VoidCallback>{};
-    final leading = widget.leading?.encode(callbacks);
+    final direction = Directionality.of(context);
+    final leading = widget.leading?.encode(callbacks, direction: direction);
     final actions = [
-      for (final action in _actions.values) action.encode(callbacks),
+      for (final action in _actions.values)
+        action.encode(callbacks, direction: direction),
     ];
     return DuoChrome(
       dark: widget.dark ?? Theme.of(context).brightness == Brightness.dark,
+      theme: duoTheme(
+        Theme.of(context),
+        orientation: MediaQuery.orientationOf(context),
+        dark: widget.dark,
+      ),
       hidden:
           widget.hidden ||
           widget.immersive ||

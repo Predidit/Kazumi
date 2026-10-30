@@ -76,11 +76,27 @@ void main() {
       expect(find.byType(NavigationRail), findsNothing);
       expect(find.byType(NavigationBar), findsNothing);
       expect(calls.first.method, 'enable');
-      expect(calls.lastWhere((call) => call.method == 'update').arguments, {
-        'index': 0,
-        'visible': true,
-        'dark': false,
-      });
+      final update = Map.of(
+        calls.lastWhere((call) => call.method == 'update').arguments as Map,
+      );
+      final icons = update.remove('icons') as List;
+      final colors = update.remove('theme') as Map;
+      final scheme = ThemeData().colorScheme;
+      expect(colors['selected'], scheme.onSecondaryContainer.toARGB32());
+      expect(colors['indicator'], scheme.secondaryContainer.toARGB32());
+      expect(
+        (icons[1]['icon'] as Map)['codePoint'],
+        Icons.timeline_outlined.codePoint,
+      );
+      expect(
+        (icons[1]['selectedIcon'] as Map)['codePoint'],
+        Icons.timeline.codePoint,
+      );
+      expect(
+        (icons[0]['icon'] as Map)['codePoint'],
+        Icons.home_outlined.codePoint,
+      );
+      expect(update, {'index': 0, 'visible': true, 'dark': false});
 
       // A popup covers the shell without a PageRoute notification.
       final context = tester.element(find.text('Tab content'));

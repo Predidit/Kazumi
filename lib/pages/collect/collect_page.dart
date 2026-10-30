@@ -125,7 +125,7 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
             child: Tooltip(
               message: '同步收藏',
               child: DuoActionBinding(
-                action: DuoAction(label: '同步收藏', symbol: 'arrow.triangle.2.circlepath',
+                action: DuoAction(label: '同步收藏', icon: Icons.sync_rounded,
                   onPressed: _syncDialogOpen || _pendingIds.isNotEmpty ? null : _sync),
                 child: StateActionButton.tonal(
                 text: '同步',

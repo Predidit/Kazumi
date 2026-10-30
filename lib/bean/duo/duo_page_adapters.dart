@@ -26,23 +26,27 @@ class DuoInfoChrome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DuoPageChrome(
-    leading: DuoAction(
-      label: '返回',
-      symbol: 'chevron.backward',
-      onPressed: onBack,
-    ),
+    leading: DuoAction(label: '返回', icon: Icons.arrow_back, onPressed: onBack),
     actionOwners: [
       DuoMenuOwner(
         label: '追番状态',
-        symbol: 'heart',
+        icon: Icons.favorite_border,
+        selectionIcons: const [
+          Icons.favorite_border,
+          Icons.favorite,
+          Icons.star_rounded,
+          Icons.pending_actions,
+          Icons.done,
+          Icons.heart_broken,
+        ],
         child: CollectButton(bangumiItem: item),
       ),
       DuoMenuOwner(
         label: '更多操作',
-        symbol: 'ellipsis',
+        icon: Icons.more_horiz_rounded,
         child: InfoActionsMenu(bangumiItem: item),
       ),
-      _action('开始观看', 'play', onWatch),
+      _action('开始观看', Icons.play_arrow_rounded, onWatch),
     ],
     child: child,
   );
@@ -66,9 +70,9 @@ class DuoHomeActions extends StatelessWidget {
     height: 0,
     child: DuoPageChrome(
       actionOwners: [
-        _action('搜索', 'magnifyingglass', onSearch),
-        _action('历史记录', 'clock.arrow.circlepath', onHistory),
-        _action('回到顶部', 'arrow.up', onScrollToTop),
+        _action('搜索', Icons.search, onSearch),
+        _action('历史记录', Icons.history, onHistory),
+        _action('回到顶部', Icons.arrow_upward, onScrollToTop),
       ],
     ),
   );
@@ -96,19 +100,19 @@ class DuoImageChrome extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DuoPageChrome(
     dark: true,
-    leading: DuoAction(label: '关闭', symbol: 'xmark', onPressed: onClose),
+    leading: DuoAction(label: '关闭', icon: Icons.close, onPressed: onClose),
     actionOwners: [
       if (count > 1) ...[
-        _action('上一张', 'backward.end', index > 0 ? onPrevious : null),
-        _action('下一张', 'forward.end', index < count - 1 ? onNext : null),
+        _action('上一张', Icons.chevron_left, index > 0 ? onPrevious : null),
+        _action('下一张', Icons.chevron_right, index < count - 1 ? onNext : null),
       ],
     ],
     child: child,
   );
 }
 
-Widget _action(String label, String symbol, VoidCallback? callback) =>
+Widget _action(String label, IconData icon, VoidCallback? callback) =>
     DuoActionBinding(
-      action: DuoAction(label: label, symbol: symbol, onPressed: callback),
+      action: DuoAction(label: label, icon: icon, onPressed: callback),
       child: const SizedBox.shrink(),
     );

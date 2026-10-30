@@ -81,7 +81,7 @@ class _MyPageState extends State<MyPage> {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: DuoActionBinding(
-              action: DuoAction(label: '全部设置', symbol: 'gearshape',
+              action: DuoAction(label: '全部设置', icon: Icons.tune_rounded,
                 onPressed: () => context.pushNamed('/settings/')),
               child: MySettingsButton(
               onTap: () => context.pushNamed('/settings/'),

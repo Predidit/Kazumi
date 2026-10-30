@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/services/platform/duo_theme.dart';
+import 'package:kazumi/services/platform/duo_icon.dart';
 import 'package:kazumi/services/platform/duo_navigation.dart';
 
 /// Native tab synchronization stays here, outside the shared router shell.
@@ -25,7 +27,7 @@ class DuoTabShell extends StatefulWidget {
 class _DuoTabShellState extends State<DuoTabShell> {
   bool _enabled = DuoNavigation.enabled.value;
   bool _visible = false;
-  (int, bool, bool)? _published;
+  (int, bool, bool, Orientation, TextDirection, ThemeData)? _published;
 
   @override
   void initState() {
@@ -61,6 +63,9 @@ class _DuoTabShellState extends State<DuoTabShell> {
       widget.index,
       _visible,
       Theme.of(context).brightness == Brightness.dark,
+      MediaQuery.orientationOf(context),
+      Directionality.of(context),
+      Theme.of(context),
     );
     if (_published != state) {
       _published = state;
@@ -70,6 +75,8 @@ class _DuoTabShellState extends State<DuoTabShell> {
             index: state.$1,
             visible: state.$2,
             dark: state.$3,
+            icons: duoTabIcons(state.$4, state.$5),
+            theme: duoTheme(state.$6, orientation: state.$4),
           );
         }
       });

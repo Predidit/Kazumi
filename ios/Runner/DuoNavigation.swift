@@ -1,6 +1,7 @@
 import UIKit
 import Flutter
 import Darwin
+import CoreText
 
 /// Wait for UIKit's initial root appearance before changing containment.
 /// The superclass remains responsible for Flutter's surface and scene lifecycle.
@@ -66,10 +67,14 @@ final class DuoNavigationBridge {
                       let dark = args["dark"] as? Bool else {
                     return result(FlutterError(code: "arguments", message: "Invalid navigation state", details: nil))
                 }
+                if let icons = args["icons"] as? [[String: Any]] {
+                    self.controller?.applyTabIcons(icons)
+                }
                 self.controller?.selectedIndex = index
                 self.controller?.setTabBarHidden(!visible, animated: false)
                 if visible {
                     self.controller?.overrideUserInterfaceStyle = dark ? .dark : .light
+                    self.controller?.applyTheme(args["theme"] as? [String: Any])
                 }
                 result(nil)
             default:
@@ -183,12 +188,11 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
         tabs.delegate = self
         tabs.mode = .tabBar
         tabs.tabBarMinimizeBehavior = .never
-        let items = [("推荐", "house"), ("时间表", "calendar"),
-                     ("追番", "heart"), ("我的", "gearshape")]
+        let items = ["推荐", "时间表", "追番", "我的"]
         tabs.viewControllers = items.enumerated().map { index, item in
             let page = UIViewController()
             page.tabBarItem = UITabBarItem(
-                title: item.0, image: UIImage(systemName: item.1), tag: index
+                title: item, image: nil, tag: index
             )
             return page
         }
@@ -262,6 +266,42 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
             && rect.intersects(view.bounds) && rect.midY < view.bounds.midY
     }
 
+    func applyTheme(_ spec: [String: Any]?) {
+        guard let spec else { return }
+        func color(_ key: String) -> UIColor? {
+            guard let value = spec[key] as? NSNumber else { return nil }
+            let argb = value.uint32Value
+            return UIColor(red: CGFloat((argb >> 16) & 255) / 255,
+                           green: CGFloat((argb >> 8) & 255) / 255,
+                           blue: CGFloat(argb & 255) / 255,
+                           alpha: CGFloat((argb >> 24) & 255) / 255)
+        }
+        overlay.tintColor = color("primary")
+        navigation.navigationBar.tintColor = color("action")
+        tabs.tabBar.tintColor = color("selected")
+        tabs.tabBar.unselectedItemTintColor = color("unselected")
+        let appearance = UITabBarAppearance(barAppearance: tabs.tabBar.standardAppearance)
+        appearance.selectionIndicatorTintColor = color("indicator")
+        for layout in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance,
+                       appearance.compactInlineLayoutAppearance] {
+            layout.normal.iconColor = color("unselected")
+            layout.selected.iconColor = color("selected")
+            if let normal = color("unselected"), let selected = color("selected") {
+                layout.normal.titleTextAttributes[.foregroundColor] = normal
+                layout.selected.titleTextAttributes[.foregroundColor] = selected
+            }
+        }
+        tabs.tabBar.standardAppearance = appearance
+        tabs.tabBar.scrollEdgeAppearance = appearance
+    }
+
+    func applyTabIcons(_ specs: [[String: Any]]) {
+        for (index, page) in (tabs.viewControllers ?? []).enumerated() where index < specs.count {
+            page.tabBarItem.image = DuoIconImages.image(specs[index]["icon"])
+            page.tabBarItem.selectedImage = DuoIconImages.image(specs[index]["selectedIcon"])
+        }
+    }
+
     func applyChrome(_ args: [String: Any]) {
         loadViewIfNeeded()
         immersive = args["immersive"] as? Bool ?? false
@@ -275,6 +315,7 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
         navigation.navigationBar.prefersLargeTitles = false
         if visible {
             overrideUserInterfaceStyle = (args["dark"] as? Bool ?? false) ? .dark : .light
+            applyTheme(args["theme"] as? [String: Any])
         }
         let leading = args["leading"] as? [String: Any]
         tabs.navigationItem.leftBarButtonItem = leading.map { barItem($0, owner: owner) }
@@ -288,7 +329,7 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
 
     private func barItem(_ spec: [String: Any], owner: Int) -> UIBarButtonItem {
         let title = spec["label"] as? String ?? ""
-        let image = (spec["symbol"] as? String).flatMap { UIImage(systemName: $0) }
+        let image = DuoIconImages.image(spec["icon"])
         let menu = (spec["menu"] as? [[String: Any]]).map { menuItems($0, owner: owner) }
         let item = UIBarButtonItem(title: title, image: image,
                                    primaryAction: menu == nil ? action(spec, owner: owner) : nil,
@@ -305,7 +346,7 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
         if spec["destructive"] as? Bool == true { attributes.insert(.destructive) }
         return UIAction(
             title: spec["label"] as? String ?? "",
-            image: (spec["symbol"] as? String).flatMap { UIImage(systemName: $0) },
+            image: DuoIconImages.image(spec["icon"]),
             attributes: attributes,
             state: spec["selected"] as? Bool == true ? .on : .off
         ) { [weak self] _ in self?.onChromeAction?(owner, identifier) }
@@ -375,5 +416,55 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
     func tabBarController(_ tabBarController: UITabBarController,
                           didSelect viewController: UIViewController) {
         onSelected?(tabs.selectedIndex)
+    }
+}
+
+/// Render the original Flutter icon font as a UIKit template image. No system
+/// symbol substitution; the bundled font also works in tree-shaken builds.
+private enum DuoIconImages {
+    private static var fonts: [String: String] = [:]
+    private static var images: [String: UIImage] = [:]
+    private static let size: CGFloat = 24
+
+    static func image(_ value: Any?) -> UIImage? {
+        guard let spec = value as? [String: Any],
+              let codePoint = spec["codePoint"] as? Int,
+              let scalar = UnicodeScalar(codePoint),
+              let family = spec["family"] as? String else { return nil }
+        let rtl = spec["rtl"] as? Bool ?? false
+        let key = "\(family):\(codePoint):\(rtl)"
+        if let image = images[key] { return image }
+        guard let name = fontName(family), let font = UIFont(name: name, size: size) else { return nil }
+        let text = String(scalar) as NSString
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.black]
+        let bounds = text.size(withAttributes: attributes)
+        let image = UIGraphicsImageRenderer(size: CGSize(width: size, height: size)).image { context in
+            if rtl {
+                context.cgContext.translateBy(x: size, y: 0)
+                context.cgContext.scaleBy(x: -1, y: 1)
+            }
+            text.draw(at: CGPoint(x: (size - bounds.width) / 2, y: (size - bounds.height) / 2),
+                      withAttributes: attributes)
+        }.withRenderingMode(.alwaysTemplate)
+        images[key] = image
+        return image
+    }
+
+    private static func fontName(_ family: String) -> String? {
+        if let name = fonts[family] { return name }
+        let manifestKey = FlutterDartProject.lookupKey(forAsset: "FontManifest.json")
+        guard let manifestPath = Bundle.main.path(forResource: manifestKey, ofType: nil),
+              let data = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
+              let manifest = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+              let entry = manifest.first(where: { $0["family"] as? String == family }),
+              let files = entry["fonts"] as? [[String: Any]],
+              let asset = files.first?["asset"] as? String else { return nil }
+        let key = FlutterDartProject.lookupKey(forAsset: asset)
+        guard let path = Bundle.main.path(forResource: key, ofType: nil),
+              let provider = CGDataProvider(url: URL(fileURLWithPath: path) as CFURL),
+              let font = CGFont(provider), let name = font.postScriptName else { return nil }
+        CTFontManagerRegisterGraphicsFont(font, nil)
+        fonts[family] = name as String
+        return name as String
     }
 }

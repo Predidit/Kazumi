@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/duo/duo_tab_shell.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/duo/duo_menu_owner.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
@@ -64,16 +65,84 @@ void main() {
   }
 
   Widget nativeAction(String label) => DuoActionBinding(
-    action: DuoAction(
-      label: label,
-      symbol: 'magnifyingglass',
-      onPressed: () {},
-    ),
+    action: DuoAction(label: label, icon: Icons.search, onPressed: () {}),
     child: const SizedBox.shrink(),
   );
 
   PreferredSizeWidget namedHeader(String label) =>
       SysAppBar(title: Text(label), actions: [nativeAction(label)]);
+
+  test('native actions retain the original font glyph and mirroring', () {
+    final callbacks = <String, VoidCallback>{};
+    final normal = const DuoAction(
+      label: 'Back',
+      icon: Icons.arrow_back,
+    ).encode(callbacks);
+    expect(normal['icon'], {
+      'codePoint': Icons.arrow_back.codePoint,
+      'family': Icons.arrow_back.fontFamily,
+      'rtl': false,
+    });
+    final mirrored = const DuoAction(
+      label: 'Back',
+      icon: Icons.arrow_back,
+    ).encode(callbacks, direction: TextDirection.rtl);
+    expect((mirrored['icon'] as Map)['rtl'], true);
+    expect(normal.containsKey('symbol'), false);
+  });
+
+  testWidgets('native tabs and actions follow live theme changes', (
+    tester,
+  ) async {
+    ThemeData themed(Color seed, Brightness brightness) => ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: seed,
+        brightness: brightness,
+      ),
+    );
+    final theme = ValueNotifier(themed(Colors.green, Brightness.light));
+    await tester.pumpWidget(
+      ValueListenableBuilder<ThemeData>(
+        valueListenable: theme,
+        builder: (_, value, _) => MaterialApp(
+          theme: value,
+          home: DuoTabShell(
+            index: 0,
+            isCovered: false,
+            onSelected: (_) {},
+            nativeBuilder: (_) => Scaffold(
+              appBar: SysAppBar(
+                title: const Text('Home'),
+                actions: [nativeAction('Search')],
+              ),
+            ),
+            child: const SizedBox(),
+          ),
+        ),
+      ),
+    );
+    Future<void> check() async {
+      await tester.pumpAndSettle();
+      final tabs =
+          calls.lastWhere((call) => call.method == 'update').arguments as Map;
+      final colors = tabs['theme'] as Map;
+      final scheme = theme.value.colorScheme;
+      expect(colors['primary'], scheme.primary.toARGB32());
+      expect(colors['selected'], scheme.onSecondaryContainer.toARGB32());
+      expect(colors['unselected'], scheme.onSurfaceVariant.toARGB32());
+      expect(colors['indicator'], scheme.secondaryContainer.toARGB32());
+      expect((chrome()['theme'] as Map)['action'], scheme.onSurface.toARGB32());
+      expect(chrome()['dark'], scheme.brightness == Brightness.dark);
+    }
+
+    await check();
+    theme.value = themed(Colors.purple, Brightness.dark);
+    await check();
+    theme.value = themed(Colors.orange, Brightness.dark);
+    await check();
+    await finish(tester);
+    theme.dispose();
+  });
 
   testWidgets('unbound actions stay visible and usable in Flutter', (
     tester,
@@ -192,7 +261,7 @@ void main() {
               DuoActionBinding(
                 action: DuoAction(
                   label: '筛选',
-                  symbol: 'slider.horizontal.3',
+                  icon: Icons.tune_rounded,
                   onPressed: () {},
                 ),
                 child: IconButton(
@@ -329,7 +398,7 @@ void main() {
               immersive: value,
               leading: DuoAction(
                 label: '返回',
-                symbol: 'chevron.backward',
+                icon: Icons.arrow_back_ios_new_rounded,
                 onPressed: () => nativeTaps++,
               ),
               child: const Center(child: Text('Original player surface')),
@@ -407,7 +476,7 @@ void main() {
     final top = (page['actions'] as List).cast<Map>().singleWhere(
       (item) => item['label'] == '回到顶部',
     );
-    expect(top['symbol'], 'arrow.up');
+    expect((top['icon'] as Map)['codePoint'], Icons.arrow_upward.codePoint);
     await action(page, top);
     await tester.pumpAndSettle();
     expect(scroll.offset, 0);
@@ -461,7 +530,7 @@ void main() {
                   child: DuoActionBinding(
                     action: DuoAction(
                       label: '执行',
-                      symbol: 'arrow.clockwise',
+                      icon: Icons.refresh,
                       onPressed: value
                           ? () {
                               count++;
@@ -525,7 +594,11 @@ void main() {
                     ];
                     return DuoMenuOwner(
                       label: '更多操作',
-                      symbol: 'ellipsis',
+                      icon: Icons.favorite_border,
+                      selectionIcons: const [
+                        Icons.favorite_border,
+                        Icons.favorite,
+                      ],
                       child: KazumiMenuButton(
                         builder: (_, toggle) => IconButton(
                           onPressed: toggle,
@@ -543,6 +616,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       final before = Map.of(chrome());
+      expect(
+        (((before['actions'] as List).single as Map)['icon']
+            as Map)['codePoint'],
+        Icons.favorite_border.codePoint,
+      );
       final menu = ((before['actions'] as List).single as Map)['menu'] as List;
       expect((menu[0] as Map)['selected'], true);
       expect((menu[1] as Map)['destructive'], true);
@@ -551,6 +629,11 @@ void main() {
       final after =
           (((chrome()['actions'] as List).single as Map)['menu'] as List);
       expect((after[1] as Map)['selected'], true);
+      expect(
+        (((chrome()['actions'] as List).single as Map)['icon']
+            as Map)['codePoint'],
+        Icons.favorite.codePoint,
+      );
       expect(
         find.byType(MenuAnchor),
         findsNothing,
@@ -607,7 +690,10 @@ void main() {
       expect((chrome()['actions'] as List).first['label'], '详情');
       final detail = Map.of(chrome());
       final back = detail['leading'] as Map;
-      expect(back['symbol'], 'chevron.backward');
+      expect(
+        (back['icon'] as Map)['codePoint'],
+        Icons.arrow_back_ios_new_rounded.codePoint,
+      );
       final dialog = showDialog<void>(
         context: root.currentContext!,
         builder: (_) => const AlertDialog(title: Text('确认')),

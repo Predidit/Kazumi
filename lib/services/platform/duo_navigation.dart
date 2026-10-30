@@ -53,9 +53,17 @@ class DuoNavigation {
     required int index,
     required bool visible,
     required bool dark,
+    List<Map<String, Object?>>? icons,
+    Map<String, Object?>? theme,
   }) async {
     if (!enabled.value) return;
-    final args = {'index': index, 'visible': visible, 'dark': dark};
+    final args = {
+      'index': index,
+      'visible': visible,
+      'dark': dark,
+      'icons': ?icons,
+      'theme': ?theme,
+    };
     final encoded = jsonEncode(args);
     if (encoded == _lastTabs) return;
     _lastTabs = encoded;
@@ -81,6 +89,7 @@ class DuoNavigation {
       'header': _active?.id ?? 0,
       'visible': _chrome != null && !_chrome!.hidden,
       'dark': _chrome?.dark ?? false,
+      'theme': _chrome?.theme,
       'immersive': _chrome?.immersive ?? false,
       'leading': _chrome?.leading,
       'actions': _chrome?.actions ?? [],
@@ -139,6 +148,7 @@ class DuoHeaderRegistration {
 class DuoChrome {
   DuoChrome({
     required this.dark,
+    required this.theme,
     required this.hidden,
     this.immersive = false,
     this.leading,
@@ -147,6 +157,7 @@ class DuoChrome {
   });
 
   final bool dark;
+  final Map<String, Object?> theme;
   final bool hidden;
   final bool immersive;
   final Map<String, Object?>? leading;

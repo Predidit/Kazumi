@@ -1,4 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+
+class DownloadAllRulesButton extends StatelessWidget {
+  const DownloadAllRulesButton({
+    super.key,
+    required this.downloading,
+    required this.onPressed,
+  });
+
+  final bool downloading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final icon = downloading
+        ? const LoadingIndicator(size: 18)
+        : const Icon(Icons.download_rounded, size: 18);
+    return FilledButton.tonal(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        textStyle: theme.textTheme.labelMedium,
+      ),
+      onPressed: downloading ? null : onPressed,
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        icon,
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(downloading ? '正在安装规则' : '安装全部规则',
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+      ]),
+    );
+  }
+}
 
 class RulePageIntro extends StatelessWidget {
   const RulePageIntro({

@@ -69,7 +69,7 @@ class SettingsDetailScaffold extends StatelessWidget {
         title: title,
         titleTextStyle: Theme.of(context).textTheme.headlineSmall,
         actions: actions,
-      ), onBack: scope.onBack);
+      ), onBack: leading == null ? scope.onBack : null);
     } else {
       appBar = SysAppBar(
         title: title,

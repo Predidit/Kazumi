@@ -39,15 +39,22 @@ class RemotePlay {
                   dlna.devices.stream.listen((deviceList) {
                     dlnaDevice = [];
                     deviceList.forEach((key, value) async {
+                      final deviceType = value.info.deviceType;
+                      if (!deviceType.contains('MediaRenderer')) {
+                        KazumiLogger().i(
+                            'RemotePlay: skip non-renderer ${value.info.friendlyName} $deviceType');
+                        return;
+                      }
                       KazumiLogger().i('RemotePlay: key: $key');
                       KazumiLogger().i(
                           'RemotePlay: value: ${value.info.friendlyName} ${value.info.deviceType} ${value.info.URLBase}');
                       setState(() {
                         dlnaDevice.add(ListTile(
                             leading: _deviceUPnPIcon(
-                                value.info.deviceType.split(':')[3]),
+                                _deviceTypeName(value.info.deviceType)),
                             title: Text(value.info.friendlyName),
-                            subtitle: Text(value.info.deviceType.split(':')[3]),
+                            subtitle:
+                                Text(_deviceTypeName(value.info.deviceType)),
                             onTap: () {
                               try {
                                 KazumiDialog.showToast(
@@ -84,6 +91,11 @@ class RemotePlay {
     }, onDismiss: () {
       searcher.stop();
     });
+  }
+
+  String _deviceTypeName(String deviceType) {
+    final parts = deviceType.split(':');
+    return parts.length > 3 ? parts[3] : deviceType;
   }
 
   Icon _deviceUPnPIcon(String deviceType) {

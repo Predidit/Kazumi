@@ -73,7 +73,7 @@ final class DuoNavigationBridge {
                 self.controller?.selectedIndex = index
                 self.controller?.setTabBarHidden(!visible, animated: false)
                 if visible {
-                    self.controller?.overrideUserInterfaceStyle = dark ? .dark : .light
+                    self.controller?.applyInterfaceStyle(dark: dark)
                     self.controller?.applyTheme(args["theme"] as? [String: Any])
                 }
                 result(nil)
@@ -260,6 +260,12 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
             && rect.intersects(view.bounds) && rect.midY < view.bounds.midY
     }
 
+    // Flutter must keep inheriting the system appearance. Only the native
+    // navigation subtree should receive the resolved page appearance.
+    func applyInterfaceStyle(dark: Bool) {
+        navigation.overrideUserInterfaceStyle = dark ? .dark : .light
+    }
+
     func applyTheme(_ spec: [String: Any]?) {
         guard let spec else { return }
         func color(_ key: String) -> UIColor? {
@@ -309,7 +315,7 @@ private final class DuoNavigationHost: UIViewController, UITabBarControllerDeleg
         tabs.navigationItem.largeTitleDisplayMode = .never
         navigation.navigationBar.prefersLargeTitles = false
         if visible {
-            overrideUserInterfaceStyle = (args["dark"] as? Bool ?? false) ? .dark : .light
+            applyInterfaceStyle(dark: args["dark"] as? Bool ?? false)
             applyTheme(args["theme"] as? [String: Any])
         }
         let leading = args["leading"] as? [String: Any]

@@ -918,9 +918,37 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     onPressed: () {
                       final needRestart = playerController.playback.playing;
                       playerController.pause();
+                      final road = videoPageController.selectedEpisode.road;
+                      final episodeIndex =
+                          videoPageController.selectedEpisode.episode - 1;
+                      var episodeLabel = '';
+                      if (road >= 0 &&
+                          road < videoPageController.roadList.length) {
+                        final identifiers =
+                            videoPageController.roadList[road].identifier;
+                        if (episodeIndex >= 0 &&
+                            episodeIndex < identifiers.length) {
+                          episodeLabel = identifiers[episodeIndex].trim();
+                        }
+                      }
+                      if (episodeLabel.isEmpty) {
+                        episodeLabel = videoPageController
+                            .selectedEpisode.episode
+                            .toString()
+                            .padLeft(2, '0');
+                      }
+                      final bangumiName =
+                          videoPageController.bangumiItem.nameCn.isNotEmpty
+                              ? videoPageController.bangumiItem.nameCn
+                              : videoPageController.bangumiItem.name;
+                      final castTitle = [bangumiName, episodeLabel]
+                          .where((s) => s.isNotEmpty)
+                          .join(' · ');
                       RemotePlay()
-                          .castVideo(playerController.videoUrl,
-                              videoPageController.currentPlugin.referer)
+                          .castVideo(
+                              playerController.videoUrl,
+                              videoPageController.currentPlugin.referer,
+                              castTitle)
                           .whenComplete(() {
                         if (mounted && needRestart) {
                           playerController.play();

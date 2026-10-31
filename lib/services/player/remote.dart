@@ -6,7 +6,8 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
 class RemotePlay {
-  Future<void> castVideo(String video, String referer) async {
+  Future<void> castVideo(String video, String referer,
+      [String title = '']) async {
     final searcher = DLNAManager();
     final dlna = await searcher.start();
     List<Widget> dlnaDevice = [];
@@ -60,7 +61,8 @@ class RemotePlay {
                                 KazumiDialog.showToast(
                                   message: '尝试投屏至 ${value.info.friendlyName}',
                                 );
-                                DLNADevice(value.info).setUrl(video);
+                                DLNADevice(value.info)
+                                    .setUrl(video, title: title);
                                 DLNADevice(value.info).play();
                               } catch (e) {
                                 KazumiLogger().e(

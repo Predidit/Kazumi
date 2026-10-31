@@ -69,7 +69,18 @@ class DanmakuApi {
         'chConvert': conversion.value.toString(),
       },
     );
-    final List<dynamic> comments = jsonData['comments'];
+    final comments = jsonData is Map ? jsonData['comments'] : null;
+    if (comments is! List) {
+      // Same failure mode as the episode list: an error payload carries only
+      // errorCode / errorMessage, so indexing the data key blindly replaced the
+      // server's explanation with an opaque null error.
+      throw DanmakuApiException(
+        errorCode: jsonData is Map ? jsonData['errorCode'] as int? ?? 0 : 0,
+        errorMessage: jsonData is Map
+            ? jsonData['errorMessage'] as String? ?? ''
+            : '响应格式异常',
+      );
+    }
     return [for (final comment in comments) DanmakuEntry.fromJson(comment)];
   }
 }

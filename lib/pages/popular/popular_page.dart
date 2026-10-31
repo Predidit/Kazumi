@@ -71,11 +71,12 @@ class _PopularPageState extends State<PopularPage> {
       body: DuoContentSafeArea(child: CustomScrollView(
         controller: scrollController,
         slivers: [
-          SliverToBoxAdapter(child: DuoHomeActions(
-            onSearch: () => context.pushNamed('/search/'),
-            onHistory: () => context.pushNamed('/settings/history/'),
-            onScrollToTop: _scrollToTop,
-          )),
+          if (DuoHomeActions.enabled)
+            SliverToBoxAdapter(child: DuoHomeActions(
+              onSearch: () => context.pushNamed('/search/'),
+              onHistory: () => context.pushNamed('/settings/history/'),
+              onScrollToTop: _scrollToTop,
+            )),
           buildSliverAppBar(),
           SliverToBoxAdapter(
             child: Observer(

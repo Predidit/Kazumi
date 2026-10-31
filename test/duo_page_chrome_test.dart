@@ -1,3 +1,7 @@
+import 'dart:io';
+import 'package:hive_ce/hive.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:mobx/mobx.dart' show ObservableList;
 import 'package:kazumi/pages/download/download_page.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
@@ -32,6 +36,20 @@ import 'package:kazumi/services/platform/duo_navigation.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final calls = <MethodCall>[];
+  late Directory storageDirectory;
+  late PathProviderPlatform originalPaths;
+  setUpAll(() async {
+    storageDirectory = await Directory.systemTemp.createTemp('kazumi_chrome_test_');
+    originalPaths = PathProviderPlatform.instance;
+    PathProviderPlatform.instance = _ChromeTestPaths(storageDirectory.path);
+    Hive.init(storageDirectory.path);
+    await GStorage.init();
+  });
+  tearDownAll(() async {
+    await Hive.close();
+    PathProviderPlatform.instance = originalPaths;
+    await storageDirectory.delete(recursive: true);
+  });
 
   Map<dynamic, dynamic> chrome() =>
       calls.lastWhere((call) => call.method == 'chrome').arguments as Map;
@@ -588,6 +606,28 @@ void main() {
     await finish(tester);
   });
 
+  testWidgets('non-Duo home header stretches during overscroll', (tester) async {
+    DuoNavigation.resetForTesting();
+    final controller = _NoNetworkPopularController();
+    await tester.pumpWidget(
+      MaterialApp(home: PopularPage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+    final header = find.descendant(
+      of: find.byType(SliverAppBar), matching: find.byType(SafeArea),
+    ).first;
+    final initialHeight = tester.getSize(header).height;
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(CustomScrollView)),
+    );
+    await gesture.moveBy(const Offset(0, 160));
+    await tester.pump();
+    expect(tester.getSize(header).height, greaterThan(initialHeight));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    await finish(tester);
+  });
+
   testWidgets(
     'home category dropdown stays in Flutter and opens the original menu',
     (tester) async {
@@ -919,4 +959,12 @@ class _DownloadFixture implements DownloadController {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _ChromeTestPaths extends PathProviderPlatform {
+  _ChromeTestPaths(this.path);
+  final String path;
+
+  @override
+  Future<String?> getApplicationSupportPath() async => path;
 }

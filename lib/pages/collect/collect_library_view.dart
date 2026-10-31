@@ -63,8 +63,8 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   String _query = '';
   bool _searchExpanded = false;
 
-  // TabController also notifies when an animation ends; this only notifies on
-  // real category changes, and tab switches rebuild nothing but its listeners.
+  // The tapped tab while a tap animates, otherwise the dominant page so swipes
+  // update mid-gesture. Tab switches rebuild nothing but its listeners.
   final _selectedType = ValueNotifier<CollectType?>(CollectType.watching);
 
   @override
@@ -87,11 +87,19 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
       initialIndex: _collectCategories.indexOf(_selectedType.value),
       animationDuration: disableAnimations ? Duration.zero : null,
       vsync: this,
-    )..addListener(_syncSelectedType);
+    )
+      ..addListener(_syncSelectedType)
+      ..animation!.addListener(_syncSelectedType);
   }
 
-  void _syncSelectedType() =>
-      _selectedType.value = _collectCategories[_tabController.index];
+  void _syncSelectedType() {
+    final index = _tabController.indexIsChanging
+        ? _tabController.index
+        : _tabController.animation!.value
+            .round()
+            .clamp(0, _collectCategories.length - 1);
+    _selectedType.value = _collectCategories[index];
+  }
 
   @override
   void didUpdateWidget(covariant CollectLibraryView oldWidget) {

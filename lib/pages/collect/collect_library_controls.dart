@@ -38,7 +38,8 @@ class _CollectCategories extends StatelessWidget {
       labelStyle: labelStyle,
       unselectedLabelStyle: labelStyle,
       labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-      splashBorderRadius: BorderRadius.circular(24),
+      splashFactory: NoSplash.splashFactory,
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
       tabs: [
         for (final type in _collectCategories)
           Tab(

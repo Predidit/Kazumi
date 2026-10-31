@@ -916,11 +916,21 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   ),
                   KazumiMenuItem(
                     onPressed: () {
+                      // Renderers fetch the URL themselves: they cannot reach
+                      // a file on this device or send the rule's Referer.
+                      if (playerController.isLocalPlayback) {
+                        KazumiDialog.showToast(message: '暂不支持离线视频');
+                        return;
+                      }
+                      if (playerController.referer.isNotEmpty) {
+                        KazumiDialog.showToast(message: '暂不支持该规则');
+                        return;
+                      }
                       final needRestart = playerController.playback.playing;
                       playerController.pause();
                       RemotePlay()
                           .castVideo(playerController.videoUrl,
-                              videoPageController.currentPlugin.referer)
+                              title: playerController.mediaTitle)
                           .whenComplete(() {
                         if (mounted && needRestart) {
                           playerController.play();

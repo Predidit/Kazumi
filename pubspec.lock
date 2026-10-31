@@ -400,7 +400,7 @@ packages:
     dependency: "direct main"
     description:
       name: dlna_dart
-      sha256: "da607931548720331b7503f72c426fa7fbd19e9144a4778d293c16a5bc186407"
+      sha256: da607931548720331b7503f72c426fa7fbd19e9144a4778d293c16a5bc186407
       url: "https://pub.dev"
     source: hosted
     version: "0.1.1"

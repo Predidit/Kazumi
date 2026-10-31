@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show PointerDeviceKind;
 
+import 'package:flutter/gestures.dart' hide PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
@@ -9,6 +10,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/side_panel_transition.dart';
 import 'package:kazumi/bean/widget/split_list_row.dart';
@@ -173,6 +175,35 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
         _loading = false;
         _error = '搜索失败';
       });
+    }
+  }
+
+  /// 点击历史关键词：回填输入框并立即发起搜索。
+  ///
+  /// 参数 [keyword] 为被点击的历史关键词；无返回值。
+  void _applyRecentKeyword(String keyword) {
+    _keywordController.text = keyword;
+    _keywordController.selection =
+        TextSelection.collapsed(offset: keyword.length);
+    _searchAnime();
+  }
+
+  /// 删除单条弹幕搜索历史。
+  ///
+  /// 功能：先从内存列表移除并刷新界面，再同步持久化到本地存储；
+  /// 持久化失败时记录日志并提示用户，避免“界面已删除、重开弹窗又出现”
+  /// 这种不一致被静默忽略。参数 [keyword] 为待删除关键词。
+  Future<void> _deleteRecentKeyword(String keyword) async {
+    setState(() => _recentKeywords.remove(keyword));
+    try {
+      await GStorage.putStringListSettingByName(
+        _historyKey,
+        List<String>.of(_recentKeywords),
+      );
+    } catch (error) {
+      KazumiLogger()
+          .w('Danmaku search history failed to delete', error: error);
+      if (mounted) KazumiDialog.showToast(message: '删除失败');
     }
   }
 
@@ -393,9 +424,22 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                   const SizedBox(height: 12),
                 ],
                 if (_recentKeywords.isNotEmpty) ...[
-                  Text(
-                    '最近搜索',
-                    style: Theme.of(context).textTheme.labelLarge,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '最近搜索',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ),
+                      Text(
+                        '长按可删除',
+                        style:
+                            Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   Wrap(
@@ -403,15 +447,11 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                     runSpacing: 8,
                     children: [
                       for (final keyword in _recentKeywords)
-                        ActionChip(
-                          avatar: const Icon(Icons.history, size: 16),
-                          label: Text(keyword),
-                          onPressed: () {
-                            _keywordController.text = keyword;
-                            _keywordController.selection =
-                                TextSelection.collapsed(offset: keyword.length);
-                            _searchAnime();
-                          },
+                        _RecentKeywordChip(
+                          key: ValueKey(keyword),
+                          keyword: keyword,
+                          onTap: () => _applyRecentKeyword(keyword),
+                          onDelete: () => _deleteRecentKeyword(keyword),
                         ),
                     ],
                   ),
@@ -818,6 +858,70 @@ class _SegmentChip extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onTap(),
         showCheckmark: false,
+      ),
+    );
+  }
+}
+
+/// 弹幕搜索历史关键词 Chip。
+///
+/// 功能：点击（短按）直接以该关键词发起搜索；长按或鼠标右键单击
+/// 弹出上下文菜单，选择“删除该记录”后移除单条历史，避免误触。
+class _RecentKeywordChip extends StatelessWidget {
+  const _RecentKeywordChip({
+    super.key,
+    required this.keyword,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  /// 历史关键词文本。
+  final String keyword;
+
+  /// 短按 Chip 时触发（使用该关键词搜索）。
+  final VoidCallback onTap;
+
+  /// 在菜单中选择删除时触发。
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    // 复用 KazumiMenuButton：菜单样式（尺寸、内边距、主题）与全局其它
+    // 菜单保持一致，且开关逻辑由它内部的 toggle 回调统一提供。
+    return KazumiMenuButton(
+      menuChildren: [
+        KazumiMenuItem(
+          label: '删除该记录',
+          destructive: true,
+          leadingIcon: const Icon(Icons.delete_outline_rounded, size: 18),
+          onPressed: onDelete,
+        ),
+      ],
+      builder: (context, toggle) => Listener(
+        // 右键交给 Listener：它不参与手势竞技场，既能捕获鼠标次级按键，
+        // 又不会与内层 ActionChip 的点击、外层的长按识别互相争抢。
+        onPointerDown: (PointerDownEvent event) {
+          if (event.buttons == kSecondaryButton) toggle?.call();
+        },
+        child: RawGestureDetector(
+          gestures: <Type, GestureRecognizerFactory>{
+            LongPressGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+              // 长按只响应主按键：右键按下会先由上面的 Listener 打开菜单，
+              // 若长按识别器也接受右键，按住超过长按时长便会把刚打开的
+              // 菜单再次关闭（表现为菜单一闪即消失）。
+              () => LongPressGestureRecognizer(
+                allowedButtonsFilter: (buttons) => buttons == kPrimaryButton,
+              ),
+              (recognizer) => recognizer.onLongPress = toggle,
+            ),
+          },
+          child: ActionChip(
+            avatar: const Icon(Icons.history, size: 16),
+            label: Text(keyword),
+            onPressed: onTap,
+          ),
+        ),
       ),
     );
   }

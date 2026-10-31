@@ -143,6 +143,13 @@ abstract class _DownloadController with Store {
     }
     _repository.updateEpisode(recordKey, episodeNumber, episode);
 
+    // 下载目录在实际开始下载时才创建，排队或暂停后恢复的剧集统一在完成时缓存弹幕
+    if (episode.status == DownloadStatus.completed &&
+        GStorage.getSetting(SettingsKeys.downloadDanmaku)) {
+      _fetchAndCacheDanmakuAsync(
+          record.bangumiId, episodeNumber, episode.downloadDirectory);
+    }
+
     final key = '${recordKey}_$episodeNumber';
 
     final isFinalState = episode.status == DownloadStatus.completed ||
@@ -642,16 +649,6 @@ abstract class _DownloadController with Store {
         adBlockerEnabled: adBlockerEnabled,
         episode: freshEpisode,
       ));
-
-      final bool downloadDanmaku =
-          GStorage.getSetting(SettingsKeys.downloadDanmaku);
-      if (downloadDanmaku) {
-        _fetchAndCacheDanmakuAsync(
-          request.recordKey,
-          request.bangumiId,
-          request.episodeNumber,
-        );
-      }
     } finally {
       _releaseResolveLease(key, lease);
     }
@@ -700,7 +697,7 @@ abstract class _DownloadController with Store {
   }
 
   void _fetchAndCacheDanmakuAsync(
-      String recordKey, int bangumiId, int episodeNumber) {
+      int bangumiId, int episodeNumber, String downloadDirectory) {
     Future(() async {
       try {
         KazumiLogger().i(
@@ -721,28 +718,6 @@ abstract class _DownloadController with Store {
         if (danmakus.isEmpty) {
           KazumiLogger().i(
               'DownloadController: no danmaku found for episode $episodeNumber');
-          return;
-        }
-
-        // 等待 downloadDirectory 就绪（下载管理器处理任务后才设置）
-        String downloadDirectory = '';
-        for (int i = 0; i < 10; i++) {
-          final record = _repository.getRecord(recordKey);
-          final episode = record?.episodes[episodeNumber];
-          if (episode == null) return;
-          if (episode.status == DownloadStatus.failed ||
-              episode.status == DownloadStatus.paused) {
-            return;
-          }
-          if (episode.downloadDirectory.isNotEmpty) {
-            downloadDirectory = episode.downloadDirectory;
-            break;
-          }
-          await Future.delayed(const Duration(seconds: 3));
-        }
-        if (downloadDirectory.isEmpty) {
-          KazumiLogger().w(
-              'DownloadController: downloadDirectory not ready for episode $episodeNumber, skipping danmaku cache');
           return;
         }
 

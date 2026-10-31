@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/duo/duo_tab_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
@@ -107,12 +108,18 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
             _handleSystemBack(context);
           }
         },
-        child: OrientationBuilder(
-          builder: (context, orientation) {
-            return orientation == Orientation.portrait
-                ? _bottomMenu(context, _selectedIndex)
-                : _sideMenu(context, _selectedIndex);
-          },
+        child: DuoTabShell(
+          index: _selectedIndex,
+          isCovered: _isCovered,
+          onSelected: _selectDestination,
+          nativeBuilder: (context) => Scaffold(body: _outlet(context)),
+          child: OrientationBuilder(
+            builder: (context, orientation) {
+              return orientation == Orientation.portrait
+                  ? _bottomMenu(context, _selectedIndex)
+                  : _sideMenu(context, _selectedIndex);
+            },
+          ),
         ),
       ),
     );

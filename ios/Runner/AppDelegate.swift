@@ -6,6 +6,8 @@ import app_links
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
 
+    private var duoNavigation: AnyObject?
+
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -20,6 +22,12 @@ import app_links
 
     func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
         GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+        if #available(iOS 27.1, *) {
+            duoNavigation = DuoNavigationBridge(
+                messenger: engineBridge.applicationRegistrar.messenger()
+            )
+        }
 
         let channel = FlutterMethodChannel(
             name: "com.predidit.kazumi/intent",

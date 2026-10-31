@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/appbar/duo_action.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -93,6 +94,9 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget build(BuildContext context) {
     return Observer(builder: (context) {
       final entries = widget.controller.histories.toList();
+      final VoidCallback? toggleEditing = _editing && _clearing
+          ? null : () => setState(() => _editing = !_editing);
+      final VoidCallback? clear = _clearing || _deleting.isNotEmpty ? null : _clearHistory;
       return PopScope(
         canPop: !_editing,
         onPopInvokedWithResult: (didPop, result) {
@@ -111,26 +115,30 @@ class _HistoryPageState extends State<HistoryPage> {
               if (entries.isNotEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: _editing
+                  child: DuoActionBinding(
+                    action: DuoAction(label: _editing ? '完成' : '管理历史记录',
+                      icon: _editing ? Icons.done : Icons.edit_outlined, onPressed: toggleEditing),
+                    child: _editing
                       ? FilledButton.tonal(
-                          onPressed: _clearing
-                              ? null
-                              : () => setState(() => _editing = false),
+                          onPressed: toggleEditing,
                           child: const Text('完成'),
                         )
                       : IconButton.filledTonal(
                           tooltip: '管理历史记录',
-                          onPressed: () => setState(() => _editing = true),
+                          onPressed: toggleEditing,
                           icon: const Icon(Icons.edit_outlined),
                         ),
+                  ),
                 ),
                 if (_editing)
-                  IconButton(
+                  DuoActionBinding(
+                    action: DuoAction(label: '清空全部历史记录', icon: Icons.delete_sweep_outlined,
+                      onPressed: clear),
+                    child: IconButton(
                     tooltip: '清空全部历史记录',
-                    onPressed: _clearing || _deleting.isNotEmpty
-                        ? null
-                        : _clearHistory,
+                    onPressed: clear,
                     icon: const Icon(Icons.delete_sweep_outlined),
+                    ),
                   ),
               ],
             ],

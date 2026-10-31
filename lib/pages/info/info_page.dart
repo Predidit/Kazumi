@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:kazumi/bean/duo/duo_page_adapters.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -330,7 +332,15 @@ class _InfoPageState extends State<InfoPage>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => DuoInfoChrome(
+    item: infoController.bangumiItem,
+    onBack: () => context.maybePop(),
+    onWatch: _startWatching,
+    child: _buildPage(context),
+  );
+
+  Widget _buildPage(BuildContext context) {
+    final native = DuoInfoChrome.enabled;
     final showWindowButton = DesktopWindowConfig.showWindowButton;
     final topOffset = Platform.isMacOS && showWindowButton ? 22.0 : 0.0;
     return Scaffold(
@@ -340,7 +350,7 @@ class _InfoPageState extends State<InfoPage>
             SliverOverlapAbsorber(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               sliver: SliverAppBar.medium(
-                title: EmbeddedNativeControlArea(
+                title: native ? null : EmbeddedNativeControlArea(
                   child: dtb.DragToMoveArea(
                     child: Container(
                       width: double.infinity,
@@ -355,7 +365,7 @@ class _InfoPageState extends State<InfoPage>
                 ),
                 automaticallyImplyLeading: false,
                 scrolledUnderElevation: 0.0,
-                leading: EmbeddedNativeControlArea(
+                leading: native ? null : EmbeddedNativeControlArea(
                   child: IconButton(
                     onPressed: () {
                       context.maybePop();
@@ -363,7 +373,7 @@ class _InfoPageState extends State<InfoPage>
                     icon: Icon(Icons.arrow_back),
                   ),
                 ),
-                actions: [
+                actions: native ? const [] : [
                   if (innerBoxIsScrolled)
                     EmbeddedNativeControlArea(
                       child: CollectButton(
@@ -380,12 +390,12 @@ class _InfoPageState extends State<InfoPage>
                     CloseButton(onPressed: () => windowManager.close()),
                   SizedBox(width: 8),
                 ],
-                toolbarHeight: kToolbarHeight + topOffset,
+                toolbarHeight: native ? 0 : kToolbarHeight + topOffset,
                 stretch: true,
                 centerTitle: false,
                 expandedHeight:
-                    308 + kTextTabBarHeight + kToolbarHeight + topOffset,
-                collapsedHeight: kTextTabBarHeight +
+                    308 + kTextTabBarHeight + (native ? 24 : kToolbarHeight + topOffset),
+                collapsedHeight: native ? kTextTabBarHeight : kTextTabBarHeight +
                     kToolbarHeight +
                     MediaQuery.paddingOf(context).top +
                     topOffset,
@@ -413,8 +423,9 @@ class _InfoPageState extends State<InfoPage>
                             child: Align(
                               alignment: Alignment.topCenter,
                               child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                    16, kToolbarHeight, 16, 0),
+                                padding: native
+                                    ? const EdgeInsets.fromLTRB(24, 24, 24, 0)
+                                    : const EdgeInsets.fromLTRB(16, kToolbarHeight, 16, 0),
                                 child: BangumiInfoCardV(
                                   bangumiItem: infoController.bangumiItem,
                                   isLoading: showBangumiInfoSkeleton,
@@ -429,18 +440,21 @@ class _InfoPageState extends State<InfoPage>
                   }),
                 ),
                 forceElevated: innerBoxIsScrolled,
-                bottom: TabBar(
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(kTextTabBarHeight),
+                  child: DuoContentSafeArea(child: TabBar(
                   controller: infoTabController,
                   isScrollable: true,
                   tabAlignment: TabAlignment.center,
                   dividerHeight: 0,
                   tabs: _infoTabs.map((name) => Tab(text: name)).toList(),
+                  )),
                 ),
               ),
             ),
           ];
         },
-        body: Observer(builder: (context) {
+        body: DuoContentSafeArea(child: Observer(builder: (context) {
           final showBangumiInfoSkeleton = _isShowingBangumiInfoSkeleton;
           return InfoTabView(
             tabController: infoTabController,
@@ -466,9 +480,9 @@ class _InfoPageState extends State<InfoPage>
             loadRelations: loadRelations,
             isLoading: showBangumiInfoSkeleton,
           );
-        }),
+        })),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: native ? null : FloatingActionButton.extended(
         tooltip: '开始观看',
         onPressed: _startWatching,
         label: const Text('开始观看'),

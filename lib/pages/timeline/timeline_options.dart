@@ -41,7 +41,10 @@ class _TimelineOptionsButton extends StatelessWidget {
       label: Text('$filterCount'),
       child: const Icon(Icons.tune_rounded, size: 20),
     );
-    return Semantics(
+    return DuoActionBinding(
+      action: DuoAction(label: '$_timelineOptionsTitle：$summary',
+        icon: Icons.tune_rounded, badgeCount: filterCount, onPressed: onPressed),
+      child: Semantics(
       label: _timelineOptionsTitle,
       value: summary,
       button: true,
@@ -61,6 +64,7 @@ class _TimelineOptionsButton extends StatelessWidget {
                 icon: icon,
                 label: Text(sort.label, maxLines: 1),
               ),
+      ),
       ),
     );
   }

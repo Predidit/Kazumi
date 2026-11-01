@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
+import 'package:kazumi/request/core/dio_factory.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/video_source/video_source_format.dart';
 import 'package:kazumi/webview/video/video_webview_controller.dart';
 import 'package:kazumi/services/video_source/video_source_service.dart';
 
@@ -51,6 +55,37 @@ class WebViewVideoSourceService implements IVideoSourceService {
     return resolveFuture;
   }
 
+  Future<VideoSourceFormat?> _probeMediaFormat(String url) async {
+    final trimmed = url.trim();
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      return null;
+    }
+
+    try {
+      final response = await DioFactory.pluginDio.head<void>(
+        trimmed,
+        options: Options(
+          sendTimeout: const Duration(milliseconds: 1500),
+          receiveTimeout: const Duration(milliseconds: 1500),
+          followRedirects: true,
+          maxRedirects: 3,
+          validateStatus: (status) => status != null && status < 400,
+        ),
+      );
+      final contentType =
+          response.headers.value(Headers.contentTypeHeader)?.toLowerCase() ??
+              '';
+      if (contentType.contains('mpegurl')) {
+        return VideoSourceFormat.hls;
+      }
+      if (contentType.startsWith('video/')) {
+        return VideoSourceFormat.auto;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<VideoSource> _runResolve(
     _ResolveRequest request,
     String episodeUrl, {
@@ -59,6 +94,21 @@ class WebViewVideoSourceService implements IVideoSourceService {
     required Duration timeout,
   }) async {
     request.throwIfNotCurrent(_activeRequest);
+
+    final directFormat = await _probeMediaFormat(episodeUrl);
+    if (directFormat != null) {
+      KazumiLogger().i(
+          'WebViewVideoSourceService: detected direct media ($directFormat), bypassing WebView: $episodeUrl');
+      if (identical(_activeRequest, request)) {
+        _activeRequest = null;
+      }
+      return VideoSource(
+        url: episodeUrl.trim(),
+        offset: offset,
+        type: VideoSourceType.online,
+        format: directFormat,
+      );
+    }
 
     if (_webview == null) {
       _webview = VideoWebviewControllerFactory.getController();

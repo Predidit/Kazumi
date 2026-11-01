@@ -55,34 +55,52 @@ class WebViewVideoSourceService implements IVideoSourceService {
     return resolveFuture;
   }
 
-  Future<VideoSourceFormat?> _probeMediaFormat(String url) async {
+  static const Duration _probeTimeout = Duration(milliseconds: 1500);
+
+  Future<VideoSourceFormat?> _probeMediaFormat(
+    _ResolveRequest request,
+    String url,
+  ) async {
     final trimmed = url.trim();
     final uri = Uri.tryParse(trimmed);
     if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
       return null;
     }
 
+    // 探测对每次解析都会执行，限制整体耗时并允许 cancel() 中断请求，
+    // 避免普通页面因 HEAD 请求连接缓慢而推迟 WebView 加载。
+    final cancelToken = CancelToken();
+    unawaited(request.cancelled.then((_) => cancelToken.cancel()));
+
     try {
-      final response = await DioFactory.pluginDio.head<void>(
-        trimmed,
-        options: Options(
-          sendTimeout: const Duration(milliseconds: 1500),
-          receiveTimeout: const Duration(milliseconds: 1500),
-          followRedirects: true,
-          maxRedirects: 3,
-          validateStatus: (status) => status != null && status < 400,
-        ),
-      );
+      final response = await DioFactory.pluginDio
+          .head<void>(
+            trimmed,
+            cancelToken: cancelToken,
+            options: Options(
+              sendTimeout: _probeTimeout,
+              receiveTimeout: _probeTimeout,
+              followRedirects: true,
+              maxRedirects: 3,
+              validateStatus: (status) => status != null && status < 400,
+            ),
+          )
+          .timeout(_probeTimeout);
       final contentType =
           response.headers.value(Headers.contentTypeHeader)?.toLowerCase() ??
-              '';
+          '';
       if (contentType.contains('mpegurl')) {
         return VideoSourceFormat.hls;
       }
       if (contentType.startsWith('video/')) {
         return VideoSourceFormat.auto;
       }
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      if (!cancelToken.isCancelled) {
+        cancelToken.cancel();
+      }
+    }
     return null;
   }
 
@@ -95,10 +113,12 @@ class WebViewVideoSourceService implements IVideoSourceService {
   }) async {
     request.throwIfNotCurrent(_activeRequest);
 
-    final directFormat = await _probeMediaFormat(episodeUrl);
+    final directFormat = await _probeMediaFormat(request, episodeUrl);
+    request.throwIfNotCurrent(_activeRequest);
     if (directFormat != null) {
       KazumiLogger().i(
-          'WebViewVideoSourceService: detected direct media ($directFormat), bypassing WebView: $episodeUrl');
+        'WebViewVideoSourceService: detected direct media ($directFormat), bypassing WebView: $episodeUrl',
+      );
       if (identical(_activeRequest, request)) {
         _activeRequest = null;
       }
@@ -125,11 +145,7 @@ class WebViewVideoSourceService implements IVideoSourceService {
     try {
       request.throwIfNotCurrent(_activeRequest);
       didStartLoad = true;
-      await _webview!.loadUrl(
-        episodeUrl,
-        useLegacyParser,
-        offset: offset,
-      );
+      await _webview!.loadUrl(episodeUrl, useLegacyParser, offset: offset);
 
       request.throwIfNotCurrent(_activeRequest);
 

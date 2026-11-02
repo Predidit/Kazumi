@@ -230,7 +230,7 @@
         needs: [flutter-test, flutter-analyze]
         if: ${{ (github.event_name == 'pull_request' && ! github.event.pull_request.draft) || (github.event_name == 'workflow_dispatch' && (inputs.run_ios || (! inputs.run_android && ! inputs.run_windows && ! inputs.run_ios && ! inputs.run_macos && ! inputs.run_linux))) }}
         name: "Release for iOS"
-        runs-on: "macos-latest"
+        runs-on: "xcode-27"
         permissions: write-all
 
         steps:

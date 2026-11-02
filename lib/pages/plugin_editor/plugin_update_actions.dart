@@ -1,6 +1,22 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 
+Future<void> downloadAllPluginsWithFeedback(PluginsController controller) async {
+  KazumiDialog.showToast(message: '正在安装规则');
+  try {
+    final result = await controller.tryDownloadAllPlugins();
+    KazumiDialog.showToast(
+      message: result.hasNoCandidates
+          ? controller.pluginHTTPList.isEmpty
+              ? '规则仓库暂无规则'
+              : '所有规则均已安装且为最新'
+          : _batchUpdateMessage(result, downloading: true),
+    );
+  } catch (_) {
+    KazumiDialog.showToast(message: '安装规则失败，请重试');
+  }
+}
+
 Future<void> updateAllPluginsWithFeedback(
   PluginsController controller, {
   required bool ensureCatalog,
@@ -39,14 +55,18 @@ Future<PluginUpdateResult> updatePluginWithFeedback(
   return result;
 }
 
-String _batchUpdateMessage(PluginBatchUpdateResult result) {
+String _batchUpdateMessage(
+  PluginBatchUpdateResult result, {
+  bool downloading = false,
+}) {
+  final action = downloading ? '安装' : '更新';
   if (result.hasNoCandidates) {
     return '没有可更新的规则';
   }
   if (result.failed == 0 &&
       result.requiresNewerClient == 0 &&
       result.notNewer == 0) {
-    return '更新成功 ${result.updated} 条';
+    return '$action成功 ${result.updated} 条';
   }
 
   final parts = <String>['成功 ${result.updated} 条'];
@@ -59,5 +79,5 @@ String _batchUpdateMessage(PluginBatchUpdateResult result) {
   if (result.failed > 0) {
     parts.add('失败 ${result.failed} 条');
   }
-  return '更新完成：${parts.join('，')}';
+  return '$action完成：${parts.join('，')}';
 }

@@ -51,6 +51,7 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
   _CatalogFilter _filter = _CatalogFilter.all;
   bool _loading = true;
   bool _loadFailed = false;
+  bool _downloading = false;
 
   PluginsController get _controller => widget.controller;
 
@@ -117,13 +118,23 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
 
   Future<void> _install(
       PluginHTTPItem item, PluginCatalogItemStatus status) async {
-    if (!_installing.add(item.name)) return;
+    if (_downloading || !_installing.add(item.name)) return;
     setState(() {});
     try {
       await updatePluginWithFeedback(_controller, item.name,
           installing: status == PluginCatalogItemStatus.install);
     } finally {
       if (mounted) setState(() => _installing.remove(item.name));
+    }
+  }
+
+  Future<void> _downloadAll() async {
+    if (_downloading || _loading || _installing.isNotEmpty) return;
+    setState(() => _downloading = true);
+    try {
+      await downloadAllPluginsWithFeedback(_controller);
+    } finally {
+      if (mounted) setState(() => _downloading = false);
     }
   }
 
@@ -152,6 +163,8 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _sortButton() => KazumiMenuButton(
         builder: (context, toggle) => TextButton.icon(
+          style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 4)),
           onPressed: toggle,
           icon: const Icon(Icons.sort_rounded, size: 20),
           label: Text(_sort == _CatalogSort.name ? '名称排序' : '最近更新'),
@@ -168,6 +181,33 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _header(int total, int installed, int updates) {
     final theme = Theme.of(context);
+    final allInstalled = total > 0 && installed == total;
+    final leading = widget._onboarding
+        ? Text('规则仓库 · 已安装 $installed',
+            style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600))
+        : _sortButton();
+    final actions = Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        if (_downloading || !allInstalled)
+          DownloadAllRulesButton(
+            downloading: _downloading,
+            onPressed: _loading || total == 0 || _installing.isNotEmpty
+                ? null
+                : _downloadAll,
+          ),
+        IconButton.filledTonal(
+            style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+            tooltip: '刷新规则列表',
+            onPressed: _loading || _downloading ? null : _refresh,
+            icon: const Icon(Icons.refresh_rounded)),
+      ],
+    );
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (!widget._onboarding) ...[
         const RulePageIntro(
@@ -207,23 +247,30 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
           ],
         ),
       ],
-      Row(children: [
-        if (widget._onboarding)
-          Expanded(
-            child: Text('规则仓库 · 已安装 $installed',
-                style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600)),
-          )
-        else ...[
-          _sortButton(),
-          const Spacer(),
-        ],
-        IconButton.filledTonal(
-            tooltip: '刷新规则列表',
-            onPressed: _loading ? null : _refresh,
-            icon: const Icon(Icons.refresh_rounded)),
-      ]),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (widget._onboarding && constraints.maxWidth < 440) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(alignment: Alignment.centerLeft, child: leading),
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerRight, child: actions),
+                ],
+              );
+            }
+            return Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [leading, actions],
+            );
+          },
+        ),
+      ),
       if (_loading && total > 0)
         const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
@@ -319,7 +366,8 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
                       trailing: _CatalogRuleAction(
                         status: status,
                         busy: busy,
-                        onPressed: () => _install(item, status),
+                        onPressed:
+                            _downloading ? null : () => _install(item, status),
                       ),
                     );
                   },
@@ -344,7 +392,7 @@ class _CatalogRuleAction extends StatelessWidget {
 
   final PluginCatalogItemStatus status;
   final bool busy;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

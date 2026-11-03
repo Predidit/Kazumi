@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
@@ -58,10 +59,19 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
     for (final type in _collectCategories) type: ScrollController(),
   };
   PageStorageBucket _resultsStorage = PageStorageBucket();
-  CollectType? _selectedType = CollectType.watching;
   CollectSort _sort = CollectSort.recentlyChanged;
   String _query = '';
   bool _searchExpanded = false;
+
+  // The tapped tab while a tap animates, otherwise the dominant page so swipes
+  // update mid-gesture. Tab switches rebuild nothing but its listeners.
+  final _selectedType = ValueNotifier<CollectType?>(CollectType.watching);
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedType.addListener(_libraryFocus.requestFocus);
+  }
 
   @override
   void didChangeDependencies() {
@@ -74,10 +84,21 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
     _disableAnimations = disableAnimations;
     _tabController = TabController(
       length: _collectCategories.length,
-      initialIndex: _collectCategories.indexOf(_selectedType),
+      initialIndex: _collectCategories.indexOf(_selectedType.value),
       animationDuration: disableAnimations ? Duration.zero : null,
       vsync: this,
-    )..addListener(_onCategoryChanged);
+    )
+      ..addListener(_syncSelectedType)
+      ..animation!.addListener(_syncSelectedType);
+  }
+
+  void _syncSelectedType() {
+    final index = _tabController.indexIsChanging
+        ? _tabController.index
+        : _tabController.animation!.value
+            .round()
+            .clamp(0, _collectCategories.length - 1);
+    _selectedType.value = _collectCategories[index];
   }
 
   @override
@@ -89,6 +110,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   @override
   void dispose() {
     _tabController.dispose();
+    _selectedType.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
     _libraryFocus.dispose();
@@ -107,7 +129,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   }
 
   void _focusSearch() {
-    final controller = _scrollControllers[_selectedType]!;
+    final controller = _scrollControllers[_selectedType.value]!;
     if (controller.hasClients) controller.jumpTo(0);
     setState(() => _searchExpanded = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -130,13 +152,6 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
       _query = value;
       _resetResults();
     });
-  }
-
-  void _onCategoryChanged() {
-    final type = _collectCategories[_tabController.index];
-    if (type == _selectedType) return;
-    _libraryFocus.requestFocus();
-    setState(() => _selectedType = type);
   }
 
   @override
@@ -180,8 +195,12 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
                           controller: _tabController,
                           children: [
                             for (final type in _collectCategories)
-                              HeroMode(
-                                enabled: type == _selectedType,
+                              ValueListenableBuilder(
+                                valueListenable: _selectedType,
+                                builder: (context, selected, child) => HeroMode(
+                                  enabled: type == selected,
+                                  child: child!,
+                                ),
                                 child: _results(query, type, inset: inset),
                               ),
                           ],
@@ -189,7 +208,11 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
                       ),
                     ],
                   )
-                : _results(query, _selectedType, inset: inset, header: header),
+                : ValueListenableBuilder(
+                    valueListenable: _selectedType,
+                    builder: (context, selected, _) =>
+                        _results(query, selected, inset: inset, header: header),
+                  ),
           );
         }),
       ),
@@ -206,18 +229,14 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
               child: _CollectCategories(
                 key: _categoriesKey,
                 controller: _tabController,
+                selected: _selectedType,
                 count: query.count,
               ),
             ),
             if (!compact)
               Padding(
                 padding: const EdgeInsetsDirectional.only(start: 16),
-                child: Text(
-                  '${query.count(_selectedType)} 部',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
+                child: _countLabel(query),
               ),
           ],
         ),
@@ -235,16 +254,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
                 ),
               )
             else
-              Expanded(
-                child: Text(
-                  '${query.count(_selectedType)} 部',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ),
+              Expanded(child: _countLabel(query)),
             const SizedBox(width: 12),
             _CollectSortMenu(
               value: _sort,
@@ -277,6 +287,18 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
       ],
     );
   }
+
+  Widget _countLabel(CollectLibraryQuery query) => ValueListenableBuilder(
+        valueListenable: _selectedType,
+        builder: (context, selected, _) => Text(
+          '${query.count(selected)} 部',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+      );
 
   Widget _searchBar() => Semantics(
         label: '搜索收藏',

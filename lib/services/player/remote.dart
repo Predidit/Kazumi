@@ -6,9 +6,11 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
 class RemotePlay {
-  Future<void> castVideo(String video, String referer) async {
+  Future<void> castVideo(String video, {required String title}) async {
     final searcher = DLNAManager();
     final dlna = await searcher.start();
+    StreamSubscription<Map<String, DLNADevice>>? subscription;
+    final loggedDevices = <String>{};
     List<Widget> dlnaDevice = [];
     await KazumiDialog.show(builder: (BuildContext context) {
       return StatefulBuilder(builder: (context, setState) {
@@ -32,46 +34,48 @@ class RemotePlay {
             ),
             TextButton(
                 onPressed: () {
-                  setState(() {});
                   KazumiDialog.showToast(
                     message: '开始搜索',
                   );
-                  dlna.devices.stream.listen((deviceList) {
-                    dlnaDevice = [];
-                    deviceList.forEach((key, value) async {
-                      KazumiLogger().i('RemotePlay: key: $key');
-                      KazumiLogger().i(
-                          'RemotePlay: value: ${value.info.friendlyName} ${value.info.deviceType} ${value.info.URLBase}');
-                      setState(() {
-                        dlnaDevice.add(ListTile(
-                            leading: _deviceUPnPIcon(
-                                value.info.deviceType.split(':')[3]),
-                            title: Text(value.info.friendlyName),
-                            subtitle: Text(value.info.deviceType.split(':')[3]),
-                            onTap: () {
-                              try {
-                                KazumiDialog.showToast(
-                                  message: '尝试投屏至 ${value.info.friendlyName}',
-                                );
-                                DLNADevice(value.info).setUrl(video);
-                                DLNADevice(value.info).play();
-                              } catch (e) {
-                                KazumiLogger().e(
-                                    'RemotePlay: failed to cast to device',
-                                    error: e);
-                                KazumiDialog.showToast(
-                                  message: 'DLNA 异常: $e \n尝试重新进入 DLNA 投屏或切换设备',
-                                );
-                              }
-                            }));
-                      });
+                  // The device stream is single-subscription.
+                  subscription ??= dlna.devices.stream.listen((deviceList) {
+                    final tiles = <Widget>[];
+                    deviceList.forEach((key, value) {
+                      final castable = _supportsAVTransport(value);
+                      if (loggedDevices.add(key)) {
+                        KazumiLogger().i(
+                            'RemotePlay: found ${value.info.friendlyName} ${value.info.deviceType} ${value.info.URLBase}${castable ? '' : ', skipped without AVTransport'}');
+                      }
+                      if (!castable) {
+                        return;
+                      }
+                      final typeName = _deviceTypeName(value.info.deviceType);
+                      tiles.add(ListTile(
+                          leading: _deviceUPnPIcon(typeName),
+                          title: Text(value.info.friendlyName),
+                          subtitle: Text(typeName),
+                          onTap: () async {
+                            try {
+                              KazumiDialog.showToast(
+                                message: '尝试投屏至 ${value.info.friendlyName}',
+                              );
+                              await value.setUrl(video, title: title);
+                              await value.play();
+                            } catch (e) {
+                              KazumiLogger().e(
+                                  'RemotePlay: failed to cast to device',
+                                  error: e);
+                              KazumiDialog.showToast(
+                                message: 'DLNA 异常: $e \n尝试重新进入 DLNA 投屏或切换设备',
+                              );
+                            }
+                          }));
+                    });
+                    // Also rebuild when empty, so pruned devices disappear.
+                    setState(() {
+                      dlnaDevice = tiles;
                     });
                   });
-                  // Timer(const Duration(seconds: 30), () {
-                  //   KazumiDialog.showToast(
-                  //     message: '已搜索30s，若未发现设备请尝试重新进入 DLNA 投屏',
-                  //   );
-                  // });
                 },
                 child: Text(
                   '搜索',
@@ -82,8 +86,20 @@ class RemotePlay {
         );
       });
     }, onDismiss: () {
+      subscription?.cancel();
       searcher.stop();
     });
+  }
+
+  // DLNADevice.controlURL resolves every cast request through this service.
+  bool _supportsAVTransport(DLNADevice device) {
+    return device.info.serviceList
+        .any((service) => '${service['serviceId']}'.contains('AVTransport'));
+  }
+
+  String _deviceTypeName(String deviceType) {
+    final parts = deviceType.split(':');
+    return parts.length > 3 ? parts[3] : deviceType;
   }
 
   Icon _deviceUPnPIcon(String deviceType) {

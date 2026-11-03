@@ -92,7 +92,7 @@ lib/
 │   ├── download/               # 离线下载管理、后台下载任务、目录授权与路径迁移
 │   ├── logging/                # 日志服务（KazumiLogger）
 │   ├── network/                # 代理管理、计费网络检测、镜像加速与代理感知图片缓存
-│   ├── platform/               # 桌面窗口配置、刷新率、系统菜单、Windows 快捷方式与平台能力检测
+│   ├── platform/               # 桌面窗口配置、托盘与退出、刷新率、系统菜单、Windows 快捷方式与平台能力检测
 │   ├── player/                 # 音频控制、外部播放器、DLNA 投屏、画中画、SyncPlay、截图导出与播放策略
 │   ├── plugin/                 # XPath / API 规则引擎、站点 Cookie、人机验证、规则导入解析与有效性追踪
 │   ├── shaders/                # Anime4K 着色器资源服务

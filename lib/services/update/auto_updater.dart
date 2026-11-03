@@ -7,6 +7,7 @@ import 'package:kazumi/bean/dialog/update_available_dialog.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/platform/app_exit.dart';
 import 'package:kazumi/services/update/update_download_source.dart';
 import 'package:kazumi/services/update/update_downloader.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -440,11 +441,11 @@ class AutoUpdater {
           await Process.start('explorer.exe', [filePath], runInShell: true);
         }
         await Future.delayed(const Duration(seconds: 1));
-        exit(0);
+        await AppExit.quit();
       } else if (Platform.isMacOS) {
         if (filePath.endsWith('.dmg')) {
           await Process.start('open', [filePath]);
-          exit(0);
+          await AppExit.quit();
         }
       } else if (Platform.isAndroid) {
         final result = await OpenFilex.open(filePath);

@@ -27,22 +27,32 @@ class NetworkConfig {
 
   bool get hasProxy => proxyHost != null && proxyPort != null;
 
-  IOHttpClientAdapter createAdapter() {
-    return IOHttpClientAdapter(
-      createHttpClient: () {
-        final client = HttpClient();
-        if (hasProxy) {
-          client.findProxy = (_) => 'PROXY $proxyHost:$proxyPort';
-        } else if (Platform.isWindows) {
-          client.findProxy = SystemProxyService.findProxy;
-        }
-        if (allowBadCertificates) {
-          client.badCertificateCallback = (cert, host, port) => true;
-        }
-        return client;
-      },
-    );
+  Uri? proxyForUri(Uri uri) {
+    if (hasProxy) return Uri(scheme: 'http', host: proxyHost, port: proxyPort);
+    if (Platform.isWindows) {
+      final proxy = SystemProxyService.findProxy(uri);
+      if (proxy.startsWith('PROXY ')) {
+        return Uri.parse('http://${proxy.substring(6)}');
+      }
+    }
+    return null;
   }
+
+  HttpClient createHttpClient() {
+    final client = HttpClient();
+    if (hasProxy) {
+      client.findProxy = (_) => 'PROXY $proxyHost:$proxyPort';
+    } else if (Platform.isWindows) {
+      client.findProxy = SystemProxyService.findProxy;
+    }
+    if (allowBadCertificates) {
+      client.badCertificateCallback = (cert, host, port) => true;
+    }
+    return client;
+  }
+
+  IOHttpClientAdapter createAdapter() =>
+      IOHttpClientAdapter(createHttpClient: createHttpClient);
 
   NetworkConfig copyWith({
     Duration? connectTimeout,

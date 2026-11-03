@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_catalog_view.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
@@ -8,11 +8,7 @@ import 'package:kazumi/request/config/rules_repository_config.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class PluginShopPage extends StatefulWidget {
-  const PluginShopPage({
-    super.key,
-    required this.controller,
-  });
-
+  const PluginShopPage({super.key, required this.controller});
   final PluginsController controller;
 
   @override
@@ -20,30 +16,25 @@ class PluginShopPage extends StatefulWidget {
 }
 
 class _PluginShopPageState extends State<PluginShopPage> {
-  final catalogKey = GlobalKey<PluginCatalogViewState>();
-  bool sortByName = false;
-
-  void _toggleSort() {
-    setState(() {
-      sortByName = !sortByName;
-    });
-  }
+  final _catalogKey = GlobalKey<PluginCatalogViewState>();
+  bool _configuring = false;
 
   Future<void> _configureRepository() async {
-    final currentUrl = GStorage.getSetting(SettingsKeys.ruleRepositoryUrl);
-    final result = await KazumiDialog.show<String>(
-      context: context,
-      builder: (_) => _RepositoryDialog(
-        initialUrl: currentUrl,
-      ),
-    );
-    if (result == null) return;
-
+    if (_configuring) return;
+    setState(() => _configuring = true);
     try {
+      final result = await KazumiDialog.show<String>(
+        context: context,
+        builder: (_) => _RepositoryDialog(
+          initialUrl: GStorage.getSetting(SettingsKeys.ruleRepositoryUrl),
+        ),
+      );
+      if (result == null || !mounted) return;
       final normalized = RulesRepositoryConfig.normalizeForStorage(result);
       await GStorage.putSetting(SettingsKeys.ruleRepositoryUrl, normalized);
       widget.controller.invalidatePluginCatalog();
-      final refreshed = await catalogKey.currentState?.refresh() ?? false;
+      if (!mounted) return;
+      final refreshed = await _catalogKey.currentState?.refresh() ?? false;
       if (!mounted) return;
       KazumiDialog.showToast(
         context: context,
@@ -52,41 +43,42 @@ class _PluginShopPageState extends State<PluginShopPage> {
             : '仓库地址已保存，但目录加载失败',
       );
     } on FormatException catch (error) {
-      if (!mounted) return;
-      KazumiDialog.showToast(context: context, message: error.message);
+      if (mounted) {
+        KazumiDialog.showToast(context: context, message: error.message);
+      }
+    } catch (_) {
+      if (mounted) {
+        KazumiDialog.showToast(context: context, message: '保存规则仓库失败，请重试');
+      }
+    } finally {
+      if (mounted) setState(() => _configuring = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: SysAppBar(
-        title: const Text('规则仓库'),
-        actions: [
-          IconButton(
-            onPressed: _configureRepository,
-            tooltip: '设置规则仓库',
-            icon: const Icon(Icons.storage_rounded),
+  Widget build(BuildContext context) => SettingsDetailScaffold(
+    title: const Text('规则仓库'),
+    actions: [
+      IconButton(
+        onPressed: _configuring ? null : _configureRepository,
+        tooltip: '设置规则仓库',
+        icon: const Icon(Icons.storage_rounded),
+      ),
+    ],
+    body: SafeArea(
+      top: false,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: PluginCatalogView(
+            key: _catalogKey,
+            controller: widget.controller,
           ),
-          IconButton(
-              onPressed: _toggleSort,
-              tooltip: sortByName ? '按名称排序' : '按更新时间排序',
-              icon: Icon(sortByName ? Icons.sort_by_alpha : Icons.access_time)),
-          IconButton(
-              onPressed: () => catalogKey.currentState?.refresh(),
-              tooltip: '刷新规则列表',
-              icon: const Icon(Icons.refresh))
-        ],
+        ),
       ),
-      body: PluginCatalogView(
-        key: catalogKey,
-        controller: widget.controller,
-        sort:
-            sortByName ? PluginCatalogSort.name : PluginCatalogSort.lastUpdate,
-        errorMessage: '啊咧（⊙.⊙） 无法访问规则仓库',
-      ),
-    );
-  }
+    ),
+  );
 }
 
 class _RepositoryDialog extends StatefulWidget {

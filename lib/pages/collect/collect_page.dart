@@ -1,16 +1,20 @@
 import 'dart:async';
 
-import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/bean/card/bangumi_card.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/widget/collect_button.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/sync_priority.dart';
+import 'package:kazumi/modules/collect/collect_layout.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/pages/collect/collect_library_view.dart';
+import 'package:kazumi/pages/collect/collect_sync_dialog.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class CollectPage extends StatefulWidget {
@@ -25,380 +29,123 @@ class CollectPage extends StatefulWidget {
   State<CollectPage> createState() => _CollectPageState();
 }
 
-class _CollectPageState extends State<CollectPage>
-    with SingleTickerProviderStateMixin {
+class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   CollectController get collectController => widget.controller;
-  TabController? tabController;
-  bool showDelete = false;
-  bool syncCollectiblesing = false;
+  bool get _syncDialogOpen => dialogs.isRunning;
+  final Set<int> _pendingIds = {};
+  late CollectLayout _layout;
 
-  Future<bool> _syncBangumiWithProgress({
-    required GlobalKey<_FullSyncProgressDialogState> progressDialogKey,
-  }) async {
-    progressDialogKey.currentState?.update('准备同步 Bangumi 收藏...', null);
-
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-
-    return collectController.syncCollectiblesBangumi(
-      showSuccessToast: false,
-      onProgress: (message, current, total) {
-        progressDialogKey.currentState?.update(
-          total > 0 ? '$message ($current/$total)' : message,
-          total > 0 ? (current / total).clamp(0.0, 1.0).toDouble() : null,
-        );
-      },
-    );
-  }
-
-  void _showFullSyncProgressDialog({
-    required GlobalKey<_FullSyncProgressDialogState> progressDialogKey,
-  }) {
-    unawaited(KazumiDialog.show(
-      clickMaskDismiss: false,
-      builder: (context) => _FullSyncProgressDialog(key: progressDialogKey),
-    ));
-  }
-
-  String _buildFullSyncSummary({
-    required CollectSyncPlan plan,
-    required bool webDavSynced,
-    required bool bangumiSynced,
-    required bool webDavUploaded,
-  }) {
-    final List<String> states = [];
-    if (plan.shouldSyncWebDavCollectibles) {
-      states.add(webDavSynced ? 'WebDav 已同步' : 'WebDav 未完成');
-    }
-    if (plan.shouldSyncBangumi) {
-      states.add(bangumiSynced ? 'Bangumi 已同步' : 'Bangumi 未完成');
-    }
-    if (plan.shouldSyncWebDavCollectibles &&
-        plan.shouldSyncBangumi &&
-        webDavSynced &&
-        bangumiSynced) {
-      states.add(webDavUploaded ? 'WebDav 已回传最新数据' : 'WebDav 未回传最新数据');
-    }
-    return states.join('，');
-  }
-
-  Future<void> _runFullSync({
-    required CollectSyncPlan plan,
-  }) async {
-    final progressDialogKey = GlobalKey<_FullSyncProgressDialogState>();
-
-    _showFullSyncProgressDialog(
-      progressDialogKey: progressDialogKey,
-    );
-
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-
-    bool webDavSynced = false;
-    bool bangumiSynced = false;
-    bool webDavUploaded = false;
-
-    try {
-      if (plan.shouldSyncWebDavCollectibles) {
-        progressDialogKey.currentState?.update('正在同步 WebDav 收藏...', null);
-        webDavSynced =
-            await collectController.syncCollectibles(showSuccessToast: false);
-      }
-
-      if (plan.shouldSyncBangumi) {
-        bangumiSynced = await _syncBangumiWithProgress(
-          progressDialogKey: progressDialogKey,
-        );
-      }
-
-      if (plan.shouldUploadWebDavAfterBangumi(
-        webDavSynced: webDavSynced,
-        bangumiSynced: bangumiSynced,
-      )) {
-        progressDialogKey.currentState?.update('正在回传最新收藏到 WebDav...', null);
-        webDavUploaded = await collectController.uploadCollectiblesToWebDav(
-          showSuccessToast: false,
-        );
-      }
-    } finally {
-      if (KazumiDialog.observer.hasKazumiDialog) {
-        KazumiDialog.dismiss();
-      }
-    }
-
-    KazumiDialog.showToast(
-      message: _buildFullSyncSummary(
-        plan: plan,
-        webDavSynced: webDavSynced,
-        bangumiSynced: bangumiSynced,
-        webDavUploaded: webDavUploaded,
-      ),
-    );
-  }
+  Future<bool> _syncStep(
+    CollectSyncStep step, {
+    required ValueChanged<String> onError,
+    required void Function(String message, int current, int total) onProgress,
+  }) =>
+      switch (step) {
+        CollectSyncStep.webDav => collectController.syncCollectibles(
+            onError: onError,
+          ),
+        CollectSyncStep.bangumi => collectController.syncCollectiblesBangumi(
+            onError: onError,
+            onProgress: onProgress,
+          ),
+        CollectSyncStep.upload => collectController.uploadCollectiblesToWebDav(
+            onError: onError,
+          ),
+      };
 
   @override
   void initState() {
     super.initState();
+    // Read once; page switches never change the saved default.
+    _layout = CollectLayout.fromValue(
+      GStorage.getSetting(SettingsKeys.defaultCollectLayout),
+    );
     collectController.loadCollectibles();
-    tabController = TabController(vsync: this, length: tabs.length);
   }
 
-  @override
-  void dispose() {
-    tabController?.dispose();
-    super.dispose();
+  void _changeLayout(CollectLayout layout) {
+    if (_layout == layout) return;
+    setState(() => _layout = layout);
   }
 
-  final List<Tab> tabs = const <Tab>[
-    Tab(text: '在看'),
-    Tab(text: '想看'),
-    Tab(text: '搁置'),
-    Tab(text: '看过'),
-    Tab(text: '抛弃'),
-  ];
+  Future<void> _changeType(BangumiItem item, CollectType type) async {
+    if (_syncDialogOpen || _pendingIds.contains(item.id)) return;
+    setState(() => _pendingIds.add(item.id));
+    try {
+      await collectController.addCollect(item, type: type.value);
+    } catch (_) {
+      KazumiDialog.showToast(message: '修改收藏状态失败，请稍后重试');
+    } finally {
+      if (mounted) setState(() => _pendingIds.remove(item.id));
+    }
+  }
+
+  Future<void> _sync() async {
+    if (_syncDialogOpen || _pendingIds.isNotEmpty) return;
+    final plan = CollectSyncPlan(
+      webDavEnabled: GStorage.getSetting(SettingsKeys.webDavEnable),
+      webDavCollectiblesEnabled:
+          GStorage.getSetting(SettingsKeys.webDavEnableCollect),
+      bangumiEnabled: GStorage.getSetting(SettingsKeys.bangumiSyncEnable),
+    );
+    await dialogs.run((task) async {
+      final destination = await task.show<CollectSyncDestination>(
+        builder: (_) => CollectSyncDialog(
+          plan: plan,
+          priority: BangumiSyncPriority.fromValue(
+            GStorage.getSetting(SettingsKeys.bangumiSyncPriority),
+          ),
+          onSync: _syncStep,
+        ),
+      );
+      task.withContext((context) => context.pushNamed(switch (destination) {
+            CollectSyncDestination.webDavSettings => '/settings/webdav/',
+            CollectSyncDestination.bangumiSettings => '/settings/bangumi/',
+          }));
+    }, errorMessage: '同步未完成，请稍后重试');
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(
         needTopOffset: false,
-        toolbarHeight: 104,
-        bottom: TabBar(
-          controller: tabController,
-          tabs: tabs,
-          indicatorColor: Theme.of(context).colorScheme.primary,
+        toolbarHeight: 72,
+        title: Text(
+          '追番',
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
-        title: const Text('追番'),
         actions: [
-          IconButton(
-              onPressed: () {
-                setState(() {
-                  showDelete = !showDelete;
-                });
-              },
-              icon: showDelete
-                  ? const Icon(Icons.edit_outlined)
-                  : const Icon(Icons.edit))
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Tooltip(
+              message: '同步收藏',
+              child: StateActionButton.tonal(
+                text: '同步',
+                onPressed:
+                    _syncDialogOpen || _pendingIds.isNotEmpty ? null : _sync,
+                icon: Icons.sync_rounded,
+              ),
+            ),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          bool webDavenable =
-              await GStorage.getSetting(SettingsKeys.webDavEnable);
-          bool webDavCollectEnable =
-              GStorage.getSetting(SettingsKeys.webDavEnableCollect);
-          bool bgmSyncEnable =
-              GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-          final syncPlan = CollectSyncPlan(
-            webDavEnabled: webDavenable,
-            webDavCollectiblesEnabled: webDavCollectEnable,
-            bangumiEnabled: bgmSyncEnable,
-          );
-          if (!syncPlan.canSync) {
-            KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
-            return;
-          }
-          if (showDelete) {
-            KazumiDialog.showToast(message: '编辑模式无法执行同步');
-            return;
-          }
-          if (syncCollectiblesing) {
-            return;
-          }
-          setState(() {
-            syncCollectiblesing = true;
-          });
-          try {
-            await _runFullSync(
-              plan: syncPlan,
-            );
-          } finally {
-            if (mounted) {
-              setState(() {
-                syncCollectiblesing = false;
-              });
-            }
-          }
-        },
-        child: syncCollectiblesing
-            ? const SizedBox(
-                width: 32, height: 32, child: CircularProgressIndicator())
-            : const Icon(Icons.sync_rounded),
-      ),
-      body: Observer(builder: (context) {
-        return renderBody;
-      }),
-    );
-  }
-
-  Widget get renderBody {
-    if (collectController.collectibles.isNotEmpty) {
-      return TabBarView(
-        controller: tabController,
-        children: contentGrid(collectController.collectibles),
-      );
-    } else {
-      return const Center(
-        child: GeneralEmptyState(
-          icon: Icons.favorite_border_rounded,
-          title: '暂无追番内容',
-        ),
-      );
-    }
-  }
-
-  List<Widget> contentGrid(List<CollectedBangumi> collectedBangumiList) {
-    final bool showAnimeCounter =
-        GStorage.getSetting(SettingsKeys.showAnimeCounter);
-    List<Widget> gridViewList = [];
-    List<List<CollectedBangumi>> collectedBangumiRenderItemList =
-        List.generate(tabs.length, (_) => <CollectedBangumi>[]);
-    for (CollectedBangumi element in collectedBangumiList) {
-      collectedBangumiRenderItemList[element.type - 1].add(element);
-    }
-    for (List<CollectedBangumi> list in collectedBangumiRenderItemList) {
-      list.sort((a, b) => b.time.millisecondsSinceEpoch
-          .compareTo(a.time.millisecondsSinceEpoch));
-    }
-    int crossCount = 3;
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
-      crossCount = 5;
-    }
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
-      crossCount = 6;
-    }
-    for (List<CollectedBangumi> collectedBangumiRenderItem
-        in collectedBangumiRenderItemList) {
-      gridViewList.add(
-        CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(StyleString.cardSpace,
-                  StyleString.cardSpace, StyleString.cardSpace, 0),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  mainAxisSpacing: StyleString.cardSpace - 2,
-                  crossAxisSpacing: StyleString.cardSpace,
-                  crossAxisCount: crossCount,
-                  mainAxisExtent:
-                      MediaQuery.of(context).size.width / crossCount / 0.65 +
-                          MediaQuery.textScalerOf(context).scale(32.0),
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    return collectedBangumiRenderItem.isNotEmpty
-                        ? Stack(
-                            children: [
-                              BangumiCardV(
-                                bangumiItem: collectedBangumiRenderItem[index]
-                                    .bangumiItem,
-                                canTap: !showDelete,
-                              ),
-                              Positioned(
-                                right: 5,
-                                bottom: 5,
-                                child: showDelete
-                                    ? Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .secondaryContainer,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: CollectButton(
-                                          bangumiItem:
-                                              collectedBangumiRenderItem[index]
-                                                  .bangumiItem,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSecondaryContainer,
-                                        ),
-                                      )
-                                    : Container(),
-                              ),
-                            ],
-                          )
-                        : null;
-                  },
-                  childCount: collectedBangumiRenderItem.isNotEmpty
-                      ? collectedBangumiRenderItem.length
-                      : 10,
-                ),
-              ),
-            ),
-            if (collectedBangumiRenderItem.isNotEmpty && showAnimeCounter)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 12),
-                      child: Text(
-                        '总计：${collectedBangumiRenderItem.length}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-    return gridViewList;
-  }
-}
-
-class _FullSyncProgressDialog extends StatefulWidget {
-  const _FullSyncProgressDialog({super.key});
-
-  @override
-  State<_FullSyncProgressDialog> createState() =>
-      _FullSyncProgressDialogState();
-}
-
-class _FullSyncProgressDialogState extends State<_FullSyncProgressDialog> {
-  String _progressText = '准备开始同步收藏...';
-  double? _progressValue;
-
-  void update(String text, double? value) {
-    if (!mounted) return;
-    setState(() {
-      _progressText = text;
-      _progressValue = value;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      child: Dialog(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: SizedBox(
-            width: 340,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '收藏全量同步中',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(_progressText),
-                const SizedBox(height: 12),
-                LinearProgressIndicator(value: _progressValue),
-              ],
-            ),
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Observer(
+          builder: (context) => CollectLibraryView(
+            entries: collectController.collectibles.toList(),
+            showRating: GStorage.getSetting(SettingsKeys.showRating),
+            layout: _layout,
+            onLayoutChanged: _changeLayout,
+            canEdit: (item) =>
+                !_syncDialogOpen && !_pendingIds.contains(item.id),
+            onOpen: (item) => context.pushNamed('/info/', arguments: item),
+            onChangeType: (item, type) => unawaited(_changeType(item, type)),
           ),
         ),
       ),

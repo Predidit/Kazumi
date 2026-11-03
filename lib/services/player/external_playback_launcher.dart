@@ -18,7 +18,6 @@ class ExternalPlaybackLauncher {
     if ((Platform.isAndroid || Platform.isWindows) && currentReferer.isEmpty) {
       if (await ExternalPlayer.launchUrlWithMime(
           currentVideoUrl, 'video/mp4')) {
-        KazumiDialog.dismiss();
         KazumiDialog.showToast(
           message: '尝试唤起外部播放器',
         );
@@ -30,7 +29,6 @@ class ExternalPlaybackLauncher {
     } else if (Platform.isMacOS || Platform.isIOS) {
       if (await ExternalPlayer.launchUrlWithReferer(
           currentVideoUrl, currentReferer)) {
-        KazumiDialog.dismiss();
         KazumiDialog.showToast(
           message: '尝试唤起外部播放器',
         );
@@ -40,7 +38,6 @@ class ExternalPlaybackLauncher {
         );
       }
     } else if (Platform.isLinux && currentReferer.isEmpty) {
-      KazumiDialog.dismiss();
       final result =
           await ExternalPlayer.launchLinuxDesktopPlayer(currentVideoUrl);
       switch (result) {

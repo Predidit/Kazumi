@@ -7,8 +7,12 @@ import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/network/metered_network_service.dart';
+import 'package:kazumi/services/platform/app_exit.dart';
+import 'package:kazumi/services/platform/tray_service.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/exit_confirmation_dialog.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -25,7 +29,7 @@ class AppWidget extends StatefulWidget {
 class _AppWidgetState extends State<AppWidget>
     with TrayListener, WidgetsBindingObserver, WindowListener {
   final TrayManager trayManager = TrayManager.instance;
-  bool showingExitDialog = false;
+  bool _isHandlingWindowClose = false;
   bool _didApplyStoredThemeSettings = false;
   Brightness? _lastTitleBarBrightness;
 
@@ -41,7 +45,7 @@ class _AppWidgetState extends State<AppWidget>
   Future<void> _initializePlatformIntegrations() async {
     if (isDesktop()) {
       await windowManager.setPreventClose(true);
-      await _handleTray();
+      await TrayService.initialize();
     }
     await _configurePreferredDisplayMode();
   }
@@ -180,85 +184,51 @@ class _AppWidgetState extends State<AppWidget>
       case 'show_window':
         windowManager.show();
       case 'exit':
-        exit(0);
+        AppExit.quit();
     }
   }
 
-  /// 处理窗口关闭事件，
-  /// 需要使用 `windowManager.close()` 来触发，`exit(0)` 会直接退出程序
+  // windowManager.close() triggers this handler; exit() bypasses confirmation.
   @override
-  void onWindowClose() {
-    final exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
+  Future<void> onWindowClose() async {
+    if (_isHandlingWindowClose || !mounted) return;
+    _isHandlingWindowClose = true;
+    try {
+      var action = switch (GStorage.getSetting(SettingsKeys.exitBehavior)) {
+        0 => ExitDialogAction.exit,
+        1 => ExitDialogAction.minimizeToTray,
+        _ => null,
+      };
+      if (action == null) {
+        final result = await KazumiDialog.show<ExitDialogResult>(
+          builder: (_) => const ExitConfirmationDialog(),
+        );
+        if (result == null || !mounted) return;
 
-    switch (exitBehavior) {
-      case 0:
-        exit(0);
-      case 1:
-        KazumiDialog.dismiss();
-        windowManager.hide();
-        break;
-      default:
-        if (showingExitDialog) return;
-        showingExitDialog = true;
-        KazumiDialog.show(onDismiss: () {
-          showingExitDialog = false;
-        }, builder: (context) {
-          bool saveExitBehavior = false; // 下次不再询问？
-
-          return AlertDialog(
-            title: const Text('退出确认'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('您想要退出 Kazumi 吗？'),
-                const SizedBox(height: 24),
-                StatefulBuilder(builder: (context, setState) {
-                  onChanged(value) {
-                    saveExitBehavior = value ?? false;
-                    setState(() {});
-                  }
-
-                  return Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    children: [
-                      Checkbox(value: saveExitBehavior, onChanged: onChanged),
-                      const Text('下次不再询问'),
-                    ],
-                  );
-                }),
-              ],
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () async {
-                    if (saveExitBehavior) {
-                      await GStorage.putSetting(SettingsKeys.exitBehavior, 0);
-                    }
-                    exit(0);
-                  },
-                  child: const Text('退出 Kazumi')),
-              TextButton(
-                  onPressed: () async {
-                    if (saveExitBehavior) {
-                      await GStorage.putSetting(SettingsKeys.exitBehavior, 1);
-                    }
-                    KazumiDialog.dismiss();
-                    windowManager.hide();
-                  },
-                  child: const Text('最小化至托盘')),
-              const TextButton(
-                  onPressed: KazumiDialog.dismiss, child: Text('取消')),
-            ],
+        action = result.action;
+        if (result.rememberChoice) {
+          await GStorage.putSetting(
+            SettingsKeys.exitBehavior,
+            switch (action) {
+              ExitDialogAction.exit => 0,
+              ExitDialogAction.minimizeToTray => 1,
+            },
           );
-        });
+        }
+      }
+
+      if (!mounted) return;
+      switch (action) {
+        case ExitDialogAction.exit:
+          await AppExit.quit();
+        case ExitDialogAction.minimizeToTray:
+          await windowManager.hide();
+      }
+    } finally {
+      _isHandlingWindowClose = false;
     }
   }
 
-  /// 处理前后台变更
-  /// windows/linux 在程序后台或失去焦点时只会触发 inactive 不会触发 paused
-  /// android/ios/macos 在程序后台时会先触发 inactive 再触发 paused, 回到前台时会先触发 inactive 再触发 resumed
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
@@ -268,6 +238,7 @@ class _AppWidgetState extends State<AppWidget>
     } else if (state == AppLifecycleState.resumed) {
       KazumiLogger()
           .i("AppLifecycleState.resumed: Application moved to foreground");
+      await MeteredNetworkService.refresh();
     } else if (state == AppLifecycleState.inactive) {
       KazumiLogger().i("AppLifecycleState.inactive: Application is inactive");
     }
@@ -281,28 +252,6 @@ class _AppWidgetState extends State<AppWidget>
         "Platform brightness changed, themeMode: ${themeProvider.themeMode}");
 
     _syncWindowsTitleBarBrightness(themeProvider);
-  }
-
-  Future<void> _handleTray() async {
-    if (Platform.isWindows) {
-      await trayManager.setIcon('assets/images/logo/logo_lanczos.ico');
-    } else if (Platform.environment.containsKey('FLATPAK_ID') ||
-        Platform.environment.containsKey('SNAP')) {
-      await trayManager.setIcon('io.github.Predidit.Kazumi');
-    } else {
-      await trayManager.setIcon('assets/images/logo/logo_rounded.png');
-    }
-
-    if (!Platform.isLinux) {
-      await trayManager.setToolTip('Kazumi');
-    }
-
-    Menu trayMenu = Menu(items: [
-      MenuItem(key: 'show_window', label: '显示窗口'),
-      MenuItem.separator(),
-      MenuItem(key: 'exit', label: '退出 Kazumi')
-    ]);
-    await trayManager.setContextMenu(trayMenu);
   }
 
   @override

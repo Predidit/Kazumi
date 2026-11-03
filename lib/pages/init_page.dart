@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
+import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -16,6 +17,7 @@ import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/services/download/background_download_service.dart';
 import 'package:kazumi/services/platform/windows_shortcut.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
+import 'package:kazumi/services/platform/app_exit.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
 import 'package:kazumi/navigation.dart';
 
@@ -27,6 +29,7 @@ class InitPage extends StatefulWidget {
     required this.shaderAssetService,
     required this.myController,
     required this.downloadController,
+    required this.danmakuShieldSync,
   });
 
   final PluginsController pluginsController;
@@ -34,6 +37,7 @@ class InitPage extends StatefulWidget {
   final ShaderAssetService shaderAssetService;
   final MyController myController;
   final DownloadController downloadController;
+  final DanmakuShieldSyncService danmakuShieldSync;
 
   @override
   State<InitPage> createState() => _InitPageState();
@@ -53,9 +57,10 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _initializeApp() async {
+    widget.danmakuShieldSync.start();
     _migrateStorage();
     _loadShaders();
-    _loadDanmakuShield();
+    unawaited(myController.loadShieldList());
     _webDavInit();
     _bangumiInit();
     try {
@@ -72,25 +77,19 @@ class _InitPageState extends State<InitPage> {
     if (!mounted) {
       return;
     }
-    // First launch: no installed rules yet, hand over to the onboarding flow.
-    // OnboardingPage takes care of navigating to the default page and
-    // triggering the auto update check afterwards.
-    if (pluginsController.pluginList.isEmpty) {
+    // Installs that predate the flag already have rules; don't re-onboard them.
+    if (!GStorage.getSetting(SettingsKeys.onboardingCompleted) &&
+        pluginsController.pluginList.isEmpty) {
       context.navigate('/onboarding');
       return;
     }
 
-    if (!mounted) {
-      return;
-    }
     final updateController = myController;
     unawaited(runStartupUpdateCheck(
       isEnabled: () => GStorage.getSetting(SettingsKeys.autoUpdate),
-      checkForUpdate: () async {
-        await updateController.checkUpdate(type: 'auto');
-      },
+      checkForUpdate: () => updateController.checkUpdate(type: 'auto'),
     ));
-    _startDefaultPage();
+    context.navigate(GStorage.getSetting(SettingsKeys.defaultStartupPage));
   }
 
   void _setupBackgroundDownloadNavigation() {
@@ -142,15 +141,6 @@ class _InitPageState extends State<InitPage> {
     };
   }
 
-  void _startDefaultPage() {
-    final defaultStartupPage =
-        GStorage.getSetting(SettingsKeys.defaultStartupPage);
-    if (!mounted) {
-      return;
-    }
-    context.navigate(defaultStartupPage);
-  }
-
   // migrate collect from old version (favorites)
   Future<void> _migrateStorage() async {
     await collectController.migrateCollect();
@@ -160,26 +150,27 @@ class _InitPageState extends State<InitPage> {
     await shaderAssetService.copyShadersToExternalDirectory();
   }
 
-  Future<void> _loadDanmakuShield() async {
-    myController.loadShieldList();
-  }
-
   Future<void> _webDavInit() async {
     bool webDavEnable = await GStorage.getSetting(SettingsKeys.webDavEnable);
+    bool webDavEnableHistory =
+        await GStorage.getSetting(SettingsKeys.webDavEnableHistory);
     if (webDavEnable) {
       var webDav = WebDav();
       KazumiLogger().i('WebDav: Starting WebDav initialization');
       try {
         await webDav.init();
-        try {
-          await webDav.syncHistory();
-          KazumiLogger().i('WebDav: Completed syncing watch history');
-        } catch (e, stackTrace) {
-          KazumiLogger().w(
-            'WebDav: automatic watch history sync failed',
-            error: e,
-            stackTrace: stackTrace,
-          );
+        await widget.danmakuShieldSync.syncIfEnabled();
+        if (webDavEnableHistory) {
+          try {
+            await webDav.syncHistory();
+            KazumiLogger().i('WebDav: Completed syncing watch history');
+          } catch (e, stackTrace) {
+            KazumiLogger().w(
+              'WebDav: automatic watch history sync failed',
+              error: e,
+              stackTrace: stackTrace,
+            );
+          }
         }
       } catch (e, stackTrace) {
         KazumiLogger().w(
@@ -192,22 +183,20 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _bangumiInit() async {
-    bool bangumiEnable =
-        await GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+    final bangumiEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     if (bangumiEnable) {
-      var bangumi = BangumiSyncService();
+      final bangumi = BangumiSyncService();
       KazumiLogger().i('Bangumi: Starting Bangumi initialization');
       try {
-        await bangumi.init();
+        await bangumi.ping();
       } catch (e) {
-        bangumi.reset();
-        await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, false);
         KazumiLogger().w(
-          'Bangumi: initialization failed, disabling Bangumi sync until user re-enables it',
+          'Bangumi: initialization failed; keeping sync enabled for retry',
           error: e,
         );
         KazumiDialog.showToast(
-          message: '初始化Bangumi失败，已关闭 Bangumi 同步: ${e.toString()}',
+          message:
+              'Bangumi 暂未连接，同步设置已保留：${BangumiSyncService.describeError(e)}',
         );
       }
     }
@@ -230,9 +219,7 @@ class _InitPageState extends State<InitPage> {
                   '检测到您当前运行在X11环境下，Kazumi在X11环境下可能出现性能问题或界面异常，建议切换到Wayland以获得更好的体验。您是否希望在X11下继续使用Kazumi？'),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    exit(0);
-                  },
+                  onPressed: AppExit.quit,
                   child: Text(
                     '退出',
                     style:

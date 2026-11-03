@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
+import 'package:kazumi/services/network/bangumi_acceleration.dart';
 
 class BangumiMirrorErrorWidget extends StatelessWidget {
   const BangumiMirrorErrorWidget({
@@ -15,21 +16,21 @@ class BangumiMirrorErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mirrorEnabled = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+    final acceleration = BangumiAcceleration.current;
 
     return GeneralErrorWidget(
-      errMsg: '啊咧（⊙.⊙） 无法加载数据\nBangumi 镜像${mirrorEnabled ? '已启用' : '已禁用'}',
+      title: '暂时无法加载番剧',
+      errMsg: '请检查网络连接，或调整加速设置后重试。\n番剧条目加速：${acceleration.label}',
+      icon: Icons.cloud_off_rounded,
+      onRetry: onRetry,
       actions: [
-        GeneralErrorButton(
+        StateActionButton.tonal(
           onPressed: () async {
-            await context.pushNamed('/settings/webdav/');
+            await context.pushNamed('/settings/proxy/');
             onSettingsReturned?.call();
           },
-          text: '镜像开关',
-        ),
-        GeneralErrorButton(
-          onPressed: onRetry,
-          text: '点击重试',
+          icon: Icons.tune_rounded,
+          text: '加速设置',
         ),
       ],
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
@@ -29,10 +29,8 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const SysAppBar(
-        title: Text('超分辨率'),
-      ),
+    return SettingsDetailScaffold(
+      title: const Text('超分辨率'),
       body: SettingsList(
         sections: [
           SettingsRadioSection<SuperResolutionMode>(

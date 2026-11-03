@@ -1,7 +1,12 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:path_provider/path_provider.dart';
+
+import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
+import 'package:kazumi/services/platform/app_exit.dart';
 
 class StorageErrorPage extends StatelessWidget {
   const StorageErrorPage({super.key});
@@ -12,29 +17,27 @@ class StorageErrorPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('内部错误'),
       ),
-      body: Center(
-        child: FutureBuilder<Directory>(
-          future: getApplicationSupportDirectory(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              final supportDir = snapshot.data;
-              final path = supportDir != null ? '$supportDir' : '未知路径';
-              return GeneralErrorWidget(
-                errMsg: '存储初始化错误 \n 当前储存位置 $path \n 尝试删除该目录以重置本地存储',
-                actions: [
-                  GeneralErrorButton(
-                    onPressed: () {
-                      exit(0);
-                    },
-                    text: '退出程序',
-                  ),
-                ],
-              );
-            } else {
-              return const CircularProgressIndicator();
-            }
-          },
-        ),
+      body: FutureBuilder<Directory>(
+        future: getApplicationSupportDirectory(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            final path = snapshot.data?.path ?? '未知路径';
+            return GeneralErrorWidget(
+              title: '无法初始化本地存储',
+              icon: Icons.storage_rounded,
+              errMsg: '当前存储位置：\n$path\n\n可在退出后删除该目录以重置本地存储，此操作会清除本地数据。',
+              actions: [
+                StateActionButton(
+                  onPressed: AppExit.quit,
+                  text: '退出程序',
+                  icon: Icons.close_rounded,
+                ),
+              ],
+            );
+          } else {
+            return const Center(child: LoadingIndicator());
+          }
+        },
       ),
     );
   }

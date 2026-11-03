@@ -1,29 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
-/// Display group for the shortcut list. Functions missing from every group
-/// fall back to a trailing "其他" group so new shortcuts never disappear.
 class _ShortcutGroup {
-  const _ShortcutGroup(this.title, this.icon, this.functions);
+  const _ShortcutGroup(this.title, this.functions);
 
   final String title;
-  final IconData icon;
   final List<String> functions;
 }
 
 const List<_ShortcutGroup> _shortcutGroups = [
-  _ShortcutGroup('播放控制', Icons.play_arrow_rounded,
-      ['playorpause', 'forward', 'rewind', 'skip', 'next', 'prev']),
   _ShortcutGroup(
-      '音量', Icons.volume_up_rounded, ['volumeup', 'volumedown', 'togglemute']),
-  _ShortcutGroup('画面与弹幕', Icons.fullscreen_rounded,
-      ['fullscreen', 'exitfullscreen', 'screenshot', 'toggledanmaku']),
-  _ShortcutGroup('倍速', Icons.speed_rounded,
-      ['speed1', 'speed2', 'speed3', 'speedup', 'speeddown']),
+      '播放控制', ['playorpause', 'forward', 'rewind', 'skip', 'next', 'prev']),
+  _ShortcutGroup('音量', ['volumeup', 'volumedown', 'togglemute']),
+  _ShortcutGroup(
+      '画面与弹幕', ['fullscreen', 'exitfullscreen', 'screenshot', 'toggledanmaku']),
+  _ShortcutGroup('倍速', ['speed1', 'speed2', 'speed3', 'speedup', 'speeddown']),
 ];
 
 class KeyboardSettingsPage extends StatefulWidget {
@@ -37,8 +34,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   String? listeningFunction;
   int? listeningIndex;
 
-  /// Value the listening slot held before recording started; empty means the
-  /// slot was newly added and should be dropped when recording is cancelled.
+  // An empty original value marks a new, uncommitted binding.
   String originalValue = '';
 
   late Map<String, List<String>> shortcuts;
@@ -50,10 +46,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   @override
   void initState() {
     super.initState();
-    // 根据默认快捷键生成可用快捷键列表，并读取已设置值。
-    // 旧版实现可能把 '' / '...' 占位符持久化过，甚至把配置存成空列表
-    // （单绑定进入录制后直接退出页面）；界面保证每个功能至少保留一个
-    // 真实绑定，读入时清理占位符、空配置恢复默认，有变化则回写
+    // Repair persisted placeholders and keep at least one binding per action.
     shortcuts = {};
     for (final key in defaultShortcuts.keys) {
       final stored = GStorage.getStringListSettingByName(
@@ -81,9 +74,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     super.dispose();
   }
 
-  /// Restores or removes the pending slot so no '...' placeholder is left
-  /// behind when recording moves elsewhere. Pure state mutation: build-path
-  /// callers wrap it in setState, dispose calls it bare.
+  // Also called during dispose; do not setState here.
   void cancelListening() {
     if (!isListening) return;
     final func = listeningFunction!;
@@ -120,7 +111,6 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     final func = listeningFunction!;
     final index = listeningIndex!;
 
-    // 冲突规避
     for (final entry in shortcuts.entries) {
       final otherFunc = entry.key;
       final otherKeys = entry.value;
@@ -145,7 +135,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     return true;
   }
 
-  // 新槽位不落盘：录制成功或取消时才持久化，storage 里永远没有占位符
+  // Persist a new binding only after recording or cancellation.
   void onAddKey(String func) {
     setState(() {
       cancelListening();
@@ -163,7 +153,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     final keyValue = shortcuts[func]![index];
     setState(() {
       cancelListening();
-      // 取消可能移除了同列表中的待录制项，按值重新定位（同一功能内按键唯一）
+      // Cancellation can shift indices; locate the binding again by value.
       final idx = shortcuts[func]!.indexOf(keyValue);
       if (idx >= 0) {
         beginListening(func, idx);
@@ -201,13 +191,13 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       final funcs = group.functions.where(shortcuts.containsKey).toList();
       covered.addAll(funcs);
       if (funcs.isNotEmpty) {
-        groups.add(_ShortcutGroup(group.title, group.icon, funcs));
+        groups.add(_ShortcutGroup(group.title, funcs));
       }
     }
     final leftovers =
         shortcuts.keys.where((func) => !covered.contains(func)).toList();
     if (leftovers.isNotEmpty) {
-      groups.add(_ShortcutGroup('其他', Icons.keyboard_rounded, leftovers));
+      groups.add(_ShortcutGroup('其他', leftovers));
     }
     return groups;
   }
@@ -276,51 +266,18 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     );
   }
 
-  Widget _buildGroupCard(_ShortcutGroup group) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      color: colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    group.icon,
-                    size: 18,
-                    color: colorScheme.onSecondaryContainer,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  group.title,
-                  style: textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            for (final func in group.functions) _buildShortcutRow(func),
-          ],
+  Widget _buildGroupCard(_ShortcutGroup group) => Padding(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: ContentSection(
+          title: group.title,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final func in group.functions) _buildShortcutRow(func),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   Widget _buildShortcutRow(String func) {
     final textTheme = Theme.of(context).textTheme;
@@ -352,8 +309,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
 
   Widget _buildKeyCap(String func, List<String> keys, int i) {
     final listening = listeningFunction == func && listeningIndex == i;
-    // 删除入口只按真实绑定数判定，待录制占位符不算数——
-    // 否则单绑定时点「添加」会让原按键出现删除按钮，可被误删成空绑定
+    // Pending placeholders must not count toward the last-binding safeguard.
     final realCount = keys.where((value) => value != '...').length;
     return _KeyCap(
       label: listening ? '按任意键' : keyAliases[keys[i]] ?? keys[i],
@@ -365,8 +321,6 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   }
 }
 
-/// Tonal keycap pill for one bound key; tap to re-record, tap again to
-/// cancel. Shows a close icon when the function has spare bindings.
 class _KeyCap extends StatelessWidget {
   const _KeyCap({
     required this.label,
@@ -427,7 +381,6 @@ class _KeyCap extends StatelessWidget {
   }
 }
 
-/// Outlined pill that appends a new binding slot and starts recording.
 class _AddKeyButton extends StatelessWidget {
   const _AddKeyButton({required this.onTap});
 

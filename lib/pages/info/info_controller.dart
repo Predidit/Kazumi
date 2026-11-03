@@ -2,9 +2,9 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_relation.dart';
+import 'package:kazumi/modules/bangumi/bangumi_review.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -268,29 +268,28 @@ abstract class _InfoController with Store {
       requestGeneration == _relationRequestGeneration &&
       bangumiItem.id == subjectId;
 
-  Future<bool> rateBangumi(RatingReviewResult data,
+  Future<bool> rateBangumi(BangumiReview review,
       {required int localType}) async {
-    final trimmedComment = data.comment.trim();
-    if (await BangumiApi.addOrUpdateBangumiEvaluationBySubjectID(
+    final updated = await BangumiApi.addOrUpdateBangumiEvaluationBySubjectID(
       bangumiItem.id,
       localType,
-      comment: trimmedComment.isNotEmpty ? trimmedComment : null,
-      rate: data.score > 0 ? data.score : 0,
-      tags: data.tags.isNotEmpty ? data.tags : null,
-    )) {
-      bangumiItem.interest = BangumiInterest.mergeLocalSubmission(
-        previous: bangumiItem.interest,
-        rate: data.score,
-        comment: trimmedComment,
-        tags: data.tags,
-      );
-      await collectController.updateLocalCollect(bangumiItem);
-      await fillInterestUserProfileIfNeeded();
-      _removeCurrentUserFromPublicComments();
-      await refreshBangumiCommentsSilently(bangumiItem.id);
-      await refreshBangumiInfoByID(bangumiItem.id);
-      return true;
-    }
-    return false;
+      comment: review.comment,
+      rate: review.score,
+      tags: review.tags,
+    );
+    if (!updated) return false;
+
+    bangumiItem.interest = BangumiInterest.mergeLocalSubmission(
+      previous: bangumiItem.interest,
+      rate: review.score,
+      comment: review.comment,
+      tags: review.tags,
+    );
+    await collectController.updateLocalCollect(bangumiItem);
+    await fillInterestUserProfileIfNeeded();
+    _removeCurrentUserFromPublicComments();
+    await refreshBangumiCommentsSilently(bangumiItem.id);
+    await refreshBangumiInfoByID(bangumiItem.id);
+    return true;
   }
 }

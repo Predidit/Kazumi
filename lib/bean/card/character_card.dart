@@ -35,6 +35,11 @@ class CharacterCard extends StatelessWidget {
               characterID: characterItem.id,
               characterName: characterItem.name,
               characterRelation: characterItem.relation,
+              actorNames: characterItem.actorList
+                  .map((actor) => actor.name.trim())
+                  .where((name) => name.isNotEmpty)
+                  .toSet()
+                  .toList(),
             );
           },
         );

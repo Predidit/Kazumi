@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
+import 'package:kazumi/bean/widget/kazumi_menu.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/utils/format.dart';
 
 const Duration _kExpandDuration = Duration(milliseconds: 250);
 const Curve _kExpandCurve = Curves.easeInOutCubic;
 
-/// Rounded tonal card for one bangumi download record: cover, title,
-/// source tag, aggregate progress and a collapsible episode list.
 class DownloadRecordCard extends StatelessWidget {
   const DownloadRecordCard({
     super.key,
@@ -28,8 +29,6 @@ class DownloadRecordCard extends StatelessWidget {
   final VoidCallback onDeleteAll;
   final double totalSpeed;
 
-  /// Builds the episode rows; only invoked while [expanded], so collapsed
-  /// cards skip sorting and tile construction entirely.
   final List<Widget> Function() episodeTileBuilder;
 
   @override
@@ -122,30 +121,20 @@ class DownloadRecordCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert,
-                      color: colorScheme.onSurfaceVariant,
+                  KazumiMenuButton(
+                    animated: false,
+                    builder: (context, toggle) => IconButton(
+                      icon: Icon(Icons.more_vert,
+                          color: colorScheme.onSurfaceVariant),
+                      tooltip: '更多操作',
+                      onPressed: toggle,
                     ),
-                    tooltip: '更多操作',
-                    onSelected: (value) {
-                      if (value == 'resume_all') {
-                        onResumeAll();
-                      } else if (value == 'delete') {
-                        onDeleteAll();
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'resume_all',
-                        child: Text('全部开始'),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Text(
-                          '全部删除',
-                          style: TextStyle(color: colorScheme.error),
-                        ),
+                    menuChildren: [
+                      KazumiMenuItem(label: '全部开始', onPressed: onResumeAll),
+                      KazumiMenuItem(
+                        label: '全部删除',
+                        destructive: true,
+                        onPressed: onDeleteAll,
                       ),
                     ],
                   ),
@@ -187,8 +176,6 @@ class DownloadRecordCard extends StatelessWidget {
   }
 }
 
-/// One episode row inside [DownloadRecordCard]: tonal status badge,
-/// episode name, status line, optional full-width progress bar and actions.
 class DownloadEpisodeTile extends StatelessWidget {
   const DownloadEpisodeTile({
     super.key,
@@ -202,7 +189,6 @@ class DownloadEpisodeTile extends StatelessWidget {
   final String statusText;
   final List<Widget> actions;
 
-  /// Non-null only for completed episodes; makes the whole row tappable.
   final VoidCallback? onPlay;
 
   @override
@@ -262,7 +248,6 @@ class DownloadEpisodeTile extends StatelessWidget {
   }
 }
 
-/// Circular tonal badge showing the episode download status.
 class _EpisodeStatusBadge extends StatelessWidget {
   const _EpisodeStatusBadge({required this.episode});
 
@@ -299,7 +284,7 @@ class _EpisodeStatusBadge extends StatelessWidget {
         child = const SizedBox(
           width: 22,
           height: 22,
-          child: CircularProgressIndicator(strokeWidth: 2.5),
+          child: LoadingIndicator(),
         );
         break;
       case DownloadStatus.failed:

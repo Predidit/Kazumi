@@ -3,7 +3,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/utils/device.dart';
 
 // 视频卡片 - 垂直布局
 class BangumiCardV extends StatelessWidget {
@@ -76,34 +75,37 @@ class BangumiContent extends StatelessWidget {
 
   final BangumiItem bangumiItem;
 
-  static int maxTextLinesFor(BuildContext context) {
-    return isDesktop()
-        ? 3
-        : (isTablet() &&
-                MediaQuery.of(context).orientation == Orientation.landscape)
-            ? 3
-            : 2;
-  }
-
   @override
   Widget build(BuildContext context) {
     final ts = MediaQuery.textScalerOf(context);
-    final int maxTextLines = maxTextLinesFor(context);
 
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(5, 3, 5, 1),
-        child: Text(
-          bangumiItem.nameCn,
-          textAlign: TextAlign.start,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.3,
-          ),
-          textScaler: ts.clamp(maxScaleFactor: 1.1),
-          maxLines: maxTextLines,
-          overflow: TextOverflow.ellipsis,
-        ),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final style = DefaultTextStyle.of(context).style.copyWith(
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.3,
+              );
+          final textScaler = ts.clamp(maxScaleFactor: 1.1);
+          final painter = TextPainter(
+            text: TextSpan(text: bangumiItem.nameCn, style: style),
+            textDirection: Directionality.of(context),
+            textScaler: textScaler,
+          );
+          final lines = (constraints.maxHeight / painter.preferredLineHeight)
+              .floor()
+              .clamp(1, 3);
+          painter.dispose();
+          return Text(
+            bangumiItem.nameCn,
+            textAlign: TextAlign.start,
+            style: style,
+            textScaler: textScaler,
+            maxLines: lines,
+            overflow: TextOverflow.ellipsis,
+          );
+        }),
       ),
     );
   }

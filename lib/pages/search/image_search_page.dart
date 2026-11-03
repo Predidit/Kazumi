@@ -2,23 +2,27 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/search/image_search_module.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:kazumi/utils/format.dart';
+
+part 'image_search_widgets.dart';
 
 class ImageSearchPage extends StatefulWidget {
-  const ImageSearchPage({
-    super.key,
-    required this.controller,
-  });
+  const ImageSearchPage({super.key, required this.controller});
 
   final SearchPageController controller;
 
@@ -27,14 +31,30 @@ class ImageSearchPage extends StatefulWidget {
 }
 
 class _ImageSearchPageState extends State<ImageSearchPage> {
-  final TextEditingController _urlController = TextEditingController();
-  SearchPageController get _searchPageController => widget.controller;
-  final ImagePicker _picker = ImagePicker();
-  bool _isUrlMode = false;
+  final _urlController = TextEditingController();
+  final _urlFocus = FocusNode();
+  final _pageScroll = ScrollController();
+  final _sourceScroll = ScrollController();
+  final _resultScroll = ScrollController();
+  final _resultsKey = GlobalKey();
+  final _picker = ImagePicker();
+  Timer? _previewDebounce;
+  File? _imageFile;
   String _previewUrl = '';
-  Timer? _debounceTimer;
-  File? _selectedImageFile;
-  String? _selectedImageName;
+  String _lastUrlText = '';
+  String? _inputError;
+  bool _useUrl = false;
+  bool _isPicking = false;
+  bool _userScrolledDuringSearch = false;
+
+  SearchPageController get _controller => widget.controller;
+  bool get _busy => _controller.isImageSearching || _isPicking;
+  bool get _hasImage =>
+      _useUrl ? _parseHttpUrl(_urlController.text) != null : _imageFile != null;
+
+  Duration get _transition => MediaQuery.disableAnimationsOf(context)
+      ? Duration.zero
+      : const Duration(milliseconds: 300);
 
   @override
   void initState() {
@@ -44,190 +64,297 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
-    _urlController.removeListener(_onUrlChanged);
+    _previewDebounce?.cancel();
     _urlController.dispose();
+    _urlFocus.dispose();
+    _pageScroll.dispose();
+    _sourceScroll.dispose();
+    _resultScroll.dispose();
     super.dispose();
   }
 
+  void _resetResults() {
+    _controller.clearImageSearchState();
+    _inputError = null;
+  }
+
   void _onUrlChanged() {
-    _debounceTimer?.cancel();
-    final text = _urlController.text.trim();
-    if (text.isEmpty) {
-      setState(() => _previewUrl = '');
-      return;
-    }
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _searchPageController.clearImageSearchState();
-        _previewUrl = text;
-      });
+    final value = _urlController.text.trim();
+    // Ignore cursor moves so they do not clear active results.
+    if (value == _lastUrlText) return;
+    _lastUrlText = value;
+    _previewDebounce?.cancel();
+    setState(() {
+      _resetResults();
+      _previewUrl = '';
+    });
+    if (_parseHttpUrl(value) == null) return;
+    _previewDebounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _previewUrl = value);
     });
   }
 
-  Future<void> _pickImageFile() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image == null) return;
-    const int maxImageBytes = 25 * 1024 * 1024;
-    final imageFile = File(image.path);
-    final imageBytes = await imageFile.length();
-    if (imageBytes > maxImageBytes) {
+  void _changeSource(bool useUrl) {
+    if (_busy || _useUrl == useUrl) return;
+    _previewDebounce?.cancel();
+    _urlFocus.unfocus();
+    setState(() {
+      _useUrl = useUrl;
+      _resetResults();
+      _previewUrl = _parseHttpUrl(_urlController.text) != null
+          ? _urlController.text.trim()
+          : '';
+    });
+  }
+
+  Future<void> _pasteUrl() async {
+    if (_busy) return;
+    try {
+      final text =
+          (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim();
+      if (!mounted || _busy || !_useUrl) return;
+      if (text == null || text.isEmpty) {
+        setState(() => _inputError = '剪贴板里还没有图片链接');
+        return;
+      }
+      _urlController.text = text;
+      if (!_hasImage) {
+        setState(() => _inputError = '请输入以 https:// 或 http:// 开头的图片链接');
+      }
+    } catch (_) {
+      if (mounted) setState(() => _inputError = '无法读取剪贴板，请手动粘贴链接');
+    }
+  }
+
+  Future<void> _pickImage() async {
+    if (_busy) return;
+    setState(() {
+      _isPicking = true;
+      _inputError = null;
+    });
+    try {
+      final image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+      final file = File(image.path);
+      if (await file.length() > 25 * 1024 * 1024) {
+        if (mounted) setState(() => _inputError = '图片超过 25 MB，请换一张较小的截图');
+        return;
+      }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('图片大小不能超过 25MB')),
-      );
+      setState(() {
+        _resetResults();
+        _imageFile = file;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _inputError = '无法读取图片，请重新选择并检查相册权限');
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
+  }
+
+  Future<void> _search() async {
+    if (_busy) return;
+    if (!_hasImage) {
+      setState(() => _inputError = '请输入有效的 HTTP 或 HTTPS 图片链接');
+      _urlFocus.requestFocus();
       return;
     }
+    _previewDebounce?.cancel();
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _inputError = null;
+      _userScrolledDuringSearch = false;
+      if (_useUrl) _previewUrl = _urlController.text.trim();
+    });
+    final search = _useUrl
+        ? _controller.searchImageByUrl(_urlController.text.trim())
+        : _controller.searchImageByFile(_imageFile!);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _revealResults());
+    await search;
+    if (mounted && !_userScrolledDuringSearch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _revealResults());
+    }
+  }
 
+  void _revealResults() {
     if (!mounted) return;
-    setState(() {
-      _searchPageController.clearImageSearchState();
-      _selectedImageFile = imageFile;
-      _selectedImageName = image.name;
-    });
-  }
-
-  Future<void> _startSearch() async {
-    if (_isUrlMode) {
-      final imageUrl = _urlController.text.trim();
-      final uri = Uri.tryParse(imageUrl);
-      if (imageUrl.isEmpty || uri == null || !uri.hasScheme) {
-        KazumiDialog.showToast(message: '请输入有效的图片链接');
-        return;
+    if (_resultScroll.hasClients) {
+      if (_transition == Duration.zero) {
+        _resultScroll.jumpTo(0);
+      } else {
+        _resultScroll.animateTo(0,
+            duration: _transition, curve: Curves.easeOutCubic);
       }
-      await _searchPageController.searchImageByUrl(imageUrl);
     } else {
-      final imageFile = _selectedImageFile;
-      if (imageFile == null) {
-        KazumiDialog.showToast(message: '请先选择图片文件');
-        return;
-      }
-      await _searchPageController.searchImageByFile(imageFile);
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    if (_searchPageController.imageSearchError.isNotEmpty &&
-        _searchPageController.imageSearchResults.isEmpty) {
-      KazumiDialog.showToast(message: _searchPageController.imageSearchError);
-    }
-  }
-
-  void _switchMode() {
-    setState(() {
-      _isUrlMode = !_isUrlMode;
-    });
-  }
-
-  static String _formatTraceResultTitle(ResultItem result) {
-    final title = result.anilist?.title;
-    return title?.chinese ??
-        title?.native ??
-        title?.romaji ??
-        title?.english ??
-        result.filename ??
-        '未知番剧';
-  }
-
-  static String _formatTraceEpisode(dynamic episode) {
-    String formatEpisodeValue(num value) {
-      return value % 1 == 0 ? value.toInt().toString() : value.toString();
-    }
-
-    if (episode is num) {
-      return '第 ${formatEpisodeValue(episode)} 集';
-    }
-    if (episode is List && episode.isNotEmpty) {
-      final episodes = episode.whereType<num>().map(formatEpisodeValue);
-      if (episodes.isNotEmpty) {
-        return '剧集: ${episodes.join(' / ')}';
+      final resultsContext = _resultsKey.currentContext;
+      if (resultsContext != null) {
+        Scrollable.ensureVisible(resultsContext,
+            duration: _transition, curve: Curves.easeOutCubic);
       }
     }
-    return '剧集未知';
   }
 
-  int _resolveCrossAxisCount(double width) {
-    if (width < LayoutBreakpoint.compact['width']!) {
-      return 1;
+  Future<void> _openExternal(Uri uri) async {
+    try {
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+    } catch (_) {
+      // Fall through to the shared error message.
     }
-    if (width < LayoutBreakpoint.medium['width']!) {
-      return 2;
-    }
-    if (width < 1180) {
-      return 3;
-    }
-    return 4;
+    if (!mounted) return;
+    KazumiDialog.showToast(context: context, message: '暂时无法打开链接，请稍后再试');
+  }
+
+  void _showHelp() {
+    KazumiDialog.show<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.image_search_rounded),
+        title: const Text('让截图更容易被找到'),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 16,
+            children: [
+              Text('使用动画正片截图，保留原始比例。尽量避开黑边、字幕遮挡、水印与拼接画面。'),
+              Text('插画、漫画和经过大幅裁剪的图片通常无法匹配。相似度仅供参考，建议对照画面或预览片段确认。'),
+              Text('识别由 trace.moe 提供。开始识别后，所选图片或图片链接会发送至该服务。'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => _openExternal(Uri.parse('https://trace.moe')),
+            child: const Text('访问 trace.moe'),
+          ),
+          FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了')),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: colors.surface,
       appBar: SysAppBar(
-        backgroundColor: Colors.transparent,
-        title: const Text('图片搜索'),
+        backgroundColor: colors.surface,
+        actions: [
+          IconButton(
+              onPressed: _showHelp,
+              tooltip: '搜图小贴士',
+              icon: const Icon(Icons.help_outline_rounded)),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      body: SafeArea(
+        top: false,
+        child: NotificationListener<UserScrollNotification>(
+            onNotification: (notification) {
+              if (_controller.isImageSearching &&
+                  notification.direction != ScrollDirection.idle) {
+                _userScrolledDuringSearch = true;
+              }
+              return false;
+            },
+            child: LayoutBuilder(
+              builder: (context, constraints) => Observer(
+                builder: (context) => ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context)
+                      .copyWith(scrollbars: false),
+                  child: _buildContent(context, constraints),
+                ),
+              ),
+            )),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, BoxConstraints constraints) {
+    final window = MediaQuery.sizeOf(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
+    final splitLayout = constraints.maxWidth >= 840 ||
+        (constraints.maxWidth >= 600 &&
+            window.width > window.height &&
+            textScale < 1.5);
+    final padding = constraints.maxWidth < 600 ? 16.0 : 24.0;
+    final searching = _controller.isImageSearching;
+    final error = _controller.imageSearchError;
+    final results = _controller.imageSearchResults.toList()
+      ..sort((a, b) => (b.similarity ?? 0).compareTo(a.similarity ?? 0));
+    final showResults = searching || results.isNotEmpty || error.isNotEmpty;
+    final short = constraints.maxHeight < 440;
+    // Keep the form scrollable when the keyboard consumes most of the height.
+    final pinAction =
+        splitLayout && (showResults || short) && constraints.maxHeight >= 240;
+    final source = _buildSource(context, searching, showResults,
+        short: short, inlineAction: !pinAction);
+    final resultContent = showResults
+        ? _ImageSearchResults(
+            results: results,
+            searching: searching,
+            error: error,
+            onRetry: _hasImage ? _search : null,
+            onSelect: (title) => context.pop(title),
+            onPreview: _openExternal,
+          )
+        : null;
+    if (splitLayout) {
+      final contentWidth = constraints.maxWidth.clamp(0.0, 1440.0);
+      final inset = (constraints.maxWidth - contentWidth) / 2 + padding;
+      // Keep the right gutter inside the viewport for edge scrolling.
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(inset, 0, showResults ? 0 : inset, 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 24,
+            children: [
+              SizedBox(
+                width: showResults
+                    ? ((constraints.maxWidth - padding * 2 - 24) * .36)
+                        .clamp(264.0, 400.0)
+                    : (constraints.maxWidth - padding * 2).clamp(0.0, 520.0),
+                child: _buildSourcePane(source,
+                    action: pinAction ? _buildPrimaryAction(searching) : null),
+              ),
+              if (resultContent != null)
+                Expanded(
+                  child: Scrollbar(
+                    controller: _resultScroll,
+                    child: SingleChildScrollView(
+                      key: const PageStorageKey('image-search-results'),
+                      controller: _resultScroll,
+                      padding: EdgeInsets.only(right: inset, bottom: 8),
+                      child: resultContent,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Scrollbar(
+      controller: _pageScroll,
+      child: SingleChildScrollView(
+        key: const PageStorageKey('image-search-page'),
+        controller: _pageScroll,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.fromLTRB(padding, 0, padding, 24),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1400),
+            constraints: BoxConstraints(maxWidth: showResults ? 640 : 520),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 25,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 24,
               children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: _isUrlMode
-                      ? _buildUrlInput(colorScheme, textTheme)
-                      : _buildUploadArea(colorScheme, textTheme),
-                ),
-                Center(
-                  child: TextButton.icon(
-                    onPressed: _switchMode,
-                    icon: Icon(
-                      _isUrlMode ? Icons.upload_file : Icons.link,
-                      size: 18,
-                    ),
-                    label: Text(_isUrlMode ? '改为上传图片文件' : '改为输入图片 URL'),
-                  ),
-                ),
-                Observer(
-                  builder: (context) => SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton.icon(
-                      onPressed: _searchPageController.isImageSearching
-                          ? null
-                          : _startSearch,
-                      icon: _searchPageController.isImageSearching
-                          ? SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: colorScheme.onPrimary,
-                              ),
-                            )
-                          : const Icon(Icons.image_search_rounded),
-                      label: Text(
-                        _searchPageController.isImageSearching
-                            ? '搜索中...'
-                            : '开始搜索',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ),
-                _buildResultSection(colorScheme, textTheme),
-                _buildTips(colorScheme, textTheme),
+                source,
+                if (resultContent != null)
+                  SizedBox(key: _resultsKey, child: resultContent),
               ],
             ),
           ),
@@ -236,567 +363,233 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
     );
   }
 
-  Widget _buildUploadArea(ColorScheme colorScheme, TextTheme textTheme) {
-    return GestureDetector(
-      onTap: _pickImageFile,
-      child: Container(
-        width: double.infinity,
-        height: 240,
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: colorScheme.outline.withValues(alpha: 0.4),
-            width: 1.5,
-            strokeAlign: BorderSide.strokeAlignOutside,
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: _selectedImageFile == null
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.add_photo_alternate_outlined,
-                      size: 32,
-                      color: colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '点击选择图片',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '支持 JPG、PNG、WEBP 格式',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              )
-            : Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.file(
-                    _selectedImageFile!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Center(
-                      child: Text(
-                        '图片预览失败',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.05),
-                          Colors.black.withValues(alpha: 0.55),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _selectedImageName ?? '已选择图片',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: textTheme.titleMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '点击可重新选择图片',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.78),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton.filledTonal(
-                          onPressed: _pickImageFile,
-                          icon: const Icon(Icons.edit_outlined),
-                          tooltip: '重新选择',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+  Widget _buildSourcePane(Widget source, {Widget? action}) {
+    final scrollable = Scrollbar(
+      controller: _sourceScroll,
+      child: SingleChildScrollView(
+        key: const PageStorageKey('image-search-source'),
+        controller: _sourceScroll,
+        padding: EdgeInsets.only(bottom: action == null ? 0 : 16),
+        child: source,
       ),
     );
-  }
-
-  Widget _buildUrlInput(ColorScheme colorScheme, TextTheme textTheme) {
+    // Preserve input focus when the keyboard changes button placement.
     return Column(
-      key: const ValueKey('url-input'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 12,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          controller: _urlController,
-          decoration: InputDecoration(
-            hintText: '请输入图片链接',
-            hintStyle: TextStyle(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              fontSize: 13,
-            ),
-            prefixIcon: const Icon(Icons.link),
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: _urlController.clear,
-              tooltip: '清除',
-            ),
-            filled: true,
-            fillColor:
-                colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-          keyboardType: TextInputType.url,
-          textInputAction: TextInputAction.search,
-          onSubmitted: (_) => _startSearch(),
-        ),
-        _buildUrlPreview(colorScheme, textTheme),
+        Flexible(
+            fit: action == null ? FlexFit.loose : FlexFit.tight,
+            child: scrollable),
+        if (action != null) action,
       ],
     );
   }
 
-  Widget _buildUrlPreview(ColorScheme colorScheme, TextTheme textTheme) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      width: double.infinity,
-      constraints: BoxConstraints(
-        minHeight: 170,
-        maxHeight: _previewUrl.isNotEmpty ? 300 : 170,
-      ),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.4),
-          width: 1.5,
-          strokeAlign: BorderSide.strokeAlignOutside,
+  Widget _buildSource(BuildContext context, bool searching, bool showResults,
+      {required bool short, required bool inlineAction}) {
+    final colors = Theme.of(context).colorScheme;
+    final type = Theme.of(context).textTheme;
+    final busy = searching || _isPicking;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            showResults
+                ? '搜索图片'
+                : short
+                    ? '用截图找到番名'
+                    : '这一幕，\n出自哪部番？',
+            style:
+                (showResults || short ? type.headlineSmall : type.displaySmall)
+                    ?.copyWith(
+                        fontWeight: FontWeight.w700, color: colors.onSurface),
+          ),
         ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: _previewUrl.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.image_outlined,
-                    size: 36,
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '输入图片链接后预览',
-                    style: textTheme.bodySmall?.copyWith(
-                      color:
-                          colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                    ),
-                  ),
-                ],
+        if (!showResults && !short) ...[
+          const SizedBox(height: 8),
+          Text('用一张截图，找到番名与出现的集数。',
+              style: type.bodyLarge?.copyWith(color: colors.onSurfaceVariant)),
+        ],
+        SizedBox(height: short ? 12 : 24),
+        _ImageSourceSelector(
+            useUrl: _useUrl, enabled: !busy, onChanged: _changeSource),
+        const SizedBox(height: 16),
+        if (_useUrl) ...[
+          TextField(
+            controller: _urlController,
+            focusNode: _urlFocus,
+            readOnly: busy,
+            keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.search,
+            autocorrect: false,
+            enableSuggestions: false,
+            onSubmitted: (_) => _search(),
+            onTapOutside: (_) => _urlFocus.unfocus(),
+            decoration: InputDecoration(
+              labelText: '图片链接',
+              hintText: 'https://…',
+              filled: true,
+              fillColor: colors.surfaceContainerLow,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              suffixIcon: IconButton(
+                onPressed: busy ? null : _pasteUrl,
+                tooltip: '粘贴图片链接',
+                icon: const Icon(Icons.content_paste_rounded),
               ),
-            )
-          : Image.network(
-              _previewUrl,
-              fit: BoxFit.contain,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) {
-                  return child;
-                }
-                final total = loadingProgress.expectedTotalBytes;
-                final loaded = loadingProgress.cumulativeBytesLoaded;
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        value: total != null ? loaded / total : null,
-                        strokeWidth: 2.5,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '加载中...',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.broken_image_outlined,
-                      size: 36,
-                      color: colorScheme.error.withValues(alpha: 0.7),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '图片加载失败',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.error,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '请检查链接是否有效',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildResultSection(ColorScheme colorScheme, TextTheme textTheme) {
-    return Observer(
-      builder: (context) {
-        final results = _searchPageController.imageSearchResults;
-        final errorMessage = _searchPageController.imageSearchError;
-
-        if (_searchPageController.isImageSearching) {
-          return _buildStateCard(
-            colorScheme: colorScheme,
-            textTheme: textTheme,
-            icon: const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
-            title: '正在识别图片',
-            description: '请稍候，正在从截图中匹配番剧信息',
-          );
-        }
-
-        if (results.isEmpty) {
-          return _buildStateCard(
-            colorScheme: colorScheme,
-            textTheme: textTheme,
-            icon: Icon(
-              errorMessage.isEmpty
-                  ? Icons.grid_view_rounded
-                  : Icons.error_outline,
-              size: 30,
-              color: errorMessage.isEmpty
-                  ? colorScheme.primary
-                  : colorScheme.error,
-            ),
-            title: errorMessage.isEmpty ? '搜索结果将在这里展示' : '未获取到搜索结果',
-            description:
-                errorMessage.isEmpty ? '选择图片文件或输入图片链接后开始搜索' : errorMessage,
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '识别结果',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 16),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final crossAxisCount = _resolveCrossAxisCount(
-                  constraints.maxWidth,
-                );
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: results.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    mainAxisExtent: 152,
-                  ),
-                  itemBuilder: (context, index) {
-                    final result = results[index];
-                    return InkWell(
-                      onTap: () {
-                        final title = _formatTraceResultTitle(result);
-                        context.pop(title);
-                      },
-                      child: _buildResultCard(
-                        context,
-                        colorScheme,
-                        textTheme,
-                        result,
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildStateCard({
-    required ColorScheme colorScheme,
-    required TextTheme textTheme,
-    required Widget icon,
-    required String title,
-    required String description,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          icon,
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            description,
-            textAlign: TextAlign.center,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResultCard(
-    BuildContext context,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    ResultItem result,
-  ) {
-    final coverUrl = result.image ??
-        result.anilist?.coverImage?.large ??
-        result.anilist?.coverImage?.medium;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.16),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _formatTraceResultTitle(result),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 5,
-              children: [
-                SizedBox(
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: NetworkImgLayer(
-                      src: coverUrl,
-                      width: 132,
-                      height: 74.25,
+          Text('使用可直接访问的 HTTP 或 HTTPS 图片地址',
+              style: type.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
+          if (_previewUrl.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildPreview(short: short),
+          ],
+        ] else ...[
+          if (_imageFile != null)
+            _buildPreview(short: short)
+          else
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: 16, vertical: short ? 12 : 24),
+              child: short
+                  ? Row(children: [
+                      const _ImageSearchEmblem(size: 48),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: Text('截图预览',
+                              style: type.titleMedium
+                                  ?.copyWith(color: colors.onSurfaceVariant))),
+                    ])
+                  : Column(
+                      children: [
+                        const _ImageSearchEmblem(size: 72),
+                        const SizedBox(height: 12),
+                        Text('截图预览',
+                            textAlign: TextAlign.center,
+                            style: type.titleMedium
+                                ?.copyWith(color: colors.onSurfaceVariant)),
+                      ],
                     ),
-                  ),
-                ),
+            ),
+          const SizedBox(height: 8),
+          if (_imageFile != null)
+            Row(
+              children: [
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildInfoLine(
-                        textTheme,
-                        colorScheme,
-                        _formatTraceEpisode(result.episode),
-                      ),
-                      _buildInfoLine(
-                        textTheme,
-                        colorScheme,
-                        '相似度: ${formatTraceSimilarity(result.similarity)}',
-                      ),
-                      _buildInfoLine(
-                        textTheme,
-                        colorScheme,
-                        '时间: ${durationToString(Duration(seconds: (result.from ?? 0).floor()))} - ${durationToString(Duration(seconds: (result.to ?? 0).floor()))}',
-                      ),
-                    ],
-                  ),
-                ),
+                    child: Text(path.basename(_imageFile!.path),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: type.bodySmall
+                            ?.copyWith(color: colors.onSurfaceVariant))),
+                TextButton.icon(
+                    onPressed: busy ? null : _pickImage,
+                    label: const Text('更换截图'),
+                    icon: const Icon(Icons.swap_horiz_rounded, size: 20)),
               ],
-            ),
-          ),
+            )
+          else
+            Text('JPG、PNG、WebP · 最大 25 MB',
+                textAlign: TextAlign.center,
+                style:
+                    type.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildInfoLine(
-    TextTheme textTheme,
-    ColorScheme colorScheme,
-    String value,
-  ) {
-    return Text(
-      value,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: textTheme.bodyMedium?.copyWith(
-        color: colorScheme.onSurfaceVariant,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-
-  Widget _buildTips(ColorScheme colorScheme, TextTheme textTheme) {
-    final baseStyle = textTheme.bodySmall?.copyWith(
-      color: colorScheme.onSurfaceVariant,
-      height: 1.5,
-    );
-    final linkStyle = baseStyle?.copyWith(
-      color: colorScheme.primary,
-      decoration: TextDecoration.underline,
-      decorationColor: colorScheme.primary,
-    );
-    final dotColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
-
-    final tips = <Widget>[
-      Text('仅支持使用原始比例番剧截图搜索结果', style: baseStyle),
-      Text('截图应清晰，避免过度压缩或添加水印', style: baseStyle),
-      RichText(
-        text: TextSpan(
-          style: baseStyle,
-          children: [
-            const TextSpan(text: '搜索引擎由 '),
-            WidgetSpan(
-              alignment: PlaceholderAlignment.baseline,
-              baseline: TextBaseline.alphabetic,
-              child: GestureDetector(
-                onTap: () => launchUrl(
-                  Uri.parse('https://trace.moe'),
-                  mode: LaunchMode.externalApplication,
-                ),
-                child: Text('trace.moe', style: linkStyle),
-              ),
-            ),
-            const TextSpan(text: ' 提供支持'),
-          ],
-        ),
-      ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              Icons.info_outline,
-              size: 16,
-              color: colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '以图搜番',
-              style: textTheme.labelLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        ...tips.map(
-          (tipWidget) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 5),
-                  child: Container(
-                    width: 4,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: dotColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(child: tipWidget),
-              ],
-            ),
-          ),
-        ),
+        if (_inputError != null) ...[
+          const SizedBox(height: 12),
+          Semantics(
+              liveRegion: true,
+              child: Text(_inputError!,
+                  style: type.bodyMedium?.copyWith(color: colors.error))),
+        ],
+        const SizedBox(height: 16),
+        if (inlineAction) _buildPrimaryAction(searching),
+        const SizedBox(height: 12),
+        Text('由 trace.moe 识别动画截图',
+            textAlign: TextAlign.center,
+            style: type.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
+        if (!showResults && !short) ...[
+          const SizedBox(height: 24),
+          const _ScreenshotTip(),
+        ],
       ],
+    );
+  }
+
+  Widget _buildPrimaryAction(bool searching) {
+    final colors = Theme.of(context).colorScheme;
+    final type = Theme.of(context).textTheme;
+    final busy = searching || _isPicking;
+    final selecting = !_useUrl && _imageFile == null;
+    return FilledButton.icon(
+      key: const ValueKey('image-search-primary'),
+      onPressed: busy
+          ? null
+          : selecting
+              ? _pickImage
+              : _hasImage
+                  ? _search
+                  : null,
+      style: ButtonStyle(
+        minimumSize: const WidgetStatePropertyAll(Size.fromHeight(56)),
+        padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
+        textStyle: WidgetStatePropertyAll(
+            type.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        shape: WidgetStateProperty.resolveWith((states) =>
+            RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                    states.contains(WidgetState.pressed) ? 16 : 28))),
+        animationDuration: _transition,
+      ),
+      icon: searching || _isPicking
+          ? LoadingIndicator(size: 24, color: colors.onSurfaceVariant)
+          : Icon(_hasImage
+              ? Icons.image_search_rounded
+              : Icons.add_photo_alternate_outlined),
+      label: Text(searching
+          ? '正在识别'
+          : _isPicking
+              ? '正在读取图片'
+              : selecting
+                  ? '选择截图'
+                  : _useUrl
+                      ? '开始识别'
+                      : '识别这张截图'),
+    );
+  }
+
+  Widget _buildPreview({required bool short}) {
+    final colors = Theme.of(context).colorScheme;
+    Widget fallback(BuildContext context, Object error, StackTrace? stack) =>
+        const Center(
+            child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('暂时无法预览\n仍可尝试识别，或更换图片', textAlign: TextAlign.center),
+        ));
+    return Semantics(
+      label: '待识别的完整截图',
+      image: true,
+      child: Container(
+        height: short ? 136 : 208,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+            color: colors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(24)),
+        child: _useUrl
+            ? Image.network(_previewUrl,
+                fit: BoxFit.contain,
+                errorBuilder: fallback,
+                loadingBuilder: (context, child, progress) => progress == null
+                    ? child
+                    : const Center(
+                        child: LoadingIndicator(semanticsLabel: '正在加载截图')))
+            : Image.file(_imageFile!,
+                fit: BoxFit.contain, errorBuilder: fallback),
+      ),
     );
   }
 }

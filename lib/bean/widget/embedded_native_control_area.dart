@@ -1,11 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/platform/desktop_window_config.dart';
 
-class EmbeddedNativeControlArea extends StatefulWidget {
-  /// The widget won't draw anything, just a placeholder for native window control.
-  /// It only works on macOS at the moment.
-  /// windows and linux have no way to embed native window control into flutter view.
+/// Reserves space above content for native macOS window controls.
+class EmbeddedNativeControlArea extends StatelessWidget {
   const EmbeddedNativeControlArea({
     super.key,
     required this.child,
@@ -16,31 +14,14 @@ class EmbeddedNativeControlArea extends StatefulWidget {
   final bool requireOffset;
 
   @override
-  State<StatefulWidget> createState() => _EmbeddedNativeControlAreaState();
-}
-
-class _EmbeddedNativeControlAreaState extends State<EmbeddedNativeControlArea> {
-  bool showWindowButton = GStorage.getSetting(SettingsKeys.showWindowButton);
-
-  EdgeInsets get getInsets {
-    if (!showWindowButton) {
-      return EdgeInsets.zero;
-    }
-    if (!widget.requireOffset) {
-      return EdgeInsets.zero;
-    }
-    if (Platform.isMacOS) {
-      return const EdgeInsets.only(top: 22);
-    } else {
-      return EdgeInsets.zero;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final needsOffset =
+        Platform.isMacOS &&
+        requireOffset &&
+        DesktopWindowConfig.showWindowButton;
     return Padding(
-      padding: getInsets,
-      child: widget.child,
+      padding: needsOffset ? const EdgeInsets.only(top: 22) : EdgeInsets.zero,
+      child: child,
     );
   }
 }

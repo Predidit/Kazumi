@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
@@ -11,7 +12,7 @@ import 'package:kazumi/pages/onboarding/steps/mirror_settings_step.dart';
 import 'package:kazumi/pages/onboarding/steps/plugin_shop_step.dart';
 import 'package:kazumi/pages/onboarding/steps/update_source_step.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/platform/app_exit.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
 
@@ -29,243 +30,284 @@ class OnboardingPage extends StatefulWidget {
   State<OnboardingPage> createState() => _OnboardingPageState();
 }
 
+enum _OnboardingStep {
+  welcome('使用约定'),
+  updates('更新来源'),
+  mirrors('访问加速'),
+  rules('添加规则');
+
+  const _OnboardingStep(this.label);
+
+  final String label;
+}
+
 class _OnboardingPageState extends State<OnboardingPage> {
-  final PageController pageController = PageController();
-  int currentIndex = 0;
-  bool agreed = false;
-  bool installingBundled = false;
-  bool useGithubUpdate = true;
+  final _pageController = PageController();
+  final _steps = [
+    _OnboardingStep.welcome,
+    if (Platform.isAndroid) _OnboardingStep.updates,
+    _OnboardingStep.mirrors,
+    _OnboardingStep.rules,
+  ];
+  int _currentIndex = 0;
+  bool _agreed = false;
+  bool _busy = false;
+  late bool _useGithubUpdate;
 
-  PluginsController get pluginsController => widget.pluginsController;
+  PluginsController get _pluginsController => widget.pluginsController;
+  bool get _isLastStep => _currentIndex == _steps.length - 1;
 
-  int get stepCount => Platform.isAndroid ? 4 : 3;
+  @override
+  void initState() {
+    super.initState();
+    _useGithubUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
+  }
 
   @override
   void dispose() {
-    pageController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  List<Widget> _buildStepBodies() {
-    return [
-      const DisclaimerStep(),
-      if (Platform.isAndroid)
-        UpdateSourceStep(
-          useGithubUpdate: useGithubUpdate,
-          onChanged: (value) {
-            GStorage.putSetting(SettingsKeys.autoUpdate, value);
-            setState(() {
-              useGithubUpdate = value;
-            });
-          },
-        ),
-      const MirrorSettingsStep(),
-      PluginShopStep(controller: pluginsController),
-    ];
-  }
+  Widget _buildStep(_OnboardingStep step) => switch (step) {
+        _OnboardingStep.welcome => const DisclaimerStep(),
+        _OnboardingStep.updates => UpdateSourceStep(
+            useGithubUpdate: _useGithubUpdate,
+            onChanged: (value) {
+              setState(() => _useGithubUpdate = value);
+              unawaited(GStorage.putSetting(SettingsKeys.autoUpdate, value));
+            },
+          ),
+        _OnboardingStep.mirrors => const MirrorSettingsStep(),
+        _OnboardingStep.rules => PluginShopStep(controller: _pluginsController),
+      };
 
-  String get primaryLabel {
-    if (currentIndex == 0 && !agreed) {
-      return '同意并继续';
-    }
-    return currentIndex == stepCount - 1 ? '完成' : '下一步';
-  }
+  String get _primaryLabel => !_agreed
+      ? '同意并继续'
+      : _isLastStep
+          ? '开始使用'
+          : '继续';
 
-  void _goToPage(int index) {
-    pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
-  void _previousPage() {
-    if (currentIndex > 0) {
-      _goToPage(currentIndex - 1);
-    }
-  }
-
-  void _nextPage() {
-    if (currentIndex < stepCount - 1) {
-      _goToPage(currentIndex + 1);
-    } else {
-      _finish();
-    }
-  }
-
-  Future<void> _agree() async {
-    if (agreed) {
-      _nextPage();
-      return;
-    }
-    setState(() {
-      installingBundled = true;
-    });
+  Future<void> _navigate({required bool forward}) async {
+    if (_busy || (!forward && _currentIndex == 0)) return;
+    _busy = true;
     try {
-      await pluginsController.copyPluginsToExternalDirectory();
-    } catch (error, stackTrace) {
-      KazumiLogger().e(
-        'Plugin: failed to install bundled rules',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      if (mounted) {
-        setState(() {
-          installingBundled = false;
-        });
+      if (forward && !_agreed) setState(() => _agreed = true);
+      if (forward && _isLastStep) {
+        await _finish();
+      } else {
+        await _goToPage(_currentIndex + (forward ? 1 : -1));
       }
-      KazumiDialog.showToast(message: '初始化规则失败');
-      return;
+    } finally {
+      _busy = false;
     }
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      agreed = true;
-      installingBundled = false;
-    });
-    _nextPage();
   }
 
-  void _handlePrimary() {
-    if (currentIndex == 0) {
-      unawaited(_agree());
+  Future<void> _goToPage(int index) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pageController.jumpToPage(index);
     } else {
-      _nextPage();
+      await _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubicEmphasized,
+      );
     }
   }
 
-  void _finish() {
+  Future<void> _finish() async {
+    if (_pluginsController.pluginList.isEmpty) {
+      final confirmed = await KazumiDialog.show<bool>(
+        context: context,
+        builder: (_) => const _SkipRulesDialog(),
+      );
+      if (confirmed != true) return;
+    }
+    await GStorage.putSetting(SettingsKeys.onboardingCompleted, true);
+    if (!mounted) return;
     final myController = widget.myController;
     unawaited(runStartupUpdateCheck(
       isEnabled: () => GStorage.getSetting(SettingsKeys.autoUpdate),
-      checkForUpdate: () async {
-        await myController.checkUpdate(type: 'auto');
-      },
+      checkForUpdate: () => myController.checkUpdate(type: 'auto'),
     ));
     context.navigate(GStorage.getSetting(SettingsKeys.defaultStartupPage));
   }
 
   Widget _buildBottomBar(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-        child: Row(
-          children: [
-            if (currentIndex == 0)
-              TextButton(
-                onPressed: () => exit(0),
-                child: Text(
-                  '退出',
-                  style: TextStyle(color: colorScheme.outline),
-                ),
-              )
-            else
-              TextButton(
-                onPressed: _previousPage,
-                child: const Text('上一步'),
-              ),
-            Expanded(
-              child: Center(
-                child: _PageIndicator(
-                  count: stepCount,
-                  currentIndex: currentIndex,
-                ),
-              ),
-            ),
-            FilledButton(
-              onPressed: installingBundled ? null : _handlePrimary,
-              child: installingBundled
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(primaryLabel),
-            ),
-          ],
+    final theme = Theme.of(context);
+    return LayoutBuilder(builder: (context, constraints) {
+      final stacked = constraints.maxWidth < 320 ||
+          MediaQuery.textScalerOf(context).scale(16) > 24;
+      final secondary = TextButton(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(88, 56),
+          foregroundColor: theme.colorScheme.onSurfaceVariant,
         ),
-      ),
-    );
+        onPressed:
+            _currentIndex == 0 ? AppExit.quit : () => _navigate(forward: false),
+        child: Text(_currentIndex == 0 ? '退出' : '上一步'),
+      );
+      final primary = FilledButton.icon(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(176, 56),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          textStyle: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        onPressed: () => _navigate(forward: true),
+        iconAlignment: IconAlignment.end,
+        icon: Icon(
+            _isLastStep ? Icons.check_rounded : Icons.arrow_forward_rounded),
+        label: Text(_primaryLabel),
+      );
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: stacked
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [primary, const SizedBox(height: 4), secondary],
+              )
+            : Row(children: [
+                secondary,
+                const SizedBox(width: 16),
+                const Spacer(),
+                primary,
+              ]),
+      );
+    });
   }
 
   @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
-        _previousPage();
-      },
-      child: Scaffold(
-        appBar: const SysAppBar(),
-        body: Column(
-          children: [
-            Expanded(
-              child: PageView(
-                controller: pageController,
-                physics: agreed ? null : const NeverScrollableScrollPhysics(),
-                onPageChanged: (index) {
-                  setState(() {
-                    currentIndex = index;
-                  });
-                },
-                children: [
-                  for (final body in _buildStepBodies())
-                    Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 600),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: body,
+  Widget build(BuildContext context) => PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (!didPop) unawaited(_navigate(forward: false));
+        },
+        child: Scaffold(
+          appBar: const SysAppBar(),
+          body: SafeArea(
+            top: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1184),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal:
+                          MediaQuery.sizeOf(context).width < 600 ? 20 : 32),
+                  child: Column(
+                    children: [
+                      _OnboardingProgress(
+                        labels: _steps.map((step) => step.label).toList(),
+                        currentIndex: _currentIndex,
+                      ),
+                      Expanded(
+                        child: PageView(
+                          controller: _pageController,
+                          physics: _agreed
+                              ? null
+                              : const NeverScrollableScrollPhysics(),
+                          onPageChanged: (index) {
+                            setState(() => _currentIndex = index);
+                          },
+                          children: _steps.map(_buildStep).toList(),
                         ),
                       ),
-                    ),
-                ],
+                      _buildBottomBar(context),
+                    ],
+                  ),
+                ),
               ),
             ),
-            _buildBottomBar(context),
-          ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 }
 
-class _PageIndicator extends StatelessWidget {
-  const _PageIndicator({
-    required this.count,
+class _SkipRulesDialog extends StatelessWidget {
+  const _SkipRulesDialog();
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        scrollable: true,
+        constraints: const BoxConstraints(maxWidth: 560),
+        icon: const Icon(Icons.warning_amber_rounded),
+        title: const Text('暂不添加规则？'),
+        content: const Text(
+          '没有规则时无法搜索和播放番剧。之后也可以在规则管理中添加。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('仍然继续'),
+          ),
+          FilledButton(
+            autofocus: true,
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('返回添加'),
+          ),
+        ],
+      );
+}
+
+class _OnboardingProgress extends StatelessWidget {
+  const _OnboardingProgress({
+    required this.labels,
     required this.currentIndex,
   });
 
-  final int count;
+  final List<String> labels;
   final int currentIndex;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (int i = 0; i < count; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutCubic,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            width: i == currentIndex ? 24 : 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: i == currentIndex
-                  ? colorScheme.primary
-                  : colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(4),
-            ),
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Semantics(
+      label:
+          '第 ${currentIndex + 1} 步，共 ${labels.length} 步，${labels[currentIndex]}',
+      liveRegion: true,
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 12),
+          child: Column(
+            children: [
+              Row(children: [
+                Expanded(
+                  child: Text(labels[currentIndex],
+                      style: theme.textTheme.labelLarge?.copyWith(
+                          color: colors.primary, fontWeight: FontWeight.w700)),
+                ),
+                Text('${currentIndex + 1} / ${labels.length}',
+                    style: theme.textTheme.labelLarge
+                        ?.copyWith(color: colors.onSurfaceVariant)),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                for (var i = 0; i < labels.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 6),
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 250),
+                      curve: Curves.easeInOutCubicEmphasized,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: i <= currentIndex
+                            ? colors.primary
+                            : colors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ],
+              ]),
+            ],
           ),
-      ],
+        ),
+      ),
     );
   }
 }

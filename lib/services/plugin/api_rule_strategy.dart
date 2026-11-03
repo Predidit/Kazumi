@@ -143,12 +143,17 @@ class ApiRuleStrategy {
     RestrictedJsonPath.validate(config.listPath);
     RestrictedJsonPath.validate(config.namePath);
     RestrictedJsonPath.validate(config.sourcePath);
+    final template = config.sourceTemplate;
+    if (template.isNotEmpty && !template.contains('@source')) {
+      throw const ApiRuleFormatException('详情页地址模板必须引用 @source');
+    }
   }
 
   RuleSearchParseResult parseSearch(String raw, ApiSearchConfig config) {
     validateSearchConfig(config);
     final document = decodeResponse(raw);
     final nodes = RestrictedJsonPath.read(document, config.listPath);
+    final template = config.sourceTemplate;
     final results = <SearchItem>[];
     final fragments = <String>[];
     final diagnostics = <String>[];
@@ -165,7 +170,11 @@ class ApiRuleStrategy {
           diagnostics.add('搜索节点 $index 缺少名称或来源，已跳过');
           continue;
         }
-        results.add(SearchItem(name: name, src: source));
+        // Plain replacement so @source may follow a letter (`/GV@source`).
+        final src = template.isEmpty
+            ? source
+            : template.replaceAll('@source', Uri.encodeComponent(source));
+        results.add(SearchItem(name: name, src: src));
         fragments.add(jsonEncode(node));
       } on ApiRuleFormatException {
         rethrow;

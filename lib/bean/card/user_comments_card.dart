@@ -5,162 +5,186 @@ import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/date_time.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-// 16 and 12 are M3 `large` and a 4dp-grid step; the replies block nested inside
-// takes the concentric radius `outer - padding` so both sets of corners stay
-// parallel.
-const double _cardRadius = 16;
-const double _cardPadding = 12;
-const double _repliesRadius = _cardRadius - _cardPadding;
-
-const double _avatarGap = 12;
-const double _replyAvatarRadius = 16;
-
-/// Renders one Bangumi comment and its replies. Episode and character comments
-/// are distinct models of the same shape, so each gets a constructor.
-class UserCommentsCard extends StatelessWidget {
+class UserCommentsCard extends StatefulWidget {
   UserCommentsCard.episode(EpisodeCommentItem item, {super.key})
-      : _comment = _fromEpisode(item.comment),
+      : _source = item,
+        _comment = _fromEpisode(item.comment),
         _replies = item.replies.map(_fromEpisode).toList();
 
   UserCommentsCard.character(CharacterCommentItem item, {super.key})
-      : _comment = _fromCharacter(item.comment),
+      : _source = item,
+        _comment = _fromCharacter(item.comment),
         _replies = item.replies.map(_fromCharacter).toList();
 
-  final _CommentView _comment;
-  final List<_CommentView> _replies;
-
-  static _CommentView _fromEpisode(EpisodeComment comment) => _CommentView(
-        nickname: comment.user.nickname,
-        avatarUrl: comment.user.avatar.large,
-        createdAt: comment.createdAt,
-        content: comment.comment,
-      );
-
-  static _CommentView _fromCharacter(CharacterComment comment) => _CommentView(
-        nickname: comment.user.nickname,
-        avatarUrl: comment.user.avatar.large,
-        createdAt: comment.createdAt,
-        content: comment.comment,
-      );
+  final Object _source;
+  final _CommentData _comment;
+  final List<_CommentData> _replies;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(_cardRadius),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(_cardPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _CommentAuthor(comment: _comment, avatarRadius: 20),
-              const SizedBox(height: 8),
-              _CommentBody(content: _comment.content),
-              if (_replies.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                _RepliesContainer(replies: _replies),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
+  State<UserCommentsCard> createState() => _UserCommentsCardState();
+}
+
+class _UserCommentsCardState extends State<UserCommentsCard> {
+  static const _previewCount = 2;
+  bool _expanded = false;
+
+  @override
+  void didUpdateWidget(covariant UserCommentsCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget._source != widget._source) _expanded = false;
   }
-}
-
-/// Loading placeholder for [UserCommentsCard], sharing its chrome and metrics.
-class UserCommentsCardBone extends StatelessWidget {
-  const UserCommentsCardBone({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(_cardRadius),
-        clipBehavior: Clip.antiAlias,
-        child: const Padding(
-          padding: EdgeInsets.all(_cardPadding),
-          child: Skeletonizer.zone(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Bone.circle(size: 40),
-                    SizedBox(width: _avatarGap),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Bone.text(width: 96),
-                        SizedBox(height: 6),
-                        Bone.text(width: 64, fontSize: 11),
-                      ],
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-                Bone.multiText(lines: 2),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+    final colors = Theme.of(context).colorScheme;
+    final type = Theme.of(context).textTheme;
+    final replies = widget._replies;
+    final visibleCount = _expanded || replies.length <= _previewCount
+        ? replies.length
+        : _previewCount;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
 
-class _CommentView {
-  const _CommentView({
-    required this.nickname,
-    required this.avatarUrl,
-    required this.createdAt,
-    required this.content,
-  });
-
-  final String nickname;
-  final String avatarUrl;
-  final int createdAt;
-  final String content;
-}
-
-class _RepliesContainer extends StatelessWidget {
-  const _RepliesContainer({required this.replies});
-
-  final List<_CommentView> replies;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(_cardPadding),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(_repliesRadius),
-      ),
+    return _CommentSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var index = 0; index < replies.length; index++) ...[
-            if (index > 0) const SizedBox(height: 12),
-            _CommentAuthor(
-              comment: replies[index],
-              avatarRadius: _replyAvatarRadius,
-            ),
-            const SizedBox(height: 6),
+          _CommentAuthor(comment: widget._comment),
+          const SizedBox(height: 16),
+          _CommentBody(content: widget._comment.content),
+          if (replies.isNotEmpty) ...[
+            const SizedBox(height: 20),
             Padding(
-              padding: const EdgeInsets.only(
-                left: _replyAvatarRadius * 2 + _avatarGap,
+              padding: const EdgeInsets.only(left: 4, bottom: 10),
+              child: Row(
+                children: [
+                  Icon(Icons.forum_outlined, size: 16, color: colors.primary),
+                  const SizedBox(width: 8),
+                  Text('${replies.length} 条回复',
+                      style: type.labelLarge?.copyWith(color: colors.primary)),
+                ],
               ),
-              child: _CommentBody(content: replies[index].content),
             ),
+            AnimatedSize(
+              duration: disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubicEmphasized,
+              alignment: Alignment.topCenter,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var index = 0; index < visibleCount; index++)
+                    Padding(
+                      padding: EdgeInsets.only(top: index == 0 ? 0 : 3),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: colors.surfaceContainerHighest,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(index == 0 ? 16 : 4),
+                            bottom: Radius.circular(
+                                index == visibleCount - 1 ? 16 : 4),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _CommentAuthor(
+                                comment: replies[index],
+                                compact: true,
+                              ),
+                              const SizedBox(height: 10),
+                              _CommentBody(content: replies[index].content),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (replies.length > _previewCount) ...[
+              const SizedBox(height: 8),
+              Semantics(
+                expanded: _expanded,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () => setState(() => _expanded = !_expanded),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                      backgroundColor: colors.secondaryContainer,
+                      foregroundColor: colors.onSecondaryContainer,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: AnimatedRotation(
+                      turns: _expanded ? .5 : 0,
+                      duration: disableAnimations
+                          ? Duration.zero
+                          : const Duration(milliseconds: 200),
+                      child: const Icon(Icons.expand_more_rounded, size: 20),
+                    ),
+                    label: Text(_expanded
+                        ? '收起回复'
+                        : '展开其余 ${replies.length - _previewCount} 条回复'),
+                  ),
+                ),
+              ),
+            ],
           ],
         ],
       ),
+    );
+  }
+}
+
+class _CommentAuthor extends StatelessWidget {
+  const _CommentAuthor({required this.comment, this.compact = false});
+
+  final _CommentData comment;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        ExcludeSemantics(
+          child: BangumiAvatar(
+            radius: compact ? 16 : 22,
+            imageUrl: comment.user.avatar.large,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                comment.user.nickname.isNotEmpty
+                    ? comment.user.nickname
+                    : comment.user.username,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                dateFormat(comment.createdAt),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -172,61 +196,83 @@ class _CommentBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (content.isEmpty) {
-      final theme = Theme.of(context);
-      return Text(
-        '该评论已被删除',
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontStyle: FontStyle.italic,
-        ),
-      );
-    }
-    return BBCodeWidget(bbcode: content);
-  }
-}
-
-class _CommentAuthor extends StatelessWidget {
-  const _CommentAuthor({
-    required this.comment,
-    required this.avatarRadius,
-  });
-
-  final _CommentView comment;
-  final double avatarRadius;
-
-  @override
-  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Row(
-      children: [
-        BangumiAvatar(radius: avatarRadius, imageUrl: comment.avatarUrl),
-        const SizedBox(width: _avatarGap),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                comment.nickname,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                dateFormat(comment.createdAt),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return DefaultTextStyle.merge(
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurface,
+        height: 1.65,
+      ),
+      child: content.isEmpty
+          ? Text('该评论已被删除',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant))
+          : BBCodeWidget(
+              bbcode: content,
+              textScaler: MediaQuery.textScalerOf(context),
+            ),
     );
   }
 }
+
+class UserCommentsCardBone extends StatelessWidget {
+  const UserCommentsCardBone({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _CommentSurface(
+      child: Skeletonizer.zone(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Bone.circle(size: 44),
+              SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Bone.text(width: 96),
+                  SizedBox(height: 2),
+                  Bone.text(width: 64, fontSize: 11),
+                ],
+              ),
+            ]),
+            SizedBox(height: 16),
+            Bone.multiText(lines: 2),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommentSurface extends StatelessWidget {
+  const _CommentSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(padding: const EdgeInsets.all(16), child: child),
+      ),
+    );
+  }
+}
+
+typedef _CommentData = ({User user, String content, int createdAt});
+
+_CommentData _fromEpisode(EpisodeComment comment) => (
+      user: comment.user,
+      content: comment.comment,
+      createdAt: comment.createdAt,
+    );
+
+_CommentData _fromCharacter(CharacterComment comment) => (
+      user: comment.user,
+      content: comment.comment,
+      createdAt: comment.createdAt,
+    );

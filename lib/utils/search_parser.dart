@@ -247,19 +247,6 @@ class SearchParser {
         .trim();
   }
 
-  bool hasSortSyntax() {
-    return _sortRegExp.hasMatch(query);
-  }
-
-  String removeSort() {
-    return query.replaceAll(_sortRegExp, '').trim();
-  }
-
-  String updateSort(String sortValue) {
-    final state = toFilterState().copyWith(sort: sortValue);
-    return fromFilterState(state);
-  }
-
   SearchFilterState toFilterState() {
     return SearchFilterState(
       id: parseId() ?? '',

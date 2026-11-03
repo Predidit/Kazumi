@@ -109,22 +109,6 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$isFullscreenAtom =
-      Atom(name: '_VideoPageController.isFullscreen', context: context);
-
-  @override
-  bool get isFullscreen {
-    _$isFullscreenAtom.reportRead();
-    return super.isFullscreen;
-  }
-
-  @override
-  set isFullscreen(bool value) {
-    _$isFullscreenAtom.reportWrite(value, super.isFullscreen, () {
-      super.isFullscreen = value;
-    });
-  }
-
   late final _$isCommentsAscendingAtom =
       Atom(name: '_VideoPageController.isCommentsAscending', context: context);
 
@@ -154,22 +138,6 @@ mixin _$VideoPageController on _VideoPageController, Store {
   set isPip(bool value) {
     _$isPipAtom.reportWrite(value, super.isPip, () {
       super.isPip = value;
-    });
-  }
-
-  late final _$showTabBodyAtom =
-      Atom(name: '_VideoPageController.showTabBody', context: context);
-
-  @override
-  bool get showTabBody {
-    _$showTabBodyAtom.reportRead();
-    return super.showTabBody;
-  }
-
-  @override
-  set showTabBody(bool value) {
-    _$showTabBodyAtom.reportWrite(value, super.showTabBody, () {
-      super.showTabBody = value;
     });
   }
 
@@ -341,10 +309,8 @@ episodeCommentsList: ${episodeCommentsList},
 selectedEpisode: ${selectedEpisode},
 playingEpisode: ${playingEpisode},
 commentsEpisode: ${commentsEpisode},
-isFullscreen: ${isFullscreen},
 isCommentsAscending: ${isCommentsAscending},
 isPip: ${isPip},
-showTabBody: ${showTabBody},
 historyOffset: ${historyOffset},
 isOfflineMode: ${isOfflineMode},
 roadList: ${roadList}

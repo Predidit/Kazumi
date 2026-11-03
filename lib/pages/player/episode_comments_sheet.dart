@@ -1,10 +1,11 @@
-import 'dart:ui';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/card/user_comments_card.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
+import 'package:kazumi/pages/player/episode_comments_picker.dart';
+import 'package:kazumi/pages/player/episode_comments_view.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 
@@ -24,44 +25,14 @@ class EpisodeCommentsSheet extends StatefulWidget {
   State<EpisodeCommentsSheet> createState() => _EpisodeCommentsSheetState();
 }
 
-class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
-  VideoPageController get videoPageController => widget.videoPageController;
-  bool commentsQueryTimeout = false;
-  bool commentsIsEmpty = false;
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
-      GlobalKey<RefreshIndicatorState>();
-
-  int ep = 0;
-
-  Future<void> loadComments(int episode) async {
-    commentsQueryTimeout = false;
-    commentsIsEmpty = false;
-    try {
-      final applied = await videoPageController.queryBangumiEpisodeCommentsByID(
-          videoPageController.bangumiItem.id, episode);
-      if (!mounted || !applied) {
-        return;
-      }
-      if (videoPageController.episodeCommentsList.isEmpty && mounted) {
-        setState(() {
-          commentsIsEmpty = true;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          commentsQueryTimeout = true;
-        });
-      }
-    }
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void toggleSortOrder() {
-    videoPageController.toggleSortOrder();
-  }
+class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
+    with KazumiDialogOwner {
+  VideoPageController get _controller => widget.videoPageController;
+  late int _selectedEpisode;
+  bool _isLoading = false;
+  bool _hasError = false;
+  int _requestVersion = 0;
+  final Map<int, EpisodeInfo> _episodeInfoByIndex = {};
 
   @override
   void initState() {
@@ -72,250 +43,115 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   @override
   void didUpdateWidget(covariant EpisodeCommentsSheet oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.episode != widget.episode ||
-        oldWidget.selection != widget.selection) {
+    final controllerChanged =
+        oldWidget.videoPageController != widget.videoPageController;
+    if (controllerChanged) {
+      _episodeInfoByIndex.clear();
+    }
+    if (oldWidget.selection != widget.selection ||
+        controllerChanged ||
+        (oldWidget.episode != widget.episode &&
+            widget.episode != _selectedEpisode)) {
       _resetAndScheduleRefresh();
     }
   }
 
   void _resetAndScheduleRefresh() {
-    ep = 0;
-    commentsQueryTimeout = false;
-    commentsIsEmpty = false;
-    final targetEpisode = widget.episode;
-    final targetSelection = widget.selection;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted ||
-          widget.episode != targetEpisode ||
-          widget.selection != targetSelection) {
+    dialogs.cancel();
+    final version = ++_requestVersion;
+    _selectedEpisode = widget.episode;
+    _hasError = false;
+    _isLoading = _controller.commentsEpisode != _selectedEpisode ||
+        _controller.episodeCommentsList.isEmpty;
+    if (_isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && version == _requestVersion) {
+          unawaited(_loadComments());
+        }
+      });
+    }
+  }
+
+  Future<void> _loadComments() async {
+    final version = ++_requestVersion;
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+    try {
+      final applied = await _controller.queryBangumiEpisodeCommentsByID(
+          _controller.bangumiItem.id, _selectedEpisode);
+      if (!mounted || version != _requestVersion || !applied) return;
+      if (_controller.episodeInfo.id != 0) {
+        _rememberEpisodeInfo(_selectedEpisode, _controller.episodeInfo);
+      }
+      setState(() => _isLoading = false);
+    } catch (_) {
+      if (!mounted || version != _requestVersion) return;
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+      });
+    }
+  }
+
+  void _rememberEpisodeInfo(int index, EpisodeInfo info) {
+    // Playback resets the controller's EpisodeInfo in place when switching.
+    _episodeInfoByIndex[index] = EpisodeInfo(
+      id: info.id,
+      episode: info.episode,
+      type: info.type,
+      name: info.name,
+      nameCn: info.nameCn,
+    );
+  }
+
+  Future<void> _showEpisodeSelection() async {
+    if (dialogs.isRunning) return;
+    final controller = _controller;
+    await dialogs.run((task) async {
+      final episodes = await task.loading(
+        message: '分集列表加载中',
+        action: () =>
+            BangumiApi.getBangumiEpisodesByID(controller.bangumiItem.id),
+      );
+      if (episodes.isEmpty) {
+        KazumiDialog.showToast(message: '未找到分集列表');
         return;
       }
-      if (videoPageController.episodeCommentsList.isEmpty) {
-        _refreshIndicatorKey.currentState?.show();
+      for (var index = 0; index < episodes.length; index++) {
+        _rememberEpisodeInfo(index + 1, episodes[index]);
       }
-    });
-  }
-
-  Widget get episodeCommentsBody {
-    return CustomScrollView(
-      scrollBehavior: const ScrollBehavior().copyWith(
-        scrollbars: false,
-        dragDevices: {
-          PointerDeviceKind.mouse,
-          PointerDeviceKind.touch,
-          PointerDeviceKind.trackpad
-        },
-      ),
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          sliver: Observer(builder: (context) {
-            if (commentsQueryTimeout) {
-              return SliverFillRemaining(
-                child: GeneralErrorWidget(
-                  errMsg: '评论获取失败',
-                  actions: [
-                    GeneralErrorButton(
-                      onPressed: () {
-                        _refreshIndicatorKey.currentState?.show();
-                      },
-                      text: '重试',
-                    ),
-                  ],
-                ),
-              );
-            }
-            if (commentsIsEmpty) {
-              return const SliverFillRemaining(
-                child: Center(
-                  child: Text('什么都没有找到 (´;ω;`)'),
-                ),
-              );
-            }
-            return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  // Keep loaded image cards alive to avoid scroll jumps when
-                  // network images report their final size.
-                  return KeepAlive(
-                    keepAlive: true,
-                    child: IndexedSemantics(
-                      index: index,
-                      child: UserCommentsCard.episode(
-                        videoPageController.episodeCommentsList[index],
-                      ),
-                    ),
-                  );
-                },
-                childCount: videoPageController.episodeCommentsList.length,
-                addAutomaticKeepAlives: false,
-                addRepaintBoundaries: false,
-                addSemanticIndexes: false,
-              ),
-            );
-          }),
+      final selected = await task.show<int>(
+        builder: (context) => EpisodeCommentsPicker(
+          episodes: episodes,
+          selectedEpisode: _selectedEpisode,
         ),
-      ],
-    );
-  }
-
-  Widget get commentsInfo {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(' 本集标题  '),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    '${videoPageController.episodeInfo.readType()}.${videoPageController.episodeInfo.episode} ${videoPageController.episodeInfo.name}',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline)),
-                Text(
-                    (videoPageController.episodeInfo.nameCn != '')
-                        ? '${videoPageController.episodeInfo.readType()}.${videoPageController.episodeInfo.episode} ${videoPageController.episodeInfo.nameCn}'
-                        : '${videoPageController.episodeInfo.readType()}.${videoPageController.episodeInfo.episode} ${videoPageController.episodeInfo.name}',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            height: 34,
-            child: TextButton(
-              style: ButtonStyle(
-                padding: WidgetStateProperty.all(
-                    const EdgeInsets.only(left: 4.0, right: 4.0)),
-              ),
-              onPressed: () {
-                showEpisodeSelection();
-              },
-              child: const Text(
-                '手动切换',
-                style: TextStyle(fontSize: 13),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 34,
-            child: TextButton(
-              style: ButtonStyle(
-                padding: WidgetStateProperty.all(
-                    const EdgeInsets.symmetric(horizontal: 4.0)),
-              ),
-              onPressed: toggleSortOrder,
-              child: Observer(builder: (context) {
-                return Text(
-                  videoPageController.isCommentsAscending ? '倒序' : '正序',
-                  style: const TextStyle(fontSize: 13),
-                );
-              }),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void showEpisodeSelection() async {
-    final int selectedEpisode = ep == 0 ? widget.episode : ep;
-    KazumiDialog.showLoading(msg: '分集列表加载中');
-    final List<EpisodeInfo> episodeList =
-        await BangumiApi.getBangumiEpisodesByID(
-            videoPageController.bangumiItem.id);
-    KazumiDialog.dismiss();
-    if (!mounted) {
-      return;
-    }
-    if (episodeList.isEmpty) {
-      KazumiDialog.showToast(message: '未找到分集列表');
-      return;
-    }
-    KazumiDialog.show(
-      builder: (context) {
-        return Dialog(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560, maxHeight: 520),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
-                  child: Text('分集列表', style: TextStyle(fontSize: 20)),
-                ),
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: episodeList.length,
-                    itemBuilder: (context, index) {
-                      final episode = episodeList[index];
-                      final episodeTitle = episode.nameCn.isNotEmpty
-                          ? episode.nameCn
-                          : episode.name;
-                      final episodeText =
-                          '${episode.readType()}.${episode.episode}';
-                      final bool selected = index + 1 == selectedEpisode;
-                      return ListTile(
-                        selected: selected,
-                        title: Text(
-                          episodeTitle.isEmpty
-                              ? episodeText
-                              : '$episodeText $episodeTitle',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onTap: () {
-                          ep = index + 1;
-                          _refreshIndicatorKey.currentState?.show();
-                          KazumiDialog.dismiss();
-                        },
-                      );
-                    },
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                    child: TextButton(
-                      onPressed: () => KazumiDialog.dismiss(),
-                      child: Text(
-                        '取消',
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.outline),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+      );
+      if (selected == _selectedEpisode) return;
+      _selectedEpisode = selected;
+      unawaited(_loadComments());
+    }, errorMessage: '分集列表加载失败，请稍后重试');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [commentsInfo, Expanded(child: episodeCommentsBody)],
-        ),
-        onRefresh: () async {
-          await loadComments(ep == 0 ? widget.episode : ep);
-        },
-      ),
-    );
+    return Observer(builder: (context) {
+      final matchesEpisode = _controller.commentsEpisode == _selectedEpisode;
+      final comments = _controller.episodeCommentsList.toList();
+      return EpisodeCommentsView(
+        episode: _selectedEpisode,
+        episodeInfo: matchesEpisode && _controller.episodeInfo.id != 0
+            ? _controller.episodeInfo
+            : _episodeInfoByIndex[_selectedEpisode],
+        comments: matchesEpisode ? comments : [],
+        isLoading: _isLoading,
+        hasError: _hasError,
+        isAscending: _controller.isCommentsAscending,
+        onToggleSort: _controller.toggleSortOrder,
+        onSelectEpisode: _showEpisodeSelection,
+        onRefresh: _loadComments,
+      );
+    });
   }
 }

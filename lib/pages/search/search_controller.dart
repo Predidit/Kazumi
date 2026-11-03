@@ -28,6 +28,7 @@ abstract class _SearchPageController with Store {
   final ISearchHistoryRepository _searchHistoryRepository;
 
   int _searchOffset = 0;
+  int _searchGeneration = 0;
 
   bool hasMoreSearchResults = true;
 
@@ -67,44 +68,37 @@ abstract class _SearchPageController with Store {
 
   @action
   Future<void> searchBangumi(String input, {String type = 'add'}) async {
+    if (type == 'add' && (isLoading || !hasMoreSearchResults)) return;
+    final generation = type == 'add' ? _searchGeneration : ++_searchGeneration;
+    isLoading = true;
+    isTimeOut = false;
     if (type != 'add') {
       bangumiList.clear();
       _searchOffset = 0;
       hasMoreSearchResults = true;
-      bool privateMode = _collectRepository.getPrivateMode();
-      if (!privateMode) {
-        // 检查是否已满，删除最旧的记录
+      if (!_collectRepository.getPrivateMode() && input.trim().isNotEmpty) {
+        await _searchHistoryRepository.deleteDuplicates(input);
         if (_searchHistoryRepository.isHistoryFull(10)) {
           await _searchHistoryRepository.deleteOldest();
         }
-        // 删除重复的历史记录
-        await _searchHistoryRepository.deleteDuplicates(input);
-        // 保存新的搜索历史
         await _searchHistoryRepository.saveHistory(input);
-        // 重新加载历史记录
         loadSearchHistories();
       }
     }
-    isLoading = true;
-    isTimeOut = false;
-    SearchParser parser = SearchParser(input);
-    final filterState = parser.toFilterState();
-    String? idString = filterState.id.isEmpty ? null : filterState.id;
-    if (idString != null) {
-      final id = int.tryParse(idString);
-      if (id != null) {
-        final BangumiItem? item = await BangumiApi.getBangumiInfoByID(id);
-        if (item != null) {
-          bangumiList.add(item);
-        }
-        hasMoreSearchResults = false;
-        isLoading = false;
-        isTimeOut = bangumiList.isEmpty;
-        return;
+    if (generation != _searchGeneration) return;
+    final filterState = SearchParser(input).toFilterState();
+    final id = int.tryParse(filterState.id);
+    if (id != null) {
+      final item = await BangumiApi.getBangumiInfoByID(id);
+      if (generation != _searchGeneration) return;
+      if (item != null) {
+        bangumiList.add(item);
       }
+      hasMoreSearchResults = false;
+      isLoading = false;
+      isTimeOut = bangumiList.isEmpty;
+      return;
     }
-    var addedVisibleItems = false;
-    var fetchedAnyPage = false;
     var pagesFetched = 0;
     do {
       final page = await BangumiApi.bangumiSearch(filterState.keyword,
@@ -116,10 +110,11 @@ abstract class _SearchPageController with Store {
           rankRange: filterState.rankRange,
           scoreRange: filterState.scoreRange,
           weekdays: filterState.weekdays);
+      // Discard stale responses before mutating the current search.
+      if (generation != _searchGeneration) return;
       if (page == null) {
         break;
       }
-      fetchedAnyPage = true;
       pagesFetched++;
       _searchOffset += page.rawCount;
       hasMoreSearchResults = page.rawCount == _searchPageSize;
@@ -128,14 +123,12 @@ abstract class _SearchPageController with Store {
           page.items.where((item) => existingIds.add(item.id)).toList();
       if (newItems.isNotEmpty) {
         bangumiList.addAll(newItems);
-        addedVisibleItems = true;
+        break;
       }
-    } while (!addedVisibleItems &&
-        hasMoreSearchResults &&
-        pagesFetched < _maxPagesPerSearch);
+    } while (hasMoreSearchResults && pagesFetched < _maxPagesPerSearch);
     isLoading = false;
     isTimeOut =
-        bangumiList.isEmpty && (!fetchedAnyPage || !hasMoreSearchResults);
+        bangumiList.isEmpty && (pagesFetched == 0 || !hasMoreSearchResults);
   }
 
   @action

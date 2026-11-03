@@ -78,11 +78,5 @@ void main() {
         '孤独摇滚 tag:音乐 tag:漫画改 sort:score season:2022Q4 rank:1..1000 score:8..10 weekday:1,6',
       );
     });
-
-    test('updates existing sort syntax', () {
-      final parser = SearchParser('tag:日本 sort:heat');
-
-      expect(parser.updateSort('rank'), 'tag:日本 sort:rank');
-    });
   });
 }

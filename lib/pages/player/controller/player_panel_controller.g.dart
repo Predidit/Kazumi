@@ -89,6 +89,22 @@ mixin _$PlayerPanelController on _PlayerPanelController, Store {
     });
   }
 
+  late final _$seekCancelPendingAtom =
+      Atom(name: '_PlayerPanelController.seekCancelPending', context: context);
+
+  @override
+  bool get seekCancelPending {
+    _$seekCancelPendingAtom.reportRead();
+    return super.seekCancelPending;
+  }
+
+  @override
+  set seekCancelPending(bool value) {
+    _$seekCancelPendingAtom.reportWrite(value, super.seekCancelPending, () {
+      super.seekCancelPending = value;
+    });
+  }
+
   late final _$showBrightnessAtom =
       Atom(name: '_PlayerPanelController.showBrightness', context: context);
 
@@ -207,6 +223,7 @@ brightness: ${brightness},
 lockPanel: ${lockPanel},
 showVideoController: ${showVideoController},
 showSeekTime: ${showSeekTime},
+seekCancelPending: ${seekCancelPending},
 showBrightness: ${showBrightness},
 showVolume: ${showVolume},
 showPlaySpeed: ${showPlaySpeed},

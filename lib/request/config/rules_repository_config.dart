@@ -23,8 +23,13 @@ class RulesRepositoryConfig {
       throw const FormatException('规则仓库地址不能包含查询参数或片段');
     }
 
-    final pathSegments =
-        uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+    if (uri.host.toLowerCase() == 'github.com') {
+      throw const FormatException('请使用 raw 文件地址，不要使用 GitHub 仓库网页地址');
+    }
+
+    final pathSegments = uri.pathSegments
+        .where((segment) => segment.isNotEmpty)
+        .toList();
     final lastSegment = pathSegments.isEmpty ? null : pathSegments.last;
     late final List<String> directorySegments;
     if (lastSegment?.toLowerCase() == 'index.json') {
@@ -34,9 +39,6 @@ class RulesRepositoryConfig {
           lastSegment.contains('.') &&
           !uri.path.endsWith('/')) {
         throw const FormatException('规则仓库地址必须是目录或以 index.json 结尾');
-      }
-      if (uri.host.toLowerCase() == 'github.com') {
-        throw const FormatException('请使用 raw 文件地址，不要使用 GitHub 仓库网页地址');
       }
       directorySegments = pathSegments;
     }
@@ -72,8 +74,7 @@ class RulesRepositoryConfig {
   }
 
   static Uri ruleUri(String configuredUrl, String ruleName) {
-    return baseUri(
-      configuredUrl,
-    ).resolveUri(Uri(pathSegments: ['$ruleName.json']));
+    return baseUri(configuredUrl)
+        .resolveUri(Uri(pathSegments: ['$ruleName.json']));
   }
 }

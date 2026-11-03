@@ -1,24 +1,21 @@
 abstract final class BangumiImageUrlRewriter {
   static const _apiImageKinds = {'subjects', 'characters', 'persons'};
 
-  static String rewrite(String url, {required bool enabled}) {
-    if (!enabled) return url;
-
-    final uri = Uri.tryParse(url);
-    if (uri == null || !_isHttp(uri) || !_isMirrorable(uri)) return url;
+  static Uri rewrite(Uri uri) {
+    if (!isBangumiImage(uri)) return uri;
 
     final sourceUrl =
         uri.host + uri.path + (uri.hasQuery ? '?${uri.query}' : '');
     return Uri.https('wsrv.nl', '/', {
       'url': sourceUrl,
       if (uri.path.toLowerCase().endsWith('.gif')) 'n': '-1',
-    }).toString();
+    });
   }
 
   static bool _isHttp(Uri uri) => uri.scheme == 'http' || uri.scheme == 'https';
 
-  static bool _isMirrorable(Uri uri) =>
-      uri.host == 'lain.bgm.tv' || _isApiImage(uri);
+  static bool isBangumiImage(Uri uri) =>
+      _isHttp(uri) && (uri.host == 'lain.bgm.tv' || _isApiImage(uri));
 
   static bool _isApiImage(Uri uri) {
     if (uri.host != 'api.bgm.tv') return false;

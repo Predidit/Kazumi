@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 const double _minDanmakuTimeOffset = -180;
@@ -74,144 +76,78 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final direction = _offset == 0 ? '无偏移' : (_offset > 0 ? '延后' : '提前');
-
-    return SafeArea(
-      top: false,
-      child: Scaffold(
-        body: Column(
-          children: [
-            MaterialBottomSheetHeader(
-              title: '弹幕时间轴偏移',
-              description: '校准弹幕相对于视频画面的显示时间',
-              onClose: () => Navigator.of(context).pop(),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: materialBottomSheetContentPadding,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 20),
-                      decoration: BoxDecoration(
-                        color: colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            direction,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: colorScheme.onSecondaryContainer,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatDanmakuOffsetDuration(_offset),
-                            style: theme.textTheme.displaySmall?.copyWith(
-                              color: colorScheme.onSecondaryContainer,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures()
-                              ],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+    final colors = theme.colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MaterialBottomSheetHeader(
+          title: '弹幕时间校准',
+          description: '弹幕出现太早就延后，太晚就提前。',
+          onClose: () => Navigator.of(context).pop(),
+        ),
+        Flexible(
+            child: SingleChildScrollView(
+          padding: materialBottomSheetContentPadding,
+          child: Column(children: [
+            TonalCard(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(children: [
+                  Text(_offset == 0 ? '与视频同步' : (_offset > 0 ? '延后' : '提前'),
+                      style: theme.textTheme.labelLarge
+                          ?.copyWith(color: colors.onSurfaceVariant)),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    IconButton.filledTonal(
+                      tooltip: '提前 1 秒',
+                      onPressed: _offset > _minDanmakuTimeOffset
+                          ? () => _updateOffset(_offset - 1)
+                          : null,
+                      icon: const Icon(Icons.remove_rounded),
                     ),
-                    const SizedBox(height: 24),
-                    Row(
+                    Expanded(
+                        child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(_formatDanmakuOffsetDuration(_offset),
+                          style: theme.textTheme.displaySmall?.copyWith(
+                            color: colors.onSurface,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          )),
+                    )),
+                    IconButton.filledTonal(
+                      tooltip: '延后 1 秒',
+                      onPressed: _offset < _maxDanmakuTimeOffset
+                          ? () => _updateOffset(_offset + 1)
+                          : null,
+                      icon: const Icon(Icons.add_rounded),
+                    ),
+                  ]),
+                  const SizedBox(height: 16),
+                  Slider(
+                    value: _offset,
+                    min: _minDanmakuTimeOffset,
+                    max: _maxDanmakuTimeOffset,
+                    divisions: _danmakuTimeOffsetDivisions,
+                    label: formatDanmakuTimeOffset(_offset),
+                    onChanged: _updateOffset,
+                  ),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '提前 3:00',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '延后 3:00',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Slider(
-                      value: _offset,
-                      min: _minDanmakuTimeOffset,
-                      max: _maxDanmakuTimeOffset,
-                      divisions: _danmakuTimeOffsetDivisions,
-                      label: formatDanmakuTimeOffset(_offset),
-                      onChanged: _updateOffset,
-                    ),
-                    const SizedBox(height: 12),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final advanceButton = SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: FilledButton.tonalIcon(
-                            onPressed: _offset > _minDanmakuTimeOffset
-                                ? () => _updateOffset(_offset - 1)
-                                : null,
-                            icon: const Icon(Icons.remove_rounded),
-                            label: const Text('提前 1 秒'),
-                          ),
-                        );
-                        final delayButton = SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: FilledButton.tonalIcon(
-                            onPressed: _offset < _maxDanmakuTimeOffset
-                                ? () => _updateOffset(_offset + 1)
-                                : null,
-                            icon: const Icon(Icons.add_rounded),
-                            label: const Text('延后 1 秒'),
-                          ),
-                        );
-
-                        if (constraints.maxWidth < 360) {
-                          return Column(
-                            children: [
-                              advanceButton,
-                              const SizedBox(height: 12),
-                              delayButton,
-                            ],
-                          );
-                        }
-                        return Row(
-                          children: [
-                            Expanded(child: advanceButton),
-                            const SizedBox(width: 12),
-                            Expanded(child: delayButton),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: OutlinedButton.icon(
-                        onPressed: _offset != 0 ? () => _updateOffset(0) : null,
-                        icon: const Icon(Icons.restart_alt_rounded),
-                        label: const Text('恢复无偏移'),
-                      ),
-                    ),
-                  ],
-                ),
+                        Text('提前 3 分钟', style: theme.textTheme.labelSmall),
+                        Text('延后 3 分钟', style: theme.textTheme.labelSmall),
+                      ]),
+                ]),
               ),
             ),
-          ],
-        ),
-      ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _offset != 0 ? () => _updateOffset(0) : null,
+              child: const Text('恢复同步'),
+            ),
+          ]),
+        )),
+      ],
     );
   }
 }

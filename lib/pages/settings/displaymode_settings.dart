@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:kazumi/services/storage/storage.dart';
+
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 class SetDisplayMode extends StatefulWidget {
   const SetDisplayMode({super.key});
@@ -16,12 +19,6 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   List<DisplayMode> modes = <DisplayMode>[];
   DisplayMode? active;
   DisplayMode? preferred;
-
-  final ValueNotifier<int> page = ValueNotifier<int>(0);
-  late final PageController controller = PageController()
-    ..addListener(() {
-      page.value = controller.page!.round();
-    });
 
   @override
   void initState() {
@@ -59,18 +56,11 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   }
 
   @override
-  void dispose() {
-    controller.dispose();
-    page.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('屏幕帧率设置')),
+    return SettingsDetailScaffold(
+      title: const Text('屏幕帧率设置'),
       body: (modes.isEmpty)
-          ? const CircularProgressIndicator()
+          ? const LoadingIndicator()
           : SettingsList(
               sections: [
                 SettingsRadioSection<DisplayMode>(

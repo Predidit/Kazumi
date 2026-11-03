@@ -12,6 +12,7 @@ import 'package:kazumi/modules/collect/collect_sync_merger.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/storage/history_storage_coordinator.dart';
+import 'package:kazumi/services/download/download_path_migration.dart';
 
 import 'package:kazumi/services/storage/settings_keys.dart';
 export 'package:kazumi/services/storage/settings_keys.dart';
@@ -158,6 +159,9 @@ class GStorage {
     shieldList = await _openBoxSafe<String>('shieldList');
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
+    if (Platform.isIOS) {
+      await rebaseIosDownloadPaths(downloads);
+    }
   }
 
   /// Open a Hive box with automatic recovery on corruption.
@@ -339,6 +343,11 @@ class GStorage {
 
   static Future<void> putSetting<T>(SettingKey<T> key, T value) async {
     await _setting.put(key.name, value);
+  }
+
+  static Stream<void> watchSettings(Iterable<SettingKey<Object?>> keys) {
+    final names = keys.map((key) => key.name).toSet();
+    return _setting.watch().where((event) => names.contains(event.key)).map((_) {});
   }
 
   static List<String> getStringListSettingByName(

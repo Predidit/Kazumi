@@ -12,17 +12,16 @@ class PluginShopStep extends StatelessWidget {
   final PluginsController controller;
 
   @override
-  Widget build(BuildContext context) {
-    return OnboardingStepLayout(
-      leading: const OnboardingStepIcon(icon: Icons.travel_explore_rounded),
-      title: '添加规则',
-      subtitle: '规则提供番剧搜索源，可稍后在 设置 → 规则管理 中调整',
-      child: PluginCatalogView(
+  Widget build(BuildContext context) => PluginCatalogView.onboarding(
         controller: controller,
-        listPadding: EdgeInsets.zero,
-        showRefreshButton: true,
-        compactLastUpdate: true,
-      ),
-    );
-  }
+        builder: (context, slivers) => OnboardingStepLayout.slivers(
+          leading: const OnboardingStepIcon(
+            icon: Icons.extension_rounded,
+            shape: OnboardingIconShape.flower,
+          ),
+          title: '添加番剧来源',
+          subtitle: '规则决定从哪些站点搜索和播放番剧，添加至少一条即可开始观看。',
+          slivers: slivers,
+        ),
+      );
 }

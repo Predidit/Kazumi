@@ -529,6 +529,7 @@ class PlayerSeekHud extends StatefulWidget {
     required this.playerPosition,
     required this.duration,
     required this.direction,
+    this.cancelPending = false,
     this.disableAnimations = false,
   });
 
@@ -537,6 +538,7 @@ class PlayerSeekHud extends StatefulWidget {
   final Duration playerPosition;
   final Duration duration;
   final int direction;
+  final bool cancelPending;
   final bool disableAnimations;
 
   @override
@@ -548,6 +550,7 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
   late Duration _displayPlayerPosition;
   late Duration _displayDuration;
   late int _displayDirection;
+  late bool _displayCancelPending;
   bool _snapProgressOnNextBuild = false;
 
   @override
@@ -557,6 +560,7 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
     _displayPlayerPosition = widget.playerPosition;
     _displayDuration = widget.duration;
     _displayDirection = widget.direction;
+    _displayCancelPending = widget.cancelPending;
   }
 
   @override
@@ -567,6 +571,7 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
       _displayPlayerPosition = widget.playerPosition;
       _displayDuration = widget.duration;
       _displayDirection = widget.direction;
+      _displayCancelPending = widget.cancelPending;
       if (!oldWidget.visible) {
         _snapProgressOnNextBuild = true;
       }
@@ -615,8 +620,11 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
         ? Duration.zero
         : const Duration(milliseconds: 200);
     final snapProgress = _snapProgressOnNextBuild;
-    final icon =
-        _isForward ? Icons.fast_forward_rounded : Icons.fast_rewind_rounded;
+    final icon = _displayCancelPending
+        ? Icons.close_rounded
+        : _isForward
+            ? Icons.fast_forward_rounded
+            : Icons.fast_rewind_rounded;
 
     if (snapProgress) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -731,7 +739,7 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  _offsetText,
+                                  _displayCancelPending ? '松开取消' : _offsetText,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context)
@@ -744,7 +752,9 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
                                 ),
                                 const SizedBox(height: 1),
                                 Text(
-                                  '${durationToString(_displayCurrentPosition)} / ${durationToString(_displayDuration)}',
+                                  _displayCancelPending
+                                      ? '移回画面继续调整'
+                                      : '${durationToString(_displayCurrentPosition)} / ${durationToString(_displayDuration)}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context)

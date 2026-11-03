@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_error_mapper.dart';
-import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/bangumi_mirror_credentials.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/crypto.dart';
 
 class BangumiClient {
@@ -17,15 +19,17 @@ class BangumiClient {
     String url, {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = false,
+    String? accessToken,
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await DioFactory.apiDio.get(
+      final response = await DioFactory.bangumiDio.get(
         url,
         queryParameters: queryParameters,
         options: Options(
           headers: _headers(
             requiresAuth: requiresAuth,
+            accessToken: accessToken,
             url: url,
             method: 'GET',
           ),
@@ -46,7 +50,7 @@ class BangumiClient {
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await DioFactory.apiDio.post(
+      final response = await DioFactory.bangumiDio.post(
         url,
         data: data,
         queryParameters: queryParameters,
@@ -68,14 +72,19 @@ class BangumiClient {
 
   Map<String, dynamic> _headers({
     required bool requiresAuth,
-    String? url,
-    String method = 'GET',
+    String? accessToken,
+    required String url,
+    required String method,
     Object? data,
   }) {
     final headers = <String, dynamic>{...bangumiHTTPHeader};
-    final bangumiSyncEnable =
-        GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-    final token = GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
+    final bangumiSyncEnable = GStorage.getSetting(
+      SettingsKeys.bangumiSyncEnable,
+    );
+    final token =
+        (accessToken ??
+                GStorage.getSetting<String>(SettingsKeys.bangumiAccessToken))
+            .trim();
     if ((requiresAuth || bangumiSyncEnable) && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -86,7 +95,7 @@ class BangumiClient {
       headers['X-Timestamp'] = timestamp;
       headers['X-Signature'] = generateBangumiMirrorSearchSignature(
         method: method,
-        path: Uri.parse(url!).path,
+        path: Uri.parse(url).path,
         body: body,
         timestamp: timestamp,
       );
@@ -94,16 +103,13 @@ class BangumiClient {
     return headers;
   }
 
-  bool _shouldSignProtectedMirrorRequest(String? url, String method) {
-    if (url == null) {
+  bool _shouldSignProtectedMirrorRequest(String url, String method) {
+    final uri = Uri.parse(url);
+    if (BangumiAcceleration.current != BangumiAcceleration.mirror ||
+        !ApiEndpoints.bangumiPublicApiHosts.contains(uri.host)) {
       return false;
     }
-    final enableBangumiProxy =
-        GStorage.getSetting(SettingsKeys.enableBangumiProxy);
-    if (!enableBangumiProxy) {
-      return false;
-    }
-    final path = Uri.parse(url).path;
+    final path = uri.path;
     if (method == 'POST' && path == '/v0/search/subjects') {
       return true;
     }

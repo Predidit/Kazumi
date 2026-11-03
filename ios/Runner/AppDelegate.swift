@@ -1,6 +1,7 @@
 import UIKit
 import Flutter
 import AVKit
+import app_links
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -9,6 +10,11 @@ import AVKit
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // Unclaimed URLs make Flutter replay launch callbacks to legacy plugins,
+        // registering flutter_foreground_task's background task twice.
+        AppLinks.shared.urlHandledCallBack = { url in
+            url.scheme?.lowercased() == "kazumi"
+        }
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 

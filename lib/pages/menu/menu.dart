@@ -8,7 +8,9 @@ import 'package:kazumi/pages/menu/route_visibility.dart';
 import 'package:kazumi/pages/router.dart';
 
 class ScaffoldMenu extends StatefulWidget {
-  const ScaffoldMenu({super.key});
+  const ScaffoldMenu({super.key, required this.location});
+
+  final String location;
 
   @override
   State<ScaffoldMenu> createState() => _ScaffoldMenu();
@@ -16,11 +18,20 @@ class ScaffoldMenu extends StatefulWidget {
 
 class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   final _outletKey = GlobalKey<RouterOutletState>();
+  late int _selectedIndex = menu.indexForPath(widget.location);
   DateTime? _lastExitPromptAt;
 
   /// The shell sits at the bottom of the root stack and stays mounted while
   /// other pages cover it, so it publishes that state for its subtree.
   bool _isCovered = false;
+
+  @override
+  void didUpdateWidget(covariant ScaffoldMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location) {
+      _selectedIndex = menu.indexForPath(widget.location);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -52,12 +63,13 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
 
   void _selectDestination(int index) {
     _lastExitPromptAt = null;
-    final currentIndex =
-        menu.indexForPath(context.routeState(listen: false).uri.path);
-    if (index == currentIndex) {
+    if (index == _selectedIndex) {
       return;
     }
-    _outletKey.currentState?.navigate('/tab${menu.getPath(index)}/');
+    final outlet = _outletKey.currentState;
+    if (outlet == null) return;
+    outlet.navigate('/tab${menu.getPath(index)}/');
+    setState(() => _selectedIndex = index);
   }
 
   void _handleSystemBack(BuildContext context) {
@@ -66,9 +78,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
       return;
     }
 
-    final currentIndex =
-        menu.indexForPath(context.routeState(listen: false).uri.path);
-    if (currentIndex != 0) {
+    if (_selectedIndex != 0) {
       _selectDestination(0);
       return;
     }
@@ -88,7 +98,6 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    final selectedIndex = menu.indexForPath(context.routeState().uri.path);
     return RouteVisibility(
       isCovered: _isCovered,
       child: PopScope(
@@ -101,8 +110,8 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
         child: OrientationBuilder(
           builder: (context, orientation) {
             return orientation == Orientation.portrait
-                ? _bottomMenu(context, selectedIndex)
-                : _sideMenu(context, selectedIndex);
+                ? _bottomMenu(context, _selectedIndex)
+                : _sideMenu(context, _selectedIndex);
           },
         ),
       ),

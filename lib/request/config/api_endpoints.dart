@@ -5,7 +5,7 @@ class ApiEndpoints {
   static const String version = appBuildName ?? '0.0.0';
 
   /// 规则API级别
-  static const int apiLevel = 8;
+  static const int apiLevel = 9;
 
   /// 项目主页
   static const String projectUrl = "https://kazumi.app/";
@@ -21,7 +21,10 @@ class ApiEndpoints {
       'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
 
   /// 规则仓库镜像
-  static const String pluginShopMirror =
+  static const String ghProxyHost = 'gh-proxy.org';
+  static const String ghProxyMirror = 'https://$ghProxyHost/';
+  static const String ghfastMirror = 'https://ghfast.top/';
+  static const String gitcodeMirror =
       'https://raw.gitcode.com/gh_mirrors/ka/KazumiRules/raw/main/';
 
   /// 在线升级
@@ -75,12 +78,14 @@ class ApiEndpoints {
   /// 新增或修改用户单个条目收藏
   static const String bangumiSetCollection = '/v0/users/-/collections/{0}';
 
-  /// 获取用户收藏。用户名，分页参数1，分页参数2
-  static const String bangumiGetCollection =
-      '/v0/users/{0}/collections?subject_type=2&limit={1}&offset={2}&type={3}';
+  /// 获取用户全部收藏（不限类型）。用户名，分页参数1(limit)，分页参数2(offset)
+  static const String bangumiGetAllCollections =
+      '/v0/users/{0}/collections?subject_type=2&limit={1}&offset={2}';
 
   /// Bangumi Next API Domain
   static const String bangumiAPINextDomain = 'https://next.bgm.tv';
+
+  static const bangumiPublicApiHosts = {'api.bgm.tv', 'next.bgm.tv'};
 
   /// 每日放送
   static const String bangumiCalendar = '/p1/calendar';
@@ -122,7 +127,7 @@ class ApiEndpoints {
   static const String dandanAPIComment = "/api/v2/comment/";
 
   /// 检索弹弹番剧元数据
-  static const String dandanAPISearch = "/api/v2/search/anime";
+  static const String dandanAPISearchEpisodes = "/api/v2/search/episodes";
 
   /// 获取弹弹番剧元数据
   static const String dandanAPIInfo = "/api/v2/bangumi/";

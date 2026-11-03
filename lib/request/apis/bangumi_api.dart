@@ -15,6 +15,7 @@ import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/search_parser.dart';
+import 'package:kazumi/utils/async_rate_limiter.dart';
 
 class BangumiSearchPage {
   const BangumiSearchPage({
@@ -28,6 +29,8 @@ class BangumiSearchPage {
 
 class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
+  static final AsyncRateLimiter _writeRateLimiter =
+      AsyncRateLimiter(const Duration(milliseconds: 250));
 
   static Future<List<List<BangumiItem>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
@@ -519,12 +522,7 @@ class BangumiApi {
     return characterFullItem;
   }
 
-  static Future<String?> getUsername() async {
-    final user = await getCurrentUser();
-    return user?.username;
-  }
-
-  static Future<User?> getCurrentUser() async {
+  static Future<User?> getCurrentUser({String? accessToken}) async {
     try {
       final jsonData = await _client.get(
         ApiEndpoints.formatUrl(
@@ -532,23 +530,18 @@ class BangumiApi {
                 ApiEndpoints.bangumiUsernameByToken,
             []),
         requiresAuth: true,
+        accessToken: accessToken,
       );
       if (jsonData['id'] != null) {
         return User.fromJson(Map<String, dynamic>.from(jsonData));
       }
-    } on NetworkException catch (e) {
-      if (e.statusCode == 401) {
-        KazumiLogger().e('Bangumi token unauthorized, please check your token');
-        throw StateError('Bangumi token 未授权，请检查您的 token');
-      }
-      rethrow;
     } catch (e) {
       KazumiLogger().e('Network: get current user failed', error: e);
+      rethrow;
     }
     return null;
   }
 
-  /// Get the Bangumi collection of the current user
   static Future<List<BangumiCollection>> getBangumiCollectibles({
     List<BangumiCollectionType> includeBangumiTypes = const [
       BangumiCollectionType.planToWatch,
@@ -557,85 +550,148 @@ class BangumiApi {
       BangumiCollectionType.onHold,
       BangumiCollectionType.abandoned,
     ],
-    String? username,
-    required int limit,
+    required String username,
+    int limit = 50,
     void Function(String message, int current, int total)? onProgress,
   }) async {
     final List<BangumiCollection> bangumiCollection = [];
-    final resolvedUsername = username != null && username.isNotEmpty
-        ? username
-        : await getUsername();
     int failedItemCount = 0;
     int progressCurrent = 0;
     int progressTotal = 0;
-    if (resolvedUsername == null) {
-      KazumiLogger().w('get username failed');
-      return [];
-    }
 
     try {
-      const Duration requestInterval = Duration(milliseconds: 250);
+      final rateLimiter = AsyncRateLimiter(const Duration(milliseconds: 200));
+      const int concurrency = 3;
 
-      for (final collectionType in includeBangumiTypes) {
-        if (collectionType == BangumiCollectionType.unknown) {
-          continue;
+      Future<Map> fetchPageData(int offset, int pageLimit) async {
+        await rateLimiter.acquire();
+        final url = ApiEndpoints.formatUrl(
+            ApiEndpoints.bangumiAuthAPIMirrorDomain +
+                ApiEndpoints.bangumiGetAllCollections,
+            [username, pageLimit, offset]);
+        final jsonData = await _client.get(
+          url,
+          requiresAuth: true,
+        );
+        if (jsonData is! Map || jsonData['data'] is! List) {
+          KazumiLogger().e(
+            'BangumiApi: invalid collection response format at offset=$offset',
+          );
+          throw const FormatException(
+              'BangumiApi: Invalid collection response format');
         }
-        int offset = 0;
-        int? total;
-        bool totalInitialized = false;
-        while (true) {
-          dynamic jsonData;
-          try {
-            final url = ApiEndpoints.formatUrl(
-                ApiEndpoints.bangumiAuthAPIMirrorDomain +
-                    ApiEndpoints.bangumiGetCollection,
-                [resolvedUsername, limit, offset, collectionType.value]);
-            jsonData = await _client.get(
-              url,
-              requiresAuth: true,
-            );
-          } catch (e) {
-            KazumiLogger().e(
-              'BangumiApi: fetch collection failed. type=${collectionType.value}, offset=$offset',
-              error: e,
-            );
-            rethrow;
-          }
+        return jsonData;
+      }
 
-          final Map jsonMap = jsonData;
-          final List<dynamic> jsonList = jsonMap['data'];
-          total ??= jsonMap['total'];
-          if (!totalInitialized && total != null) {
-            progressTotal += total;
-            totalInitialized = true;
-          }
-
-          for (dynamic jsonItem in jsonList) {
-            if (jsonItem is Map<String, dynamic>) {
-              try {
-                bangumiCollection.add(BangumiCollection.fromJson(jsonItem));
-                progressCurrent++;
-                onProgress?.call(
-                  '正在拉取${collectionType.label}收藏',
-                  progressCurrent,
-                  progressTotal,
-                );
-              } catch (e) {
-                KazumiLogger().e(
-                  'BangumiApi: parse collection item failed: ${e.toString()}',
-                  error: e,
-                );
-                failedItemCount++;
+      List<BangumiCollection> parsePageItems(List<dynamic> jsonList) {
+        final List<BangumiCollection> items = [];
+        for (dynamic jsonItem in jsonList) {
+          if (jsonItem is Map) {
+            try {
+              final collection = BangumiCollection.fromJson(jsonItem);
+              if (includeBangumiTypes.contains(collection.type)) {
+                items.add(collection);
               }
+            } catch (e) {
+              KazumiLogger().e(
+                'BangumiApi: parse collection item failed: ${e.toString()}',
+                error: e,
+              );
+              failedItemCount++;
             }
           }
+        }
+        return items;
+      }
 
-          if (jsonList.isEmpty || (total != null && offset + limit >= total)) {
+      final firstPageJson = await fetchPageData(0, limit);
+      final int? rawTotal = firstPageJson['total'] as int?;
+      final serverLimit = (firstPageJson['limit'] as int?) ?? limit;
+      final effectiveLimit = (serverLimit > 0) ? serverLimit : limit;
+      final List<dynamic> firstPageList =
+          firstPageJson['data'] as List<dynamic>;
+
+      if (rawTotal == null) {
+        KazumiLogger().e(
+          'BangumiApi: missing or invalid total in collection response',
+        );
+        throw const FormatException(
+            'BangumiApi: missing total in collection response');
+      }
+      final int total = rawTotal;
+
+      final firstPageReceivedCount = firstPageList.length;
+      final firstPageItems = parsePageItems(firstPageList);
+      bangumiCollection.addAll(firstPageItems);
+      progressCurrent += firstPageList.length;
+
+      if (total > 0 && firstPageReceivedCount == 0) {
+        KazumiLogger().e(
+          'BangumiApi: received empty data on first page while total > 0 (total=$total)',
+        );
+        throw const FormatException(
+            'BangumiApi: received empty data on first page while total > 0');
+      }
+      progressTotal = total;
+      onProgress?.call(
+        '正在拉取 Bangumi 收藏',
+        progressCurrent,
+        progressTotal,
+      );
+
+      if (total == 0 || firstPageReceivedCount >= total) {
+        KazumiLogger()
+            .d('get Bangumi collection count: ${bangumiCollection.length}');
+        KazumiLogger().d('get item failed count: $failedItemCount');
+        return bangumiCollection;
+      }
+
+      final remainingOffsets = <int>[];
+      for (int off = effectiveLimit; off < total; off += effectiveLimit) {
+        remainingOffsets.add(off);
+      }
+
+      final Map<int, List<BangumiCollection>> pageResults = {};
+      final offsetsQueue = List<int>.from(remainingOffsets);
+
+      Future<void> worker() async {
+        while (offsetsQueue.isNotEmpty) {
+          final offset = offsetsQueue.removeAt(0);
+          final pageJson = await fetchPageData(offset, effectiveLimit);
+          final List<dynamic> jsonList = pageJson['data'] as List<dynamic>;
+          final items = parsePageItems(jsonList);
+          pageResults[offset] = items;
+
+          progressCurrent += jsonList.length;
+          onProgress?.call(
+            '正在拉取 Bangumi 收藏',
+            progressCurrent > progressTotal ? progressTotal : progressCurrent,
+            progressTotal,
+          );
+
+          if (jsonList.length < serverLimit &&
+              offset + jsonList.length >= total) {
+            offsetsQueue.clear();
             break;
           }
+        }
+      }
 
-          offset += limit;
-          await Future.delayed(requestInterval);
+      final workerCount = remainingOffsets.length < concurrency
+          ? remainingOffsets.length
+          : concurrency;
+      await Future.wait(List.generate(workerCount, (_) => worker()));
+
+      final Set<int> seenBangumiIds =
+          bangumiCollection.map((e) => e.bangumiId).toSet();
+      for (final offset in remainingOffsets) {
+        final items = pageResults[offset];
+        if (items != null) {
+          for (final item in items) {
+            if (seenBangumiIds.add(item.bangumiId)) {
+              bangumiCollection.add(item);
+            }
+          }
         }
       }
     } catch (e) {
@@ -648,10 +704,9 @@ class BangumiApi {
     return bangumiCollection;
   }
 
-  /// Update the Bangumi collection by ID
   static Future<bool> updateBangumiById(
       int id, Map<String, dynamic> data) async {
-    const Duration requestInterval = Duration(milliseconds: 250);
+    await _writeRateLimiter.acquire();
     try {
       await _client.post(
         ApiEndpoints.formatUrl(
@@ -683,12 +738,9 @@ class BangumiApi {
     } catch (e) {
       KazumiLogger().e('Network: update bangumi collection failed', error: e);
       rethrow;
-    } finally {
-      await Future.delayed(requestInterval);
     }
   }
 
-  /// Update the Bangumi collection by Type
   static Future<bool> updateBangumiByType(int id, int localType) async {
     final type = CollectType.fromValue(localType).toBangumiCollectionType();
     if (type == null) {
@@ -697,7 +749,6 @@ class BangumiApi {
     return await updateBangumiById(id, {'type': type.value});
   }
 
-  /// update or add Bangumi evaluation by subjectID
   static Future<bool> addOrUpdateBangumiEvaluationBySubjectID(
     int subjectID,
     int localType, {

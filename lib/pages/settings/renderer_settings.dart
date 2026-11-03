@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
@@ -12,33 +12,24 @@ class RendererSettings extends StatefulWidget {
 }
 
 class _RendererSettingsState extends State<RendererSettings> {
-  late final ValueNotifier<String> renderer = ValueNotifier<String>(
-    GStorage.getSetting<String>(SettingsKeys.androidVideoRenderer),
-  );
-
-  @override
-  void dispose() {
-    renderer.dispose();
-    super.dispose();
-  }
+  late String _renderer =
+      GStorage.getSetting(SettingsKeys.androidVideoRenderer);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const SysAppBar(
-        title: Text('视频渲染器'),
-      ),
+    return SettingsDetailScaffold(
+      title: const Text('视频渲染器'),
       body: SettingsList(
         sections: [
           SettingsRadioSection<String>(
             title: Text('选择合适的渲染器以获得最佳播放体验'),
-            groupValue: renderer.value,
+            groupValue: _renderer,
             onChanged: (String? value) {
               if (value != null) {
                 GStorage.putSetting<String>(
                     SettingsKeys.androidVideoRenderer, value);
                 setState(() {
-                  renderer.value = value;
+                  _renderer = value;
                 });
               }
             },

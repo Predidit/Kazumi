@@ -42,21 +42,23 @@ void main() {
       );
     });
 
-    test('accepts explicit directory URLs whose last segment contains dots',
-        () {
-      expect(
-        RulesRepositoryConfig.normalizeForStorage(
+    test(
+      'accepts explicit directory URLs whose last segment contains dots',
+      () {
+        expect(
+          RulesRepositoryConfig.normalizeForStorage(
+            'https://example.com/rules/v1.2/',
+          ),
           'https://example.com/rules/v1.2/',
-        ),
-        'https://example.com/rules/v1.2/',
-      );
-      expect(
-        RulesRepositoryConfig.normalizeForStorage(
+        );
+        expect(
+          RulesRepositoryConfig.normalizeForStorage(
+            'https://example.com/rules.d/',
+          ),
           'https://example.com/rules.d/',
-        ),
-        'https://example.com/rules.d/',
-      );
-    });
+        );
+      },
+    );
 
     test('normalizes official repository URLs back to the default setting', () {
       expect(
@@ -74,9 +76,7 @@ void main() {
         isFalse,
       );
       expect(
-        RulesRepositoryConfig.isCustomRepository(
-          'https://example.com/rules/',
-        ),
+        RulesRepositoryConfig.isCustomRepository('https://example.com/rules/'),
         isTrue,
       );
     });
@@ -118,8 +118,16 @@ void main() {
         throwsFormatException,
       );
       expect(
+        () =>
+            RulesRepositoryConfig.baseUri('https://example.com/rules/#catalog'),
+        throwsFormatException,
+      );
+    });
+
+    test('rejects GitHub HTML index pages', () {
+      expect(
         () => RulesRepositoryConfig.baseUri(
-          'https://example.com/rules/#catalog',
+          'https://github.com/example/rules/blob/main/index.json',
         ),
         throwsFormatException,
       );
@@ -133,9 +141,7 @@ void main() {
         throwsFormatException,
       );
       expect(
-        () => RulesRepositoryConfig.baseUri(
-          'https://github.com/example/rules',
-        ),
+        () => RulesRepositoryConfig.baseUri('https://github.com/example/rules'),
         throwsFormatException,
       );
     });

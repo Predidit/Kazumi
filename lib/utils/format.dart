@@ -25,14 +25,3 @@ String durationToString(Duration duration) {
   }
   return '$hours:$minutes:$seconds';
 }
-
-String formatTraceSimilarity(
-  double? similarity, {
-  int fractionDigits = 1,
-  String empty = '--',
-}) {
-  if (similarity == null) {
-    return empty;
-  }
-  return '${(similarity * 100).toStringAsFixed(fractionDigits)}%';
-}

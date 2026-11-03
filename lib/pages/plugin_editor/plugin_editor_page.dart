@@ -2,12 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/api_rule_config.dart';
-import 'package:kazumi/plugins/anti_crawler_config.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+
+import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/pages/plugin_editor/rule_management_widgets.dart';
 import 'package:kazumi/pages/plugin_editor/editor_form_widgets.dart';
+import 'package:kazumi/plugins/anti_crawler_config.dart';
+import 'package:kazumi/plugins/api_rule_config.dart';
+import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/plugin/api_rule_engine.dart';
 
@@ -88,6 +91,8 @@ abstract final class _RuleEditorText {
   static const searchListPath = '搜索结果列表路径（JSONPath）';
   static const itemNamePath = '条目名称路径（JSONPath，相对条目）';
   static const itemSourcePath = '条目来源路径（JSONPath，相对条目）';
+  static const detailPageUrl = '详情页地址模板（URL，可选）';
+  static const detailPageUrlHelper = '@source 替换为条目来源，如 https://site/GV@source';
 
   static const chapterMethod = '选集请求方法';
   static const chapterRequestUrl = '选集请求地址（URL）';
@@ -151,6 +156,10 @@ class PluginEditorPage extends StatefulWidget {
 
 class _PluginEditorPageState extends State<PluginEditorPage> {
   PluginsController get pluginsController => widget.controller;
+  final _formScroll = ScrollController();
+  int _section = 0;
+  bool _saving = false;
+  String? _editorError;
   final TextEditingController nameController = TextEditingController();
   final TextEditingController versionController = TextEditingController();
   final TextEditingController userAgentController = TextEditingController();
@@ -173,6 +182,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final TextEditingController searchApiNamePathController =
       TextEditingController();
   final TextEditingController searchApiSourcePathController =
+      TextEditingController();
+  final TextEditingController searchApiSourceTemplateController =
       TextEditingController();
   final TextEditingController chapterApiURLController = TextEditingController();
   final TextEditingController chapterApiHeadersController =
@@ -214,7 +225,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   String chapterApiMethod = 'GET';
   String chapterApiBodyType = ApiBodyType.none;
   String chapterApiFormat = ApiChapterFormat.nested;
-  // Legacy schema values retained on save but no longer exposed as settings.
+  // Preserve legacy fields that the editor no longer exposes.
   late String _api;
   late String _type;
   late bool _muliSources;
@@ -224,7 +235,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   bool useLegacyParser = false;
   bool adBlocker = false;
 
-  // AntiCrawler fields
   final TextEditingController captchaImageController = TextEditingController();
   final TextEditingController captchaInputController = TextEditingController();
   final TextEditingController captchaButtonController = TextEditingController();
@@ -294,6 +304,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     searchApiListPathController.text = plugin.searchApiConfig.listPath;
     searchApiNamePathController.text = plugin.searchApiConfig.namePath;
     searchApiSourcePathController.text = plugin.searchApiConfig.sourcePath;
+    searchApiSourceTemplateController.text =
+        plugin.searchApiConfig.sourceTemplate;
     chapterApiMethod = plugin.chapterApiConfig.request.method;
     chapterApiBodyType = plugin.chapterApiConfig.request.bodyType;
     chapterApiFormat = plugin.chapterApiConfig.format;
@@ -348,6 +360,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
 
   @override
   void dispose() {
+    _formScroll.dispose();
     nameController.dispose();
     versionController.dispose();
     userAgentController.dispose();
@@ -366,6 +379,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     searchApiListPathController.dispose();
     searchApiNamePathController.dispose();
     searchApiSourcePathController.dispose();
+    searchApiSourceTemplateController.dispose();
     chapterApiURLController.dispose();
     chapterApiHeadersController.dispose();
     chapterApiQueryController.dispose();
@@ -397,183 +411,259 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     return const JsonEncoder.withIndent('  ').convert(value);
   }
 
+  void _testRule() {
+    final editedPlugin = _tryBuildEditedPlugin();
+    if (editedPlugin == null) return;
+    context.pushNamed('/settings/plugin/test', arguments: editedPlugin);
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    final editedPlugin = _tryBuildEditedPlugin();
+    if (editedPlugin == null) return;
+    setState(() {
+      _saving = true;
+      _editorError = null;
+    });
+    try {
+      await pluginsController.updatePlugin(editedPlugin);
+      if (mounted) context.pop();
+    } catch (error) {
+      _showEditorError(error);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: SysAppBar(
-        title: const Text(_RuleEditorText.pageTitle),
-        actions: [
-          IconButton(
-            tooltip: _RuleEditorText.testRule,
-            icon: const Icon(Icons.bug_report_outlined),
-            onPressed: () {
-              final editedPlugin = _tryBuildEditedPlugin();
-              if (editedPlugin == null) return;
-              context.pushNamed(
-                '/settings/plugin/test',
-                arguments: editedPlugin,
-              );
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Column(
-              spacing: 16,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                EditorSectionCard(
-                  icon: Icons.badge_rounded,
-                  title: _RuleEditorText.sectionBasic,
-                  description: _RuleEditorText.sectionBasicDesc,
-                  children: [
-                    EditorTextField(
-                      controller: nameController,
-                      label: _RuleEditorText.ruleName,
-                    ),
-                    EditorTextField(
-                      controller: versionController,
-                      label: _RuleEditorText.ruleVersion,
-                    ),
-                    EditorTextField(
-                      controller: baseURLController,
-                      label: _RuleEditorText.baseUrl,
-                    ),
-                  ],
-                ),
-                EditorSectionCard(
-                  icon: Icons.search_rounded,
-                  title: _RuleEditorText.sectionSearch,
-                  description: _RuleEditorText.sectionSearchDesc,
-                  children: [
-                    EditorSegmentedField<String>(
-                      label: _RuleEditorText.searchRuleType,
-                      value: searchMode,
-                      segments: _ruleModeSegments,
-                      onChanged: (value) => setState(() => searchMode = value),
-                    ),
-                    EditorAnimatedSection(
-                      activeKey: searchMode,
-                      child: Column(
-                        spacing: 16,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: searchMode == RuleMode.xpath
-                            ? _buildXPathSearchFields()
-                            : _buildApiSearchFields(),
+    final colors = Theme.of(context).colorScheme;
+    return SettingsDetailScaffold(
+      title: const Text(_RuleEditorText.pageTitle),
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: SingleChildScrollView(
+          controller: _formScroll,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  RulePageIntro(
+                    title: widget.plugin.name.isEmpty
+                        ? '编写新规则'
+                        : widget.plugin.name,
+                    description: '从站点信息到搜索与选集，逐步配置你的番剧来源。',
+                    icon: Icons.edit_note_rounded,
+                  ),
+                  const SizedBox(height: 20),
+                  if (_editorError != null) ...[
+                    Semantics(
+                      liveRegion: true,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                            color: colors.errorContainer,
+                            borderRadius: BorderRadius.circular(20)),
+                        child: Text(_editorError!,
+                            style: TextStyle(color: colors.onErrorContainer)),
                       ),
                     ),
+                    const SizedBox(height: 16),
                   ],
-                ),
-                EditorSectionCard(
-                  icon: Icons.playlist_play_rounded,
-                  title: _RuleEditorText.sectionChapter,
-                  description: _RuleEditorText.sectionChapterDesc,
-                  children: [
-                    EditorSegmentedField<String>(
-                      label: _RuleEditorText.chapterRuleType,
-                      value: chapterMode,
-                      segments: _ruleModeSegments,
-                      onChanged: (value) => setState(() => chapterMode = value),
-                    ),
-                    EditorAnimatedSection(
-                      activeKey: chapterMode,
-                      child: Column(
-                        spacing: 16,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: chapterMode == RuleMode.xpath
-                            ? _buildXPathChapterFields()
-                            : _buildApiChapterFields(),
-                      ),
-                    ),
-                  ],
-                ),
-                _buildAdvancedOptionsCard(),
-              ],
+                  EditorChoiceGroup<int>(
+                    value: _section,
+                    segments: const [
+                      ButtonSegment(value: 0, label: Text('基本')),
+                      ButtonSegment(value: 1, label: Text('搜索')),
+                      ButtonSegment(value: 2, label: Text('选集')),
+                      ButtonSegment(value: 3, label: Text('高级')),
+                    ],
+                    onChanged: (value) => setState(() => _section = value),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildCurrentSection(),
+                ],
+              ),
             ),
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: null,
-        icon: const Icon(Icons.save_rounded),
-        label: const Text(_RuleEditorText.save),
-        onPressed: () async {
-          final editedPlugin = _tryBuildEditedPlugin();
-          if (editedPlugin == null) return;
-          try {
-            await pluginsController.updatePlugin(editedPlugin);
-          } catch (error) {
-            _showEditorError(error);
-            return;
-          }
-          if (!context.mounted) return;
-          context.pop();
-        },
+      bottomNavigationBar: Material(
+        color: colors.surfaceContainerLow,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Align(
+              heightFactor: 1,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: Row(children: [
+                  Expanded(
+                      child: FilledButton.tonalIcon(
+                          style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 48)),
+                          onPressed: _saving ? null : _testRule,
+                          icon: const Icon(Icons.science_outlined),
+                          label: Text(
+                              MediaQuery.textScalerOf(context).scale(14) > 20
+                                  ? '测试'
+                                  : _RuleEditorText.testRule))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 48)),
+                          onPressed: _saving ? null : _save,
+                          icon: _saving
+                              ? const LoadingIndicator(size: 20)
+                              : const Icon(Icons.check_rounded),
+                          label: Text(_saving ? '保存中' : _RuleEditorText.save))),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentSection() {
+    if (_section == 3) return _buildAdvancedOptionsCard();
+    final isSearch = _section == 1;
+    return RuleSection(
+      key: ValueKey(_section),
+      title: switch (_section) {
+        0 => _RuleEditorText.sectionBasic,
+        1 => _RuleEditorText.sectionSearch,
+        _ => _RuleEditorText.sectionChapter,
+      },
+      description: switch (_section) {
+        0 => _RuleEditorText.sectionBasicDesc,
+        1 => _RuleEditorText.sectionSearchDesc,
+        _ => _RuleEditorText.sectionChapterDesc,
+      },
+      icon: switch (_section) {
+        0 => Icons.info_outline_rounded,
+        1 => Icons.search_rounded,
+        _ => Icons.video_library_outlined,
+      },
+      child: Column(
+        spacing: 20,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: _section == 0
+            ? [
+                EditorTextField(
+                    controller: nameController,
+                    label: _RuleEditorText.ruleName),
+                EditorTextField(
+                    controller: versionController,
+                    label: _RuleEditorText.ruleVersion),
+                EditorTextField(
+                    controller: baseURLController,
+                    label: _RuleEditorText.baseUrl),
+              ]
+            : [
+                EditorSegmentedField<String>(
+                  label: isSearch
+                      ? _RuleEditorText.searchRuleType
+                      : _RuleEditorText.chapterRuleType,
+                  value: isSearch ? searchMode : chapterMode,
+                  segments: _ruleModeSegments,
+                  description: (mode) => mode == RuleMode.api
+                      ? '请求接口并从 JSON 响应中提取数据。'
+                      : '从网页 HTML 中定位并提取内容。',
+                  onChanged: (value) => setState(() {
+                    if (isSearch) {
+                      searchMode = value;
+                    } else {
+                      chapterMode = value;
+                    }
+                  }),
+                ),
+                EditorAnimatedSection(
+                  activeKey: isSearch ? searchMode : chapterMode,
+                  child: Column(
+                    spacing: 20,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: isSearch
+                        ? (searchMode == RuleMode.xpath
+                            ? _buildXPathSearchFields()
+                            : _buildApiSearchFields())
+                        : (chapterMode == RuleMode.xpath
+                            ? _buildXPathChapterFields()
+                            : _buildApiChapterFields()),
+                  ),
+                ),
+              ],
       ),
     );
   }
 
   Widget _buildAdvancedOptionsCard() {
-    return EditorExpandableSectionCard(
-      icon: Icons.tune_rounded,
+    return RuleSection(
       title: _RuleEditorText.advancedOptions,
       description: _RuleEditorText.advancedOptionsDesc,
-      children: [
-        const EditorSubheader(label: _RuleEditorText.groupBehavior),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text(_RuleEditorText.legacyParser),
-          subtitle: const Text(_RuleEditorText.legacyParserDesc),
-          value: useLegacyParser,
-          onChanged: (value) => setState(() => useLegacyParser = value),
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text(_RuleEditorText.adBlocker),
-          subtitle: const Text(_RuleEditorText.adBlockerDesc),
-          value: adBlocker,
-          onChanged: (value) => setState(() => adBlocker = value),
-        ),
-        const EditorSubheader(label: _RuleEditorText.groupNetwork),
-        EditorTextField(
-          controller: userAgentController,
-          label: _RuleEditorText.userAgent,
-          helper: _RuleEditorText.userAgentHelper,
-        ),
-        const SizedBox(height: 16),
-        EditorTextField(
-          controller: refererController,
-          label: _RuleEditorText.referer,
-          helper: _RuleEditorText.refererHelper,
-        ),
-        if (searchMode == RuleMode.xpath) ...[
-          const EditorSubheader(label: _RuleEditorText.groupAntiCrawler),
+      icon: Icons.tune_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const EditorSubheader(label: _RuleEditorText.groupBehavior),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text(_RuleEditorText.antiCrawlerEnable),
-            subtitle: const Text(_RuleEditorText.antiCrawlerEnableDesc),
-            value: antiCrawlerEnabled,
-            onChanged: (value) => setState(() => antiCrawlerEnabled = value),
+            title: const Text(_RuleEditorText.legacyParser),
+            subtitle: const Text(_RuleEditorText.legacyParserDesc),
+            value: useLegacyParser,
+            onChanged: (value) => setState(() => useLegacyParser = value),
           ),
-          EditorAnimatedSection(
-            activeKey: antiCrawlerEnabled,
-            child: antiCrawlerEnabled
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Column(
-                      spacing: 16,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: _buildAntiCrawlerFields(),
-                    ),
-                  )
-                : const SizedBox.shrink(),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text(_RuleEditorText.adBlocker),
+            subtitle: const Text(_RuleEditorText.adBlockerDesc),
+            value: adBlocker,
+            onChanged: (value) => setState(() => adBlocker = value),
           ),
+          const EditorSubheader(label: _RuleEditorText.groupNetwork),
+          EditorTextField(
+            controller: userAgentController,
+            label: _RuleEditorText.userAgent,
+            helper: _RuleEditorText.userAgentHelper,
+          ),
+          const SizedBox(height: 16),
+          EditorTextField(
+            controller: refererController,
+            label: _RuleEditorText.referer,
+            helper: _RuleEditorText.refererHelper,
+          ),
+          if (searchMode == RuleMode.xpath) ...[
+            const EditorSubheader(label: _RuleEditorText.groupAntiCrawler),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(_RuleEditorText.antiCrawlerEnable),
+              subtitle: const Text(_RuleEditorText.antiCrawlerEnableDesc),
+              value: antiCrawlerEnabled,
+              onChanged: (value) => setState(() => antiCrawlerEnabled = value),
+            ),
+            EditorAnimatedSection(
+              activeKey: antiCrawlerEnabled,
+              child: antiCrawlerEnabled
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Column(
+                        spacing: 16,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: _buildAntiCrawlerFields(),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -760,6 +850,11 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           controller: searchApiSourcePathController,
           label: _RuleEditorText.itemSourcePath,
         ),
+        EditorTextField(
+          controller: searchApiSourceTemplateController,
+          label: _RuleEditorText.detailPageUrl,
+          helper: _RuleEditorText.detailPageUrlHelper,
+        ),
       ];
 
   List<Widget> _buildApiChapterFields() => [
@@ -881,8 +976,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         ),
       ];
 
-  /// Builds the edited plugin, surfacing build/validation errors to the
-  /// user. Returns null when the current input does not form a valid rule.
   Plugin? _tryBuildEditedPlugin() {
     try {
       return _buildEditedPlugin();
@@ -954,6 +1047,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       listPath: valueOf(searchApiListPathController),
       namePath: valueOf(searchApiNamePathController),
       sourcePath: valueOf(searchApiSourcePathController),
+      sourceTemplate: valueOf(searchApiSourceTemplateController),
     );
     if (!shouldValidate) return config;
     if (config.request.url.isEmpty) {
@@ -1051,8 +1145,11 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
 
   void _showEditorError(Object error) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error.toString())),
-    );
+    setState(() => _editorError = error.toString());
+    if (_formScroll.hasClients) {
+      _formScroll.animateTo(0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic);
+    }
   }
 }

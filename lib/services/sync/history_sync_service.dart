@@ -3,13 +3,14 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/history_storage_coordinator.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
-import 'package:path_provider/path_provider.dart';
 
 class HistorySyncService {
   static const int checkpointLogThresholdBytes = 1024 * 1024;
@@ -211,11 +212,7 @@ class HistorySyncService {
     await GStorage.histories.flush();
   }
 
-  /// Creates a stable set of local logs for one sync attempt.
-  ///
-  /// A checkpoint attempt renames the active log to a pending file, allowing
-  /// playback to continue appending to a fresh log. Pending files survive
-  /// failed or interrupted syncs and are picked up by the next attempt.
+  /// Rotate active logs for concurrent appends; retain pending files until sync commits.
   Future<HistorySyncLogBatch> prepareLocalLogs({
     required Directory runDirectory,
     required bool forceCheckpoint,
@@ -270,10 +267,7 @@ class HistorySyncService {
     });
   }
 
-  /// Copies the active log for upload, dropping lines other devices could
-  /// not merge. When malformed lines are found the active log itself is
-  /// rewritten from the sanitized copy so the damage does not resurface on
-  /// every following sync. Returns null when nothing valid is left to upload.
+  /// Sanitize the upload and active log so corrupt lines do not keep propagating.
   Future<File?> copyActiveLogForUpload(Directory runDirectory) {
     return _localLogQueue.run(() async {
       final activeFile = await localChangeLogFile();
@@ -303,9 +297,7 @@ class HistorySyncService {
     });
   }
 
-  /// Replaces the active log with its sanitized copy. Must be called while
-  /// holding [_localLogQueue] so no append interleaves. Best-effort: on
-  /// failure the damaged log stays and the next sync retries.
+  /// Requires [_localLogQueue] to prevent appends during replacement.
   Future<void> _repairActiveLog(File activeFile, File sanitizedFile) async {
     try {
       final tempFile = File('${activeFile.path}.repair');
@@ -342,13 +334,7 @@ class HistorySyncService {
     return HistorySyncSnapshot.fromJson(json);
   }
 
-  /// Merges event files into [snapshot].
-  ///
-  /// With [tolerateMalformedLines] each unparsable line is skipped and
-  /// reported through a warning log instead of failing the whole merge. This
-  /// keeps sync alive when a crash mid-append leaves a truncated line in a
-  /// locally-owned log; the local Hive box remains the source of truth for
-  /// anything a skipped line described.
+  /// Optionally skip malformed lines while logging each failure.
   Future<HistorySyncSnapshot> mergeEventFiles({
     required HistorySyncSnapshot snapshot,
     required Iterable<File> eventFiles,
@@ -374,9 +360,7 @@ class HistorySyncService {
     );
   }
 
-  /// Merges independently-owned remote logs without letting one invalid file
-  /// block every device. Each file is transactional: none of its events are
-  /// applied if parsing fails.
+  /// Merge each remote file atomically so one invalid log cannot block other devices.
   Future<HistorySyncSnapshot> mergeRemoteEventFiles({
     required HistorySyncSnapshot snapshot,
     required Iterable<File> eventFiles,
@@ -545,8 +529,7 @@ Future<Map<String, dynamic>> _mergeHistoryEventFiles(
   };
 }
 
-/// Runs [_copyValidEventLines] in an isolate. Top-level so the isolate
-/// closure captures only the paths, not the service instance.
+// Keep the isolate entry point top-level to avoid capturing the service.
 Future<Map<String, int>> _sanitizeEventLogCopy({
   required String sourcePath,
   required String targetPath,
@@ -558,8 +541,7 @@ Future<Map<String, int>> _sanitizeEventLogCopy({
   return Isolate.run(() => _copyValidEventLines(request));
 }
 
-/// Copies only the lines other devices can merge, so one corrupt local line
-/// cannot get this device's remote log quarantined by every peer.
+// Drop corrupt lines before other devices can quarantine the entire log.
 Future<Map<String, int>> _copyValidEventLines(
   Map<String, String> request,
 ) async {

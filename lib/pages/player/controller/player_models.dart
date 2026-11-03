@@ -11,7 +11,7 @@ class PlaybackInitParams {
   final int danmakuEpisodeNumber;
   final String pageUrl;
 
-  /// 集数排序号，语义同 EpisodeRef.sortNumber（在线解析自标题、离线为 episodeNumber）。
+  /// Parsed title number online, downloaded episode number offline.
   final int? sortNumber;
   final Map<String, String> httpHeaders;
   final bool adBlockerEnabled;
@@ -40,11 +40,6 @@ class PlaybackInitParams {
     this.coverUrl,
     this.bangumiName,
   });
-}
-
-enum DanmakuDestination {
-  chatRoom,
-  remoteDanmaku,
 }
 
 class SyncPlayChatMessage {

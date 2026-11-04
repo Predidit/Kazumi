@@ -243,18 +243,23 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
           child: Center(child: LoadingIndicator()));
     }
     if (_loadFailed && _controller.pluginHTTPList.isEmpty) {
+      // Mirrors only apply to the official repository.
+      final customRepository = _controller.ruleRepository.isNotEmpty;
       return GeneralErrorWidget(
         title: '无法访问规则仓库',
-        errMsg: '请检查网络连接，或调整加速设置后重试。\n规则仓库加速：${RulesMirror.current.label}',
+        errMsg: customRepository
+            ? '请检查自定义仓库地址和网络连接后重试。'
+            : '请检查网络连接，或调整加速设置后重试。\n规则仓库加速：${RulesMirror.current.label}',
         icon: Icons.cloud_off_rounded,
         onRetry: _refresh,
         retryText: '重新加载',
         actions: [
-          StateActionButton.tonal(
-            onPressed: _selectMirrorAndRefresh,
-            icon: Icons.tune_rounded,
-            text: '切换加速',
-          ),
+          if (!customRepository)
+            StateActionButton.tonal(
+              onPressed: _selectMirrorAndRefresh,
+              icon: Icons.tune_rounded,
+              text: '切换加速',
+            ),
         ],
       );
     }

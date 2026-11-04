@@ -201,6 +201,42 @@ mixin _$PlayerPanelController on _PlayerPanelController, Store {
     });
   }
 
+  late final _$pipEntryPendingAtom = Atom(
+    name: '_PlayerPanelController.pipEntryPending',
+    context: context,
+  );
+
+  @override
+  bool get pipEntryPending {
+    _$pipEntryPendingAtom.reportRead();
+    return super.pipEntryPending;
+  }
+
+  @override
+  set pipEntryPending(bool value) {
+    _$pipEntryPendingAtom.reportWrite(value, super.pipEntryPending, () {
+      super.pipEntryPending = value;
+    });
+  }
+
+  late final _$isIosPipActiveAtom = Atom(
+    name: '_PlayerPanelController.isIosPipActive',
+    context: context,
+  );
+
+  @override
+  bool get isIosPipActive {
+    _$isIosPipActiveAtom.reportRead();
+    return super.isIosPipActive;
+  }
+
+  @override
+  set isIosPipActive(bool value) {
+    _$isIosPipActiveAtom.reportWrite(value, super.isIosPipActive, () {
+      super.isIosPipActive = value;
+    });
+  }
+
   late final _$_PlayerPanelControllerActionController =
       ActionController(name: '_PlayerPanelController', context: context);
 
@@ -229,7 +265,9 @@ showVolume: ${showVolume},
 showPlaySpeed: ${showPlaySpeed},
 brightnessSeeking: ${brightnessSeeking},
 volumeSeeking: ${volumeSeeking},
-canHidePlayerPanel: ${canHidePlayerPanel}
+canHidePlayerPanel: ${canHidePlayerPanel},
+pipEntryPending: ${pipEntryPending},
+isIosPipActive: ${isIosPipActive}
     ''';
   }
 }

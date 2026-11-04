@@ -6,8 +6,8 @@ void main() {
   group('RulesRepositoryConfig', () {
     test('uses the official repository when the setting is blank', () {
       expect(
-        RulesRepositoryConfig.baseUri('   ').toString(),
-        ApiEndpoints.pluginShop,
+        RulesRepositoryConfig.catalogUri('   ').toString(),
+        '${ApiEndpoints.pluginShop}index.json',
       );
     });
 
@@ -71,14 +71,6 @@ void main() {
         ),
         isEmpty,
       );
-      expect(
-        RulesRepositoryConfig.isCustomRepository(ApiEndpoints.pluginShop),
-        isFalse,
-      );
-      expect(
-        RulesRepositoryConfig.isCustomRepository('https://example.com/rules/'),
-        isTrue,
-      );
     });
 
     test('resolves catalog and rule URLs from the same repository', () {
@@ -95,38 +87,39 @@ void main() {
 
     test('rejects non-HTTP repository URLs', () {
       expect(
-        () => RulesRepositoryConfig.baseUri('file:///tmp/rules/'),
+        () => RulesRepositoryConfig.normalizeForStorage('file:///tmp/rules/'),
         throwsFormatException,
       );
       expect(
-        () => RulesRepositoryConfig.baseUri('example.com/rules'),
+        () => RulesRepositoryConfig.normalizeForStorage('example.com/rules'),
         throwsFormatException,
       );
     });
 
     test('rejects URLs with credentials, query parameters or fragments', () {
       expect(
-        () => RulesRepositoryConfig.baseUri(
+        () => RulesRepositoryConfig.normalizeForStorage(
           'https://user:pass@example.com/rules/',
         ),
         throwsFormatException,
       );
       expect(
-        () => RulesRepositoryConfig.baseUri(
+        () => RulesRepositoryConfig.normalizeForStorage(
           'https://example.com/rules/index.json?cache=1',
         ),
         throwsFormatException,
       );
       expect(
-        () =>
-            RulesRepositoryConfig.baseUri('https://example.com/rules/#catalog'),
+        () => RulesRepositoryConfig.normalizeForStorage(
+          'https://example.com/rules/#catalog',
+        ),
         throwsFormatException,
       );
     });
 
     test('rejects GitHub HTML index pages', () {
       expect(
-        () => RulesRepositoryConfig.baseUri(
+        () => RulesRepositoryConfig.normalizeForStorage(
           'https://github.com/example/rules/blob/main/index.json',
         ),
         throwsFormatException,
@@ -135,13 +128,15 @@ void main() {
 
     test('rejects file URLs and GitHub repository pages', () {
       expect(
-        () => RulesRepositoryConfig.baseUri(
+        () => RulesRepositoryConfig.normalizeForStorage(
           'https://example.com/rules/catalog.json',
         ),
         throwsFormatException,
       );
       expect(
-        () => RulesRepositoryConfig.baseUri('https://github.com/example/rules'),
+        () => RulesRepositoryConfig.normalizeForStorage(
+          'https://github.com/example/rules',
+        ),
         throwsFormatException,
       );
     });

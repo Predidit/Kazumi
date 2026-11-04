@@ -7,6 +7,7 @@ import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/pages/plugin_editor/rule_management_widgets.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/plugin/plugin_import_parser.dart';
 import 'package:kazumi/utils/encoding.dart';
 
@@ -277,6 +278,90 @@ class _RuleImportDialogState extends State<_RuleImportDialog> {
             ),
           ],
         ),
+      );
+}
+
+Future<void> showRuleRepositoryDialog(
+        BuildContext context, PluginsController controller) =>
+    KazumiDialog.show<void>(
+      context: context,
+      builder: (context) => _RuleRepositoryDialog(controller: controller),
+    );
+
+class _RuleRepositoryDialog extends StatefulWidget {
+  const _RuleRepositoryDialog({required this.controller});
+  final PluginsController controller;
+
+  @override
+  State<_RuleRepositoryDialog> createState() => _RuleRepositoryDialogState();
+}
+
+class _RuleRepositoryDialogState extends State<_RuleRepositoryDialog> {
+  late final _text =
+      TextEditingController(text: widget.controller.ruleRepository);
+  String? _error;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    late final bool changed;
+    try {
+      changed = await widget.controller.setRuleRepository(_text.text);
+    } on FormatException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+      return;
+    } catch (_) {
+      if (mounted) setState(() => _error = '保存失败，请重试。');
+      return;
+    }
+    if (!mounted) return;
+    KazumiDialog.dismiss(context: context);
+    if (changed) {
+      KazumiDialog.showToast(
+          message: widget.controller.ruleRepository.isEmpty
+              ? '已恢复官方规则仓库'
+              : '已切换规则仓库');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _RuleDialog(
+        title: '规则仓库地址',
+        icon: Icons.link_rounded,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('仅添加信任的仓库，第三方规则可以访问任意网站并执行脚本。'),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _text,
+              autofocus: true,
+              keyboardType: TextInputType.url,
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
+              onSubmitted: (_) => _save(),
+              decoration: ruleInputDecoration(context,
+                      label: '仓库地址', hint: ApiEndpoints.pluginShop)
+                  .copyWith(
+                      helperText: '填写 index.json 所在目录，留空使用官方仓库',
+                      errorText: _error,
+                      errorMaxLines: 2),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          FilledButton(onPressed: _save, child: const Text('保存')),
+        ],
       );
 }
 

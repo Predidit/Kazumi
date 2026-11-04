@@ -4,19 +4,13 @@ import 'package:kazumi/request/config/rules_repository_config.dart';
 import 'package:kazumi/request/clients/rules_repo_client.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
-import 'package:kazumi/services/storage/storage.dart';
 
 class PluginCatalogApi {
   static final RulesRepoClient _client = RulesRepoClient.instance;
 
-  static Future<List<PluginHTTPItem>> getPluginList({
-    String? repositoryUrl,
-  }) async {
-    final configuredUrl = repositoryUrl ??
-        GStorage.getSetting<String>(SettingsKeys.ruleRepositoryUrl);
-    final raw = await _client.getText(
-      RulesRepositoryConfig.catalogUri(configuredUrl).toString(),
-    );
+  static Future<List<PluginHTTPItem>> getPluginList(String repository) async {
+    final raw = await _client
+        .getText(RulesRepositoryConfig.catalogUri(repository).toString());
     final result = parsePluginList(raw);
     if (result.skippedItems > 0) {
       KazumiLogger().w(
@@ -60,12 +54,9 @@ class PluginCatalogApi {
     }
   }
 
-  static Future<Plugin> getPlugin(String name, {String? repositoryUrl}) async {
-    final configuredUrl = repositoryUrl ??
-        GStorage.getSetting<String>(SettingsKeys.ruleRepositoryUrl);
-    final raw = await _client.getText(
-      RulesRepositoryConfig.ruleUri(configuredUrl, name).toString(),
-    );
+  static Future<Plugin> getPlugin(String repository, String name) async {
+    final raw = await _client
+        .getText(RulesRepositoryConfig.ruleUri(repository, name).toString());
     final jsonData = json.decode(raw);
     if (jsonData is! Map) {
       throw FormatException('Rule $name must be a JSON object');

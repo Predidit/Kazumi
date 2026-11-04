@@ -14,7 +14,6 @@ import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:kazumi/pages/plugin_editor/rule_management_widgets.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/request/config/rules_repository_config.dart';
 import 'package:kazumi/services/network/rules_mirror.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -42,10 +41,10 @@ class PluginCatalogView extends StatefulWidget {
   bool get _onboarding => _scrollViewBuilder != null;
 
   @override
-  State<PluginCatalogView> createState() => PluginCatalogViewState();
+  State<PluginCatalogView> createState() => _PluginCatalogViewState();
 }
 
-class PluginCatalogViewState extends State<PluginCatalogView> {
+class _PluginCatalogViewState extends State<PluginCatalogView> {
   final _search = TextEditingController();
   final Set<String> _installing = {};
   _CatalogSort _sort = _CatalogSort.lastUpdate;
@@ -71,7 +70,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
     super.dispose();
   }
 
-  Future<bool> _loadPluginCatalog({bool forceRefresh = false}) async {
+  Future<void> _loadPluginCatalog({bool forceRefresh = false}) async {
     try {
       if (forceRefresh) {
         await _controller.refreshPluginCatalog();
@@ -84,7 +83,6 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
           _loadFailed = false;
         });
       }
-      return true;
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -92,21 +90,16 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
           _loadFailed = true;
         });
       }
-      return false;
     }
-  }
-
-  Future<bool> refresh() {
-    setState(() {
-      _loading = true;
-      _loadFailed = false;
-    });
-    return _loadPluginCatalog(forceRefresh: true);
   }
 
   void _refresh() {
     if (_loading) return;
-    unawaited(refresh());
+    setState(() {
+      _loading = true;
+      _loadFailed = false;
+    });
+    unawaited(_loadPluginCatalog(forceRefresh: true));
   }
 
   Future<void> _selectMirrorAndRefresh() async {
@@ -250,13 +243,12 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
           child: Center(child: LoadingIndicator()));
     }
     if (_loadFailed && _controller.pluginHTTPList.isEmpty) {
-      final customRepository = RulesRepositoryConfig.isCustomRepository(
-        GStorage.getSetting(SettingsKeys.ruleRepositoryUrl),
-      );
+      // Mirrors only apply to the official repository.
+      final customRepository = _controller.ruleRepository.isNotEmpty;
       return GeneralErrorWidget(
         title: '无法访问规则仓库',
         errMsg: customRepository
-            ? '当前使用自定义规则仓库，请检查仓库地址和网络连接后重试。'
+            ? '请检查自定义仓库地址和网络连接后重试。'
             : '请检查网络连接，或调整加速设置后重试。\n规则仓库加速：${RulesMirror.current.label}',
         icon: Icons.cloud_off_rounded,
         onRetry: _refresh,

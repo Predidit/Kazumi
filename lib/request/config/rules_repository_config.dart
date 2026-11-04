@@ -3,8 +3,26 @@ import 'package:kazumi/request/config/api_endpoints.dart';
 class RulesRepositoryConfig {
   const RulesRepositoryConfig._();
 
-  static Uri baseUri(String configuredUrl) {
-    final value = configuredUrl.trim();
+  static String normalizeForStorage(String input) {
+    if (input.trim().isEmpty) {
+      return '';
+    }
+    final normalized = _baseUri(input).toString();
+    return normalized == ApiEndpoints.pluginShop ? '' : normalized;
+  }
+
+  static Uri catalogUri(String repository) {
+    return _baseUri(repository).resolve('index.json');
+  }
+
+  static Uri ruleUri(String repository, String ruleName) {
+    return _baseUri(
+      repository,
+    ).resolveUri(Uri(pathSegments: ['$ruleName.json']));
+  }
+
+  static Uri _baseUri(String repository) {
+    final value = repository.trim();
     if (value.isEmpty) {
       return Uri.parse(ApiEndpoints.pluginShop);
     }
@@ -22,59 +40,23 @@ class RulesRepositoryConfig {
     if (uri.hasQuery || uri.hasFragment) {
       throw const FormatException('规则仓库地址不能包含查询参数或片段');
     }
-
-    if (uri.host.toLowerCase() == 'github.com') {
+    if (uri.host == 'github.com') {
       throw const FormatException('请使用 raw 文件地址，不要使用 GitHub 仓库网页地址');
     }
 
-    final pathSegments = uri.pathSegments
-        .where((segment) => segment.isNotEmpty)
-        .toList();
-    final lastSegment = pathSegments.isEmpty ? null : pathSegments.last;
-    late final List<String> directorySegments;
-    if (lastSegment?.toLowerCase() == 'index.json') {
-      directorySegments = pathSegments.sublist(0, pathSegments.length - 1);
-    } else {
-      if (lastSegment != null &&
-          lastSegment.contains('.') &&
-          !uri.path.endsWith('/')) {
-        throw const FormatException('规则仓库地址必须是目录或以 index.json 结尾');
-      }
-      directorySegments = pathSegments;
+    final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+    final last = segments.isEmpty ? null : segments.last;
+    if (last?.toLowerCase() == 'index.json') {
+      segments.removeLast();
+    } else if (last != null && last.contains('.') && !uri.path.endsWith('/')) {
+      throw const FormatException('规则仓库地址必须是目录或以 index.json 结尾');
     }
 
     return Uri(
       scheme: uri.scheme,
       host: uri.host,
       port: uri.hasPort ? uri.port : null,
-      pathSegments: [...directorySegments, ''],
+      pathSegments: [...segments, ''],
     );
-  }
-
-  static String normalizeForStorage(String configuredUrl) {
-    if (configuredUrl.trim().isEmpty) {
-      return '';
-    }
-    final normalized = baseUri(configuredUrl).toString();
-    return normalized.startsWith(ApiEndpoints.pluginShop) ? '' : normalized;
-  }
-
-  static bool isCustomRepository(String configuredUrl) {
-    final value = configuredUrl.trim();
-    if (value.isEmpty) return false;
-    try {
-      return !baseUri(value).toString().startsWith(ApiEndpoints.pluginShop);
-    } on FormatException {
-      return true;
-    }
-  }
-
-  static Uri catalogUri(String configuredUrl) {
-    return baseUri(configuredUrl).resolve('index.json');
-  }
-
-  static Uri ruleUri(String configuredUrl, String ruleName) {
-    return baseUri(configuredUrl)
-        .resolveUri(Uri(pathSegments: ['$ruleName.json']));
   }
 }

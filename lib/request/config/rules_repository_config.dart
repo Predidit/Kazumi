@@ -44,7 +44,11 @@ class RulesRepositoryConfig {
       throw const FormatException('请使用 raw 文件地址，不要使用 GitHub 仓库网页地址');
     }
 
-    final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+    // Keep inner empty segments, e.g. in proxy prefixes like `/https://...`.
+    final segments = [...uri.pathSegments];
+    while (segments.isNotEmpty && segments.last.isEmpty) {
+      segments.removeLast();
+    }
     final last = segments.isEmpty ? null : segments.last;
     if (last?.toLowerCase() == 'index.json') {
       segments.removeLast();

@@ -2,6 +2,56 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/utils/m3u8_parser.dart';
 
 void main() {
+  group('Local M3U8 discontinuities', () {
+    for (final groups in <List<int>>[
+      [],
+      [1],
+      [0, 0],
+      [1, 1],
+      [1, 1, 2],
+      [1, 0, 0],
+    ]) {
+      test('preserves segment groups $groups', () {
+        final segments = [
+          for (int i = 0; i < groups.length; i++)
+            M3u8Segment(
+              duration: 10,
+              uri: 'https://example.com/$i.ts',
+              discontinuityGroup: groups[i],
+            ),
+        ];
+        final content = M3u8Parser.buildLocalM3u8(
+          segments,
+          targetDuration: 10,
+        );
+        final playlist = M3u8Parser.parseMediaPlaylist(
+          content,
+          'https://example.com/local.m3u8',
+        );
+
+        expect(playlist.segments.length, segments.length);
+        expect(playlist.segments.map((segment) => segment.duration),
+            segments.map((segment) => segment.duration));
+        expect(
+          playlist.segments.map((segment) => segment.uri),
+          [
+            for (int i = 0; i < groups.length; i++)
+              'https://example.com/seg_${i.toString().padLeft(5, '0')}.ts',
+          ],
+        );
+        for (int i = 1; i < groups.length; i++) {
+          expect(
+            playlist.segments[i].discontinuityGroup !=
+                playlist.segments[i - 1].discontinuityGroup,
+            groups[i] != groups[i - 1],
+          );
+        }
+        expect(content.startsWith('#EXTM3U\n'), isTrue);
+        expect(content.endsWith('#EXT-X-ENDLIST\n'), isTrue);
+      });
+    }
+  });
+
   group('M3U8 Parser', () {
     // ── Master playlist ──────────────────────────────────────────────────────
     test('Test 1: Mux master playlist', () {

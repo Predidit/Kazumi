@@ -6,12 +6,25 @@ import 'package:mobx/mobx.dart';
 
 part 'popular_controller.g.dart';
 
-class PopularController = _PopularController with _$PopularController;
+class PopularController extends _PopularController with _$PopularController {
+  PopularController();
+
+  PopularController.withTagLoader(super.tagLoader) : super.withTagLoader();
+}
 
 abstract class _PopularController with Store {
+  _PopularController() : _tagLoader = null;
+
+  _PopularController.withTagLoader(
+    Future<List<BangumiItem>> Function(String tag, int offset) tagLoader,
+  ) : _tagLoader = tagLoader;
+
+  final Future<List<BangumiItem>> Function(String tag, int offset)? _tagLoader;
   static const int _trendPageSize = 24;
 
   int _trendOffset = 0;
+  int _tagRequestId = 0;
+  bool _trendLoading = false;
 
   @observable
   String currentTag = '';
@@ -34,7 +47,12 @@ abstract class _PopularController with Store {
       BangumiAcceleration.current == BangumiAcceleration.mirror;
 
   void setCurrentTag(String s) {
-    currentTag = s;
+    _tagRequestId++;
+    runInAction(() {
+      currentTag = s;
+      isLoadingMore = s.isEmpty && _trendLoading;
+      isTimeOut = false;
+    });
   }
 
   void clearBangumiList() {
@@ -45,47 +63,70 @@ abstract class _PopularController with Store {
   // batching the completion writes into a single notification.
   @action
   Future<void> queryBangumiByTrend({String type = 'add'}) async {
+    if (_trendLoading) return;
+    _trendLoading = true;
     if (type == 'init') {
       trendList.clear();
       _trendOffset = 0;
     }
-    isLoadingMore = true;
-    final result = _bangumiMirrorEnabled
-        ? await BangumiApi.getBangumiMirrorPopularSubjects(
-            limit: _trendPageSize,
-            offset: _trendOffset,
-          )
-        : await BangumiApi.getBangumiTrendsList(
-            limit: _trendPageSize,
-            offset: _trendOffset,
-          );
-    if (result.isNotEmpty) {
-      _trendOffset += _trendPageSize;
+    if (currentTag.isEmpty) {
+      isLoadingMore = true;
+      isTimeOut = false;
     }
-    final existingIds = trendList.map((item) => item.id).toSet();
-    trendList.addAll(result.where((item) => existingIds.add(item.id)));
-    isLoadingMore = false;
-    isTimeOut = trendList.isEmpty;
+    try {
+      final result = _bangumiMirrorEnabled
+          ? await BangumiApi.getBangumiMirrorPopularSubjects(
+              limit: _trendPageSize,
+              offset: _trendOffset,
+            )
+          : await BangumiApi.getBangumiTrendsList(
+              limit: _trendPageSize,
+              offset: _trendOffset,
+            );
+      if (result.isNotEmpty) {
+        _trendOffset += _trendPageSize;
+      }
+      final existingIds = trendList.map((item) => item.id).toSet();
+      trendList.addAll(result.where((item) => existingIds.add(item.id)));
+    } finally {
+      _trendLoading = false;
+      if (currentTag.isEmpty) {
+        isLoadingMore = false;
+        isTimeOut = trendList.isEmpty;
+      }
+    }
   }
 
   @action
   Future<void> queryBangumiByTag({String type = 'add'}) async {
+    final requestId = ++_tagRequestId;
+    final tag = currentTag;
     if (type == 'init') {
       bangumiList.clear();
     }
     isLoadingMore = true;
-    var tag = currentTag;
-    var result = _bangumiMirrorEnabled
-        ? await BangumiApi.getBangumiMirrorPopularSubjects(
-            tag: tag,
-            offset: bangumiList.length,
-          )
-        : await BangumiApi.getBangumiList(
-            rank: Random().nextInt(8000) + 1,
-            tag: tag,
-          );
-    bangumiList.addAll(result);
-    isLoadingMore = false;
-    isTimeOut = bangumiList.isEmpty;
+    isTimeOut = false;
+    try {
+      final result = _tagLoader != null
+          ? await _tagLoader(tag, bangumiList.length)
+          : _bangumiMirrorEnabled
+          ? await BangumiApi.getBangumiMirrorPopularSubjects(
+              tag: tag,
+              offset: bangumiList.length,
+            )
+          : await BangumiApi.getBangumiList(
+              rank: Random().nextInt(8000) + 1,
+              tag: tag,
+            );
+      // A previous category may finish after the user has already switched.
+      if (requestId != _tagRequestId || tag != currentTag) return;
+      final existingIds = bangumiList.map((item) => item.id).toSet();
+      bangumiList.addAll(result.where((item) => existingIds.add(item.id)));
+    } finally {
+      if (requestId == _tagRequestId && tag == currentTag) {
+        isLoadingMore = false;
+        isTimeOut = bangumiList.isEmpty;
+      }
+    }
   }
 }

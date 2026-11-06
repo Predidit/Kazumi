@@ -199,6 +199,7 @@ Widget wavyProgressPreview() => MaterialApp(
             SizedBox(height: 12),
             WavyProgressIndicator(),
             SizedBox(height: 20),
+            Text('指定进度'),
             WavyProgressIndicator(value: 0.65, semanticsLabel: '下载进度'),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/wavy_progress_indicator.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -227,7 +228,7 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
       if (_loading && total > 0)
         const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
-            child: LinearProgressIndicator()),
+            child: WavyProgressIndicator()),
       if (_loadFailed && total > 0)
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),

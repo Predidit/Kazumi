@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/bean/widget/kazumi_menu.dart';
+import 'package:kazumi/bean/widget/wavy_progress_indicator.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -77,7 +78,7 @@ class _PopularPageState extends State<PopularPage> {
                 opacity: popularController.isLoadingMore ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
                 child: popularController.isLoadingMore
-                    ? const LinearProgressIndicator(minHeight: 4)
+                    ? const WavyProgressIndicator()
                     : const SizedBox(height: 4),
               ),
             ),

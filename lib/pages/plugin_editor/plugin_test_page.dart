@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/wavy_progress_indicator.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
@@ -196,7 +197,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
                         ),
                         if (isTesting) ...[
                           const SizedBox(height: 16),
-                          const LinearProgressIndicator(),
+                          const WavyProgressIndicator(),
                         ],
                       ],
                     ),

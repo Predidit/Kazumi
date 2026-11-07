@@ -400,10 +400,10 @@ packages:
     dependency: "direct main"
     description:
       name: dlna_dart
-      sha256: "18192521b4c744fc68451a03f4452a58965d0a0fd2a59c8384600e265c6758fe"
+      sha256: da607931548720331b7503f72c426fa7fbd19e9144a4778d293c16a5bc186407
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.9"
+    version: "0.1.1"
   dynamic_color:
     dependency: "direct main"
     description:
@@ -1938,4 +1938,4 @@ packages:
     version: "2.1.0"
 sdks:
   dart: ">=3.12.0 <4.0.0"
-  flutter: "3.47.8"
+  flutter: "3.47.9"

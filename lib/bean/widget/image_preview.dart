@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/duo/duo_page_adapters.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -193,13 +194,19 @@ class _ImageViewerState extends State<ImageViewer> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => DuoImageChrome(
+    index: _currentIndex, count: widget.imageUrls.length,
+    onClose: _closePreview, onPrevious: _goToPreviousImage, onNext: _goToNextImage,
+    child: _buildPage(context),
+  );
+
+  Widget _buildPage(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
           _isMultiImage ? _buildGallery() : _buildSingleImage(),
-          Positioned(
+          if (!DuoImageChrome.enabled) Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
             child: Container(

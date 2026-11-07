@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:kazumi/bean/duo/duo_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -27,6 +28,12 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (DuoAppBar.enabled) {
+      return DuoAppBar.adapt(AppBar(
+        title: title, leading: leading, actions: actions,
+        toolbarHeight: toolbarHeight, backgroundColor: backgroundColor,
+      ));
+    }
     final desktop = isDesktop();
     final appBarActions = <Widget>[...?actions];
     if (desktop) {
@@ -85,6 +92,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
+    if (DuoAppBar.enabled) return Size.fromHeight(toolbarHeight ?? kToolbarHeight);
     // Reserve space for native macOS window controls.
     final topOffset =
         Platform.isMacOS &&

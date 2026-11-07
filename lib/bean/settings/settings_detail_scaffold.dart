@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/duo/duo_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
@@ -56,7 +57,7 @@ class SettingsDetailScaffold extends StatelessWidget {
                   (ModalRoute.of(context)?.impliesAppBarDismissal ?? false))
               ? BackButton(onPressed: scope.onBack)
               : null);
-      appBar = AppBar(
+      appBar = DuoAppBar.adapt(AppBar(
         backgroundColor: Colors.transparent,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
@@ -68,7 +69,7 @@ class SettingsDetailScaffold extends StatelessWidget {
         title: title,
         titleTextStyle: Theme.of(context).textTheme.headlineSmall,
         actions: actions,
-      );
+      ), onBack: leading == null ? scope.onBack : null);
     } else {
       appBar = SysAppBar(
         title: title,

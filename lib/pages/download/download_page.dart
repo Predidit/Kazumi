@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/appbar/duo_page_chrome.dart' show DuoContentSafeArea;
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -48,7 +49,7 @@ class _DownloadPageState extends State<DownloadPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const SysAppBar(title: Text('下载管理')),
-      body: Observer(builder: (context) {
+      body: DuoContentSafeArea(child: Observer(builder: (context) {
         final recordKeys = downloadController.recordKeys.toList();
         _expanded.removeWhere((key, _) => !recordKeys.contains(key));
         if (recordKeys.isEmpty) {
@@ -69,7 +70,7 @@ class _DownloadPageState extends State<DownloadPage> {
             );
           },
         );
-      }),
+      })),
     );
   }
 

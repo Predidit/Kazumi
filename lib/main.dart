@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:kazumi/services/platform/duo_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/app_module.dart';
 import 'package:kazumi/app_widget.dart';
@@ -57,6 +58,7 @@ void main() async {
         await windowManager.focus();
       });
     }
+    await DuoNavigation.initialize();
     runApp(MaterialApp(
         title: '初始化失败',
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -98,6 +100,7 @@ void main() async {
   }
   await MeteredNetworkService.refresh();
   ProxyManager.applyProxy();
+  await DuoNavigation.initialize();
   runApp(
     ModularApp(
       module: appModule,

@@ -1,3 +1,10 @@
+> [!WARNING]
+> **非官方分支，仅针对 iPhone Duo 提供适配支持。** 本分支并非 [Kazumi](https://github.com/Predidit/Kazumi) 官方版本。
+>
+> 未配置相应 API 凭证时，以下功能可能无法使用：
+> - **弹弹play 弹幕：** 未配置 `DANDANAPI_APPID` 和 `DANDANAPI_KEY` 时，弹幕搜索、匹配、加载及下载可能无法使用。
+> - **Bangumi 镜像：** 未配置 `KAZUMI_APPID` 和 `KAZUMI_KEY` 时，镜像模式下的番剧搜索和评论列表可能无法使用。可切换至「直连」或「ECH」模式访问 Bangumi 官方接口，这两种模式不受镜像凭证缺失影响。弹弹play 弹幕仍需单独配置上述弹幕凭证，与 Bangumi 访问模式无关。
+
 <div align=center>
 
 <h1>Kazumi</h1>

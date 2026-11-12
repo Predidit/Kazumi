@@ -82,6 +82,14 @@ target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GIO_UNIX)
 
+# Flutter 3.50.0's libflutter_linux_gtk.so exports LLVM libunwind's _Unwind_*
+# symbols, which hijack unwinding for libstdc++ code in this process: C++
+# exceptions thrown and caught inside native libraries (e.g. ech_http) abort
+# the app instead. Load libgcc_s first so its unwinder wins symbol lookup.
+# Remove once https://github.com/flutter/flutter/issues/196402 is fixed.
+target_link_options(${BINARY_NAME} PRIVATE
+  "LINKER:--push-state,--no-as-needed,-lgcc_s,--pop-state")
+
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
 

@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/scroll_field.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
 class TimedShutdownService {
@@ -157,32 +158,13 @@ class _CustomTimerDialog extends StatefulWidget {
 }
 
 class _CustomTimerDialogState extends State<_CustomTimerDialog> {
-  late final FixedExtentScrollController _hoursController;
-  late final FixedExtentScrollController _minutesController;
-  int _selectedHours = 0;
-  int _selectedMinutes = 0;
+  int _hours = 0;
+  int _minutes = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _hoursController = FixedExtentScrollController(initialItem: _selectedHours);
-    _minutesController =
-        FixedExtentScrollController(initialItem: _selectedMinutes);
-  }
-
-  @override
-  void dispose() {
-    _hoursController.dispose();
-    _minutesController.dispose();
-    super.dispose();
-  }
+  int get _totalMinutes => _hours * 60 + _minutes;
 
   void _confirm() {
-    final totalMinutes = _selectedHours * 60 + _selectedMinutes;
-    if (totalMinutes <= 0) {
-      KazumiDialog.showToast(message: '请选择有效的时间');
-      return;
-    }
+    final totalMinutes = _totalMinutes;
     KazumiDialog.dismiss(context: context);
     TimedShutdownService().start(totalMinutes, onExpired: widget.onExpired);
     KazumiDialog.showToast(
@@ -191,86 +173,124 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('自定义定时'),
-      content: SizedBox(
-        height: 200,
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                children: [
-                  const Text('时', style: TextStyle(fontSize: 14)),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: CupertinoPicker(
-                      scrollController: _hoursController,
-                      itemExtent: 40,
-                      onSelectedItemChanged: (index) {
-                        setState(() => _selectedHours = index);
-                      },
-                      children: List.generate(
-                        25,
-                        (index) => Center(
-                          child: Text(
-                            index.toString().padLeft(2, '0'),
-                            style: const TextStyle(fontSize: 20),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Text(
-              ':',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            Expanded(
-              child: Column(
-                children: [
-                  const Text('分', style: TextStyle(fontSize: 14)),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: CupertinoPicker(
-                      scrollController: _minutesController,
-                      itemExtent: 40,
-                      onSelectedItemChanged: (index) {
-                        setState(() => _selectedMinutes = index);
-                      },
-                      children: List.generate(
-                        60,
-                        (index) => Center(
-                          child: Text(
-                            index.toString().padLeft(2, '0'),
-                            style: const TextStyle(fontSize: 20),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+  Widget _buildField({
+    required String label,
+    required int itemCount,
+    required ValueChanged<int> onChanged,
+  }) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ScrollField(
+          itemCount: itemCount,
+          semanticLabel: label,
+          onChanged: onChanged,
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => KazumiDialog.dismiss(context: context),
+        const SizedBox(height: 8),
+        ExcludeSemantics(
           child: Text(
-            '取消',
-            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
-        TextButton(
-          onPressed: _confirm,
-          child: const Text('确定'),
-        ),
       ],
+    );
+  }
+
+  Widget _buildSeparator() {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 16,
+      height: ScrollField.height,
+      child: OverflowBox(
+        minWidth: 0,
+        minHeight: 0,
+        maxWidth: double.infinity,
+        maxHeight: double.infinity,
+        child: Transform.translate(
+          offset: const Offset(0, -4),
+          child: ExcludeSemantics(
+            child: Text(
+              ':',
+              textScaler: MediaQuery.textScalerOf(context).clamp(
+                maxScaleFactor: ScrollField.maxTextScaleFactor,
+              ),
+              style: theme.textTheme.displayLarge?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Follows the M3 Expressive vibrant time picker dialog: no headline, and a
+  // 12dp inset that keeps the 16dp fields concentric with the 28dp container.
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Dialog(
+      constraints: const BoxConstraints(),
+      insetPadding: const EdgeInsets.all(24),
+      backgroundColor: colors.surfaceContainer,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      clipBehavior: Clip.antiAlias,
+      child: Semantics(
+        scopesRoute: true,
+        namesRoute: true,
+        explicitChildNodes: true,
+        label: '自定义定时',
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(12),
+          child: IntrinsicWidth(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildField(
+                      label: '小时',
+                      itemCount: 25,
+                      onChanged: (index) => setState(() => _hours = index),
+                    ),
+                    _buildSeparator(),
+                    _buildField(
+                      label: '分钟',
+                      itemCount: 60,
+                      onChanged: (index) => setState(() => _minutes = index),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                OverflowBar(
+                  alignment: MainAxisAlignment.end,
+                  spacing: 8,
+                  overflowAlignment: OverflowBarAlignment.end,
+                  overflowSpacing: 8,
+                  children: [
+                    TextButton(
+                      style: StateActionButton.styleOf(context),
+                      onPressed: () => KazumiDialog.dismiss(context: context),
+                      child: const Text('取消'),
+                    ),
+                    StateActionButton(
+                      onPressed: _totalMinutes > 0 ? _confirm : null,
+                      text: '开始',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

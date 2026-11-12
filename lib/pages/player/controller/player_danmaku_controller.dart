@@ -2,6 +2,7 @@
 
 import 'package:canvas_danmaku/canvas_danmaku.dart' as canvas;
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
+import 'package:kazumi/modules/danmaku/danmaku_source_memory.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -148,10 +149,7 @@ abstract class _PlayerDanmakuController with Store {
         episode,
       );
     }
-    return await _fetchDanDanmakuByBgmBangumiID(
-      bangumiId,
-      episode,
-    );
+    return await _fetchDanmakuBySource(bangumiId, episode);
   }
 
   @action
@@ -192,7 +190,6 @@ abstract class _PlayerDanmakuController with Store {
       int bangumiId, String pluginName, int episode) async {
     KazumiLogger().i(
         'PlayerController: attempting to load cached danmaku for episode $episode');
-    var nextBangumiID = bangumiID;
     try {
       final cachedDanmakus = await downloadController.getCachedDanmakus(
         bangumiId,
@@ -205,43 +202,23 @@ abstract class _PlayerDanmakuController with Store {
             'PlayerController: loaded ${cachedDanmakus.length} cached danmakus');
         return DanmakuLoadResult.success(
           danmakus: cachedDanmakus,
-          bangumiID: nextBangumiID,
+          bangumiID: bangumiID,
         );
-      } else {
-        KazumiLogger()
-            .i('PlayerController: no cached danmaku, attempting online fetch');
-        try {
-          nextBangumiID =
-              await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bangumiId);
-          if (nextBangumiID != 0) {
-            var res = await DanmakuApi.getDanDanmaku(nextBangumiID, episode);
-            if (res.isNotEmpty) {
-              KazumiLogger()
-                  .i('PlayerController: fetched ${res.length} danmakus online');
-              _saveDanmakuToCache(downloadController, bangumiId, pluginName,
-                  episode, res, nextBangumiID);
-            }
-            return DanmakuLoadResult.success(
-              danmakus: res,
-              bangumiID: nextBangumiID,
-            );
-          }
-        } catch (e) {
-          KazumiLogger().w(
-              'PlayerController: failed to fetch danmaku online (may be offline)',
-              error: e);
-          return DanmakuLoadResult.failed(bangumiID: nextBangumiID);
-        }
       }
     } catch (e) {
       KazumiLogger()
           .w('PlayerController: failed to load cached danmaku', error: e);
-      return DanmakuLoadResult.failed(bangumiID: nextBangumiID);
+      return DanmakuLoadResult.failed(bangumiID: bangumiID);
     }
-    return DanmakuLoadResult.success(
-      danmakus: const [],
-      bangumiID: nextBangumiID,
-    );
+
+    KazumiLogger()
+        .i('PlayerController: no cached danmaku, attempting online fetch');
+    final result = await _fetchDanmakuBySource(bangumiId, episode);
+    if (result.hasDanmakus) {
+      _saveDanmakuToCache(downloadController, bangumiId, pluginName, episode,
+          result.danmakus, result.bangumiID);
+    }
+    return result;
   }
 
   void _saveDanmakuToCache(
@@ -267,12 +244,44 @@ abstract class _PlayerDanmakuController with Store {
     }
   }
 
-  Future<DanmakuLoadResult> _fetchDanDanmakuByBgmBangumiID(
+  /// 按弹幕源获取指定集弹幕。
+  ///
+  /// 优先使用用户手动选定并记住的弹幕源（见 [DanmakuSourceMemory]），按其
+  /// 集号偏移换算目标集；未记住、换算后集号非法或该集暂无弹幕时，回退到按
+  /// BgmBangumiID 的自动匹配，避免记忆失效时完全失去弹幕。
+  Future<DanmakuLoadResult> _fetchDanmakuBySource(
       int bgmBangumiID, int episode) async {
     KazumiLogger().i(
         'PlayerController: attempting to get danmaku [BgmBangumiID] $bgmBangumiID');
     var nextBangumiID = bangumiID;
     try {
+      final remembered = DanmakuSourceMemory.read(bgmBangumiID);
+      if (remembered != null) {
+        final sourceEpisode = remembered.episodeFor(episode);
+        if (sourceEpisode > 0) {
+          try {
+            final rememberedDanmakus = await DanmakuApi.getDanDanmaku(
+              remembered.animeId,
+              sourceEpisode,
+            );
+            if (rememberedDanmakus.isNotEmpty) {
+              KazumiLogger().i(
+                  'PlayerController: loaded ${rememberedDanmakus.length} danmakus from remembered source');
+              return DanmakuLoadResult.success(
+                danmakus: rememberedDanmakus,
+                bangumiID: remembered.animeId,
+              );
+            }
+          } catch (e) {
+            // 记忆的弹幕源可能已失效（源被下架、ID 变更等），此时不能让整集
+            // 弹幕加载失败，继续走下面的自动匹配回退。
+            KazumiLogger().w(
+                'PlayerController: remembered danmaku source failed, fallback to auto match',
+                error: e);
+          }
+        }
+      }
+
       nextBangumiID =
           await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
       if (nextBangumiID == 0) {

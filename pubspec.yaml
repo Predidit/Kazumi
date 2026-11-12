@@ -5,7 +5,7 @@ version: 2.4.3+20403
 
 environment:
   sdk: ">=3.10.0 <4.0.0"
-  flutter: 3.47.9
+  flutter: 3.50.0
 
 dependencies:
   flutter:
@@ -32,7 +32,7 @@ dependencies:
   image: ^4.8.0
   file_picker: ^10.3.7
 
-  flutter_volume_controller: ^2.0.1
+  flutter_volume_controller: ^2.0.2
   audio_service: ^0.18.15
   audio_service_mpris:
     git:
@@ -44,7 +44,7 @@ dependencies:
       ref: 8ad650c6eb487208b9861d44755c8e58db061c88
   audio_session: ^0.2.2
   dynamic_color: ^1.9.0
-  flutter_displaymode: ^0.6.0
+  flutter_displaymode: ^0.7.0
 
   url_launcher: ^6.3.0
   window_manager: ^0.5.1

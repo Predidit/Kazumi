@@ -40,7 +40,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.setPlaybackSpeed,
     required this.showDanmakuSwitch,
     required this.handleFullscreen,
-    required this.enterAndroidPictureInPicture,
+    required this.enterMobilePictureInPicture,
     required this.handleScreenShot,
     required this.showScreenshotCandidates,
     required this.onNextEpisode,
@@ -68,7 +68,7 @@ class PlayerItemPanel extends StatefulWidget {
   final VoidCallback showDanmakuSwitch;
   final VoidCallback? onToggleSidePanel;
   final VoidCallback handleFullscreen;
-  final Future<void> Function() enterAndroidPictureInPicture;
+  final Future<void> Function() enterMobilePictureInPicture;
   final VoidCallback handleScreenShot;
   final VoidCallback showScreenshotCandidates;
   final VoidCallback handleProgressBarDragStart;
@@ -852,7 +852,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 ),
               if ((isDesktop() &&
                       (compact || !videoPageController.isFullscreen)) ||
-                  Platform.isAndroid)
+                  Platform.isAndroid ||
+                  Platform.isIOS)
                 IconButton(
                   onPressed: () async {
                     if (isDesktop()) {
@@ -867,7 +868,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       videoPageController.isPip = !videoPageController.isPip;
                       return;
                     }
-                    await widget.enterAndroidPictureInPicture();
+                    await widget.enterMobilePictureInPicture();
                   },
                   tooltip: '画中画',
                   icon: const Icon(

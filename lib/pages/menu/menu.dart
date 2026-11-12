@@ -12,6 +12,17 @@ class ScaffoldMenu extends StatefulWidget {
 
   final String location;
 
+  /// Lets shortcuts inside the outlet use the same tab transition and selection
+  /// state as the bottom bar / navigation rail.
+  static void selectDestination(BuildContext context, int index) {
+    final shell = context.findAncestorStateOfType<_ScaffoldMenu>();
+    if (shell != null) {
+      shell._selectDestination(index);
+    } else {
+      context.navigate('/tab${menu.getPath(index)}/');
+    }
+  }
+
   @override
   State<ScaffoldMenu> createState() => _ScaffoldMenu();
 }
@@ -137,53 +148,97 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   }
 
   Widget _bottomMenu(BuildContext context, int selectedIndex) {
+    final onHome = selectedIndex == 0;
     return Scaffold(
       body: _outlet(context),
-      bottomNavigationBar: NavigationBar(
-        destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: '推荐',
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          iconTheme: WidgetStateProperty.resolveWith(
+            (states) => IconThemeData(
+              color: onHome
+                  ? states.contains(WidgetState.selected)
+                        ? const Color(0xFFFFB66B)
+                        : const Color(0xFF9BA9B7)
+                  : null,
+            ),
           ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.timeline),
-            icon: Icon(Icons.timeline_outlined),
-            label: '时间表',
+          labelTextStyle: WidgetStateProperty.resolveWith(
+            (states) => TextStyle(
+              color: onHome
+                  ? states.contains(WidgetState.selected)
+                        ? const Color(0xFFFFB66B)
+                        : const Color(0xFF9BA9B7)
+                  : null,
+            ),
           ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.favorite),
-            icon: Icon(Icons.favorite_outlined),
-            label: '追番',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings),
-            label: '我的',
-          ),
-        ],
-        selectedIndex: selectedIndex,
-        onDestinationSelected: _selectDestination,
+        ),
+        child: NavigationBar(
+          backgroundColor: onHome ? const Color(0xFF101827) : null,
+          indicatorColor: onHome ? const Color(0xFF2A384A) : null,
+          destinations: const <Widget>[
+            NavigationDestination(
+              selectedIcon: Icon(Icons.home),
+              icon: Icon(Icons.home_outlined),
+              label: '推荐',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.timeline),
+              icon: Icon(Icons.timeline_outlined),
+              label: '时间表',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.favorite),
+              icon: Icon(Icons.favorite_outlined),
+              label: '追番',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.settings),
+              icon: Icon(Icons.settings),
+              label: '我的',
+            ),
+          ],
+          selectedIndex: selectedIndex,
+          onDestinationSelected: _selectDestination,
+        ),
       ),
     );
   }
 
   Widget _sideMenu(BuildContext context, int selectedIndex) {
+    final onHome = selectedIndex == 0;
+    const homeBackground = Color(0xFF101827);
+    const homeAccent = Color(0xFFFFB66B);
     const borderRadius = BorderRadius.only(
       topLeft: Radius.circular(16),
       bottomLeft: Radius.circular(16),
     );
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+      backgroundColor: onHome
+          ? homeBackground
+          : Theme.of(context).colorScheme.surfaceContainer,
       body: Row(
         children: [
           EmbeddedNativeControlArea(
             child: NavigationRail(
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+              backgroundColor: onHome
+                  ? homeBackground
+                  : Theme.of(context).colorScheme.surfaceContainer,
+              indicatorColor: onHome ? const Color(0xFF2A384A) : null,
+              selectedIconTheme: onHome
+                  ? const IconThemeData(color: homeAccent)
+                  : null,
+              unselectedIconTheme: onHome
+                  ? const IconThemeData(color: Color(0xFF9BA9B7))
+                  : null,
+              selectedLabelTextStyle: onHome
+                  ? const TextStyle(color: homeAccent)
+                  : null,
               groupAlignment: 1,
               leading: FloatingActionButton(
                 elevation: 0,
                 heroTag: null,
+                backgroundColor: onHome ? const Color(0xFF2A384A) : null,
+                foregroundColor: onHome ? homeAccent : null,
                 onPressed: () => context.pushNamed('/search/'),
                 child: const Icon(Icons.search),
               ),

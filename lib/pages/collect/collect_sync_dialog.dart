@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/wavy_progress_indicator.dart';
 
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
@@ -407,14 +408,11 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
                     ],
                     if (active && state.progress != null) ...[
                       const SizedBox(height: 12),
-                      LinearProgressIndicator(
+                      WavyProgressIndicator(
                         value: state.progress,
                         color: colors.primary,
-                        backgroundColor:
+                        trackColor:
                             colors.onSecondaryContainer.withValues(alpha: 0.12),
-                        minHeight: 4,
-                        borderRadius: BorderRadius.circular(4),
-                        trackGap: 4,
                         semanticsLabel: state.step._title,
                       ),
                     ],

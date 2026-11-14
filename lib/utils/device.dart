@@ -2,6 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+/// Re-evaluate the display whenever a default desktop layout is needed.
+Future<Size> defaultDesktopWindowSize() async =>
+    await isLowResolution() ? const Size(840, 600) : const Size(1280, 860);
+
 Future<bool> isLowResolution() async {
   if (Platform.isMacOS) {
     return false;

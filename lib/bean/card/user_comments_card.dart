@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bbcode/bbcode_widget.dart';
 import 'package:kazumi/bean/widget/bangumi_avatar.dart';
+import 'package:kazumi/bean/widget/image_preview.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/date_time.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -208,6 +209,13 @@ class _CommentBody extends StatelessWidget {
           : BBCodeWidget(
               bbcode: content,
               textScaler: MediaQuery.textScalerOf(context),
+              imageHeroTagBuilder: ImageViewer.heroTagFor,
+              onImageTap: (imageUrls, currentIndex, heroTag) => ImageViewer.show(
+                context,
+                imageUrls: imageUrls,
+                initialIndex: currentIndex,
+                heroTag: heroTag,
+              ),
             ),
     );
   }

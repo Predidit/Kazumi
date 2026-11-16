@@ -261,12 +261,12 @@ class _CollectListTile extends StatelessWidget {
                       height: 120,
                       child: _CollectCover(
                         item: item,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

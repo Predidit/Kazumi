@@ -64,9 +64,14 @@ class EditorChoiceGroup<T> extends StatelessWidget {
       LayoutBuilder(builder: (context, constraints) {
         final wrap = constraints.maxWidth <
             segments.length * MediaQuery.textScalerOf(context).scale(76);
+        final color = Theme.of(context).colorScheme.surfaceContainerHighest;
         if (!wrap) {
           return ConnectedButtonGroup<T>(
-              segments: segments, selected: value, onSelected: onChanged);
+            segments: segments,
+            selected: value,
+            color: color,
+            onSelected: onChanged,
+          );
         }
         return Wrap(spacing: 4, runSpacing: 4, children: [
           for (final segment in segments)
@@ -74,6 +79,7 @@ class EditorChoiceGroup<T> extends StatelessWidget {
               expanded: false,
               segments: [segment],
               selected: value,
+              color: color,
               onSelected: onChanged,
             ),
         ]);

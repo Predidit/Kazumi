@@ -802,25 +802,20 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       );
 
   ButtonStyle _toggleStyle({required bool selected}) {
-    final style = _actionStyle();
-    if (!selected) return style;
     final colors = Theme.of(context).colorScheme;
-    return style.copyWith(
-      backgroundColor: WidgetStateProperty.resolveWith(
-        (states) =>
-            states.contains(WidgetState.disabled) ? null : colors.secondary,
+    return _actionStyle().copyWith(
+      backgroundColor: WidgetStatePropertyAll(
+        selected ? colors.secondaryContainer : colors.surfaceContainerHighest,
       ),
-      foregroundColor: WidgetStateProperty.resolveWith(
-        (states) =>
-            states.contains(WidgetState.disabled) ? null : colors.onSecondary,
-      ),
-      shape: WidgetStateProperty.resolveWith(
-        (states) => RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            states.contains(WidgetState.pressed) ? 8 : 12,
-          ),
-        ),
-      ),
+      shape: !selected
+          ? null
+          : WidgetStateProperty.resolveWith(
+              (states) => RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  states.contains(WidgetState.pressed) ? 8 : 12,
+                ),
+              ),
+            ),
     );
   }
 

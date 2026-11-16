@@ -80,6 +80,7 @@ class _CollectLayoutSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     return ConnectedButtonGroup<CollectLayout>(
       expanded: false,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       segments: [
         for (final layout in [CollectLayout.cards, CollectLayout.list])
           ButtonSegment(

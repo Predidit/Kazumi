@@ -444,6 +444,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     ),
                 ],
                 selected: _score,
+                emphasized: true,
+                color: colors.surfaceContainerLowest,
                 onSelected: _submitting ? null : _setScore,
               ),
             ],

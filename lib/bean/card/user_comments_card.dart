@@ -82,9 +82,10 @@ class _UserCommentsCardState extends State<UserCommentsCard> {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: colors.surfaceContainerHighest,
-                          borderRadius: splitListRowRadius(
-                            first: index == 0,
-                            last: index == visibleCount - 1,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(index == 0 ? 12 : 4),
+                            bottom: Radius.circular(
+                                index == visibleCount - 1 ? 12 : 4),
                           ),
                         ),
                         child: Padding(

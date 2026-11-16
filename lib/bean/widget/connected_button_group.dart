@@ -18,6 +18,8 @@ class ConnectedButtonGroup<T> extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     this.expanded = true,
+    this.emphasized = false,
+    this.color,
   });
 
   final List<ButtonSegment<T>> segments;
@@ -26,6 +28,12 @@ class ConnectedButtonGroup<T> extends StatelessWidget {
   /// Null disables the group.
   final ValueChanged<T>? onSelected;
   final bool expanded;
+
+  /// Selects with primary instead of secondaryContainer.
+  final bool emphasized;
+
+  /// Container of the unselected segments.
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +49,8 @@ class ConnectedButtonGroup<T> extends StatelessWidget {
             child: _ConnectedButton(
               segment: segment,
               expanded: expanded,
+              emphasized: emphasized,
+              color: color,
               selected: segment.value == selected,
               leading: index == 0,
               trailing: index == segments.length - 1,
@@ -58,6 +68,8 @@ class _ConnectedButton extends StatefulWidget {
   const _ConnectedButton({
     required this.segment,
     required this.expanded,
+    required this.emphasized,
+    required this.color,
     required this.selected,
     required this.leading,
     required this.trailing,
@@ -66,6 +78,8 @@ class _ConnectedButton extends StatefulWidget {
 
   final ButtonSegment<Object?> segment;
   final bool expanded;
+  final bool emphasized;
+  final Color? color;
   final bool selected;
   final bool leading;
   final bool trailing;
@@ -105,8 +119,11 @@ class _ConnectedButtonState extends State<_ConnectedButton> {
       _height,
       MediaQuery.textScalerOf(context).scale(20) + 20,
     );
-    final foreground =
-        widget.selected ? colors.onPrimary : colors.onSurfaceVariant;
+    final (background, foreground) = !widget.selected
+        ? (widget.color ?? colors.surfaceContainer, colors.onSurfaceVariant)
+        : widget.emphasized
+            ? (colors.primary, colors.onPrimary)
+            : (colors.secondaryContainer, colors.onSecondaryContainer);
 
     final button = SpringBuilder(
       value: _pressed
@@ -139,9 +156,7 @@ class _ConnectedButtonState extends State<_ConnectedButton> {
             backgroundColor: WidgetStateProperty.resolveWith(
               (states) => states.contains(WidgetState.disabled)
                   ? colors.onSurface.withValues(alpha: 0.1)
-                  : widget.selected
-                      ? colors.primary
-                      : colors.surfaceContainer,
+                  : background,
             ),
             foregroundColor: WidgetStateProperty.resolveWith(
               (states) => states.contains(WidgetState.disabled)

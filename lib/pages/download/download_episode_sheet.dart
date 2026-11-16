@@ -304,8 +304,8 @@ class _EpisodeTile extends StatelessWidget {
                 )
               else
                 Positioned(
-                  top: 4,
-                  right: 4,
+                  top: 8,
+                  right: 8,
                   child: AnimatedScale(
                     scale: isSelected ? 1 : 0,
                     duration: const Duration(milliseconds: 250),

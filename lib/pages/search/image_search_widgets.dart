@@ -299,7 +299,7 @@ class _OtherMatch extends StatelessWidget {
         button: true,
         label: '搜索 ${_title(result)}',
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: LayoutBuilder(
               builder: (context, constraints) => Row(children: [
                     if (constraints.maxWidth >= 300 &&
@@ -307,9 +307,9 @@ class _OtherMatch extends StatelessWidget {
                       SizedBox(
                           width: constraints.maxWidth >= 400 ? 112 : 80,
                           child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                               child: _TraceFrame(result: result))),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                     ],
                     Expanded(
                         child: Column(

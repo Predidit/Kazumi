@@ -1,5 +1,8 @@
 part of 'source_sheet.dart';
 
+const _expandDuration = Duration(milliseconds: 250);
+const _expandCurve = Curves.easeInOutCubic;
+
 class _SourceSearchGroup {
   const _SourceSearchGroup({
     required this.name,
@@ -111,8 +114,8 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
   Widget _animateSize(Widget child) => MediaQuery.disableAnimationsOf(context)
       ? child
       : AnimatedSize(
-          duration: splitListMotionDuration,
-          curve: splitListMotionCurve,
+          duration: _expandDuration,
+          curve: _expandCurve,
           alignment: Alignment.topCenter,
           child: child,
         );
@@ -180,7 +183,7 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
     final collapsed = display == _SourceDisplay.collapsed;
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
-        : splitListMotionDuration;
+        : _expandDuration;
 
     void toggle() => _setDisplay(group.name,
         collapsed ? _SourceDisplay.preview : _SourceDisplay.collapsed);
@@ -229,7 +232,7 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
                               AnimatedRotation(
                                 turns: collapsed ? 0 : 0.5,
                                 duration: duration,
-                                curve: splitListMotionCurve,
+                                curve: _expandCurve,
                                 child: Icon(Icons.expand_more_rounded,
                                     size: 20, color: colors.onSurfaceVariant),
                               ),
@@ -267,8 +270,8 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
   Widget _buildSourceBody(_SourceSearchGroup group, {required bool showAll}) {
     if (!group.hasResults) {
       return SplitListRow(
-        topRadius: splitListOuterRadius,
-        bottomRadius: splitListOuterRadius,
+        first: true,
+        last: true,
         child: switch (group.status) {
           PluginSearchStatus.pending => _buildSearching(),
           PluginSearchStatus.success ||
@@ -309,7 +312,7 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
         if (group.results.length > 1) ...[
           const SizedBox(height: splitListRowGap),
           SplitListRow(
-            bottomRadius: splitListOuterRadius,
+            last: true,
             onTap: () => showAll
                 ? _collapseFromFooter(group.name)
                 : _setDisplay(group.name, _SourceDisplay.expanded),
@@ -381,10 +384,8 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
     final theme = Theme.of(context);
     final result = group.results[index];
     return SplitListRow(
-      topRadius: index == 0 ? splitListOuterRadius : splitListInnerRadius,
-      bottomRadius: group.results.length == 1
-          ? splitListOuterRadius
-          : splitListInnerRadius,
+      first: index == 0,
+      last: group.results.length == 1,
       onTap: () => widget.onPlay(group.name, result),
       child: Semantics(
         button: true,

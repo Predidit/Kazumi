@@ -30,9 +30,6 @@ class _TimelineOptionsButton extends StatelessWidget {
         availableWidth < scaler.scale(16) * 22 || scaler.scale(14) > 28;
     final style = StateActionButton.styleOf(context).copyWith(
       minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
-      padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
     );
     final summary = '${sort.label}，'
         '${filterCount > 0 ? '已启用 $filterCount 项筛选' : '未启用筛选'}';

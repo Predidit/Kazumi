@@ -479,11 +479,8 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
             itemBuilder: (context, index) {
               final anime = _animes[index];
               return SplitListRow(
-                topRadius:
-                    index == 0 ? splitListOuterRadius : splitListInnerRadius,
-                bottomRadius: index == _animes.length - 1
-                    ? splitListOuterRadius
-                    : splitListInnerRadius,
+                first: index == 0,
+                last: index == _animes.length - 1,
                 onTap: () => _selectAnime(anime),
                 child: ListTile(
                   title: Text(anime.animeTitle,
@@ -547,12 +544,8 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                       padding: const EdgeInsets.symmetric(
                           vertical: splitListRowGap / 2),
                       child: SplitListRow(
-                        topRadius: index == 0
-                            ? splitListOuterRadius
-                            : splitListInnerRadius,
-                        bottomRadius: index == visible.length - 1
-                            ? splitListOuterRadius
-                            : splitListInnerRadius,
+                        first: index == 0,
+                        last: index == visible.length - 1,
                         onTap: () => _selectEpisode(episode),
                         child: ListTile(
                           title: Text(episode.episodeTitle,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bbcode/bbcode_widget.dart';
 import 'package:kazumi/bean/widget/bangumi_avatar.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
+import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/date_time.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -75,14 +77,14 @@ class _UserCommentsCardState extends State<UserCommentsCard> {
                 children: [
                   for (var index = 0; index < visibleCount; index++)
                     Padding(
-                      padding: EdgeInsets.only(top: index == 0 ? 0 : 3),
+                      padding: EdgeInsets.only(
+                          top: index == 0 ? 0 : splitListRowGap),
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: colors.surfaceContainerHighest,
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(index == 0 ? 16 : 4),
-                            bottom: Radius.circular(
-                                index == visibleCount - 1 ? 16 : 4),
+                          borderRadius: splitListRowRadius(
+                            first: index == 0,
+                            last: index == visibleCount - 1,
                           ),
                         ),
                         child: Padding(
@@ -253,12 +255,7 @@ class _CommentSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(padding: const EdgeInsets.all(16), child: child),
-      ),
+      child: TonalCard(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }

@@ -238,10 +238,7 @@ class _CollectListTile extends StatelessWidget {
         '${item.ratingScore.toStringAsFixed(1)} 分',
     ];
 
-    return Material(
-      color: colors.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(24),
-      clipBehavior: Clip.antiAlias,
+    return TonalCard(
       child: Stack(
         children: [
           // Isolate menu focus and taps from card navigation.

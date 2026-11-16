@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 
+import 'package:kazumi/bean/widget/expressive_motion.dart';
+
 const double _itemExtent = 52;
 
 // The wheel wraps by repeating the options over a list long enough that its
@@ -180,55 +182,14 @@ class _ScrollFieldState extends State<ScrollField> {
   }
 }
 
-class _ScrollFieldItem extends StatefulWidget {
+class _ScrollFieldItem extends StatelessWidget {
   const _ScrollFieldItem({required this.label, required this.selected});
 
-  final String label;
-  final bool selected;
-
-  @override
-  State<_ScrollFieldItem> createState() => _ScrollFieldItemState();
-}
-
-class _ScrollFieldItemState extends State<_ScrollFieldItem>
-    with SingleTickerProviderStateMixin {
   // displayMedium (45) unselected, displayLargeEmphasized (57) selected.
   static const double _unselectedScale = 45 / 57;
 
-  // M3 Expressive fast spatial spring.
-  static final SpringDescription _spring = SpringDescription.withDampingRatio(
-    mass: 1,
-    stiffness: 800,
-    ratio: 0.6,
-  );
-
-  late final AnimationController _selection = AnimationController.unbounded(
-    vsync: this,
-    value: widget.selected ? 1 : 0,
-  );
-
-  @override
-  void didUpdateWidget(_ScrollFieldItem oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.selected == widget.selected) return;
-    final target = widget.selected ? 1.0 : 0.0;
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _selection.value = target;
-      return;
-    }
-    _selection.animateWith(SpringSimulation(
-      _spring,
-      _selection.value,
-      target,
-      _selection.velocity,
-    ));
-  }
-
-  @override
-  void dispose() {
-    _selection.dispose();
-    super.dispose();
-  }
+  final String label;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -238,21 +199,22 @@ class _ScrollFieldItemState extends State<_ScrollFieldItem>
     // interpolating either one in the text style would re-shape the glyphs on
     // every frame.
     final style = theme.textTheme.displayLarge!.copyWith(
-      fontWeight: widget.selected ? FontWeight.w500 : FontWeight.w400,
+      fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
       letterSpacing: 0,
     );
 
     // The display line is taller than the slot and overflows it evenly.
     return OverflowBox(
       maxHeight: double.infinity,
-      child: AnimatedBuilder(
-        animation: _selection,
-        builder: (context, _) {
-          final t = _selection.value.clamp(0.0, 1.0);
+      child: SpringBuilder(
+        value: selected ? 1 : 0,
+        spring: ExpressiveMotion.fastSpatial,
+        builder: (context, selection, _) {
+          final t = selection.clamp(0.0, 1.0);
           return Transform.scale(
             scale: _unselectedScale + (1 - _unselectedScale) * t,
             child: Text(
-              widget.label,
+              label,
               softWrap: false,
               textAlign: TextAlign.center,
               style: style.copyWith(

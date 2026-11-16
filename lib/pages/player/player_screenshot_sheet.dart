@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/widget/kazumi_menu.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/pages/player/controller/player_screenshot_controller.dart';
 import 'package:kazumi/pages/player/player_screenshot_image.dart';
 import 'package:kazumi/services/player/screenshot_candidate.dart';
@@ -801,32 +802,31 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
       );
 
   ButtonStyle _toggleStyle({required bool selected}) {
+    final style = _actionStyle();
+    if (!selected) return style;
     final colors = Theme.of(context).colorScheme;
-    return _actionStyle(selected: selected).copyWith(
-      backgroundColor: WidgetStatePropertyAll(
-        selected ? colors.secondaryContainer : colors.surfaceContainerHighest,
+    return style.copyWith(
+      backgroundColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.disabled) ? null : colors.secondary,
+      ),
+      foregroundColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.disabled) ? null : colors.onSecondary,
+      ),
+      shape: WidgetStateProperty.resolveWith(
+        (states) => RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            states.contains(WidgetState.pressed) ? 8 : 12,
+          ),
+        ),
       ),
     );
   }
 
-  ButtonStyle _actionStyle({bool selected = false}) => ButtonStyle(
-    minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
-    padding: const WidgetStatePropertyAll(
-      EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-    ),
-    animationDuration: _motion,
-    shape: WidgetStateProperty.resolveWith(
-      (states) => RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          states.contains(WidgetState.pressed)
-              ? 12
-              : selected
-              ? 16
-              : 24,
-        ),
-      ),
-    ),
-  );
+  ButtonStyle _actionStyle() => StateActionButton.styleOf(
+    context,
+  ).copyWith(minimumSize: const WidgetStatePropertyAll(Size(48, 48)));
 
   Widget _empty(BuildContext context) => Center(
     child: SingleChildScrollView(

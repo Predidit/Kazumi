@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/connected_button_group.dart';
 import 'package:kazumi/pages/plugin_editor/rule_management_widgets.dart';
 
 class EditorTextField extends StatelessWidget {
@@ -61,55 +62,20 @@ class EditorChoiceGroup<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       LayoutBuilder(builder: (context, constraints) {
-        final colors = Theme.of(context).colorScheme;
         final wrap = constraints.maxWidth <
             segments.length * MediaQuery.textScalerOf(context).scale(76);
-        Widget button(int index) {
-          final segment = segments[index];
-          final selected = segment.value == value;
-          final outer = const Radius.circular(24);
-          final inner = Radius.circular(selected ? 24 : 8);
-          return Semantics(
-            selected: selected,
-            inMutuallyExclusiveGroup: true,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(64, 48),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                backgroundColor: selected
-                    ? colors.secondaryContainer
-                    : colors.surfaceContainerHighest,
-                foregroundColor: selected
-                    ? colors.onSecondaryContainer
-                    : colors.onSurfaceVariant,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadiusDirectional.only(
-                  topStart: index == 0 || wrap ? outer : inner,
-                  bottomStart: index == 0 || wrap ? outer : inner,
-                  topEnd: index == segments.length - 1 || wrap ? outer : inner,
-                  bottomEnd:
-                      index == segments.length - 1 || wrap ? outer : inner,
-                )),
-              ),
-              onPressed:
-                  segment.enabled ? () => onChanged(segment.value) : null,
-              child: segment.label ?? segment.icon ?? const SizedBox.shrink(),
+        if (!wrap) {
+          return ConnectedButtonGroup<T>(
+              segments: segments, selected: value, onSelected: onChanged);
+        }
+        return Wrap(spacing: 4, runSpacing: 4, children: [
+          for (final segment in segments)
+            ConnectedButtonGroup<T>(
+              expanded: false,
+              segments: [segment],
+              selected: value,
+              onSelected: onChanged,
             ),
-          );
-        }
-
-        if (wrap) {
-          return Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: List.generate(segments.length, button));
-        }
-        return Row(children: [
-          for (var index = 0; index < segments.length; index++) ...[
-            if (index > 0) const SizedBox(width: 4),
-            Expanded(child: button(index)),
-          ],
         ]);
       });
 }

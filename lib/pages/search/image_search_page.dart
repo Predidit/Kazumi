@@ -12,9 +12,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/connected_button_group.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/search/image_search_module.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
@@ -533,17 +535,10 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
               : _hasImage
                   ? _search
                   : null,
-      style: ButtonStyle(
+      style: StateActionButton.styleOf(context, medium: true).copyWith(
         minimumSize: const WidgetStatePropertyAll(Size.fromHeight(56)),
-        padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
         textStyle: WidgetStatePropertyAll(
             type.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-        shape: WidgetStateProperty.resolveWith((states) =>
-            RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                    states.contains(WidgetState.pressed) ? 16 : 28))),
-        animationDuration: _transition,
       ),
       icon: searching || _isPicking
           ? LoadingIndicator(size: 24, color: colors.onSurfaceVariant)

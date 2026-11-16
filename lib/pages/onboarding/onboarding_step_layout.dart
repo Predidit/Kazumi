@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
 
 /// Keeps the rule catalog lazy within the responsive onboarding scroll surface.
@@ -163,36 +164,20 @@ class OnboardingStepIcon extends StatelessWidget {
         ),
       _ => (colors.primaryContainer, colors.onPrimaryContainer),
     };
-    return ClipPath(
-      clipper: _StepShapeClipper(shape),
-      child: ColoredBox(
-        color: background,
-        child: SizedBox.square(
-          dimension: 88,
-          child: Icon(icon, size: 36, color: foreground),
-        ),
-      ),
+    return StateIconBadge(
+      shape: switch (shape) {
+        OnboardingIconShape.sunny => MaterialShapes.sunny,
+        OnboardingIconShape.cookie => MaterialShapes.cookie4Sided,
+        OnboardingIconShape.clover => MaterialShapes.clover4Leaf,
+        OnboardingIconShape.flower => MaterialShapes.flower,
+      },
+      icon: icon,
+      size: 88,
+      iconSize: 36,
+      backgroundColor: background,
+      foregroundColor: foreground,
     );
   }
-}
-
-class _StepShapeClipper extends CustomClipper<Path> {
-  const _StepShapeClipper(this.shape);
-
-  final OnboardingIconShape shape;
-  static final _paths = {
-    OnboardingIconShape.sunny: MaterialShapes.sunny.toPath(),
-    OnboardingIconShape.cookie: MaterialShapes.cookie4Sided.toPath(),
-    OnboardingIconShape.clover: MaterialShapes.clover4Leaf.toPath(),
-    OnboardingIconShape.flower: MaterialShapes.flower.toPath(),
-  };
-
-  @override
-  Path getClip(Size size) => _paths[shape]!
-      .transform(Matrix4.diagonal3Values(size.width, size.height, 1).storage);
-
-  @override
-  bool shouldReclip(_StepShapeClipper oldClipper) => oldClipper.shape != shape;
 }
 
 class OnboardingHint extends StatelessWidget {

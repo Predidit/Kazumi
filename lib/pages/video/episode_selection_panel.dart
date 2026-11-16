@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 
@@ -340,7 +340,7 @@ class _RoadSelectorState extends State<_RoadSelector> {
     final selected = index == widget.visibleRoad;
     final last = index == widget.roads.length - 1;
     return Padding(
-      padding: EdgeInsets.only(bottom: last ? 0 : 2),
+      padding: EdgeInsets.only(bottom: last ? 0 : splitListRowGap),
       child: Semantics(
         selected: selected,
         inMutuallyExclusiveGroup: true,
@@ -365,12 +365,10 @@ class _RoadSelectorState extends State<_RoadSelector> {
               ),
             ),
             shape: WidgetStatePropertyAll(RoundedRectangleBorder(
-              borderRadius: selected
-                  ? BorderRadius.circular(20)
-                  : BorderRadius.vertical(
-                      top: Radius.circular(index == 0 ? 20 : 4),
-                      bottom: Radius.circular(last ? 20 : 4),
-                    ),
+              borderRadius: splitListRowRadius(
+                first: selected || index == 0,
+                last: selected || last,
+              ),
             )),
           ),
           child: Column(
@@ -508,7 +506,7 @@ class _RoadSelectorState extends State<_RoadSelector> {
   }
 }
 
-class _EpisodeRow extends StatefulWidget {
+class _EpisodeRow extends StatelessWidget {
   const _EpisodeRow({
     super.key,
     required this.name,
@@ -533,47 +531,12 @@ class _EpisodeRow extends StatefulWidget {
   final DownloadEpisode? download;
 
   @override
-  State<_EpisodeRow> createState() => _EpisodeRowState();
-}
-
-class _EpisodeRowState extends State<_EpisodeRow>
-    with SingleTickerProviderStateMixin {
-  late final _press = AnimationController.unbounded(vsync: this);
-
-  bool get _reduceMotion =>
-      widget.disableAnimations || MediaQuery.disableAnimationsOf(context);
-
-  void _setPressed(bool pressed) {
-    final target = pressed ? 1.0 : 0.0;
-    if (_reduceMotion) {
-      _press.value = target;
-      return;
-    }
-    _press.animateWith(SpringSimulation(
-      SpringDescription.withDampingRatio(
-        mass: 1,
-        stiffness: 500,
-        ratio: 0.8,
-      ),
-      _press.value,
-      target,
-      _press.velocity,
-    ));
-  }
-
-  @override
-  void dispose() {
-    _press.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final foreground = widget.selected ? colors.onPrimary : colors.onSurface;
-    final status =
-        widget.isOffline ? DownloadStatus.completed : widget.download?.status;
+    final foreground =
+        selected ? colors.onSecondaryContainer : colors.onSurface;
+    final status = isOffline ? DownloadStatus.completed : download?.status;
     final downloadLabel = switch (status) {
       DownloadStatus.completed => '已缓存',
       DownloadStatus.downloading => '正在缓存',
@@ -583,108 +546,77 @@ class _EpisodeRowState extends State<_EpisodeRow>
       DownloadStatus.resolving => '正在解析',
       _ => null,
     };
-    final playbackLabel =
-        widget.selected ? (widget.isPlaying ? '正在播放' : '当前选集') : '播放';
+    final playbackLabel = selected ? (isPlaying ? '正在播放' : '当前选集') : '播放';
 
     final supportingText = [
-      if (widget.selected) playbackLabel,
-      if (!widget.isOffline && downloadLabel != null)
+      if (selected) playbackLabel,
+      if (!isOffline && downloadLabel != null)
         status == DownloadStatus.downloading
-            ? '缓存 ${(widget.download!.progressPercent.clamp(0, 1) * 100).round()}%'
+            ? '缓存 ${(download!.progressPercent.clamp(0, 1) * 100).round()}%'
             : downloadLabel,
     ].join(' · ');
 
-    return Semantics(
-      button: true,
-      onTap: widget.onTap,
-      selected: widget.selected,
-      inMutuallyExclusiveGroup: true,
-      label: '${widget.name}，$playbackLabel'
-          '${downloadLabel == null ? '' : '，$downloadLabel'}',
-      child: Tooltip(
-        message: '${widget.name} · $playbackLabel'
-            '${downloadLabel == null ? '' : ' · $downloadLabel'}',
-        excludeFromSemantics: true,
-        child: AnimatedBuilder(
-          animation: _press,
-          builder: (context, child) {
-            final restShape = widget.selected
-                ? BorderRadius.circular(20)
-                : BorderRadius.vertical(
-                    top: Radius.circular(widget.first ? 20 : 4),
-                    bottom: Radius.circular(widget.last ? 20 : 4),
-                  );
-            final press = _press.value.clamp(0.0, 1.0);
-            return Padding(
-              padding: EdgeInsets.only(bottom: widget.last ? 0 : 2),
-              child: Material(
-                animationDuration: _reduceMotion
-                    ? Duration.zero
-                    : const Duration(milliseconds: 200),
-                color: widget.selected
-                    ? colors.primary
-                    : colors.surfaceContainerLow,
-                borderRadius: BorderRadius.lerp(
-                    restShape, BorderRadius.circular(12), press),
-                clipBehavior: Clip.antiAlias,
-                child: child,
-              ),
-            );
-          },
-          child: InkWell(
-            onTap: widget.onTap,
-            onHighlightChanged: _setPressed,
-            excludeFromSemantics: true,
-            overlayColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.pressed) ||
-                  states.contains(WidgetState.focused)) {
-                return foreground.withValues(alpha: 0.1);
-              }
-              if (states.contains(WidgetState.hovered)) {
-                return foreground.withValues(alpha: 0.08);
-              }
-              return null;
-            }),
-            child: ExcludeSemantics(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 56),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: foreground,
-                          fontWeight: widget.selected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
-                      ),
-                      if (supportingText.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          supportingText,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: widget.selected
-                                ? foreground
-                                : status == DownloadStatus.failed
-                                    ? colors.error
-                                    : colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ],
+    Widget row = SplitListRow(
+      first: first,
+      last: last,
+      selected: selected,
+      onTap: onTap,
+      child: ExcludeSemantics(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: foreground,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
-              ),
+                if (supportingText.isNotEmpty)
+                  Text(
+                    supportingText,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: selected
+                          ? foreground
+                          : status == DownloadStatus.failed
+                              ? colors.error
+                              : colors.onSurfaceVariant,
+                    ),
+                  ),
+              ],
             ),
           ),
+        ),
+      ),
+    );
+    if (disableAnimations) {
+      row = MediaQuery(
+        data: MediaQuery.of(context).copyWith(disableAnimations: true),
+        child: row,
+      );
+    }
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      label: '$name，$playbackLabel'
+          '${downloadLabel == null ? '' : '，$downloadLabel'}',
+      child: Tooltip(
+        message: '$name · $playbackLabel'
+            '${downloadLabel == null ? '' : ' · $downloadLabel'}',
+        excludeFromSemantics: true,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: last ? 0 : splitListRowGap),
+          child: row,
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 
 class EpisodeCommentsPicker extends StatelessWidget {
@@ -17,7 +18,6 @@ class EpisodeCommentsPicker extends StatelessWidget {
     final type = Theme.of(context).textTheme;
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      backgroundColor: colors.surfaceContainerLow,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
@@ -46,25 +46,21 @@ class EpisodeCommentsPicker extends StatelessWidget {
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 itemCount: episodes.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 3),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: splitListRowGap),
                 itemBuilder: (context, index) {
                   final info = episodes[index];
                   final title =
                       info.nameCn.isNotEmpty ? info.nameCn : info.name;
                   final selected = index + 1 == selectedEpisode;
-                  return Material(
-                    color: selected
-                        ? colors.primaryContainer
-                        : colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(index == 0 ? 20 : 4),
-                      bottom: Radius.circular(
-                          index == episodes.length - 1 ? 20 : 4),
-                    ),
-                    clipBehavior: Clip.antiAlias,
+                  return SplitListRow(
+                    first: index == 0,
+                    last: index == episodes.length - 1,
+                    selected: selected,
+                    onTap: () => Navigator.pop(context, index + 1),
                     child: ListTile(
                       selected: selected,
-                      selectedColor: colors.onPrimaryContainer,
+                      selectedColor: colors.onSecondaryContainer,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       title: Text(
@@ -72,7 +68,7 @@ class EpisodeCommentsPicker extends StatelessWidget {
                             .trim(),
                         style: type.labelLarge?.copyWith(
                           color: selected
-                              ? colors.onPrimaryContainer
+                              ? colors.onSecondaryContainer
                               : colors.primary,
                         ),
                       ),
@@ -81,17 +77,17 @@ class EpisodeCommentsPicker extends StatelessWidget {
                           : Text(title,
                               style: type.bodyLarge?.copyWith(
                                 color: selected
-                                    ? colors.onPrimaryContainer
+                                    ? colors.onSecondaryContainer
                                     : colors.onSurface,
                               )),
                       trailing: Icon(
                         selected
                             ? Icons.check_circle_rounded
                             : Icons.chevron_right_rounded,
-                        color:
-                            selected ? colors.primary : colors.onSurfaceVariant,
+                        color: selected
+                            ? colors.onSecondaryContainer
+                            : colors.onSurfaceVariant,
                       ),
-                      onTap: () => Navigator.pop(context, index + 1),
                     ),
                   );
                 },

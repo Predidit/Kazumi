@@ -14,7 +14,7 @@ class HistoryRecordTile extends StatelessWidget {
     required this.onDelete,
     required this.collectType,
     required this.onChangeCollect,
-    this.borderRadius = const BorderRadius.all(Radius.circular(24)),
+    required this.borderRadius,
     this.editing = false,
     this.busy = false,
   });

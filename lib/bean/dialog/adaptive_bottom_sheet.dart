@@ -5,6 +5,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
+import 'package:kazumi/bean/widget/expressive_motion.dart';
+
 BoxConstraints _adaptiveBottomSheetConstraints(
   BuildContext context, {
   required double maxHeightFactor,
@@ -98,11 +100,7 @@ class _MaterialSheetSurfaceState extends State<_MaterialSheetSurface>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || MediaQuery.disableAnimationsOf(context)) return;
         _entrance.animateWith(SpringSimulation(
-          SpringDescription.withDampingRatio(
-            mass: 1,
-            stiffness: 380,
-            ratio: 0.8,
-          ),
+          ExpressiveMotion.defaultSpatial,
           0,
           1,
           0,
@@ -144,13 +142,13 @@ class _MaterialSheetSurfaceState extends State<_MaterialSheetSurface>
                     MaterialLocalizations.of(context).modalBarrierDismissLabel,
                 onDismiss: () => Navigator.of(context).maybePop(),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 22),
                   child: Center(
                     child: Container(
                       width: 32,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: colors.onSurfaceVariant.withValues(alpha: 0.4),
+                        color: colors.onSurfaceVariant,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),

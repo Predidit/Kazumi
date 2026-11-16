@@ -252,12 +252,13 @@ class _WatchStatsPanel extends StatelessWidget {
             if (compact)
               Row(
                 children: [
-                  _ShapeIcon(
-                    shape: _SpaceShape.sun,
+                  StateIconBadge(
+                    shape: MaterialShapes.sunny,
                     icon: Icons.sentiment_satisfied_alt_rounded,
                     size: 32,
-                    color: colors.primary,
-                    foreground: colors.onPrimary,
+                    iconSize: 14,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -370,12 +371,13 @@ class _SpaceHeading extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        _ShapeIcon(
-          shape: _SpaceShape.sun,
+        StateIconBadge(
+          shape: MaterialShapes.sunny,
           icon: Icons.sentiment_satisfied_alt_rounded,
           size: 64,
-          color: colors.tertiaryContainer,
-          foreground: colors.onTertiaryContainer,
+          iconSize: 28,
+          backgroundColor: colors.tertiaryContainer,
+          foregroundColor: colors.onTertiaryContainer,
         ),
       ],
     );
@@ -425,12 +427,13 @@ class _RulesTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            _ShapeIcon(
-              shape: _SpaceShape.clover,
+            StateIconBadge(
+              shape: MaterialShapes.clover4Leaf,
               icon: Icons.extension_rounded,
               size: 80,
-              color: colors.primaryContainer,
-              foreground: colors.onPrimaryContainer,
+              iconSize: 36,
+              backgroundColor: colors.primaryContainer,
+              foregroundColor: colors.onPrimaryContainer,
             ),
           ],
         ),
@@ -639,55 +642,6 @@ class _ArrowCue extends StatelessWidget {
           child: Icon(Icons.arrow_forward_rounded, color: foreground, size: 20),
         ),
       );
-}
-
-enum _SpaceShape { sun, clover }
-
-class _ShapeIcon extends StatelessWidget {
-  const _ShapeIcon({
-    required this.shape,
-    required this.icon,
-    required this.size,
-    required this.color,
-    required this.foreground,
-  });
-
-  final _SpaceShape shape;
-  final IconData icon;
-  final double size;
-  final Color color;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-        child: ClipPath(
-          clipper: _SpaceShapeClipper(shape),
-          child: ColoredBox(
-            color: color,
-            child: SizedBox.square(
-              dimension: size,
-              child: Icon(icon, color: foreground, size: size * .44),
-            ),
-          ),
-        ),
-      );
-}
-
-class _SpaceShapeClipper extends CustomClipper<Path> {
-  const _SpaceShapeClipper(this.shape);
-
-  final _SpaceShape shape;
-  static final _paths = {
-    _SpaceShape.sun: MaterialShapes.sunny.toPath(),
-    _SpaceShape.clover: MaterialShapes.clover4Leaf.toPath(),
-  };
-
-  @override
-  Path getClip(Size size) => _paths[shape]!
-      .transform(Matrix4.diagonal3Values(size.width, size.height, 1).storage);
-
-  @override
-  bool shouldReclip(_SpaceShapeClipper oldClipper) => oldClipper.shape != shape;
 }
 
 class _ExpressiveAction extends StatefulWidget {

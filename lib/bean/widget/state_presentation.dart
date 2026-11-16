@@ -9,6 +9,7 @@ class StateIconBadge extends StatelessWidget {
     required this.iconSize,
     required this.backgroundColor,
     required this.foregroundColor,
+    this.shape,
   });
 
   final IconData icon;
@@ -17,10 +18,13 @@ class StateIconBadge extends StatelessWidget {
   final Color backgroundColor;
   final Color foregroundColor;
 
+  /// Defaults to [MaterialShapes.cookie4Sided].
+  final RoundedPolygon? shape;
+
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
         child: ClipPath(
-          clipper: const _StateShapeClipper(),
+          clipper: _StateShapeClipper(shape ?? MaterialShapes.cookie4Sided),
           child: ColoredBox(
             color: backgroundColor,
             child: SizedBox.square(
@@ -33,16 +37,17 @@ class StateIconBadge extends StatelessWidget {
 }
 
 class _StateShapeClipper extends CustomClipper<Path> {
-  const _StateShapeClipper();
+  const _StateShapeClipper(this.shape);
 
-  static final _path = MaterialShapes.cookie4Sided.toPath();
+  final RoundedPolygon shape;
+  static final _paths = Expando<Path>();
 
   @override
-  Path getClip(Size size) => _path
+  Path getClip(Size size) => (_paths[shape] ??= shape.toPath())
       .transform(Matrix4.diagonal3Values(size.width, size.height, 1).storage);
 
   @override
-  bool shouldReclip(_StateShapeClipper oldClipper) => false;
+  bool shouldReclip(_StateShapeClipper oldClipper) => oldClipper.shape != shape;
 }
 
 class StateActionButton extends StatelessWidget {
@@ -70,15 +75,17 @@ class StateActionButton extends StatelessWidget {
   final String? reserveText;
   final bool _tonal;
 
-  static ButtonStyle styleOf(BuildContext context) {
+  /// Round at rest and squarer while pressed; [medium] is the 56dp size.
+  static ButtonStyle styleOf(BuildContext context, {bool medium = false}) {
     return ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size(64, 48)),
-      padding: const WidgetStatePropertyAll(
-          EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
-      shape: WidgetStateProperty.resolveWith((states) => RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-                states.contains(WidgetState.pressed) ? 16 : 28),
-          )),
+      minimumSize: WidgetStatePropertyAll(Size(64, medium ? 56 : 48)),
+      padding: WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: medium ? 24 : 16, vertical: 12)),
+      shape: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.pressed)
+              ? RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(medium ? 12 : 8))
+              : const StadiumBorder()),
       animationDuration: MediaQuery.disableAnimationsOf(context)
           ? Duration.zero
           : const Duration(milliseconds: 200),

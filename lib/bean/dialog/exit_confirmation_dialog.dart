@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
 
 enum ExitDialogAction { exit, minimizeToTray }
 
@@ -23,28 +25,11 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
   ExitDialogAction _action = ExitDialogAction.minimizeToTray;
   bool _rememberChoice = false;
 
-  Duration get _animationDuration => MediaQuery.disableAnimationsOf(context)
-      ? Duration.zero
-      : const Duration(milliseconds: 200);
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final buttonStyle = ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size(64, 48)),
-      padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      ),
-      animationDuration: _animationDuration,
-      shape: WidgetStateProperty.resolveWith((states) {
-        return RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            states.contains(WidgetState.pressed) ? 12 : 24,
-          ),
-        );
-      }),
-    );
+    final buttonStyle = StateActionButton.styleOf(context);
 
     return AlertDialog(
       constraints: const BoxConstraints(minWidth: 280, maxWidth: 440),
@@ -99,21 +84,9 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildOption(
-                    ExitDialogAction.minimizeToTray,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                      bottom: Radius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  _buildOption(
-                    ExitDialogAction.exit,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(4),
-                      bottom: Radius.circular(20),
-                    ),
-                  ),
+                  _buildOption(ExitDialogAction.minimizeToTray, first: true),
+                  const SizedBox(height: splitListRowGap),
+                  _buildOption(ExitDialogAction.exit, first: false),
                 ],
               ),
             ),
@@ -163,10 +136,7 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
     );
   }
 
-  Widget _buildOption(
-    ExitDialogAction action, {
-    required BorderRadius borderRadius,
-  }) {
+  Widget _buildOption(ExitDialogAction action, {required bool first}) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final (icon, title, description) = switch (action) {
@@ -185,18 +155,16 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
     final foreground =
         selected ? colors.onSecondaryContainer : colors.onSurface;
 
-    return Material(
-      color: selected ? colors.secondaryContainer : colors.surfaceContainerLow,
-      borderRadius: borderRadius,
-      clipBehavior: Clip.antiAlias,
-      animationDuration: _animationDuration,
+    return SplitListRow(
+      first: first,
+      last: !first,
+      selected: selected,
       child: RadioListTile<ExitDialogAction>(
         value: action,
         selected: selected,
         activeColor: colors.onSecondaryContainer,
         controlAffinity: ListTileControlAffinity.trailing,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: borderRadius),
         secondary: Icon(icon, color: foreground),
         title: Text(
           title,

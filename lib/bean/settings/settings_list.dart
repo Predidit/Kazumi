@@ -127,7 +127,7 @@ class _TileLabel extends StatelessWidget {
       children: [
         if (leading != null) ...[
           Icon(leading, size: 24, color: secondary),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
         ],
         Expanded(
           child: Column(
@@ -138,13 +138,11 @@ class _TileLabel extends StatelessWidget {
                 style: textTheme.bodyLarge?.copyWith(color: foreground),
                 child: title,
               ),
-              if (description != null) ...[
-                const SizedBox(height: 2),
+              if (description != null)
                 DefaultTextStyle.merge(
-                  style: textTheme.bodySmall?.copyWith(color: secondary),
+                  style: textTheme.bodyMedium?.copyWith(color: secondary),
                   child: description!,
                 ),
-              ],
             ],
           ),
         ),
@@ -173,9 +171,9 @@ class SettingsCategoryTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     return InkWell(
       onTap: onTap,
-      onHighlightChanged: SplitListRow.pressReporterOf(context),
+      statesController: SplitListRow.statesOf(context),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
             Container(
@@ -191,16 +189,15 @@ class SettingsCategoryTile extends StatelessWidget {
                 color: colorScheme.onSecondaryContainer,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: textTheme.bodyLarge),
-                  const SizedBox(height: 2),
                   Text(
                     description,
-                    style: textTheme.bodySmall
+                    style: textTheme.bodyMedium
                         ?.copyWith(color: colorScheme.onSurfaceVariant),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -377,11 +374,11 @@ class SettingsTile<T> extends StatelessWidget {
 
     return InkWell(
       onTap: _tapHandler(context),
-      onHighlightChanged: SplitListRow.pressReporterOf(context),
+      statesController: SplitListRow.statesOf(context),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 32),
+          constraints: BoxConstraints(minHeight: description == null ? 36 : 52),
           child: Row(
             children: [
               Expanded(

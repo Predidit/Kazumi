@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/connected_button_group.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -431,38 +431,25 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           return Column(children: [
             for (var start = 1; start <= 10; start += columns) ...[
               if (start > 1) const SizedBox(height: 8),
-              Row(children: [
-                for (var index = 0; index < columns; index++) ...[
-                  if (index > 0) const SizedBox(width: 2),
-                  Expanded(
-                      child: _buildScoreButton(start + index, index, columns)),
+              ConnectedButtonGroup<int>(
+                segments: [
+                  for (var value = start; value < start + columns; value++)
+                    ButtonSegment(
+                      value: value,
+                      tooltip: _scoreLabels[value],
+                      label: Text(
+                        '$value',
+                        semanticsLabel: '$value 分，${_scoreLabels[value]}',
+                      ),
+                    ),
                 ],
-              ]),
+                selected: _score,
+                onSelected: _submitting ? null : _setScore,
+              ),
             ],
           ]);
         }),
       ]),
-    );
-  }
-
-  Widget _buildScoreButton(int value, int index, int columns) {
-    return Semantics(
-      button: true,
-      enabled: !_submitting,
-      selected: _score == value,
-      label: '$value 分，${_scoreLabels[value]}',
-      child: Tooltip(
-        message: _scoreLabels[value],
-        excludeFromSemantics: true,
-        child: _ScoreButton(
-          key: ValueKey('review-score-$value'),
-          value: value,
-          selected: _score == value,
-          leading: index == 0,
-          trailing: index == columns - 1,
-          onPressed: _submitting ? null : () => _setScore(value),
-        ),
-      ),
     );
   }
 
@@ -631,125 +618,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 : Icons.arrow_upward_rounded,
           ),
       ]),
-    );
-  }
-}
-
-class _ScoreButton extends StatefulWidget {
-  const _ScoreButton({
-    super.key,
-    required this.value,
-    required this.selected,
-    required this.leading,
-    required this.trailing,
-    required this.onPressed,
-  });
-
-  final int value;
-  final bool selected;
-  final bool leading;
-  final bool trailing;
-  final VoidCallback? onPressed;
-
-  @override
-  State<_ScoreButton> createState() => _ScoreButtonState();
-}
-
-class _ScoreButtonState extends State<_ScoreButton>
-    with SingleTickerProviderStateMixin {
-  // Material 3 connected-button tokens.
-  static const _outerCorner = 24.0;
-  static const _innerCorner = 8.0;
-  static const _pressedInnerCorner = 4.0;
-
-  // M3 Expressive fast spatial spring.
-  static final _spring = SpringDescription.withDampingRatio(
-    mass: 1,
-    stiffness: 800,
-    ratio: 0.6,
-  );
-
-  late final _corner =
-      AnimationController.unbounded(vsync: this, value: _target);
-  bool _pressed = false;
-
-  double get _target => _pressed
-      ? _pressedInnerCorner
-      : widget.selected
-          ? _outerCorner
-          : _innerCorner;
-
-  void _morph() {
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _corner.value = _target;
-      return;
-    }
-    _corner.animateWith(
-        SpringSimulation(_spring, _corner.value, _target, _corner.velocity));
-  }
-
-  @override
-  void didUpdateWidget(_ScoreButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.selected != oldWidget.selected) _morph();
-  }
-
-  @override
-  void dispose() {
-    _corner.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final foreground = widget.selected ? colors.onPrimary : colors.onSurface;
-    return AnimatedBuilder(
-      animation: _corner,
-      builder: (context, child) {
-        const outer = Radius.circular(_outerCorner);
-        final inner = Radius.circular(_corner.value.clamp(0.0, _outerCorner));
-        return Material(
-          animationDuration: Duration.zero,
-          color:
-              widget.selected ? colors.primary : colors.surfaceContainerLowest,
-          borderRadius: BorderRadius.horizontal(
-            left: widget.leading ? outer : inner,
-            right: widget.trailing ? outer : inner,
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: child,
-        );
-      },
-      child: InkWell(
-        onTap: widget.onPressed,
-        onHighlightChanged: (pressed) {
-          _pressed = pressed;
-          _morph();
-        },
-        excludeFromSemantics: true,
-        overlayColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.pressed) ||
-              states.contains(WidgetState.focused)) {
-            return foreground.withValues(alpha: 0.1);
-          }
-          if (states.contains(WidgetState.hovered)) {
-            return foreground.withValues(alpha: 0.08);
-          }
-          return null;
-        }),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          alignment: Alignment.center,
-          child: Text('${widget.value}',
-              style: theme.textTheme.labelLarge?.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: foreground)),
-        ),
-      ),
     );
   }
 }

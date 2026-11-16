@@ -15,6 +15,7 @@ import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
+import 'package:kazumi/modules/danmaku/danmaku_source_memory.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -28,12 +29,14 @@ Future<void> showDanmakuSourceSheet(
   BuildContext context, {
   required int bangumiId,
   required String initialKeyword,
+  required int currentEpisodeNumber,
   required PlayerDanmakuController danmakuController,
   required VoidCallback onBeforeApply,
 }) async {
   Widget buildSheet(BuildContext _) => _DanmakuSourceSheet(
         bangumiId: bangumiId,
         initialKeyword: initialKeyword,
+        currentEpisodeNumber: currentEpisodeNumber,
         danmakuController: danmakuController,
         onBeforeApply: onBeforeApply,
       );
@@ -82,12 +85,16 @@ class _DanmakuSourceSheet extends StatefulWidget {
   const _DanmakuSourceSheet({
     required this.bangumiId,
     required this.initialKeyword,
+    required this.currentEpisodeNumber,
     required this.danmakuController,
     required this.onBeforeApply,
   });
 
   final int bangumiId;
   final String initialKeyword;
+
+  /// 选择弹幕源时正在播放的 Bgm 集号，用于记录集号偏移。
+  final int currentEpisodeNumber;
   final PlayerDanmakuController danmakuController;
   final VoidCallback onBeforeApply;
 
@@ -109,6 +116,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   List<DanmakuSearchAnime> _animes = const [];
   List<DanmakuEpisode> _episodes = const [];
   String? _animeTitle;
+  int? _animeId;
   int? _segmentStart;
   String? _error;
   bool _loading = false;
@@ -181,6 +189,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
       _loading = true;
       _error = null;
       _animeTitle = anime.animeTitle;
+      _animeId = anime.animeId;
       _step = _SourceStep.episode;
       _episodes = const [];
       _episodeSearchController.clear();
@@ -206,7 +215,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
     }
   }
 
-  Future<void> _selectEpisode(DanmakuEpisode episode) async {
+  Future<void> _selectEpisode(DanmakuEpisode episode, int episodeNumber) async {
     setState(() => _loading = true);
     try {
       widget.onBeforeApply();
@@ -214,6 +223,9 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
           .getDanDanmakuByEpisodeID(episode.episodeId);
       if (!mounted) return;
       widget.danmakuController.setDanmakuEnabled(hasDanmakus);
+      if (hasDanmakus) {
+        _rememberSelectedSource(episodeNumber);
+      }
       KazumiDialog.dismiss(context: context);
       KazumiDialog.showToast(
         message: hasDanmakus ? '已切换弹幕源' : '暂无弹幕',
@@ -225,9 +237,24 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
     }
   }
 
-  List<DanmakuEpisode> get _visibleEpisodes {
+  /// 记住本次手动选定且加载成功的弹幕源，供后续分集自动沿用。
+  ///
+  /// 仅在所选弹幕源确实有弹幕、且当前播放集号已知时记录，避免把无效选择
+  /// 或无法对齐集号的记录持久化，导致后续分集弹幕错位。
+  void _rememberSelectedSource(int danmakuEpisodeNumber) {
+    final animeId = _animeId;
+    if (animeId == null || widget.currentEpisodeNumber <= 0) return;
+    unawaited(DanmakuSourceMemory.remember(
+      bgmBangumiId: widget.bangumiId,
+      animeId: animeId,
+      episodeNumber: danmakuEpisodeNumber,
+      bgmEpisodeNumber: widget.currentEpisodeNumber,
+    ));
+  }
+
+  List<({int number, DanmakuEpisode episode})> get _visibleEpisodes {
     final filter = _episodeSearchController.text.toLowerCase();
-    final visible = <DanmakuEpisode>[];
+    final visible = <({int number, DanmakuEpisode episode})>[];
     for (var index = 0; index < _episodes.length; index++) {
       final number = index + 1;
       final episode = _episodes[index];
@@ -241,7 +268,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
               number >= _segmentStart! + _episodeSegmentSize)) {
         continue;
       }
-      visible.add(episode);
+      visible.add((number: number, episode: episode));
     }
     return visible;
   }
@@ -542,7 +569,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                   itemExtent: _episodeRowExtent,
                   itemCount: visible.length,
                   itemBuilder: (context, index) {
-                    final episode = visible[index];
+                    final entry = visible[index];
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: splitListRowGap / 2),
@@ -553,9 +580,9 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                         bottomRadius: index == visible.length - 1
                             ? splitListOuterRadius
                             : splitListInnerRadius,
-                        onTap: () => _selectEpisode(episode),
+                        onTap: () => _selectEpisode(entry.episode, entry.number),
                         child: ListTile(
-                          title: Text(episode.episodeTitle,
+                          title: Text(entry.episode.episodeTitle,
                               maxLines: 1, overflow: TextOverflow.ellipsis),
                         ),
                       ),

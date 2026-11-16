@@ -803,9 +803,16 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
 
   ButtonStyle _toggleStyle({required bool selected}) {
     final colors = Theme.of(context).colorScheme;
+    WidgetStateProperty<Color?> enabled(Color color) =>
+        WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.disabled) ? null : color,
+        );
     return _actionStyle().copyWith(
-      backgroundColor: WidgetStatePropertyAll(
-        selected ? colors.secondaryContainer : colors.surfaceContainerHighest,
+      backgroundColor: enabled(
+        selected ? colors.primary : colors.surfaceContainerHighest,
+      ),
+      foregroundColor: enabled(
+        selected ? colors.onPrimary : colors.onSurfaceVariant,
       ),
       shape: !selected
           ? null

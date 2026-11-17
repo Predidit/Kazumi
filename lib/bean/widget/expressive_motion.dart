@@ -73,6 +73,7 @@ class _SpringBuilderState extends State<SpringBuilder>
       _controller.value,
       widget.value,
       _controller.velocity,
+      snapToEnd: true,
     ));
   }
 

@@ -58,35 +58,32 @@ class EpisodeCommentsPicker extends StatelessWidget {
                     last: index == episodes.length - 1,
                     selected: selected,
                     onTap: () => Navigator.pop(context, index + 1),
-                    child: ListTile(
-                      selected: selected,
-                      selectedColor: colors.onSecondaryContainer,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      title: Text(
-                        '${info.readType().toUpperCase()} ${info.episode}'
-                            .trim(),
-                        style: type.labelLarge?.copyWith(
-                          color: selected
-                              ? colors.onSecondaryContainer
-                              : colors.primary,
+                    child: Builder(
+                      builder: (context) => ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        title: Text(
+                          '${info.readType().toUpperCase()} ${info.episode}'
+                              .trim(),
+                          style: type.labelLarge?.copyWith(
+                            color: SplitListRow.contentColorOf(
+                                context, colors.primary),
+                          ),
                         ),
-                      ),
-                      subtitle: title.isEmpty
-                          ? null
-                          : Text(title,
-                              style: type.bodyLarge?.copyWith(
-                                color: selected
-                                    ? colors.onSecondaryContainer
-                                    : colors.onSurface,
-                              )),
-                      trailing: Icon(
-                        selected
-                            ? Icons.check_circle_rounded
-                            : Icons.chevron_right_rounded,
-                        color: selected
-                            ? colors.onSecondaryContainer
-                            : colors.onSurfaceVariant,
+                        subtitle: title.isEmpty
+                            ? null
+                            : Text(title,
+                                style: type.bodyLarge?.copyWith(
+                                  color: SplitListRow.contentColorOf(
+                                      context, colors.onSurface),
+                                )),
+                        trailing: Icon(
+                          selected
+                              ? Icons.check_circle_rounded
+                              : Icons.chevron_right_rounded,
+                          color: SplitListRow.contentColorOf(
+                              context, colors.onSurfaceVariant),
+                        ),
                       ),
                     ),
                   );

@@ -42,6 +42,16 @@ class SplitListRow extends StatefulWidget {
     return context.dependOnInheritedWidgetOfExactType<_SplitRowScope>()?.states;
   }
 
+  /// [color] blended toward the selected content color as the row selects.
+  static Color contentColorOf(BuildContext context, Color color) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_SplitRowScope>();
+    return Color.lerp(
+      color,
+      Theme.of(context).colorScheme.onSecondaryContainer,
+      scope?.selection ?? 0,
+    )!;
+  }
+
   @override
   State<SplitListRow> createState() => _SplitListRowState();
 }
@@ -91,16 +101,13 @@ class _SplitListRowState extends State<SplitListRow> {
         subtitleTextStyle: theme.textTheme.bodyMedium
             ?.copyWith(color: colors.onSurfaceVariant),
       ),
-      child: _SplitRowScope(
-        states: _states,
-        child: widget.onTap == null
-            ? widget.child
-            : InkWell(
-                onTap: widget.onTap,
-                statesController: _states,
-                child: widget.child,
-              ),
-      ),
+      child: widget.onTap == null
+          ? widget.child
+          : InkWell(
+              onTap: widget.onTap,
+              statesController: _states,
+              child: widget.child,
+            ),
     );
     return SpringBuilder(
       value: radius ?? (widget.first ? _outerRadius : _innerRadius),
@@ -128,7 +135,11 @@ class _SplitListRowState extends State<SplitListRow> {
               ),
             ),
             clipBehavior: Clip.antiAlias,
-            child: child,
+            child: _SplitRowScope(
+              states: _states,
+              selection: selection.clamp(0, 1),
+              child: child!,
+            ),
           ),
         ),
       ),
@@ -137,13 +148,18 @@ class _SplitListRowState extends State<SplitListRow> {
 }
 
 class _SplitRowScope extends InheritedWidget {
-  const _SplitRowScope({required this.states, required super.child});
+  const _SplitRowScope({
+    required this.states,
+    required this.selection,
+    required super.child,
+  });
 
   final WidgetStatesController states;
+  final double selection;
 
   @override
   bool updateShouldNotify(_SplitRowScope oldWidget) =>
-      oldWidget.states != states;
+      oldWidget.selection != selection;
 }
 
 class SplitListGroup extends StatelessWidget {

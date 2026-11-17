@@ -481,7 +481,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                       tooltip: _scoreLabels[value],
                       label: Text(
                         '$value',
-                        semanticsLabel: '$value 分，${_scoreLabels[value]}',
+                        semanticsLabel: '$value 分',
                       ),
                     ),
                 ],

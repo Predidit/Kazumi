@@ -102,21 +102,31 @@ class _TimelineOptionsSheet extends StatelessWidget {
                 ContentSection.group(
                   title: '显示范围',
                   children: [
-                    SwitchListTile(
-                      title: const Text('隐藏看过的番剧'),
-                      value: controller.notShowWatchedBangumis,
-                      onChanged: controller.setNotShowWatchedBangumis,
-                    ),
-                    SwitchListTile(
-                      title: const Text('隐藏抛弃的番剧'),
-                      value: controller.notShowAbandonedBangumis,
-                      onChanged: controller.setNotShowAbandonedBangumis,
-                    ),
-                    SwitchListTile(
-                      title: const Text('只看正在追的番剧'),
-                      value: controller.onlyShowWatchingBangumis,
-                      onChanged: controller.setOnlyShowWatchingBangumis,
-                    ),
+                    for (final (title, value, onChanged) in [
+                      (
+                        '隐藏看过的番剧',
+                        controller.notShowWatchedBangumis,
+                        controller.setNotShowWatchedBangumis,
+                      ),
+                      (
+                        '隐藏抛弃的番剧',
+                        controller.notShowAbandonedBangumis,
+                        controller.setNotShowAbandonedBangumis,
+                      ),
+                      (
+                        '只看正在追的番剧',
+                        controller.onlyShowWatchingBangumis,
+                        controller.setOnlyShowWatchingBangumis,
+                      ),
+                    ])
+                      Builder(
+                        builder: (context) => SwitchListTile(
+                          statesController: SplitListRow.statesOf(context),
+                          title: Text(title),
+                          value: value,
+                          onChanged: onChanged,
+                        ),
+                      ),
                   ],
                 ),
               ],

@@ -152,33 +152,36 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
         ),
     };
     final selected = _action == action;
-    final foreground =
-        selected ? colors.onSecondaryContainer : colors.onSurface;
 
     return SplitListRow(
       first: first,
       last: !first,
       selected: selected,
-      child: RadioListTile<ExitDialogAction>(
-        value: action,
-        selected: selected,
-        activeColor: colors.onSecondaryContainer,
-        controlAffinity: ListTileControlAffinity.trailing,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        secondary: Icon(icon, color: foreground),
-        title: Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(color: foreground),
-        ),
-        subtitle: Text(
-          description,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: selected
-                ? colors.onSecondaryContainer
-                : colors.onSurfaceVariant,
+      child: Builder(builder: (context) {
+        final foreground =
+            SplitListRow.contentColorOf(context, colors.onSurface);
+        return RadioListTile<ExitDialogAction>(
+          value: action,
+          selected: selected,
+          statesController: SplitListRow.statesOf(context),
+          activeColor: colors.onSecondaryContainer,
+          controlAffinity: ListTileControlAffinity.trailing,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          secondary: Icon(icon, color: foreground),
+          title: Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(color: foreground),
           ),
-        ),
-      ),
+          subtitle: Text(
+            description,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color:
+                  SplitListRow.contentColorOf(context, colors.onSurfaceVariant),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

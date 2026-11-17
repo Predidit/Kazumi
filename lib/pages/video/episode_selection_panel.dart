@@ -534,8 +534,6 @@ class _EpisodeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final foreground =
-        selected ? colors.onSecondaryContainer : colors.onSurface;
     final status = isOffline ? DownloadStatus.completed : download?.status;
     final downloadLabel = switch (status) {
       DownloadStatus.completed => '已缓存',
@@ -566,32 +564,36 @@ class _EpisodeRow extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 56),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: foreground,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-                if (supportingText.isNotEmpty)
+            child: Builder(
+              builder: (context) => Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    supportingText,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: selected
-                          ? foreground
-                          : status == DownloadStatus.failed
-                              ? colors.error
-                              : colors.onSurfaceVariant,
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: SplitListRow.contentColorOf(
+                          context, colors.onSurface),
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
-              ],
+                  if (supportingText.isNotEmpty)
+                    Text(
+                      supportingText,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: SplitListRow.contentColorOf(
+                          context,
+                          status == DownloadStatus.failed
+                              ? colors.error
+                              : colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

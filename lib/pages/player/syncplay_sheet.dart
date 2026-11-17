@@ -652,7 +652,9 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
           children: [
             SplitListGroup(children: [
               for (final endPoint in endPoints)
-                _buildEndPointTile(context, endPoint),
+                Builder(
+                  builder: (context) => _buildEndPointTile(context, endPoint),
+                ),
             ]),
             if (_selectedEndPoint == _customOption) ...[
               const SizedBox(height: 16),
@@ -686,6 +688,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
     final bool isCustom = endPoint == _customOption;
 
     return ListTile(
+      statesController: SplitListRow.statesOf(context),
       contentPadding: const EdgeInsets.symmetric(horizontal: 18),
       leading: Icon(
         isCustom ? Icons.edit_outlined : Icons.public_rounded,

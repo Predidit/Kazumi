@@ -46,6 +46,7 @@ Future<T?> showAdaptiveBottomSheet<T>({
   required WidgetBuilder builder,
   double maxHeightFactor = 0.75,
   double compactLandscapeMaxHeightFactor = 0.9,
+  bool enableDrag = true,
   bool useRootNavigator = false,
   RouteSettings? routeSettings,
 }) {
@@ -62,6 +63,7 @@ Future<T?> showAdaptiveBottomSheet<T>({
       compactLandscapeMaxHeightFactor: compactLandscapeMaxHeightFactor,
     ),
     isScrollControlled: true,
+    enableDrag: enableDrag,
     useRootNavigator: useRootNavigator,
     routeSettings: routeSettings,
     showDragHandle: false,
@@ -70,14 +72,19 @@ Future<T?> showAdaptiveBottomSheet<T>({
         ? AnimationStyle.noAnimation
         : _materialSheetAnimationStyle,
     builder: (context) => _MaterialSheetSurface(
+      showDragHandle: enableDrag,
       child: Builder(builder: builder),
     ),
   );
 }
 
 class _MaterialSheetSurface extends StatefulWidget {
-  const _MaterialSheetSurface({required this.child});
+  const _MaterialSheetSurface({
+    required this.showDragHandle,
+    required this.child,
+  });
 
+  final bool showDragHandle;
   final Widget child;
 
   @override
@@ -137,24 +144,27 @@ class _MaterialSheetSurfaceState extends State<_MaterialSheetSurface>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Semantics(
-                label:
-                    MaterialLocalizations.of(context).modalBarrierDismissLabel,
-                onDismiss: () => Navigator.of(context).maybePop(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 22),
-                  child: Center(
-                    child: Container(
-                      width: 32,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: colors.onSurfaceVariant,
-                        borderRadius: BorderRadius.circular(2),
+              if (widget.showDragHandle)
+                Semantics(
+                  label: MaterialLocalizations.of(context)
+                      .modalBarrierDismissLabel,
+                  onDismiss: () => Navigator.of(context).maybePop(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 22),
+                    child: Center(
+                      child: Container(
+                        width: 32,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: colors.onSurfaceVariant,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                )
+              else
+                const SizedBox(height: 16),
               Flexible(child: widget.child),
             ],
           ),

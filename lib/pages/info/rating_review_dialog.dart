@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/bean/widget/connected_button_group.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
@@ -10,15 +12,43 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_review.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
+Future<bool?> showRatingReviewDialog(
+  BuildContext context, {
+  required BangumiItem bangumiItem,
+  required Future<bool> Function(BangumiReview review) onSubmit,
+}) {
+  final size = MediaQuery.sizeOf(context);
+  final sheet = size.width < 600 || size.height < 600;
+  Widget builder(BuildContext _) => RatingReviewDialog(
+        bangumiItem: bangumiItem,
+        onSubmit: onSubmit,
+        sheet: sheet,
+      );
+  if (!sheet) {
+    return KazumiDialog.show<bool>(context: context, builder: builder);
+  }
+  return showAdaptiveBottomSheet<bool>(
+    context: context,
+    maxHeightFactor: 0.9,
+    // Drag dismissal bypasses PopScope.
+    enableDrag: false,
+    useRootNavigator: true,
+    routeSettings: KazumiDialog.routeSettings,
+    builder: builder,
+  );
+}
+
 class RatingReviewDialog extends StatefulWidget {
   const RatingReviewDialog({
     super.key,
     required this.bangumiItem,
     required this.onSubmit,
+    required this.sheet,
   });
 
   final BangumiItem bangumiItem;
   final Future<bool> Function(BangumiReview review) onSubmit;
+  final bool sheet;
 
   @override
   State<RatingReviewDialog> createState() => _RatingReviewDialogState();
@@ -243,15 +273,19 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final fullscreen = media.size.width < 600 || media.size.height < 600;
+    final keyboardInset = widget.sheet ? media.viewInsets.bottom : 0.0;
+    final shortWindow =
+        keyboardInset > 0 && media.size.height - keyboardInset < 320;
     final colors = Theme.of(context).colorScheme;
     final horizontalPadding = media.size.width < 360 ? 16.0 : 24.0;
-    final content = SafeArea(
+    final content = Padding(
+      padding: EdgeInsets.only(bottom: keyboardInset),
       child: SizedBox.expand(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildHeader(),
+            if (!shortWindow)
+              widget.sheet ? _buildSheetHeader() : _buildHeader(),
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
@@ -300,9 +334,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         },
         child: Focus(
           autofocus: true,
-          child: fullscreen
-              ? Dialog.fullscreen(
-                  backgroundColor: colors.surface, child: content)
+          child: widget.sheet
+              ? content
               : Dialog(
                   constraints:
                       const BoxConstraints(maxWidth: 640, maxHeight: 800),
@@ -333,6 +366,15 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 style: Theme.of(context).textTheme.titleLarge),
           ),
         ]),
+      );
+
+  Widget _buildSheetHeader() => MaterialBottomSheetHeader(
+        title: _editing ? '编辑吐槽' : '发表吐槽',
+        trailing: IconButton(
+          tooltip: '关闭',
+          onPressed: _submitting ? null : _requestClose,
+          icon: const Icon(Icons.close_rounded),
+        ),
       );
 
   Widget _buildComment() {

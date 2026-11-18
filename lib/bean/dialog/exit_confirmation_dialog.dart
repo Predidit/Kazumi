@@ -61,21 +61,13 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
         color: colors.onSurface,
         fontWeight: FontWeight.w600,
       ),
-      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       content: SizedBox(
         width: 392,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              '选择关闭窗口后的操作',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
             RadioGroup<ExitDialogAction>(
               groupValue: _action,
               onChanged: (value) {
@@ -102,12 +94,6 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
                 borderRadius: BorderRadius.circular(12),
               ),
               title: Text('记住我的选择', style: theme.textTheme.bodyMedium),
-              subtitle: Text(
-                '下次关闭窗口时不再询问',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
             ),
           ],
         ),
@@ -139,16 +125,14 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
   Widget _buildOption(ExitDialogAction action, {required bool first}) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final (icon, title, description) = switch (action) {
+    final (icon, title) = switch (action) {
       ExitDialogAction.minimizeToTray => (
           Icons.minimize_rounded,
           '最小化至托盘',
-          '隐藏窗口，继续在后台运行',
         ),
       ExitDialogAction.exit => (
           Icons.power_settings_new_rounded,
           '退出 Kazumi',
-          '结束运行并关闭应用',
         ),
     };
     final selected = _action == action;
@@ -172,13 +156,6 @@ class _ExitConfirmationDialogState extends State<ExitConfirmationDialog> {
           title: Text(
             title,
             style: theme.textTheme.titleSmall?.copyWith(color: foreground),
-          ),
-          subtitle: Text(
-            description,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color:
-                  SplitListRow.contentColorOf(context, colors.onSurfaceVariant),
-            ),
           ),
         );
       }),

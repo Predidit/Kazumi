@@ -71,7 +71,7 @@ class EpisodeCommentsView extends StatelessWidget {
                 child: GeneralErrorWidget(
                   icon: Icons.cloud_off_rounded,
                   title: '评论暂时未能加载',
-                  errMsg: '请检查网络后重试，或切换分集查看讨论。',
+                  errMsg: '请检查网络连接后重试。',
                   onRetry: onRefresh,
                   retryText: '重新加载',
                 ),

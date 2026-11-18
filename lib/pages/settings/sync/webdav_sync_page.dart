@@ -114,9 +114,7 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
                 SettingsTile.switchTile(
                   leading: Icons.cloud_sync_rounded,
                   title: const Text('启用 WebDAV'),
-                  description: Text(configured
-                      ? (enabled ? '已开启，选择下方要同步的内容' : '开启后选择要同步的内容')
-                      : '请先配置服务器'),
+                  description: configured ? null : const Text('请先配置服务器'),
                   initialValue: enabled,
                   enabled: configured && !_busy,
                   onToggle: (value) => _setEnabled(value ?? !enabled),

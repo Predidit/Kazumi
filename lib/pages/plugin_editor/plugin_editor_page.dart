@@ -19,8 +19,8 @@ abstract final class _RuleEditorText {
   static const testRule = '测试规则';
   static const save = '保存';
 
-  static const modeXPath = 'XPath';
-  static const modeApi = 'API';
+  static const modeXPath = RuleModeText.xpath;
+  static const modeApi = RuleModeText.api;
   static const methodGet = 'GET';
   static const methodPost = 'POST';
   static const bodyTypeNone = '无';
@@ -58,13 +58,9 @@ abstract final class _RuleEditorText {
       'KazumiCaptcha.log("ready"); KazumiCaptcha.done();';
 
   static const sectionBasic = '基本信息';
-  static const sectionBasicDesc = '规则的名称、版本与站点地址';
   static const sectionSearch = '搜索规则';
-  static const sectionSearchDesc = '定义如何在站点内检索条目';
   static const sectionChapter = '选集规则';
-  static const sectionChapterDesc = '定义如何获取播放线路与剧集列表';
   static const advancedOptions = '高级选项';
-  static const advancedOptionsDesc = '行为、网络与反反爬虫配置';
   static const groupBehavior = '行为设置';
   static const groupNetwork = '网络设置';
   static const groupAntiCrawler = '反反爬虫';
@@ -128,13 +124,9 @@ abstract final class _RuleEditorText {
   static const captchaDetectValue = '验证页检测值';
   static const captchaDetectValueHelper = '留空时使用验证码图片或验证按钮的 XPath 进行检测。';
   static const captchaImage = '验证码图片（XPath）';
-  static const captchaImageHelper = '填写验证码图片元素的 XPath。';
   static const captchaInput = '验证码输入框（XPath）';
-  static const captchaInputHelper = '填写验证码输入框元素的 XPath。';
   static const captchaSubmitButton = '验证提交按钮（XPath）';
-  static const captchaSubmitButtonHelper = '填写提交验证码按钮元素的 XPath。';
   static const verifyButton = '验证按钮（XPath）';
-  static const verifyButtonHelper = '填写验证按钮元素的 XPath，检测到后将自动点击。';
   static const captchaScript = '验证脚本（JavaScript）';
   static const captchaScriptHelper =
       '可调用 KazumiCaptcha.log、clicked、done 和 fail。';
@@ -456,7 +448,10 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                     title: widget.plugin.name.isEmpty
                         ? '编写新规则'
                         : widget.plugin.name,
-                    description: '从站点信息到搜索与选集，逐步配置你的番剧来源。',
+                    description: RuleModeText.summary(
+                      searchMode: searchMode,
+                      chapterMode: chapterMode,
+                    ),
                     icon: Icons.edit_note_rounded,
                   ),
                   const SizedBox(height: 20),
@@ -542,11 +537,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         1 => _RuleEditorText.sectionSearch,
         _ => _RuleEditorText.sectionChapter,
       },
-      description: switch (_section) {
-        0 => _RuleEditorText.sectionBasicDesc,
-        1 => _RuleEditorText.sectionSearchDesc,
-        _ => _RuleEditorText.sectionChapterDesc,
-      },
       icon: switch (_section) {
         0 => Icons.info_outline_rounded,
         1 => Icons.search_rounded,
@@ -607,7 +597,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   Widget _buildAdvancedOptionsCard() {
     return RuleSection(
       title: _RuleEditorText.advancedOptions,
-      description: _RuleEditorText.advancedOptionsDesc,
       icon: Icons.tune_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -736,13 +725,11 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                   controller: captchaImageController,
                   label: _RuleEditorText.captchaImage,
                   hint: _RuleEditorText.captchaImageHint,
-                  helper: _RuleEditorText.captchaImageHelper,
                 ),
                 EditorTextField(
                   controller: captchaInputController,
                   label: _RuleEditorText.captchaInput,
                   hint: _RuleEditorText.captchaInputHint,
-                  helper: _RuleEditorText.captchaInputHelper,
                 ),
               ],
               if (captchaType != CaptchaType.customJavaScript)
@@ -752,9 +739,6 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                       ? _RuleEditorText.captchaSubmitButton
                       : _RuleEditorText.verifyButton,
                   hint: _RuleEditorText.captchaButtonHint,
-                  helper: captchaType == CaptchaType.imageCaptcha
-                      ? _RuleEditorText.captchaSubmitButtonHelper
-                      : _RuleEditorText.verifyButtonHelper,
                 ),
               if (captchaType == CaptchaType.customJavaScript)
                 EditorTextField(

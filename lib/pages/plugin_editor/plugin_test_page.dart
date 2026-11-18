@@ -170,7 +170,11 @@ class _PluginTestPageState extends State<PluginTestPage> {
                 children: [
                   RulePageIntro(
                     title: plugin.name,
-                    description: '一次测试，检查搜索请求、结果解析和播放线路。',
+                    description: RuleModeText.summary(
+                      host: Uri.tryParse(plugin.baseUrl)?.host,
+                      searchMode: plugin.searchMode,
+                      chapterMode: plugin.chapterMode,
+                    ),
                     icon: Icons.science_outlined,
                   ),
                   const SizedBox(height: 20),

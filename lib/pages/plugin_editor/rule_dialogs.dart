@@ -25,8 +25,6 @@ Future<RuleAddSource?> showRuleAddDialog(BuildContext context) =>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('选择一种方式，添加新的番剧来源。'),
-              const SizedBox(height: 20),
               for (final option in [
                 (
                   RuleAddSource.catalog,
@@ -91,16 +89,8 @@ Future<bool> confirmRuleDeletion(
       builder: (context) => _RuleDialog(
         title: names.length == 1 ? '删除这条规则？' : '删除 ${names.length} 条规则？',
         icon: Icons.delete_outline_rounded,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(names.take(5).join('、') + (names.length > 5 ? ' 等' : ''),
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            const Text('删除后将不再使用这些来源搜索番剧。你可以稍后重新导入规则。'),
-          ],
-        ),
+        content: Text(names.take(5).join('、') + (names.length > 5 ? ' 等' : ''),
+            style: Theme.of(context).textTheme.titleMedium),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -323,7 +313,7 @@ class _RuleRepositoryDialogState extends State<_RuleRepositoryDialog> {
     if (changed) {
       KazumiDialog.showToast(
           message: widget.controller.ruleRepository.isEmpty
-              ? '已恢复官方规则仓库'
+              ? '已恢复默认规则仓库'
               : '已切换规则仓库');
     }
   }
@@ -349,7 +339,7 @@ class _RuleRepositoryDialogState extends State<_RuleRepositoryDialog> {
               decoration: ruleInputDecoration(context,
                       label: '仓库地址', hint: ApiEndpoints.pluginShop)
                   .copyWith(
-                      helperText: '填写 index.json 所在目录，留空使用官方仓库',
+                      helperText: '填写 index.json 所在目录，留空使用默认仓库',
                       errorText: _error,
                       errorMaxLines: 2),
             ),

@@ -102,7 +102,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                 const SyncPageIntro(
                   icon: Icons.sync_rounded,
                   title: '让追番保持同步',
-                  description: '选择需要的服务，也可以同时使用。',
+                  description: 'Bangumi 与 WebDAV 可单独或同时启用',
                 ),
                 LayoutBuilder(
                   builder: (context, constraints) {

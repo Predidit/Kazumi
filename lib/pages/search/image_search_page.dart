@@ -410,11 +410,6 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                         fontWeight: FontWeight.w700, color: colors.onSurface),
           ),
         ),
-        if (!showResults && !short) ...[
-          const SizedBox(height: 8),
-          Text('用一张截图，找到番名与出现的集数。',
-              style: type.bodyLarge?.copyWith(color: colors.onSurfaceVariant)),
-        ],
         SizedBox(height: short ? 12 : 24),
         _ImageSourceSelector(
             useUrl: _useUrl, enabled: !busy, onChanged: _changeSource),

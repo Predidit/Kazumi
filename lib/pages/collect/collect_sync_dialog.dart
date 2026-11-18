@@ -150,7 +150,7 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
   }
 
   String? get _description {
-    if (!widget.plan.canSync) return '选择同步服务';
+    if (!widget.plan.canSync) return null;
     if (_running) {
       final current = _steps.indexWhere((s) => s.status == _StepStatus.running);
       return '第 ${current + 1} / ${_steps.length} 步 · 请保持应用开启';
@@ -217,7 +217,8 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
           color: colors.onSurface,
           fontWeight: FontWeight.w600,
         ),
-        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        contentPadding:
+            EdgeInsets.fromLTRB(24, description == null ? 20 : 12, 24, 24),
         content: SizedBox(
           width: 392,
           child: Column(

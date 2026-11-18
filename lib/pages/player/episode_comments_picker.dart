@@ -28,18 +28,9 @@ class EpisodeCommentsPicker extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('选择讨论分集',
-                      style: type.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Text('切换想看的讨论，视频会继续播放。',
-                      style: type.bodyMedium
-                          ?.copyWith(color: colors.onSurfaceVariant)),
-                ],
-              ),
+              child: Text('选择讨论分集',
+                  style: type.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w700)),
             ),
             Flexible(
               child: ListView.separated(

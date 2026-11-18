@@ -78,7 +78,7 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
               const SyncPageIntro(
                 icon: Icons.dns_rounded,
                 title: '连接 WebDAV',
-                description: '填写云盘或服务器提供的连接信息。',
+                description: '连接凭据仅保存在本地，部分网盘需使用应用授权码',
               ),
               TonalCard(
                 padding: const EdgeInsets.all(20),

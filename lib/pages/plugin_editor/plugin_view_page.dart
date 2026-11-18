@@ -256,7 +256,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       children: [
                         RulePageIntro(
                           title: '我的规则',
-                          description: '管理你的番剧来源。拖动调整搜索顺序，点按规则进行编辑。',
+                          description: '播放来源按当前列表顺序展示',
                           icon: Icons.extension_rounded,
                           actions: [
                             FilledButton.icon(

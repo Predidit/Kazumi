@@ -844,11 +844,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
           const SizedBox(height: 20),
           Text('暂无待处理截图', style: Theme.of(context).textTheme.titleLarge),
           if (_notice != null) ...[const SizedBox(height: 16), _noticeView()],
-          const SizedBox(height: 8),
-          const Text(
-            '返回视频，点击相机收集喜欢的画面。\n保存或移除截图后，可以继续截图。',
-            textAlign: TextAlign.center,
-          ),
           const SizedBox(height: 24),
           FilledButton.tonal(onPressed: _close, child: const Text('返回视频截图')),
         ],

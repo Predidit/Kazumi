@@ -18,7 +18,7 @@ class UpdateSourceStep extends StatelessWidget {
           shape: OnboardingIconShape.cookie,
         ),
         title: '以你的方式更新',
-        subtitle: '选择适合你的更新来源，让 Kazumi 保持最新。',
+        subtitle: '选择在应用内检查 GitHub 更新，或由 F-Droid 商店管理。',
         child: RadioGroup<bool>(
           groupValue: useGithubUpdate,
           onChanged: (value) {
@@ -43,7 +43,7 @@ class UpdateSourceStep extends StatelessWidget {
                 value: false,
                 selected: !useGithubUpdate,
               ),
-              const OnboardingHint(text: '之后也可以在 关于 → 自动检查更新 中修改。'),
+              const OnboardingHint(text: '可在「设置 → 更新设置」中调整。'),
             ],
           ),
         ),

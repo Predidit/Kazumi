@@ -1,4 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/plugins/api_rule_config.dart';
+
+abstract final class RuleModeText {
+  static const xpath = 'XPath';
+  static const api = 'API';
+
+  static String labelOf(String mode) =>
+      RuleMode.normalize(mode) == RuleMode.api ? api : xpath;
+
+  static String summary({
+    required String searchMode,
+    required String chapterMode,
+    String? host,
+  }) =>
+      [
+        if (host != null && host.isNotEmpty) host,
+        '搜索 ${labelOf(searchMode)}',
+        '选集 ${labelOf(chapterMode)}',
+      ].join(' · ');
+}
 
 class RulePageIntro extends StatelessWidget {
   const RulePageIntro({

@@ -110,9 +110,6 @@ class _ImageSearchResults extends StatelessWidget {
           child: Text('找到 ${results.length} 个相似片段',
               style:
                   type.headlineSmall?.copyWith(fontWeight: FontWeight.w700))),
-      const SizedBox(height: 6),
-      Text('按画面相似度排序，先对照截图再确认。',
-          style: type.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
       if (error.isNotEmpty) ...[
         const SizedBox(height: 12),
         Text(error, style: type.bodyMedium?.copyWith(color: colors.error)),
@@ -154,11 +151,6 @@ class _ImageSearchLoadingState extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style:
                     type.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            Text('正在比对动画画面，匹配番名、集数与时间。\n请稍等片刻。',
-                textAlign: TextAlign.center,
-                style: type.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ]),
         ));
   }

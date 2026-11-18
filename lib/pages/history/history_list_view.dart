@@ -160,11 +160,9 @@ class _HistoryListViewState extends State<HistoryListView> {
                           Semantics(
                             liveRegion: true,
                             child: Text(
-                              widget.editing
-                                  ? '共 $count 条记录 · 点按删除按钮移除'
-                                  : filtered
-                                      ? '找到 $count 条记录 · 最近观看优先'
-                                      : '共 $count 条记录 · 最近观看优先',
+                              filtered && !widget.editing
+                                  ? '找到 $count 条记录'
+                                  : '共 $count 条记录',
                               style: theme.textTheme.bodyMedium
                                   ?.copyWith(color: colors.onSurfaceVariant),
                             ),

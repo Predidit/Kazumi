@@ -170,9 +170,11 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
     final theme = Theme.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (!widget._onboarding) ...[
-        const RulePageIntro(
+        RulePageIntro(
           title: '发现更多来源',
-          description: '浏览社区规则，为你的番剧搜索添加更多选择。',
+          description: _controller.ruleRepository.isNotEmpty
+              ? '自定义仓库（${_controller.ruleRepository}）'
+              : '默认仓库（${RulesMirror.current.label}）',
           icon: Icons.travel_explore_rounded,
         ),
         const SizedBox(height: 20),

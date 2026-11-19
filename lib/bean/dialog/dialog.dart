@@ -53,27 +53,50 @@ class KazumiDialog {
     if (dialog._used) {
       throw StateError('A dialog handle can only be used once.');
     }
+    final ctx = context ??
+        rootNavigatorKey.currentContext ??
+        observer.navigator?.context;
+    if (ctx == null || !ctx.mounted || dialog._dismissed) {
+      dialog._finish();
+      await onDismiss?.call();
+      return null;
+    }
+    final navigator = Navigator.of(ctx, rootNavigator: true);
+    final route = _KazumiDialogRoute<T>(
+      context: ctx,
+      builder: builder,
+      themes: InheritedTheme.capture(from: ctx, to: navigator.context),
+      barrierColor: DialogTheme.of(ctx).barrierColor ??
+          Theme.of(ctx).dialogTheme.barrierColor ??
+          Colors.black54,
+      barrierDismissible: clickMaskDismiss,
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      settings: routeSettings,
+      animationStyle: transitionDuration == null
+          ? null
+          : AnimationStyle(duration: transitionDuration),
+      transitionBuilder: transitionBuilder,
+    );
+    return push<T>(
+      navigator: navigator,
+      route: route,
+      handle: dialog,
+      onDismiss: onDismiss,
+    );
+  }
+
+  static Future<T?> push<T>({
+    required NavigatorState navigator,
+    required Route<T> route,
+    KazumiDialogHandle<T>? handle,
+    FutureOr<void> Function()? onDismiss,
+  }) async {
+    final dialog = handle ?? KazumiDialogHandle<T>();
+    if (dialog._used) {
+      throw StateError('A dialog handle can only be used once.');
+    }
     try {
-      final ctx = context ??
-          rootNavigatorKey.currentContext ??
-          observer.navigator?.context;
-      if (ctx == null || !ctx.mounted || dialog._dismissed) return null;
-      final navigator = Navigator.of(ctx, rootNavigator: true);
-      final route = _KazumiDialogRoute<T>(
-        context: ctx,
-        builder: builder,
-        themes: InheritedTheme.capture(from: ctx, to: navigator.context),
-        barrierColor: DialogTheme.of(ctx).barrierColor ??
-            Theme.of(ctx).dialogTheme.barrierColor ??
-            Colors.black54,
-        barrierDismissible: clickMaskDismiss,
-        traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
-        settings: routeSettings,
-        animationStyle: transitionDuration == null
-            ? null
-            : AnimationStyle(duration: transitionDuration),
-        transitionBuilder: transitionBuilder,
-      );
+      if (!navigator.mounted || dialog._dismissed) return null;
       dialog._attach(route);
       return await navigator.push<T>(route);
     } catch (e) {

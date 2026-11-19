@@ -41,7 +41,7 @@ const AnimationStyle _materialSheetAnimationStyle = AnimationStyle(
   reverseCurve: Easing.legacyDecelerate,
 );
 
-Future<T?> showAdaptiveBottomSheet<T>({
+ModalBottomSheetRoute<T> adaptiveBottomSheetRoute<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   double maxHeightFactor = 0.75,
@@ -50,8 +50,21 @@ Future<T?> showAdaptiveBottomSheet<T>({
   bool useRootNavigator = false,
   RouteSettings? routeSettings,
 }) {
-  return showModalBottomSheet<T>(
-    context: context,
+  final navigator = Navigator.of(context, rootNavigator: useRootNavigator);
+  final localizations = MaterialLocalizations.of(context);
+  return ModalBottomSheetRoute<T>(
+    builder: (context) => _MaterialSheetSurface(
+      showDragHandle: enableDrag,
+      child: Builder(builder: builder),
+    ),
+    capturedThemes: InheritedTheme.capture(
+      from: context,
+      to: navigator.context,
+    ),
+    isScrollControlled: true,
+    barrierLabel: localizations.scrimLabel,
+    barrierOnTapHint:
+        localizations.scrimOnTapHint(localizations.bottomSheetLabel),
     // A single surface owns the handle and background to avoid a second cap.
     backgroundColor: Colors.transparent,
     elevation: 0,
@@ -62,18 +75,35 @@ Future<T?> showAdaptiveBottomSheet<T>({
       maxHeightFactor: maxHeightFactor,
       compactLandscapeMaxHeightFactor: compactLandscapeMaxHeightFactor,
     ),
-    isScrollControlled: true,
+    modalBarrierColor: Theme.of(context).bottomSheetTheme.modalBarrierColor,
     enableDrag: enableDrag,
-    useRootNavigator: useRootNavigator,
-    routeSettings: routeSettings,
     showDragHandle: false,
     useSafeArea: true,
+    settings: routeSettings,
     sheetAnimationStyle: MediaQuery.disableAnimationsOf(context)
         ? AnimationStyle.noAnimation
         : _materialSheetAnimationStyle,
-    builder: (context) => _MaterialSheetSurface(
-      showDragHandle: enableDrag,
-      child: Builder(builder: builder),
+  );
+}
+
+Future<T?> showAdaptiveBottomSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  double maxHeightFactor = 0.75,
+  double compactLandscapeMaxHeightFactor = 0.9,
+  bool enableDrag = true,
+  bool useRootNavigator = false,
+  RouteSettings? routeSettings,
+}) {
+  return Navigator.of(context, rootNavigator: useRootNavigator).push<T>(
+    adaptiveBottomSheetRoute<T>(
+      context: context,
+      builder: builder,
+      maxHeightFactor: maxHeightFactor,
+      compactLandscapeMaxHeightFactor: compactLandscapeMaxHeightFactor,
+      enableDrag: enableDrag,
+      useRootNavigator: useRootNavigator,
+      routeSettings: routeSettings,
     ),
   );
 }

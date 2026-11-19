@@ -36,107 +36,130 @@ class _UserCommentsCardState extends State<UserCommentsCard> {
     if (oldWidget._source != widget._source) _expanded = false;
   }
 
+  void _toggleExpanded() => setState(() => _expanded = !_expanded);
+
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final type = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final replies = widget._replies;
-    final visibleCount = _expanded || replies.length <= _previewCount
-        ? replies.length
-        : _previewCount;
+    final hasOverflowReplies = replies.length > _previewCount;
+    final visibleCount =
+        _expanded || !hasOverflowReplies ? replies.length : _previewCount;
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
+
+    Widget? repliesList;
+    if (replies.isNotEmpty) {
+      final list = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < visibleCount; i++)
+            Padding(
+              padding: EdgeInsets.only(top: i == 0 ? 0 : splitListRowGap),
+              child: _ReplyTile(
+                reply: replies[i],
+                topRadius: i == 0 ? 12 : 4,
+                bottomRadius:
+                    i == visibleCount - 1 && !hasOverflowReplies ? 12 : 4,
+              ),
+            ),
+          if (hasOverflowReplies) ...[
+            const SizedBox(height: splitListRowGap),
+            _RepliesToggleSegment(
+              expanded: _expanded,
+              remainingCount: replies.length - _previewCount,
+              onTap: _toggleExpanded,
+            ),
+          ],
+        ],
+      );
+      repliesList = disableAnimations
+          ? list
+          : AnimatedSize(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeInOutCubicEmphasized,
+              alignment: Alignment.topCenter,
+              child: list,
+            );
+    }
 
     return _CommentSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CommentAuthor(comment: widget._comment),
-          const SizedBox(height: 16),
-          _CommentBody(content: widget._comment.content),
-          if (replies.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 10),
-              child: Row(
-                children: [
-                  Icon(Icons.forum_outlined, size: 16, color: colors.primary),
-                  const SizedBox(width: 8),
-                  Text('${replies.length} 条回复',
-                      style: type.labelLarge?.copyWith(color: colors.primary)),
-                ],
-              ),
-            ),
-            AnimatedSize(
-              duration: disableAnimations
-                  ? Duration.zero
-                  : const Duration(milliseconds: 300),
-              curve: Curves.easeInOutCubicEmphasized,
-              alignment: Alignment.topCenter,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var index = 0; index < visibleCount; index++)
-                    Padding(
-                      padding: EdgeInsets.only(
-                          top: index == 0 ? 0 : splitListRowGap),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: colors.surfaceContainerHighest,
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(index == 0 ? 12 : 4),
-                            bottom: Radius.circular(
-                                index == visibleCount - 1 ? 12 : 4),
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _CommentAuthor(
-                                comment: replies[index],
-                                compact: true,
-                              ),
-                              const SizedBox(height: 10),
-                              _CommentBody(content: replies[index].content),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (replies.length > _previewCount) ...[
-              const SizedBox(height: 8),
-              Semantics(
-                expanded: _expanded,
-                child: SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    onPressed: () => setState(() => _expanded = !_expanded),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                      backgroundColor: colors.secondaryContainer,
-                      foregroundColor: colors.onSecondaryContainer,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: AnimatedRotation(
-                      turns: _expanded ? .5 : 0,
-                      duration: disableAnimations
-                          ? Duration.zero
-                          : const Duration(milliseconds: 200),
-                      child: const Icon(Icons.expand_more_rounded, size: 20),
-                    ),
-                    label: Text(_expanded
-                        ? '收起回复'
-                        : '展开其余 ${replies.length - _previewCount} 条回复'),
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ExcludeSemantics(
+                child: BangumiAvatar(
+                  radius: 18,
+                  imageUrl: widget._comment.user.avatar.large,
                 ),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _displayName(widget._comment.user),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: colors.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      dateFormat(widget._comment.createdAt),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (replies.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 12,
+                        color: colors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${replies.length}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
+          ),
+          const SizedBox(height: 10),
+          _CommentBody(content: widget._comment.content),
+          if (repliesList != null) ...[
+            const SizedBox(height: 12),
+            repliesList,
           ],
         ],
       ),
@@ -144,74 +167,185 @@ class _UserCommentsCardState extends State<UserCommentsCard> {
   }
 }
 
-class _CommentAuthor extends StatelessWidget {
-  const _CommentAuthor({required this.comment, this.compact = false});
+class _ReplyTile extends StatelessWidget {
+  const _ReplyTile({
+    required this.reply,
+    required this.topRadius,
+    required this.bottomRadius,
+  });
 
-  final _CommentData comment;
-  final bool compact;
+  final _CommentData reply;
+  final double topRadius;
+  final double bottomRadius;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      children: [
-        ExcludeSemantics(
-          child: BangumiAvatar(
-            radius: compact ? 16 : 22,
-            imageUrl: comment.user.avatar.large,
+    final colors = theme.colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(topRadius),
+          bottom: Radius.circular(bottomRadius),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ExcludeSemantics(
+                  child: BangumiAvatar(
+                    radius: 12,
+                    imageUrl: reply.user.avatar.large,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: _displayName(reply.user),
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colors.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' · ${dateFormat(reply.createdAt)}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            _CommentBody(content: reply.content, compact: true),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RepliesToggleSegment extends StatelessWidget {
+  const _RepliesToggleSegment({
+    required this.expanded,
+    required this.remainingCount,
+    required this.onTap,
+  });
+
+  final bool expanded;
+  final int remainingCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    final label = expanded ? '收起回复' : '展开其余 $remainingCount 条回复';
+
+    return Semantics(
+      button: true,
+      expanded: expanded,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Material(
+        color: colors.secondaryContainer,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(4),
+          bottom: Radius.circular(12),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: colors.onSecondaryContainer,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: disableAnimations
+                        ? Duration.zero
+                        : const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    child: Icon(
+                      Icons.expand_more_rounded,
+                      size: 18,
+                      color: colors.onSecondaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                comment.user.nickname.isNotEmpty
-                    ? comment.user.nickname
-                    : comment.user.username,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                dateFormat(comment.createdAt),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
 
 class _CommentBody extends StatelessWidget {
-  const _CommentBody({required this.content});
+  const _CommentBody({
+    required this.content,
+    this.compact = false,
+  });
 
   final String content;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    if (content.isEmpty) {
+      return Text(
+        '该评论已被删除',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: colors.onSurfaceVariant,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+
     return DefaultTextStyle.merge(
       style: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.colorScheme.onSurface,
-        height: 1.65,
+        color: colors.onSurface,
+        height: compact ? 1.55 : 1.6,
       ),
-      child: content.isEmpty
-          ? Text('该评论已被删除',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant))
-          : BBCodeWidget(
-              bbcode: content,
-              textScaler: MediaQuery.textScalerOf(context),
-            ),
+      child: BBCodeWidget(
+        bbcode: content,
+        textScaler: MediaQuery.textScalerOf(context),
+      ),
     );
   }
 }
@@ -226,19 +360,21 @@ class UserCommentsCardBone extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Bone.circle(size: 44),
-              SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Bone.text(width: 96),
-                  SizedBox(height: 2),
-                  Bone.text(width: 64, fontSize: 11),
-                ],
-              ),
-            ]),
-            SizedBox(height: 16),
+            Row(
+              children: [
+                Bone.circle(size: 36),
+                SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Bone.text(width: 88),
+                    SizedBox(height: 4),
+                    Bone.text(width: 56, fontSize: 10),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
             Bone.multiText(lines: 2),
           ],
         ),
@@ -255,11 +391,14 @@ class _CommentSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: TonalCard(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }
+
+String _displayName(User user) =>
+    user.nickname.trim().isNotEmpty ? user.nickname.trim() : user.username;
 
 typedef _CommentData = ({User user, String content, int createdAt});
 

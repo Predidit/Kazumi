@@ -8,6 +8,7 @@ class ConnectedTabs extends StatelessWidget {
     required this.labels,
     this.controller,
     this.padding = EdgeInsets.zero,
+    this.onSelected,
   });
 
   final List<String> labels;
@@ -15,6 +16,7 @@ class ConnectedTabs extends StatelessWidget {
   final TabController? controller;
 
   final EdgeInsetsGeometry padding;
+  final ValueChanged<int>? onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +33,10 @@ class ConnectedTabs extends StatelessWidget {
               ButtonSegment(value: index, label: Text(label)),
           ],
           selected: tabController.animation!.value.round(),
-          onSelected: tabController.animateTo,
+          onSelected: (index) {
+            tabController.animateTo(index);
+            onSelected?.call(index);
+          },
         ),
       ),
     );

@@ -335,14 +335,14 @@ class _VideoPageState extends State<VideoPage>
                       : Observer(builder: (_) => _buildPlayerBody(layout)),
                 ),
               ),
-              tabs: tabBody,
+              tabs: _buildTabBody(),
               sidePanel: VideoSidePanel(
                 key: _sidePanelKey,
                 fullscreen: videoPageController.isFullscreen,
                 disableAnimations: disableAnimations,
                 onOpened: _revealCurrentEpisode,
                 onClosed: keyboardFocus.requestFocus,
-                child: tabBody,
+                child: _buildTabBody(onClose: _closeSidePanel),
               ),
             ),
           ),
@@ -519,10 +519,6 @@ class _VideoPageState extends State<VideoPage>
           selectedEpisode: videoPageController.selectedEpisode.episode,
           downloads: downloads,
           isOffline: videoPageController.isOfflineMode,
-          isPlaying: playerController.playback.playing &&
-              !playerController.playback.loading &&
-              !videoPageController.loading,
-          disableAnimations: disableAnimations,
           onEpisodeSelected: (episode, road) {
             if (episode == videoPageController.selectedEpisode.episode &&
                 road == videoPageController.selectedEpisode.road) {
@@ -541,11 +537,11 @@ class _VideoPageState extends State<VideoPage>
         );
       });
 
-  Widget get tabBody {
+  Widget _buildTabBody({VoidCallback? onClose}) {
     final colors = Theme.of(context).colorScheme;
     final int episodeNum = videoPageController.commentsEpisode;
 
-    return ColoredBox(
+    Widget body = ColoredBox(
       color: colors.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -553,6 +549,7 @@ class _VideoPageState extends State<VideoPage>
           PlayerContentTabs(
             controller: tabController,
             onEpisodesSelected: _revealCurrentEpisode,
+            onClose: onClose,
           ),
           Expanded(
             child: TabBarView(
@@ -570,5 +567,15 @@ class _VideoPageState extends State<VideoPage>
         ],
       ),
     );
+    if (disableAnimations) {
+      final child = body;
+      body = Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child,
+        ),
+      );
+    }
+    return body;
   }
 }

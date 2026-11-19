@@ -1,12 +1,15 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+
 import 'package:kazumi/bean/card/user_comments_card.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/connected_button_group.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/split_list_selector.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/pages/video/player_panel_layout.dart';
 
 class EpisodeCommentsView extends StatelessWidget {
   const EpisodeCommentsView({
@@ -35,284 +38,328 @@ class EpisodeCommentsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+
     return ColoredBox(
       color: colors.surface,
-      child: LayoutBuilder(builder: (context, constraints) {
-        final gutter = constraints.maxWidth > 760
-            ? (constraints.maxWidth - 728) / 2
-            : 16.0;
-        return CustomScrollView(
-          key: ValueKey(episode),
-          scrollBehavior: const ScrollBehavior().copyWith(
-            scrollbars: false,
-            dragDevices: {
-              PointerDeviceKind.mouse,
-              PointerDeviceKind.touch,
-              PointerDeviceKind.trackpad,
-            },
-          ),
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(gutter, 16, gutter, 0),
-              sliver: SliverToBoxAdapter(
-                child: _EpisodeHeader(
-                  episode: episode,
-                  info: episodeInfo,
-                  onSelectEpisode: onSelectEpisode,
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(gutter + 4, 16, gutter, 12),
-              sliver: SliverToBoxAdapter(child: _buildToolbar(context)),
-            ),
-            if (!isLoading && hasError && comments.isEmpty)
-              SliverToBoxAdapter(
-                child: GeneralErrorWidget(
-                  icon: Icons.cloud_off_rounded,
-                  title: '评论暂时未能加载',
-                  errMsg: '请检查网络连接后重试。',
-                  onRetry: onRefresh,
-                  retryText: '重新加载',
-                ),
-              )
-            else if (!isLoading && comments.isEmpty)
-              const SliverToBoxAdapter(
-                child: GeneralEmptyState(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  title: '本集还没有讨论',
-                ),
-              )
-            else if (comments.isNotEmpty) ...[
-              if (hasError)
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 12),
-                  sliver: SliverToBoxAdapter(
-                    child: Material(
-                      color: colors.errorContainer,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-                        child: Row(children: [
-                          Expanded(
-                            child: Text('刷新失败，已保留现有讨论',
-                                style:
-                                    TextStyle(color: colors.onErrorContainer)),
-                          ),
-                          TextButton(
-                            onPressed: onRefresh,
-                            style: TextButton.styleFrom(
-                                foregroundColor: colors.onErrorContainer),
-                            child: const Text('重试'),
-                          ),
-                        ]),
-                      ),
-                    ),
-                  ),
-                ),
-              SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: gutter),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => KeepAlive(
-                      // Retain BBCode image geometry and expanded discussions.
-                      key: ObjectKey(comments[index]),
-                      keepAlive: true,
-                      child: IndexedSemantics(
-                        index: index,
-                        child: UserCommentsCard.episode(comments[index]),
-                      ),
-                    ),
-                    childCount: comments.length,
-                    findChildIndexCallback: (key) {
-                      final index = comments.indexOf(
-                          (key as ObjectKey).value as EpisodeCommentItem);
-                      return index < 0 ? null : index;
-                    },
-                    addAutomaticKeepAlives: false,
-                    addRepaintBoundaries: false,
-                    addSemanticIndexes: false,
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  child: Text('已显示全部 ${comments.length} 条讨论 · 来自 Bangumi',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelMedium
-                          ?.copyWith(color: colors.onSurfaceVariant)),
-                ),
-              ),
-            ],
-            SliverToBoxAdapter(
-              child: SizedBox(height: MediaQuery.paddingOf(context).bottom),
-            ),
-          ],
-        );
-      }),
-    );
-  }
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final gutter = playerPanelGutter(constraints.maxWidth);
+          final contentWidth =
+              (constraints.maxWidth - gutter * 2).clamp(0.0, double.infinity);
+          final info = episodeInfo ?? EpisodeInfo.fromTemplate();
+          final badgeText = info.badgeLabel(episode);
+          final title = info.displayTitle(episode);
 
-  Widget _buildToolbar(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final type = Theme.of(context).textTheme;
-    return LayoutBuilder(builder: (context, constraints) {
-      final title = Row(mainAxisSize: MainAxisSize.min, children: [
-        Text('讨论',
-            style: type.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-        if ((!isLoading && !hasError) || comments.isNotEmpty) ...[
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: colors.secondaryContainer,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text('${comments.length}',
-                style: type.labelLarge
-                    ?.copyWith(color: colors.onSecondaryContainer)),
-          ),
-        ],
-      ]);
-      final actions = Row(mainAxisSize: MainAxisSize.min, children: [
-        TextButton.icon(
-          onPressed: comments.length > 1 ? onToggleSort : null,
-          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-          icon: Icon(
-              isAscending
-                  ? Icons.arrow_upward_rounded
-                  : Icons.arrow_downward_rounded,
-              size: 18),
-          label: Text(isAscending ? '最早优先' : '最新优先'),
-        ),
-        const SizedBox(width: 4),
-        SizedBox.square(
-          dimension: 48,
-          child: IconButton.filledTonal(
-            tooltip: isLoading ? '正在加载评论' : '刷新评论',
-            onPressed: isLoading ? null : onRefresh,
-            style: IconButton.styleFrom(
-              backgroundColor: colors.secondaryContainer,
-              disabledBackgroundColor: colors.secondaryContainer,
-              foregroundColor: colors.onSecondaryContainer,
-              disabledForegroundColor: colors.onSecondaryContainer,
-            ),
-            icon: isLoading
-                ? LoadingIndicator(
-                    size: 24,
-                    color: colors.onSecondaryContainer,
-                    semanticsLabel: '正在加载评论',
-                  )
-                : const Icon(Icons.refresh_rounded, size: 24),
-          ),
-        ),
-      ]);
-      if (constraints.maxWidth < 310 ||
-          MediaQuery.textScalerOf(context).scale(14) > 19) {
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          title,
-          const SizedBox(height: 4),
-          Align(alignment: Alignment.centerRight, child: actions),
-        ]);
-      }
-      return Row(children: [title, const Spacer(), actions]);
-    });
+          return CustomScrollView(
+            key: ValueKey('episode-comments-$episode'),
+            scrollBehavior:
+                playerPanelScrollBehavior(context, scrollbars: false),
+            slivers: [
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(gutter, 10, gutter, 6),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SplitListSelectorCard(
+                        leading: Text(badgeText),
+                        title: title,
+                        subtitle: info.displaySubtitle(episode),
+                        semanticsLabel: '切换讨论分集，$badgeText，$title',
+                        onTap: onSelectEpisode,
+                      ),
+                      const SizedBox(height: 8),
+                      _CommentsControlBar(
+                        availableWidth: contentWidth,
+                        count: comments.length,
+                        showCount:
+                            (!isLoading && !hasError) || comments.isNotEmpty,
+                        isLoading: isLoading,
+                        isAscending: isAscending,
+                        canSort: comments.length > 1,
+                        onToggleSort: onToggleSort,
+                        onRefresh: onRefresh,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (isLoading && comments.isEmpty)
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(gutter, 6, gutter, 24),
+                  sliver: SliverList.builder(
+                    itemCount: 4,
+                    itemBuilder: (_, _) => const UserCommentsCardBone(),
+                  ),
+                )
+              else if (!isLoading && hasError && comments.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: GeneralErrorWidget(
+                    compact: true,
+                    icon: Icons.cloud_off_rounded,
+                    title: '评论暂时未能加载',
+                    errMsg: '请检查网络连接后重试',
+                    onRetry: onRefresh,
+                    retryText: '重试',
+                  ),
+                )
+              else if (!isLoading && comments.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: GeneralEmptyState(
+                    compact: true,
+                    icon: Icons.forum_outlined,
+                    title: '本集还没有讨论',
+                    actions: [
+                      StateActionButton.tonal(
+                        onPressed: onSelectEpisode,
+                        icon: Icons.swap_horiz_rounded,
+                        text: '切换分集',
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
+                if (hasError && !isLoading)
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(gutter, 4, gutter, 10),
+                    sliver: SliverToBoxAdapter(
+                      child: _RefreshErrorBanner(onRetry: onRefresh),
+                    ),
+                  ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(gutter, 4, gutter, 0),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => KeepAlive(
+                        // Retain BBCode image geometry and expanded discussions.
+                        key: ObjectKey(comments[index]),
+                        keepAlive: true,
+                        child: IndexedSemantics(
+                          index: index,
+                          child: UserCommentsCard.episode(comments[index]),
+                        ),
+                      ),
+                      childCount: comments.length,
+                      findChildIndexCallback: (key) {
+                        final index = comments.indexOf(
+                          (key as ObjectKey).value as EpisodeCommentItem,
+                        );
+                        return index < 0 ? null : index;
+                      },
+                      addAutomaticKeepAlives: false,
+                      addRepaintBoundaries: false,
+                      addSemanticIndexes: false,
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      8,
+                      16,
+                      24 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    child: Text(
+                      '共 ${comments.length} 条讨论 · 来自 Bangumi',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
   }
 }
 
-class _EpisodeHeader extends StatelessWidget {
-  const _EpisodeHeader({
-    required this.episode,
-    required this.info,
-    required this.onSelectEpisode,
+class _CommentsControlBar extends StatelessWidget {
+  const _CommentsControlBar({
+    required this.availableWidth,
+    required this.count,
+    required this.showCount,
+    required this.isLoading,
+    required this.isAscending,
+    required this.canSort,
+    required this.onToggleSort,
+    required this.onRefresh,
   });
 
-  final int episode;
-  final EpisodeInfo? info;
-  final VoidCallback onSelectEpisode;
+  final double availableWidth;
+  final int count;
+  final bool showCount;
+  final bool isLoading;
+  final bool isAscending;
+  final bool canSort;
+  final VoidCallback onToggleSort;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    final compactSort = availableWidth < 324 || textScale > 1.25;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    '讨论',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colors.onSurface,
+                    ),
+                  ),
+                ),
+                if (showCount) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$count',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (!compactSort)
+            ConnectedButtonGroup<bool>(
+              expanded: false,
+              segments: const [
+                ButtonSegment<bool>(
+                  value: false,
+                  label: Text('最新'),
+                ),
+                ButtonSegment<bool>(
+                  value: true,
+                  label: Text('最早'),
+                ),
+              ],
+              selected: isAscending,
+              onSelected: canSort
+                  ? (ascending) {
+                      if (ascending != isAscending) onToggleSort();
+                    }
+                  : null,
+            )
+          else
+            IconButton.filledTonal(
+              tooltip: isAscending ? '最早优先，切换为最新优先' : '最新优先，切换为最早优先',
+              onPressed: canSort ? onToggleSort : null,
+              style: IconButton.styleFrom(
+                minimumSize: const Size(40, 40),
+                backgroundColor: colors.surfaceContainer,
+                foregroundColor: colors.onSurfaceVariant,
+              ),
+              icon: Icon(
+                isAscending
+                    ? Icons.arrow_upward_rounded
+                    : Icons.arrow_downward_rounded,
+                size: 20,
+              ),
+            ),
+          const SizedBox(width: 6),
+          IconButton.filledTonal(
+            tooltip: isLoading ? '正在加载评论' : '刷新评论',
+            onPressed: isLoading ? null : onRefresh,
+            style: IconButton.styleFrom(
+              minimumSize: const Size(40, 40),
+              backgroundColor: colors.surfaceContainer,
+              disabledBackgroundColor: colors.surfaceContainer,
+              foregroundColor: colors.onSurfaceVariant,
+              disabledForegroundColor: colors.primary,
+            ),
+            icon: AnimatedSwitcher(
+              duration: disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              child: isLoading
+                  ? LoadingIndicator(
+                      key: const ValueKey('loading'),
+                      size: 18,
+                      color: colors.primary,
+                      semanticsLabel: '正在加载评论',
+                    )
+                  : const Icon(
+                      Icons.refresh_rounded,
+                      key: ValueKey('refresh'),
+                      size: 20,
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RefreshErrorBanner extends StatelessWidget {
+  const _RefreshErrorBanner({required this.onRetry});
+
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final type = Theme.of(context).textTheme;
-    final number = info?.episode ?? episode;
-    final translatedTitle = info?.nameCn ?? '';
-    final originalTitle = info?.name ?? '';
-    final title = translatedTitle.isNotEmpty
-        ? translatedTitle
-        : originalTitle.isNotEmpty
-            ? originalTitle
-            : '第 $number 集';
-    final subtitle = originalTitle.isNotEmpty && originalTitle != title
-        ? originalTitle
-        : '';
-    final episodeType = info?.readType().toUpperCase() ?? 'EP';
-
     return Material(
-      color: colors.primaryContainer,
-      borderRadius: BorderRadius.circular(28),
-      clipBehavior: Clip.antiAlias,
+      color: colors.errorContainer,
+      borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+        child: Row(
           children: [
-            SizedBox(
-              width: double.infinity,
-              child: Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: colors.primary,
-                      borderRadius: BorderRadius.circular(12),
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 18,
+              color: colors.onErrorContainer,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '刷新失败，已保留当前讨论',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.onErrorContainer,
+                      fontWeight: FontWeight.w500,
                     ),
-                    child: Text('$episodeType $number'.trim(),
-                        style: type.titleSmall?.copyWith(
-                            color: colors.onPrimary,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                  FilledButton.icon(
-                    onPressed: onSelectEpisode,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                      backgroundColor: colors.surface,
-                      foregroundColor: colors.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                    ),
-                    icon: const Icon(Icons.video_library_outlined, size: 18),
-                    label: const Text('切换分集'),
-                  ),
-                ],
               ),
             ),
-            const SizedBox(height: 16),
-            Semantics(
-              header: true,
-              child: Text(title,
-                  style: type.titleLarge?.copyWith(
-                    color: colors.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
-                    height: 1.3,
-                  )),
-            ),
-            const SizedBox(height: 6),
-            // Reserve one line to prevent jumps when metadata arrives.
-            Tooltip(
-              message: subtitle,
-              child: Text(subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: type.bodySmall?.copyWith(
-                      color: colors.onPrimaryContainer, height: 1.5)),
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                foregroundColor: colors.onErrorContainer,
+                minimumSize: const Size(48, 40),
+              ),
+              child: const Text('重试'),
             ),
           ],
         ),

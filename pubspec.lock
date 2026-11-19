@@ -375,8 +375,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "2b25bd7ded5541eb0c03a752a9ca4777af0c4db9"
-      resolved-ref: "2b25bd7ded5541eb0c03a752a9ca4777af0c4db9"
+      ref: "8b0d1a625795f2ec679f844349e11f77249f41b0"
+      resolved-ref: "8b0d1a625795f2ec679f844349e11f77249f41b0"
       url: "https://github.com/Predidit/linux_webview_window.git"
     source: git
     version: "0.2.4"

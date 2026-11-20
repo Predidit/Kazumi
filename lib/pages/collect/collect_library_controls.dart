@@ -2,7 +2,6 @@ part of 'collect_library_view.dart';
 
 class _CollectCategories extends StatelessWidget {
   const _CollectCategories({
-    super.key,
     required this.controller,
     required this.selected,
     required this.count,

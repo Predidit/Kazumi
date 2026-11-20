@@ -53,13 +53,9 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
   final _libraryFocus = FocusNode();
-  // Keep tab animations alive when the category scroll view is replaced.
-  final _categoriesKey = GlobalKey();
+  final _nestedScrollKey = GlobalKey<NestedScrollViewState>();
   late TabController _tabController;
   bool? _disableAnimations;
-  final _scrollControllers = {
-    for (final type in _collectCategories) type: ScrollController(),
-  };
   PageStorageBucket _resultsStorage = PageStorageBucket();
   CollectSort _sort = CollectSort.recentlyChanged;
   String _query = '';
@@ -104,35 +100,28 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   }
 
   @override
-  void didUpdateWidget(covariant CollectLibraryView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.layout != widget.layout) _resetResults();
-  }
-
-  @override
   void dispose() {
     _tabController.dispose();
     _selectedType.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
     _libraryFocus.dispose();
-    for (final controller in _scrollControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
+  }
+
+  void _jumpToTop() {
+    final outer = _nestedScrollKey.currentState?.outerController;
+    if (outer != null && outer.hasClients) outer.jumpTo(0);
   }
 
   void _resetResults() {
     // Reset saved offsets for unmounted categories too.
     _resultsStorage = PageStorageBucket();
-    for (final controller in _scrollControllers.values) {
-      if (controller.hasClients) controller.jumpTo(0);
-    }
+    _jumpToTop();
   }
 
   void _focusSearch() {
-    final controller = _scrollControllers[_selectedType.value]!;
-    if (controller.hasClients) controller.jumpTo(0);
+    _jumpToTop();
     setState(() => _searchExpanded = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _searchFocus.requestFocus();
@@ -143,9 +132,9 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
     _libraryFocus.requestFocus();
     _searchController.clear();
     setState(() {
+      if (_query.isNotEmpty) _resetResults();
       _searchExpanded = false;
       _query = '';
-      _resetResults();
     });
   }
 
@@ -177,44 +166,60 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
         child: LayoutBuilder(builder: (context, constraints) {
           final compact = constraints.maxWidth < 600;
           final paged = mobile &&
-              MediaQuery.orientationOf(context) == Orientation.portrait &&
-              constraints.maxHeight > 320;
+              MediaQuery.orientationOf(context) == Orientation.portrait;
           final width = constraints.maxWidth.clamp(0.0, 1560.0);
           final inset =
               (constraints.maxWidth - width) / 2 + (compact ? 16.0 : 32.0);
+          final contentWidth = constraints.maxWidth - inset * 2;
           final header = _header(query, compact: compact);
           return PageStorage(
             bucket: _resultsStorage,
-            child: paged
-                ? Column(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: inset),
-                        child: header,
-                      ),
-                      Expanded(
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            for (final type in _collectCategories)
-                              ValueListenableBuilder(
-                                valueListenable: _selectedType,
-                                builder: (context, selected, child) => HeroMode(
-                                  enabled: type == selected,
-                                  child: child!,
-                                ),
-                                child: _results(query, type, inset: inset),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  )
-                : ValueListenableBuilder(
-                    valueListenable: _selectedType,
-                    builder: (context, selected, _) =>
-                        _results(query, selected, inset: inset, header: header),
+            child: NotificationListener<ScrollUpdateNotification>(
+              onNotification: (notification) {
+                if (notification.dragDetails != null &&
+                    notification.metrics.axis == Axis.vertical &&
+                    _searchFocus.hasFocus) {
+                  _libraryFocus.requestFocus();
+                }
+                return false;
+              },
+              child: NestedScrollView(
+                key: _nestedScrollKey,
+                physics: const ClampingScrollPhysics(),
+                scrollBehavior: ScrollConfiguration.of(context).copyWith(
+                  overscroll: false,
+                  scrollbars: false,
+                ),
+                headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: inset),
+                    sliver: SliverToBoxAdapter(child: header),
                   ),
+                ],
+                body: paged
+                    ? TabBarView(
+                        controller: _tabController,
+                        children: [
+                          for (final type in _collectCategories)
+                            ValueListenableBuilder(
+                              valueListenable: _selectedType,
+                              builder: (context, selected, child) => HeroMode(
+                                enabled: type == selected,
+                                child: child!,
+                              ),
+                              child: _results(query, type,
+                                  inset: inset, contentWidth: contentWidth),
+                            ),
+                        ],
+                      )
+                    : ValueListenableBuilder(
+                        valueListenable: _selectedType,
+                        builder: (context, selected, _) => _results(
+                            query, selected,
+                            inset: inset, contentWidth: contentWidth),
+                      ),
+              ),
+            ),
           );
         }),
       ),
@@ -229,7 +234,6 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
           children: [
             Expanded(
               child: _CollectCategories(
-                key: _categoriesKey,
                 controller: _tabController,
                 selected: _selectedType,
                 count: query.count,
@@ -277,7 +281,10 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
             const SizedBox(width: 8),
             _CollectLayoutSwitch(
               value: widget.layout,
-              onChanged: widget.onLayoutChanged,
+              onChanged: (layout) {
+                if (layout != widget.layout) _resetResults();
+                widget.onLayoutChanged(layout);
+              },
             ),
           ],
         ),
@@ -331,23 +338,15 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
       );
 
   Widget _results(CollectLibraryQuery query, CollectType? type,
-      {required double inset, Widget? header}) {
-    return LayoutBuilder(builder: (context, constraints) {
+      {required double inset, required double contentWidth}) {
+    return Builder(builder: (context) {
       final entries = query.results(type, _sort);
-      final contentWidth = constraints.maxWidth - inset * 2;
       return ScrollbarTheme(
         data: ScrollbarTheme.of(context).copyWith(crossAxisMargin: 0),
         child: CustomScrollView(
           key: PageStorageKey('collect-results-${type?.value ?? 'all'}'),
-          controller: _scrollControllers[type],
           semanticChildCount: entries.length,
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
-            if (header != null)
-              SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: inset),
-                sliver: SliverToBoxAdapter(child: header),
-              ),
             if (entries.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,

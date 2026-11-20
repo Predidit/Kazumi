@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/wavy_progress_indicator.dart';
 
 import 'package:kazumi/bean/widget/state_presentation.dart';
 
@@ -130,7 +131,7 @@ class SyncFeedback extends StatelessWidget {
             ),
             if (busy) ...[
               const SizedBox(height: 12),
-              LinearProgressIndicator(value: progress),
+              WavyProgressIndicator(value: progress),
             ],
           ],
         ),

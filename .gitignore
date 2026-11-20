@@ -55,3 +55,5 @@ android/build/reports/problems/
 **/macos/Pods/
 **/ios/Podfile.lock
 **/macos/Podfile.lock
+# Widget Preview related
+.widget_preview/

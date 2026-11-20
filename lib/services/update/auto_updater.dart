@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/wavy_progress_indicator.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/update_available_dialog.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
@@ -274,7 +275,7 @@ class AutoUpdater {
                   builder: (context, value, child) {
                     return Column(
                       children: [
-                        LinearProgressIndicator(value: value),
+                        WavyProgressIndicator(value: value),
                         const SizedBox(height: 8),
                         Text('${(value * 100).toStringAsFixed(1)}%'),
                       ],

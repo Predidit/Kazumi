@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/wavy_progress_indicator.dart';
 
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
@@ -157,7 +158,7 @@ class DownloadRecordCard extends StatelessWidget {
           if (!allCompleted)
             Padding(
               padding: EdgeInsets.fromLTRB(16, 0, 16, expanded ? 4 : 16),
-              child: LinearProgressIndicator(value: aggregateProgress),
+              child: WavyProgressIndicator(value: aggregateProgress),
             ),
           AnimatedSize(
             duration: _kExpandDuration,
@@ -234,7 +235,7 @@ class DownloadEpisodeTile extends StatelessWidget {
                   ),
                   if (showProgress) ...[
                     const SizedBox(height: 6),
-                    LinearProgressIndicator(value: episode.progressPercent),
+                    WavyProgressIndicator(value: episode.progressPercent),
                   ],
                 ],
               ),

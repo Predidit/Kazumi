@@ -8,6 +8,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/services/download/background_download_service.dart';
 import 'package:kazumi/services/download/download_manager.dart';
+import 'package:kazumi/utils/file_system.dart';
 import 'package:kazumi/utils/format.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -373,7 +374,7 @@ abstract class _DownloadController with Store {
 
   /// 弹幕文件路径
   String _danmakuFilePath(String downloadDirectory) {
-    return '$downloadDirectory/danmaku.json';
+    return episodeDanmakuPath(downloadDirectory);
   }
 
   /// 从文件读取弹幕数据
@@ -642,6 +643,7 @@ abstract class _DownloadController with Store {
       await _downloadManager.enqueue(DownloadRequest(
         recordKey: request.recordKey,
         bangumiId: request.bangumiId,
+        bangumiName: record.bangumiName,
         pluginName: request.pluginName,
         episodeNumber: request.episodeNumber,
         m3u8Url: m3u8Url,
@@ -823,6 +825,7 @@ abstract class _DownloadController with Store {
       await _downloadManager.enqueue(DownloadRequest(
         recordKey: recordKey,
         bangumiId: bangumiId,
+        bangumiName: record.bangumiName,
         pluginName: pluginName,
         episodeNumber: episodeNumber,
         m3u8Url: episode.networkM3u8Url,
@@ -943,6 +946,7 @@ abstract class _DownloadController with Store {
       await _downloadManager.enqueuePriority(DownloadRequest(
         recordKey: recordKey,
         bangumiId: bangumiId,
+        bangumiName: record.bangumiName,
         pluginName: pluginName,
         episodeNumber: episodeNumber,
         m3u8Url: episode.networkM3u8Url,

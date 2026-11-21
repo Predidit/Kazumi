@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/settings/video_gpu_settings.dart';
+import 'package:kazumi/pages/settings/frame_interpolation_settings.dart';
+import 'package:kazumi/services/enhancement/frame_interpolation.dart';
+import 'package:kazumi/services/enhancement/video_enhancement_advice.dart';
 import 'package:kazumi/services/enhancement/video_gpu.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
@@ -18,6 +21,7 @@ class SuperResolutionSettings extends StatefulWidget {
 
 class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   late bool _expert;
+  late Future<VideoEnhancementAdvice> _advice;
   late bool _disableWarning;
   late Upscaler _model;
   late SuperResolutionMode _mode;
@@ -26,6 +30,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   @override
   void initState() {
     super.initState();
+    _advice = VideoEnhancementAdvice.detect();
     _expert = GStorage.getSetting(SettingsKeys.videoEnhancementExpertMode);
     _disableWarning = GStorage.getSetting(
       SettingsKeys.disableSuperResolutionWarning,
@@ -94,7 +99,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   @override
   Widget build(BuildContext context) {
     return SettingsDetailScaffold(
-      title: const Text('超分辨率'),
+      title: const Text('视频增强'),
       body: SettingsList(
         sections: [
           SettingsSection(
@@ -138,12 +143,12 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
               ),
             ],
           ),
-          if (_model == Upscaler.cunny)
+          if (_model == Upscaler.cunny || FrameInterpolation.available)
             SettingsSection(
               tiles: [
                 SettingsTile.switchTile(
                   leading: Icons.tune_rounded,
-                  title: const Text('自定义渲染尺寸'),
+                  title: const Text('专业模式'),
                   initialValue: _expert,
                   onToggle: (value) {
                     final enabled = value ?? !_expert;
@@ -154,7 +159,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                     setState(() => _expert = enabled);
                   },
                 ),
-                if (_expert)
+                if (_expert && _model == Upscaler.cunny)
                   _defaultChoice<UpscalingOutputLimit>(
                     title: '渲染最长边',
                     selected: _outputLimit,
@@ -170,7 +175,11 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   ),
               ],
             ),
-          if (VideoGpu.supported) const VideoGpuSettingsTile(),
+          if (VideoGpu.supported)
+            VideoGpuSettingsTile(onChanged: () => setState(() {
+              _advice = VideoEnhancementAdvice.detect();
+            })),
+          FrameInterpolationSettings(expert: _expert, advice: _advice),
           SettingsSection(
             tiles: [
               SettingsTile.switchTile(

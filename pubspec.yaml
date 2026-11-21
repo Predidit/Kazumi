@@ -156,10 +156,13 @@ flutter:
   assets:
     - assets/images/
     - assets/shaders/
+    - path: assets/models/distildrba-v2-lite/
+      platforms: [android, windows]
     - assets/images/logo/
     - assets/statements/
     - licenses/ech_http/
     - licenses/cunny/
+    - licenses/rife/
   fonts:
     - family: MI_Sans_Regular
       fonts:

@@ -1,0 +1,41 @@
+cmake_minimum_required(VERSION 3.22)
+project(kazumi_video_interpolation LANGUAGES C)
+
+add_library(kazumi_frame_plan STATIC frame_plan.c)
+target_compile_features(kazumi_frame_plan PUBLIC c_std_11)
+if(UNIX)
+  target_link_libraries(kazumi_frame_plan PUBLIC m)
+endif()
+target_include_directories(kazumi_frame_plan PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+set_target_properties(kazumi_frame_plan PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+option(KAZUMI_BUILD_NEURAL "Build the ncnn video inference bridge" OFF)
+if(KAZUMI_BUILD_NEURAL)
+  enable_language(CXX)
+  find_package(ncnn CONFIG REQUIRED)
+  foreach(SHADER IN ITEMS drba_warp warp warp_pack4)
+    set(IN "${CMAKE_CURRENT_SOURCE_DIR}/warp/${SHADER}.comp")
+    if(SHADER STREQUAL "drba_warp")
+      set(IN "${CMAKE_CURRENT_SOURCE_DIR}/drba_warp.comp")
+    endif()
+    set(OUT "${CMAKE_CURRENT_BINARY_DIR}/${SHADER}.comp.hex.h")
+    set(GENERATOR "${CMAKE_CURRENT_SOURCE_DIR}/warp/generate_shader_comp_header.cmake")
+    add_custom_command(OUTPUT "${OUT}"
+      COMMAND "${CMAKE_COMMAND}" "-DSHADER_SRC=${IN}" "-DSHADER_COMP_HEADER=${OUT}" -P "${GENERATOR}"
+      DEPENDS "${IN}" "${GENERATOR}" VERBATIM)
+    list(APPEND GENERATED_HEADERS "${OUT}")
+  endforeach()
+  add_library(kazumi_rife SHARED rife_bridge.cc distildrba.cc motion_warp.cc
+    warp/warp.cpp ${GENERATED_HEADERS})
+  target_compile_features(kazumi_rife PRIVATE cxx_std_17)
+  target_compile_definitions(kazumi_rife PRIVATE KAZUMI_RIFE_EXPORTS)
+  target_include_directories(kazumi_rife PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/warp" "${CMAKE_CURRENT_BINARY_DIR}")
+  target_link_libraries(kazumi_rife PRIVATE ncnn)
+  if(ANDROID)
+    # ncnn's Android static library exports -fno-exceptions to consumers.
+    # Keep exception recovery at the public C bridge boundary.
+    set_source_files_properties(rife_bridge.cc PROPERTIES COMPILE_OPTIONS -fexceptions)
+    target_link_options(kazumi_rife PRIVATE -Wl,-z,max-page-size=16384 -Wl,--exclude-libs,ALL)
+  endif()
+  set_target_properties(kazumi_rife PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
+endif()

@@ -80,6 +80,7 @@ class AndroidVideoController extends PlatformVideoController {
 
   int? _sourceWidth, _sourceHeight, _outputWidth, _outputHeight;
   bool _disposed = false;
+  bool _canResizeInPlace = false;
 
   Future<void> _applySize() async {
     if (_disposed) return;
@@ -100,7 +101,11 @@ class AndroidVideoController extends PlatformVideoController {
     // available, is handled by widListener instead.
     if (previousWid != null && previousWid != 0 && previousWid == wid.value &&
         configuration.vo != 'mediacodec_embed') {
-      await _attachSurface();
+      if (_canResizeInPlace) {
+        await setProperty('android-surface-size', '${width}x$height');
+      } else {
+        await _attachSurface();
+      }
     }
     if (!waitUntilFirstFrameRenderedCompleter.isCompleted) {
       waitUntilFirstFrameRenderedCompleter.complete();
@@ -190,6 +195,9 @@ class AndroidVideoController extends PlatformVideoController {
     // video-parameter callbacks behind all initial mpv option writes.
     await controller.lock.synchronized(() async {
       await controller.setProperty('vo', 'null');
+      controller._canResizeInPlace = (await controller.platform.getProperty(
+        'option-info/kazumi-surface-size/name', waitForInitialization: false,
+      )).isNotEmpty;
       var gpuApi = 'auto';
       if (configuration.vo == 'gpu-next') {
         gpuApi = 'vulkan,opengl';

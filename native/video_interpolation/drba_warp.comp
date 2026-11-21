@@ -1,0 +1,51 @@
+/* Copyright 2026 Kazumi contributors. SPDX-License-Identifier: MIT */
+#version 450
+layout(binding=0) readonly buffer G { float flow[]; };
+layout(binding=1) readonly buffer A { uint center[]; };
+layout(binding=2) readonly buffer B { uint partner[]; };
+layout(binding=3) writeonly buffer O { uint output_words[]; };
+layout(push_constant) uniform parameter {
+    int w, h, gw, gh, pitch, bytes, component, padding, be;
+    float scale_x, scale_y;
+} p;
+uint scalar(bool first, int off) {
+    uint word = first ? center[off>>2] : partner[off>>2];
+    uint bits = word >> ((off & 3)*8);
+    if (p.component == 1) return bits & 255u;
+    bits &= 65535u;
+    if (p.be != 0) bits = (bits>>8) | ((bits&255u)<<8);
+    return bits >> p.padding;
+}
+struct Field { vec2 a, b; float alpha; };
+Field at_pixel(int x, int y) {
+    vec2 scale = vec2(p.scale_x,p.scale_y);
+    vec2 uv = clamp((vec2(x,y)+0.5)*0.25/scale-0.5,vec2(0),vec2(p.gw-1,p.gh-1));
+    ivec2 ij=ivec2(uv), hi=min(ij+1,ivec2(p.gw-1,p.gh-1)); vec2 f=fract(uv);
+    int i0=(ij.y*p.gw+ij.x)*5,i1=(ij.y*p.gw+hi.x)*5,i2=(hi.y*p.gw+ij.x)*5,i3=(hi.y*p.gw+hi.x)*5;
+    float v[5];
+    for(int c=0;c<5;c++) v[c]=mix(mix(flow[i0+c],flow[i1+c],f.x),mix(flow[i2+c],flow[i3+c],f.x),f.y);
+    Field m; m.a=clamp(vec2(x,y)+vec2(v[0],v[1])*scale,vec2(0),vec2(p.w-1,p.h-1));
+    m.b=clamp(vec2(x,y)+vec2(v[2],v[3])*scale,vec2(0),vec2(p.w-1,p.h-1));
+    m.alpha=1.0/(1.0+exp(-v[4]));return m;
+}
+float sample_plane(bool first, vec2 xy, int component_offset) {
+    ivec2 lo=ivec2(xy), hi=min(lo+1,ivec2(p.w-1,p.h-1));vec2 f=fract(xy);
+    int left=lo.x*p.bytes+component_offset,right=hi.x*p.bytes+component_offset;
+    int top=lo.y*p.pitch,bottom=hi.y*p.pitch;
+    return mix(mix(float(scalar(first,top+left)),float(scalar(first,top+right)),f.x),
+               mix(float(scalar(first,bottom+left)),float(scalar(first,bottom+right)),f.x),f.y);
+}
+void main() {
+    int word=int(gl_GlobalInvocationID.x), y=int(gl_GlobalInvocationID.y);
+    if(word>=p.pitch/4 || y>=p.h)return;
+    uint packed=0u;int last=-1;Field m;
+    for(int pos=0;pos<4;pos+=p.component){
+        int off=word*4+pos;int x=off/p.bytes;if(x>=p.w) break;
+        if(x!=last){m=at_pixel(x,y);last=x;}
+        int c=off-x*p.bytes;
+        uint value=uint(mix(sample_plane(false,m.b,c),sample_plane(true,m.a,c),m.alpha)+0.5);
+        if(p.component==2){value<<=p.padding;if(p.be!=0)value=(value>>8)|((value&255u)<<8);}
+        packed |= value << (pos*8);
+    }
+    output_words[y*(p.pitch/4)+word]=packed;
+}

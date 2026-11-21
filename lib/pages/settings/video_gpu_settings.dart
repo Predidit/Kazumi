@@ -7,7 +7,9 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 class VideoGpuSettingsTile extends StatefulWidget {
-  const VideoGpuSettingsTile({super.key});
+  const VideoGpuSettingsTile({super.key, this.onChanged});
+
+  final VoidCallback? onChanged;
 
   @override
   State<VideoGpuSettingsTile> createState() => _VideoGpuSettingsTileState();
@@ -64,6 +66,7 @@ class _VideoGpuSettingsTileState extends State<VideoGpuSettingsTile> {
     await GStorage.putSetting(VideoGpu.setting, value);
     if (mounted) {
       setState(() => _selected = value);
+      widget.onChanged?.call();
     }
   }
 
@@ -84,7 +87,7 @@ class _VideoGpuSettingsTileState extends State<VideoGpuSettingsTile> {
           bottomInfo: Text(
             Platform.isWindows
                 ? '下次打开视频生效。使用与应用显示不同的 GPU 时需要跨卡复制，可能增加功耗和延迟。'
-                : '可选择系统提供的 Vulkan 1.2 及以上硬件 GPU，使用「自动」或「gpu-next」渲染器时生效。',
+                : '可选择系统提供的 Vulkan 1.2 及以上硬件 GPU，下次打开视频生效。增强版插帧可使用所选设备；使用「自动」或「gpu-next」渲染器时，超分也可使用该设备。',
           ),
           tiles: [
             SettingsTile(

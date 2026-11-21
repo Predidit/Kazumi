@@ -47,6 +47,10 @@ android {
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
+        def rifeJni = System.getenv('KAZUMI_RIFE_JNI_DIR')
+        if (rifeJni) {
+            main.jniLibs.srcDir(rifeJni)
+        }
     }
 
     defaultConfig {

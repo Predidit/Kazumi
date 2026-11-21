@@ -17,6 +17,8 @@
 
 CuNNy 的效率、均衡和质量档分别使用 fast、3×12 和 4×16 SOFT 着色器。画面宽高均超过片源的 1.3 倍时生效。自动渲染长边上限为 Windows 3840 像素、Android 2560 像素。[着色器来源](https://github.com/funnyplanter/CuNNy/tree/906031bb00c15dd6a6bbbaa21c0eb0b724ca8437)
 
+Windows 和 Android 增强版支持 DistilDRBA v2 Lite 插帧。播放器中可以独立设置「超分辨率」和「插帧」，也可以在「设置 → 播放设置 → 视频增强」设置下次播放的默认档位。权重随包提供，可离线使用。[增强版构建说明](native/video_interpolation/README.md)
+
 ## 支持平台
 
 - Android 10 及以上

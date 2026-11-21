@@ -93,6 +93,12 @@ install(DIRECTORY "${NATIVE_ASSETS_DIR}"
    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
    COMPONENT Runtime)
 
+# The enhanced package stages the inference DLL next to the patched libmpv.
+if(DEFINED ENV{KAZUMI_RIFE_DLL})
+  install(FILES "$ENV{KAZUMI_RIFE_DLL}"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}" COMPONENT Runtime)
+endif()
+
 # Fully re-copy the assets directory on each build to avoid having stale files
 # from a previous install.
 set(FLUTTER_ASSET_DIR_NAME "flutter_assets")

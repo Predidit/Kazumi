@@ -428,6 +428,16 @@ class SettingsKeys {
     '',
     group: SettingGroup.player,
   );
+  static const interpolationMode = SettingKey<String>(
+    'interpolationMode',
+    'off',
+    group: SettingGroup.player,
+  );
+  static const interpolationOptions = SettingKey<String>(
+    'interpolationOptions',
+    '',
+    group: SettingGroup.player,
+  );
   static const defaultSuperResolutionModel = SettingKey<String>(
     'defaultSuperResolutionModel',
     'anime4k',
@@ -683,6 +693,8 @@ class SettingsKeys {
     androidVideoGpu,
     videoEnhancementExpertMode,
     superResolutionOptions,
+    interpolationMode,
+    interpolationOptions,
     defaultSuperResolutionModel,
     defaultSuperResolutionMode,
     disableSuperResolutionWarning,

@@ -28,16 +28,22 @@ class VideoGpu {
   }
 }
 
-/// Select the GPU for Android gpu-next rendering.
-({String renderer, String? renderDevice, bool unavailable}) androidGpuPlan({
+/// Neural filters can use Vulkan compute with OpenGL rendering. MediaCodec's embedded
+/// output bypasses both enhancement stages.
+({
+  String renderer,
+  String? renderDevice,
+  String? interpolationDevice,
+  bool unavailable,
+})
+androidGpuPlan({
   required String rendererSetting,
   required int sdkVersion,
   required String selectedDevice,
   required Iterable<VideoAdapter> available,
 }) {
   final requested =
-      selectedDevice.isNotEmpty &&
-      (rendererSetting == 'auto' || rendererSetting == 'gpu-next');
+      selectedDevice.isNotEmpty && rendererSetting != 'mediacodec_embed';
   final device = requested && available.any((gpu) => gpu.id == selectedDevice)
       ? selectedDevice
       : null;
@@ -49,6 +55,7 @@ class VideoGpu {
   return (
     renderer: renderer,
     renderDevice: renderer == 'gpu-next' ? device : null,
+    interpolationDevice: device,
     unavailable: requested && device == null,
   );
 }

@@ -30,10 +30,16 @@ void main() async {
   AppDeepLinks().start();
   registerEchHttpLicenses();
   LicenseRegistry.addLicense(() async* {
-    for (final file in ['LICENSE', 'COPYING']) {
+    for (final (project, file) in const [
+      ('CuNNy (funnyplanter)', 'cunny/LICENSE'),
+      ('CuNNy (funnyplanter)', 'cunny/COPYING'),
+      ('DistilDRBA', 'rife/DistilDRBA-LICENSE'),
+      ('rife-ncnn-vulkan Warp', 'rife/RIFE_NCNN_LICENSE'),
+      ('ncnn', 'rife/NCNN_LICENSE'),
+    ]) {
       yield LicenseEntryWithLineBreaks(
-        const ['CuNNy (funnyplanter)'],
-        await rootBundle.loadString('licenses/cunny/$file'),
+        [project],
+        await rootBundle.loadString('licenses/$file'),
       );
     }
   });

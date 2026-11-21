@@ -92,7 +92,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     final bool shouldReset = await KazumiDialog.show<bool>(
           builder: (context) => AlertDialog(
             title: const Text('恢复默认播放设置'),
-            content: const Text('播放设置、硬件解码器、视频渲染器和超分辨率设置将恢复为默认值。'),
+            content: const Text('播放设置、硬件解码器、视频渲染器和视频增强设置将恢复为默认值。'),
             actions: [
               TextButton(
                 onPressed: () => KazumiDialog.dismiss(popWith: false),
@@ -298,7 +298,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 onPressed: (_) async {
                   context.pushNamed('/settings/player/super');
                 },
-                title: Text('超分辨率'),
+                title: Text('视频增强'),
               ),
             ],
           ),

@@ -1,0 +1,77 @@
+name: Build Android video-enhancement packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-enhanced:
+    name: Android CuNNy + DistilDRBA (${{ matrix.abi }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {abi: arm64-v8a, flutter_arch: arm64}
+          - {abi: armeabi-v7a, flutter_arch: arm}
+          - {abi: x86_64, flutter_arch: x64}
+    env:
+      ABI: ${{ matrix.abi }}
+      FLUTTER_ARCH: ${{ matrix.flutter_arch }}
+      KAZUMI_NATIVE_JOBS: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - uses: nttld/setup-ndk@v1
+        id: ndk
+        with:
+          ndk-version: r30
+          add-to-path: false
+      - uses: subosito/flutter-action@v2.16.0
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config meson autoconf automake libtool gettext texinfo gperf nasm unzip python3-jsonschema python3-jinja2
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'cmake;3.22.1' 'ndk;28.2.13676358'
+      - name: Build patched libmpv
+        env:
+          BUILD_NDK: ${{ steps.ndk.outputs.ndk-path }}
+        run: |
+          bash tool/video_enhancement/build_android_libmpv.sh "$ABI" "$BUILD_NDK" "$RUNNER_TEMP/kazumi-mpv"
+          python3 tool/video_enhancement/fetch_android_helper.py "$ABI" "$RUNNER_TEMP/kazumi-mpv"
+      - name: Build native enhancement bridge
+        env:
+          BUILD_NDK: ${{ steps.ndk.outputs.ndk-path }}
+        run: |
+          cd "$RUNNER_TEMP"
+          curl --fail --location --retry 3 --output sdk.zip https://github.com/Tencent/ncnn/releases/download/20261020/ncnn-20261020-android-vulkan.zip
+          echo '6e0c5f9b397faf32b923de2ef6210af9bf375851869dceff06a8005331981086  sdk.zip' | sha256sum --check
+          unzip -q sdk.zip
+          source="$GITHUB_WORKSPACE/native/video_interpolation"
+          cmake -S "$source" -B "$RUNNER_TEMP/rife-objects" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$BUILD_NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI="$ABI" -DANDROID_PLATFORM=android-24 -DANDROID_STL=c++_static \
+            -DKAZUMI_BUILD_NEURAL=ON \
+            -Dncnn_DIR="$RUNNER_TEMP/ncnn-20261020-android-vulkan/$ABI/lib/cmake/ncnn"
+          cmake --build "$RUNNER_TEMP/rife-objects" --target kazumi_rife --parallel "$KAZUMI_NATIVE_JOBS"
+      - name: Package app and verify JNI entries
+        run: |
+          python3 tool/video_enhancement/build_enhanced_flutter.py android "$FLUTTER_ARCH" \
+            --mpv "$RUNNER_TEMP/kazumi-mpv/libmpv.so" \
+            --android-helper "$RUNNER_TEMP/kazumi-mpv/libmediakitandroidhelper.so" \
+            --bridge "$RUNNER_TEMP/rife-objects/libkazumi_rife.so"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kazumi-video-enhanced-${{ matrix.abi }}
+          path: build/app/outputs/flutter-apk/app-${{ matrix.abi }}-release.apk
+          if-no-files-found: error

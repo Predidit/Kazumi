@@ -8,11 +8,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/services/enhancement/upscaling.dart';
 import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/pages/player/player_upscaling_menu.dart';
+import 'package:kazumi/pages/player/player_interpolation_menu.dart';
 import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/danmaku_destination_sheet.dart';
 import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
+import 'package:kazumi/services/enhancement/frame_interpolation.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
@@ -640,6 +642,11 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     onSelect: widget.handleSuperResolutionChange,
   );
 
+  List<Widget> get _interpolationItems => interpolationMenuItems(
+        activeTier: playerController.playback.interpolationMode,
+        onSelect: playerController.playback.setInterpolation,
+      );
+
   Widget _menuButton(
           {required Widget child,
           required List<Widget> items,
@@ -705,6 +712,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           child: const Text('超分辨率', style: TextStyle(color: Colors.white)),
           items: _superResolutionItems,
         ),
+        if (FrameInterpolation.available)
+          _menuButton(
+            child: Text(playerController.playback.interpolationBusy ? '插帧…' : '插帧',
+                style: const TextStyle(color: Colors.white)),
+            items: _interpolationItems,
+          ),
         _menuButton(
           child: Text(
               playerController.playback.playerSpeed == 1
@@ -904,6 +917,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     SubmenuButton(
                         menuChildren: _superResolutionItems,
                         child: const Text('超分辨率')),
+                    if (FrameInterpolation.available)
+                      SubmenuButton(menuChildren: _interpolationItems, child: const Text('插帧')),
                     _syncPlayMenuItem,
                   ],
                   KazumiMenuItem(

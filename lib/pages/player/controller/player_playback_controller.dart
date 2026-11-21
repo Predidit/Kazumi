@@ -10,6 +10,9 @@ import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/services/enhancement/upscaling.dart';
+import 'package:kazumi/services/enhancement/frame_interpolation.dart';
+import 'package:kazumi/services/enhancement/video_model_cache.dart';
+import 'package:kazumi/services/enhancement/video_enhancement_advice.dart';
 import 'package:kazumi/services/enhancement/video_gpu.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
@@ -79,7 +82,14 @@ abstract class _PlayerPlaybackController with Store {
   Player? get mediaPlayer => _ownedPlayer?.player;
   VideoController? videoController;
 
-  final _shaderWrites = AsyncSerialQueue();
+  final _enhancementWrites = AsyncSerialQueue();
+  final _interpolationMode = Observable(InterpolationMode.off);
+  final _interpolationBusy = Observable(false);
+  InterpolationMode get interpolationMode => _interpolationMode.value;
+  bool get interpolationBusy => _interpolationBusy.value;
+  int _interpolationGeneration = 0;
+  String? _interpolationDevice;
+  InterpolationOptions _interpolationOptions = const InterpolationOptions();
   Upscaler _selectedUpscaler = Upscaler.anime4k;
   final _appliedUpscaler = Observable<Upscaler?>(null);
   Upscaler? get appliedUpscaler => _appliedUpscaler.value;
@@ -300,6 +310,13 @@ abstract class _PlayerPlaybackController with Store {
     _outputLimit = GStorage.getSetting(SettingsKeys.videoEnhancementExpertMode)
         ? UpscalingOutputLimit.decode(GStorage.getSetting(SettingsKeys.superResolutionOptions))
         : UpscalingOutputLimit.automatic;
+    ++_interpolationGeneration;
+    _interpolationDevice = null;
+    _interpolationMode.value = InterpolationMode.off;
+    _interpolationBusy.value = false;
+    _interpolationOptions = GStorage.getSetting(SettingsKeys.videoEnhancementExpertMode)
+        ? InterpolationOptions.decode(GStorage.getSetting(SettingsKeys.interpolationOptions))
+        : const InterpolationOptions();
     hAenable = GStorage.getSetting(SettingsKeys.hAenable);
     androidEnableOpenSLES =
         GStorage.getSetting(SettingsKeys.androidEnableOpenSLES);
@@ -406,12 +423,14 @@ abstract class _PlayerPlaybackController with Store {
       if (Platform.isWindows) {
         final requested = VideoGpu.selection;
         windowsGpu = requested.isNotEmpty ? requested : null;
+        _interpolationDevice = windowsGpu;
         final handle = await player.handle;
         if (!isCurrentPlayer(player)) {
           return await _discardIfNotCurrent(candidate);
         }
         final warnings = VideoController.windowsRenderWarnings.listen((warning) {
           if (!isCurrentPlayer(player) || warning.handle != handle) return;
+          if (warning.code == 'adapterFallback') _interpolationDevice = null;
           if (warning.code == 'softwareFallback') {
             _windowsSoftwareRenderer.value = true;
             unawaited(setShader(SuperResolutionMode.off, player: player));
@@ -434,7 +453,7 @@ abstract class _PlayerPlaybackController with Store {
             : 0;
         List<VideoAdapter> available = const [];
         final probeForAuto = rendererSetting == 'auto' && sdkVersion >= 34;
-        final probeSelection = requested.isNotEmpty && (rendererSetting == 'auto' || rendererSetting == 'gpu-next');
+        final probeSelection = requested.isNotEmpty && rendererSetting != 'mediacodec_embed';
         if (probeForAuto || probeSelection) {
           try {
             available = await VideoGpu.enumerate();
@@ -453,6 +472,7 @@ abstract class _PlayerPlaybackController with Store {
         );
         videoRenderer = gpuPlan.renderer;
         androidRenderGpu = gpuPlan.renderDevice;
+        _interpolationDevice = gpuPlan.interpolationDevice;
         if (gpuPlan.unavailable) {
           KazumiDialog.showToast(message: '未找到所选 Vulkan 设备，已使用自动选择');
         }
@@ -486,6 +506,7 @@ abstract class _PlayerPlaybackController with Store {
         }
         if (applied != androidRenderGpu) {
           androidRenderGpu = null;
+          _interpolationDevice = null;
           KazumiDialog.showToast(message: '播放器无法使用所选 Vulkan GPU，已使用自动选择');
         }
       }
@@ -519,6 +540,20 @@ abstract class _PlayerPlaybackController with Store {
             error: event);
       });
 
+      if (FrameInterpolation.available) {
+        final nativeWarnings = player.stream.log.listen((event) {
+          if (!isCurrentPlayer(player)) return;
+          if (interpolationMode == InterpolationMode.off) return;
+          if (event.text.contains('KAZUMI_DRBA_OVER_BUDGET')) {
+            KazumiDialog.showToast(message: '插帧耗时超过播放预算，已保留原始帧率。切换档位或跳转进度可重试');
+          } else if (event.text.contains('KAZUMI_DRBA_INFERENCE_FAILED') || event.text.contains('KAZUMI_DRBA_INIT_FAILED')) {
+            KazumiDialog.showToast(message: '插帧推理失败，已恢复原始帧率');
+            unawaited(setInterpolation(InterpolationMode.off));
+          }
+        });
+        pp.release.add(nativeWarnings.cancel);
+      }
+
       if (superResolutionMode != SuperResolutionMode.off) {
         await setShader(superResolutionMode, player: player);
         if (!isCurrentPlayer(player)) {
@@ -546,6 +581,13 @@ abstract class _PlayerPlaybackController with Store {
         KazumiDialog.showToast(message: '移动数据下已自动开启低内存模式，可在播放设置中改为始终关闭');
       }
 
+      if (FrameInterpolation.available && _videoRenderer != 'mediacodec_embed') {
+        final defaultMode = InterpolationMode.fromKey(
+            GStorage.getSetting(SettingsKeys.interpolationMode));
+        if (defaultMode != InterpolationMode.off) {
+          unawaited(setInterpolation(defaultMode));
+        }
+      }
       return player;
     } catch (error, stackTrace) {
       if (identical(_ownedPlayer, candidate)) {
@@ -561,7 +603,7 @@ abstract class _PlayerPlaybackController with Store {
   Future<void> setShader(SuperResolutionMode mode, {Player? player, Upscaler? upscaler}) async {
     final current = player ?? mediaPlayer;
     if (current == null) return;
-    await _shaderWrites.run(() async {
+    await _enhancementWrites.run(() async {
       if (!isCurrentPlayer(current)) return;
       final pp = current.platform as NativePlayer;
       try {
@@ -602,6 +644,89 @@ abstract class _PlayerPlaybackController with Store {
         }
       }
     });
+  }
+
+  Future<void> _syncDecoder(NativePlayer pp, {bool attaching = false}) async {
+    final baseDecoder = hAenable ? hardwareDecoder : 'no';
+    final needsCopyBack = attaching || await FrameInterpolation.isAttached(pp);
+    final decoder = needsCopyBack ? FrameInterpolation.copyBackDecoder(baseDecoder) : baseDecoder;
+    if (await pp.getProperty('options/hwdec') != decoder) {
+      await pp.command(['set', 'hwdec', decoder]);
+    }
+  }
+
+  Future<void> setInterpolation(InterpolationMode mode) async {
+    final player = mediaPlayer;
+    if (player == null || !FrameInterpolation.available) return;
+    if (_videoRenderer == 'mediacodec_embed') {
+      if (mode != InterpolationMode.off) {
+        KazumiDialog.showToast(message: '请使用 gpu 或 gpu-next 渲染器来开启插帧');
+      }
+      return;
+    }
+    final generation = ++_interpolationGeneration;
+    bool current() =>
+        isCurrentPlayer(player) && generation == _interpolationGeneration;
+    _interpolationBusy.value = true;
+    try {
+      final advice = mode == InterpolationMode.off
+          ? null
+          : await VideoEnhancementAdvice.detect();
+      if (!current()) return;
+      final plan = _interpolationOptions.plan(
+        mode,
+        mobile: Platform.isAndroid,
+        highMemoryGpu: advice?.ampleDedicatedMemory ?? false,
+      );
+      final startingEdge = plan == null
+          ? null
+          : advice!.interpolation(mode, cpu: plan.cpu).maximumEdge;
+      // Verify bundled files outside the native command queue.
+      final directory = plan == null
+          ? null
+          : await VideoModelCache.instance.require(BundledVideoModel.drba);
+      if (!current()) return;
+      await _enhancementWrites.run(() async {
+        if (!current()) return;
+        final pp = player.platform as NativePlayer;
+        try {
+          if (await FrameInterpolation.isAttached(pp)) {
+            if (!current()) return;
+            await pp.command(['vf', 'remove', '@${FrameInterpolation.label}']);
+            if (!isCurrentPlayer(player)) return;
+            _interpolationMode.value = InterpolationMode.off;
+          }
+          if (!current() || plan == null) return;
+          await _syncDecoder(pp, attaching: true);
+          if (!current()) return;
+          // Estimate motion on source frames, before spatial upscaling.
+          await pp.command([
+            'vf',
+            'pre',
+            plan.filter(
+              directory!.path,
+              device: _interpolationDevice,
+              startingEdge: startingEdge,
+            ),
+          ]);
+          if (!await FrameInterpolation.isAttached(pp)) {
+            throw StateError('DRBA did not attach');
+          }
+          if (isCurrentPlayer(player)) _interpolationMode.value = mode;
+        } finally {
+          if (isCurrentPlayer(player)) await _syncDecoder(pp);
+        }
+      });
+    } catch (error) {
+      if (!current()) return;
+      KazumiLogger().w(
+        'PlayerController: failed to apply frame interpolation',
+        error: error,
+      );
+      KazumiDialog.showToast(message: '插帧未启用，请检查视频处理 GPU，或在专业参数中选择 CPU 推理');
+    } finally {
+      if (current()) _interpolationBusy.value = false;
+    }
   }
 
   Future<void> setPlaybackSpeed(double playerSpeed) async {
@@ -695,6 +820,7 @@ abstract class _PlayerPlaybackController with Store {
   }
 
   Future<void> stop() async {
+    ++_interpolationGeneration;
     cachePolicy.stopWatching();
     final ownedPlayer = _ownedPlayer;
     _ownedPlayer = null;

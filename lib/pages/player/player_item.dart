@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:kazumi/services/enhancement/upscaling.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/player_keyboard_shortcuts.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
@@ -853,7 +854,7 @@ class _PlayerItemState extends State<PlayerItem>
     _screenshotFeedbackController.forward(from: 0);
   }
 
-  Future<void> handleSuperResolutionChange(SuperResolutionMode mode) async {
+  Future<void> handleSuperResolutionChange(SuperResolutionMode mode, {Upscaler? upscaler}) async {
     if (!mounted) return;
 
     // The mediacodec_embed renderer cannot apply super-resolution shaders.
@@ -948,10 +949,10 @@ class _PlayerItemState extends State<PlayerItem>
       });
 
       if (confirmed && mounted) {
-        playerController.setShader(mode);
+        await playerController.setShader(mode, upscaler: upscaler);
       }
     } else {
-      playerController.setShader(mode);
+      await playerController.setShader(mode, upscaler: upscaler);
     }
   }
 

@@ -408,6 +408,31 @@ class SettingsKeys {
     false,
     group: SettingGroup.player,
   );
+  static const windowsVideoGpu = SettingKey<String>(
+    'windowsVideoGpu',
+    '',
+    group: SettingGroup.player,
+  );
+  static const androidVideoGpu = SettingKey<String>(
+    'androidVideoGpu',
+    '',
+    group: SettingGroup.player,
+  );
+  static const videoEnhancementExpertMode = SettingKey<bool>(
+    'videoEnhancementExpertMode',
+    false,
+    group: SettingGroup.player,
+  );
+  static const superResolutionOptions = SettingKey<String>(
+    'superResolutionOptions',
+    '',
+    group: SettingGroup.player,
+  );
+  static const defaultSuperResolutionModel = SettingKey<String>(
+    'defaultSuperResolutionModel',
+    'anime4k',
+    group: SettingGroup.player,
+  );
   static const defaultSuperResolutionMode = SettingKey<int>(
     _SettingBoxKey.defaultSuperResolutionMode,
     1,
@@ -654,6 +679,11 @@ class SettingsKeys {
     androidEnableOpenSLES,
     androidVideoRenderer,
     androidAutoEnterPIP,
+    windowsVideoGpu,
+    androidVideoGpu,
+    videoEnhancementExpertMode,
+    superResolutionOptions,
+    defaultSuperResolutionModel,
     defaultSuperResolutionMode,
     disableSuperResolutionWarning,
     playerDisableAnimations,

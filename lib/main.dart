@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:kazumi/app_module.dart';
 import 'package:kazumi/app_widget.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -28,6 +29,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppDeepLinks().start();
   registerEchHttpLicenses();
+  LicenseRegistry.addLicense(() async* {
+    for (final file in ['LICENSE', 'COPYING']) {
+      yield LicenseEntryWithLineBreaks(
+        const ['CuNNy (funnyplanter)'],
+        await rootBundle.loadString('licenses/cunny/$file'),
+      );
+    }
+  });
   MediaKit.ensureInitialized();
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

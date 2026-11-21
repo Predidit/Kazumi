@@ -1,0 +1,13 @@
+{
+  "module": {
+    "name": "media_kit_video",
+    "type": "har",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1",
+      "car",
+      "tv"
+    ]
+  }
+}

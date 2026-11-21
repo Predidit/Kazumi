@@ -76,6 +76,12 @@ class CreditsPage extends StatelessWidget {
                   url: 'https://github.com/bloc97/Anime4K',
                 ),
                 AboutLinkTile(
+                  icon: Icons.auto_awesome_rounded,
+                  title: 'CuNNy',
+                  subtitle: '轻量动画超分辨率',
+                  url: 'https://github.com/funnyplanter/CuNNy',
+                ),
+                AboutLinkTile(
                   icon: Icons.sync_rounded,
                   title: 'Syncplay',
                   subtitle: '播放同步',

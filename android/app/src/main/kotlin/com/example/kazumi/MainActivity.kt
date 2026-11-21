@@ -123,6 +123,15 @@ class MainActivity: AudioServiceActivity() {
                 } else {
                     result.error("INVALID_ARGUMENT", "URL and MIME type required", null)
                 }
+            } else if (call.method == "getVideoGpuAdapters") {
+                Thread {
+                    try {
+                        val adapters = VideoGpu.adapters()
+                        runOnUiThread { result.success(adapters) }
+                    } catch (error: Exception) {
+                        runOnUiThread { result.error("GPU_PROBE_FAILED", error.message, null) }
+                    }
+                }.start()
             } else if (call.method == "getAndroidSdkVersion") {
                 val sdkVersion = getAndroidSdkVersion()
                 result.success(sdkVersion)

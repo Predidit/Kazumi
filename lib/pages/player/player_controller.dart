@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/services/enhancement/upscaling.dart';
 import 'package:kazumi/services/player/external_playback_launcher.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
@@ -300,11 +301,8 @@ class PlayerController implements Disposable {
     return initialization.isActive && playback.isCurrentPlayer(player);
   }
 
-  Future<void> setShader(SuperResolutionMode mode, {Player? player}) async {
-    await playback.setShader(
-      mode,
-      player: player,
-    );
+  Future<void> setShader(SuperResolutionMode mode, {Player? player, Upscaler? upscaler}) async {
+    await playback.setShader(mode, player: player, upscaler: upscaler);
   }
 
   Future<void> setPlaybackSpeed(double playerSpeed) async {

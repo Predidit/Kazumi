@@ -14,6 +14,8 @@
 *.txt text eol=lf
 *.sh text eol=lf
 *.gradle text eol=lf
+assets/shaders/CuNNy-*.glsl text eol=lf
+licenses/cunny/* text eol=lf
 *.properties text eol=lf
 
 # Source code files (C/C++/Objective-C/Swift)

@@ -1,5 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -8,7 +9,8 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
-import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/services/enhancement/upscaling.dart';
+import 'package:kazumi/services/enhancement/video_gpu.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
@@ -22,6 +24,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/utils/constants.dart' show nearEndWatchedThreshold;
 import 'package:kazumi/services/platform/platform_environment_service.dart';
 
 part 'player_playback_controller.g.dart';
@@ -75,6 +78,21 @@ abstract class _PlayerPlaybackController with Store {
   _OwnedPlayer? _ownedPlayer;
   Player? get mediaPlayer => _ownedPlayer?.player;
   VideoController? videoController;
+
+  final _shaderWrites = AsyncSerialQueue();
+  Upscaler _selectedUpscaler = Upscaler.anime4k;
+  final _appliedUpscaler = Observable<Upscaler?>(null);
+  Upscaler? get appliedUpscaler => _appliedUpscaler.value;
+  UpscalingOutputLimit _outputLimit = UpscalingOutputLimit.automatic;
+  String? _videoRenderer;
+  final _windowsSoftwareRenderer = Observable(false);
+
+  bool get _canRenderShaders => _videoRenderer != 'mediacodec_embed' &&
+      (!Platform.isWindows || (hAenable && !_windowsSoftwareRenderer.value));
+  bool get supportsComputeShaders => _canRenderShaders &&
+      (Platform.isWindows || (Platform.isAndroid && _videoRenderer == 'gpu-next'));
+
+  int get upscalingOutputEdge => _outputLimit.pixels ?? (Platform.isAndroid ? 2560 : 3840);
 
   final AsyncSerialQueue _prefetchWrites = AsyncSerialQueue();
   bool _prefetchSuspendWanted = false;
@@ -277,6 +295,11 @@ abstract class _PlayerPlaybackController with Store {
     superResolutionMode = SuperResolutionMode.fromStorageValue(
       GStorage.getSetting(SettingsKeys.defaultSuperResolutionMode),
     );
+    _selectedUpscaler = Upscaler.fromName(GStorage.getSetting(SettingsKeys.defaultSuperResolutionModel));
+    _appliedUpscaler.value = null;
+    _outputLimit = GStorage.getSetting(SettingsKeys.videoEnhancementExpertMode)
+        ? UpscalingOutputLimit.decode(GStorage.getSetting(SettingsKeys.superResolutionOptions))
+        : UpscalingOutputLimit.automatic;
     hAenable = GStorage.getSetting(SettingsKeys.hAenable);
     androidEnableOpenSLES =
         GStorage.getSetting(SettingsKeys.androidEnableOpenSLES);
@@ -377,29 +400,65 @@ abstract class _PlayerPlaybackController with Store {
       }
 
       String? videoRenderer;
-      if (Platform.isAndroid) {
-        final String androidVideoRenderer =
-            GStorage.getSetting(SettingsKeys.androidVideoRenderer);
-
-        if (androidVideoRenderer == 'auto') {
-          // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
-          // GPU-NEXT 需要 Vulkan 1.2 支持
-          // 避免 Android 13 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
-          final int androidSdkVersion =
-              await PlatformEnvironmentService.getAndroidSdkVersion();
-          if (!isCurrentPlayer(player)) {
-            return await _discardIfNotCurrent(candidate);
+      String? androidRenderGpu;
+      String? windowsGpu;
+      _windowsSoftwareRenderer.value = false;
+      if (Platform.isWindows) {
+        final requested = VideoGpu.selection;
+        windowsGpu = requested.isNotEmpty ? requested : null;
+        final handle = await player.handle;
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(candidate);
+        }
+        final warnings = VideoController.windowsRenderWarnings.listen((warning) {
+          if (!isCurrentPlayer(player) || warning.handle != handle) return;
+          if (warning.code == 'softwareFallback') {
+            _windowsSoftwareRenderer.value = true;
+            unawaited(setShader(SuperResolutionMode.off, player: player));
           }
-          if (androidSdkVersion >= 34) {
-            videoRenderer = 'gpu-next';
-          } else {
-            videoRenderer = 'gpu';
+          final message = switch (warning.code) {
+            'adapterFallback' => '所选 GPU 不可用，已使用自动选择',
+            'softwareFallback' => 'GPU 渲染初始化失败，已切换到软件渲染',
+            'renderFailed' => 'GPU 渲染或跨卡传输失败，请在设置中将视频处理 GPU 改为自动',
+            'resizeFailed' => '无法分配超分输出纹理，继续使用原有输出尺寸',
+            _ => null,
+          };
+          if (message != null) KazumiDialog.showToast(message: message);
+        });
+        pp.release.add(warnings.cancel);
+      } else if (Platform.isAndroid) {
+        final rendererSetting = GStorage.getSetting(SettingsKeys.androidVideoRenderer);
+        final requested = VideoGpu.selection;
+        final sdkVersion = rendererSetting == 'auto'
+            ? await PlatformEnvironmentService.getAndroidSdkVersion()
+            : 0;
+        List<VideoAdapter> available = const [];
+        final probeForAuto = rendererSetting == 'auto' && sdkVersion >= 34;
+        final probeSelection = requested.isNotEmpty && (rendererSetting == 'auto' || rendererSetting == 'gpu-next');
+        if (probeForAuto || probeSelection) {
+          try {
+            available = await VideoGpu.enumerate();
+          } catch (error) {
+            KazumiLogger().w('GPU enumeration failed', error: error);
           }
-        } else {
-          videoRenderer = androidVideoRenderer;
+        }
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(candidate);
+        }
+        final gpuPlan = androidGpuPlan(
+          rendererSetting: rendererSetting,
+          sdkVersion: sdkVersion,
+          selectedDevice: requested,
+          available: available,
+        );
+        videoRenderer = gpuPlan.renderer;
+        androidRenderGpu = gpuPlan.renderDevice;
+        if (gpuPlan.unavailable) {
+          KazumiDialog.showToast(message: '未找到所选 Vulkan 设备，已使用自动选择');
         }
       }
 
+      _videoRenderer = videoRenderer;
       if (videoRenderer == 'mediacodec_embed') {
         hAenable = true;
         hardwareDecoder = 'mediacodec';
@@ -414,8 +473,22 @@ abstract class _PlayerPlaybackController with Store {
           enableAndroidSurfaceProducer: false,
           hwdec: hAenable ? hardwareDecoder : 'no',
           androidAttachSurfaceAfterVideoParameters: false,
+          windowsRenderAdapterId: windowsGpu,
+          androidVulkanDeviceUuid: androidRenderGpu,
         ),
       );
+      if (androidRenderGpu != null) {
+        // setProperty can succeed in Dart even when mpv rejects an option.
+        // The controller restores automatic backend selection in that case.
+        final applied = await pp.getProperty('options/vulkan-device');
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(candidate);
+        }
+        if (applied != androidRenderGpu) {
+          androidRenderGpu = null;
+          KazumiDialog.showToast(message: '播放器无法使用所选 Vulkan GPU，已使用自动选择');
+        }
+      }
       player.setPlaylistMode(PlaylistMode.none);
       if (!isCurrentPlayer(player)) {
         return await _discardIfNotCurrent(candidate);
@@ -424,6 +497,10 @@ abstract class _PlayerPlaybackController with Store {
       bool showPlayerError = GStorage.getSetting(SettingsKeys.showPlayerError);
       player.stream.error.listen((event) {
         if (isCurrentPlayer(player)) {
+          if (androidRenderGpu != null &&
+              event.contains('Error opening/initializing the selected video_out')) {
+            KazumiDialog.showToast(message: '无法在所选设备启动 Vulkan，请将 Vulkan GPU 改为自动');
+          }
           final actionableMessage = PlayerErrorMapper.toActionableMessage(
             event,
             isBuffering: playerBuffering,
@@ -481,47 +558,50 @@ abstract class _PlayerPlaybackController with Store {
     }
   }
 
-  Future<void> setShader(SuperResolutionMode mode, {Player? player}) async {
-    final currentPlayer = player ?? mediaPlayer;
-    if (currentPlayer == null) return;
-    try {
-      var pp = currentPlayer.platform as NativePlayer;
-      await pp.waitForPlayerInitialization;
-      await pp.waitForVideoControllerInitializationIfAttached;
-      if (!identical(mediaPlayer, currentPlayer)) {
-        return;
-      }
-      switch (mode) {
-        case SuperResolutionMode.efficiency:
-          await pp.command([
-            'change-list',
-            'glsl-shaders',
-            'set',
-            buildShadersAbsolutePath(
-              shaderAssetService.shadersDirectory.path,
-              mpvAnime4KShadersLite,
-            ),
-          ]);
-          break;
-        case SuperResolutionMode.quality:
-          await pp.command([
-            'change-list',
-            'glsl-shaders',
-            'set',
-            buildShadersAbsolutePath(
-              shaderAssetService.shadersDirectory.path,
-              mpvAnime4KShaders,
-            ),
-          ]);
-          break;
-        case SuperResolutionMode.off:
+  Future<void> setShader(SuperResolutionMode mode, {Player? player, Upscaler? upscaler}) async {
+    final current = player ?? mediaPlayer;
+    if (current == null) return;
+    await _shaderWrites.run(() async {
+      if (!isCurrentPlayer(current)) return;
+      final pp = current.platform as NativePlayer;
+      try {
+        await pp.waitForPlayerInitialization;
+        await pp.waitForVideoControllerInitializationIfAttached;
+        if (!isCurrentPlayer(current)) return;
+        final requested = upscaler ?? _selectedUpscaler;
+        final applied = requested == Upscaler.cunny && !supportsComputeShaders ? Upscaler.anime4k : requested;
+        final tier = _canRenderShaders ? applied.supportedTier(mode) : SuperResolutionMode.off;
+        final shaders = applied.shadersFor(tier);
+        if (shaders.isEmpty) {
           await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
-          break;
+        } else {
+          await shaderAssetService.requireShaders(shaders);
+          if (!isCurrentPlayer(current)) return;
+          await pp.command(['change-list', 'glsl-shaders', 'set',
+            buildShadersAbsolutePath(shaderAssetService.shadersDirectory.path, shaders)]);
+        }
+        if (!isCurrentPlayer(current)) return;
+        _selectedUpscaler = requested;
+        _appliedUpscaler.value = shaders.isEmpty ? null : applied;
+        superResolutionMode = tier;
+        if (tier != SuperResolutionMode.off && applied != requested) {
+          KazumiDialog.showToast(message: '当前渲染器不支持 CuNNy，已使用 Anime4K');
+        }
+      } catch (error) {
+        if (!isCurrentPlayer(current)) return;
+        KazumiLogger().w('PlayerController: failed to apply upscaling', error: error);
+        try {
+          await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
+        } catch (clearError) {
+          KazumiLogger().w('PlayerController: failed to clear shaders', error: clearError);
+        }
+        if (isCurrentPlayer(current)) {
+          _appliedUpscaler.value = null;
+          superResolutionMode = SuperResolutionMode.off;
+          KazumiDialog.showToast(message: '未能应用超分辨率');
+        }
       }
-      superResolutionMode = mode;
-    } catch (e) {
-      KazumiLogger().w('PlayerController: failed to set shader', error: e);
-    }
+    });
   }
 
   Future<void> setPlaybackSpeed(double playerSpeed) async {

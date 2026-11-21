@@ -1,0 +1,4 @@
+module Mpv {
+  header "media_kit_mpv.h"
+  export *
+}

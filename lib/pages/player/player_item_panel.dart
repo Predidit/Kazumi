@@ -5,7 +5,9 @@ import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kazumi/services/enhancement/upscaling.dart';
 import 'package:kazumi/bean/widget/kazumi_menu.dart';
+import 'package:kazumi/pages/player/player_upscaling_menu.dart';
 import 'package:kazumi/bean/widget/play_pause_icon.dart';
 import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/danmaku_destination_sheet.dart';
@@ -73,7 +75,7 @@ class PlayerItemPanel extends StatefulWidget {
   final VoidCallback showScreenshotCandidates;
   final VoidCallback handleProgressBarDragStart;
   final void Function(bool cancelled) handleProgressBarDragEnd;
-  final Future<void> Function(SuperResolutionMode mode)
+  final Future<void> Function(SuperResolutionMode mode, {Upscaler? upscaler})
       handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
   final FocusNode keyboardFocus;
@@ -631,13 +633,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         onSelected: widget.setPlaybackSpeed,
       );
 
-  List<Widget> get _superResolutionItems => _choiceItems(
-        SuperResolutionMode.values,
-        label: (value) => value.label,
-        selected: (value) =>
-            value == playerController.playback.superResolutionMode,
-        onSelected: widget.handleSuperResolutionChange,
-      );
+  List<Widget> get _superResolutionItems => upscalingMenuItems(
+    supportsComputeShaders: playerController.playback.supportsComputeShaders,
+    activeModel: playerController.playback.appliedUpscaler,
+    activeTier: playerController.playback.superResolutionMode,
+    onSelect: widget.handleSuperResolutionChange,
+  );
 
   Widget _menuButton(
           {required Widget child,

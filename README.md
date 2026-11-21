@@ -12,8 +12,10 @@
 <a href="https://trendshift.io/repositories/11432"><img src="https://trendshift.io/api/badge/trendshift/repositories/11432/yearly?language=Dart"></img></a>
 <a href="https://hellogithub.com/repository/Predidit/Kazumi" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=68d824ea55ee4b07aba6fe1dd61ac939&claim_uid=J9Qu6aDd8LT1nU0"/></img></a>
 
-<p>使用 Flutter 开发的基于自定义规则的番剧采集与在线观看程序。使用最多五行基于 <code>Xpath</code> 语法的选择器构建自己的规则。支持规则导入与规则分享。支持基于 <code>Anime4K</code> 的实时超分辨率。绝赞开发中 (～￣▽￣)～</p>
+<p>使用 Flutter 开发的基于自定义规则的番剧采集与在线观看程序。使用最多五行基于 <code>Xpath</code> 语法的选择器构建自己的规则。支持规则导入与规则分享。支持基于 <code>Anime4K</code> 的实时超分辨率。Windows 硬件渲染和 Android gpu-next 还可在播放器的「超分辨率」菜单选择 CuNNy 2×。绝赞开发中 (～￣▽￣)～</p>
 </div>
+
+CuNNy 的效率、均衡和质量档分别使用 fast、3×12 和 4×16 SOFT 着色器。画面宽高均超过片源的 1.3 倍时生效。自动渲染长边上限为 Windows 3840 像素、Android 2560 像素。[着色器来源](https://github.com/funnyplanter/CuNNy/tree/906031bb00c15dd6a6bbbaa21c0eb0b724ca8437)
 
 ## 支持平台
 

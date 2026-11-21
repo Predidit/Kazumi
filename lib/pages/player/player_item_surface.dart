@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:kazumi/services/enhancement/upscaling.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/pages/player/player_upscaling_viewport.dart';
 
 class PlayerItemSurface extends StatefulWidget {
   const PlayerItemSurface({
@@ -31,8 +35,9 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
       }
 
       final aspectRatioMode = playerController.panel.aspectRatioMode;
+      final controller = playerController.playback.videoController!;
       final video = Video(
-        controller: playerController.playback.videoController!,
+        controller: controller,
         controls: NoVideoControls,
         pauseUponEnteringBackgroundMode: false,
         fit: aspectRatioMode.fit,
@@ -61,13 +66,23 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
         ),
       );
 
+      final surface = Platform.isWindows || Platform.isAndroid
+          ? PlayerUpscalingViewport(
+              key: ValueKey(controller),
+              controller: controller,
+              enabled: playerController.playback.appliedUpscaler == Upscaler.cunny,
+              maximumEdge: playerController.playback.upscalingOutputEdge,
+              fit: aspectRatioMode.fit,
+              child: video,
+            )
+          : video;
       final frameAspectRatio = aspectRatioMode.frameAspectRatio;
       if (frameAspectRatio == null) {
-        return video;
+        return surface;
       }
       return AspectRatio(
         aspectRatio: frameAspectRatio,
-        child: video,
+        child: surface,
       );
     });
   }

@@ -200,6 +200,7 @@ class _TLSMessage extends SyncplayMessage {
 class SyncplayClient {
   final String _host;
   final int _port;
+  final double Function()? getPosition;
   bool _connectCalled = false;
   bool _closed = false;
   bool _isTLS = false;
@@ -268,7 +269,7 @@ class SyncplayClient {
     return _positionChangedMessageController!.stream;
   }
 
-  SyncplayClient({required String host, required int port})
+  SyncplayClient({required String host, required int port, this.getPosition})
       : _host = host,
         _port = port;
 
@@ -495,7 +496,7 @@ class SyncplayClient {
           return;
         }
         if (event == RawSocketEvent.read) {
-          while (true) {
+          while (socket.available() > 0) {
             final data = socket.read();
             if (data == null || data.isEmpty) {
               break;
@@ -639,17 +640,17 @@ class SyncplayClient {
           }
         }
       }
+      var replyPosition = _currentPositon;
       if (_clientIgnoringOnTheFly == 0) {
-        _currentPositon = (json['State']['playstate']['paused'] ?? true)
-            ? (json['State']['playstate']['position']?.toDouble() ?? 0.0)
-            : ((json['State']['playstate']['position']?.toDouble() ?? 0.0) +
-                _fd);
         _isPaused = json['State']['playstate']['paused'] ?? true;
+        final position =
+            json['State']['playstate']['position']?.toDouble() ?? 0.0;
+        final calculatedPosition = _isPaused ? position : position + _fd;
+        replyPosition = _serverIgnoringOnTheFly > 0
+            ? calculatedPosition
+            : (getPosition?.call() ?? _currentPositon);
         _positionChangedMessageController?.add({
-          'calculatedPositon': (json['State']['playstate']['paused'] ?? true)
-              ? (json['State']['playstate']['position']?.toDouble() ?? 0.0)
-              : ((json['State']['playstate']['position']?.toDouble() ?? 0.0) +
-                  _fd),
+          'calculatedPositon': calculatedPosition,
           'position': json['State']['playstate']['position']?.toDouble() ?? 0.0,
           'paused': json['State']['playstate']['paused'] ?? true,
           'doSeek': json['State']['playstate']['doSeek'] ?? false,
@@ -660,12 +661,7 @@ class SyncplayClient {
           'fd': _fd,
         });
       }
-      _runInBackground(
-        _sendState(
-          position: _currentPositon,
-          paused: _isPaused,
-        ),
-      );
+      _runInBackground(_sendState(position: replyPosition, paused: _isPaused));
       return;
     }
     if (json.containsKey('Set')) {

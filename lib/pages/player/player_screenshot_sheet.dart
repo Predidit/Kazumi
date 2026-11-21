@@ -950,6 +950,7 @@ class _ScreenshotFilmstripState extends State<_ScreenshotFilmstrip> {
                       selected: widget.controller.isSelected(item),
                       duration: widget.duration,
                       onTap: () => widget.onBrowse(index),
+                      onDoubleTap: () => widget.controller.toggle(item),
                     ),
                   );
                 },
@@ -970,6 +971,7 @@ class _FrameThumbnail extends StatelessWidget {
     required this.selected,
     required this.duration,
     required this.onTap,
+    required this.onDoubleTap,
   });
   final ScreenshotCandidate item;
   final int index;
@@ -977,6 +979,7 @@ class _FrameThumbnail extends StatelessWidget {
   final bool selected;
   final Duration duration;
   final VoidCallback onTap;
+  final VoidCallback onDoubleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -991,6 +994,7 @@ class _FrameThumbnail extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
+          onDoubleTap: onDoubleTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: AnimatedContainer(

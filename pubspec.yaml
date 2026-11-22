@@ -37,7 +37,7 @@ dependencies:
   audio_service_mpris:
     git:
       url: https://github.com/Predidit/audio-service-mpris.git
-      ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
+      ref: 5c8de436994fab2ab4326bc2bbefca7c660b95aa
   audio_service_win:
     git:
       url: https://github.com/Predidit/audio_service_win.git

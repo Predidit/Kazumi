@@ -101,11 +101,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
-      resolved-ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
+      ref: "5c8de436994fab2ab4326bc2bbefca7c660b95aa"
+      resolved-ref: "5c8de436994fab2ab4326bc2bbefca7c660b95aa"
       url: "https://github.com/Predidit/audio-service-mpris.git"
     source: git
-    version: "1.0.0-beta.1"
+    version: "1.0.0-beta.3"
   audio_service_platform_interface:
     dependency: transitive
     description:
@@ -367,10 +367,10 @@ packages:
     dependency: transitive
     description:
       name: dbus
-      sha256: d0c98dcd4f5169878b6cf8f6e0a52403a9dff371a3e2f019697accbf6f44a270
+      sha256: a48d5da28e89bd02196e80d81ed8d7954923d00a0f4a68cc20b575038f023383
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.12"
+    version: "0.7.15"
   desktop_webview_window:
     dependency: "direct main"
     description:

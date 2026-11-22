@@ -544,9 +544,21 @@ abstract class _PlayerPlaybackController with Store {
         final nativeWarnings = player.stream.log.listen((event) {
           if (!isCurrentPlayer(player)) return;
           if (interpolationMode == InterpolationMode.off) return;
-          if (event.text.contains('KAZUMI_DRBA_OVER_BUDGET')) {
-            KazumiDialog.showToast(message: '插帧耗时超过播放预算，已保留原始帧率。切换档位或跳转进度可重试');
+          final budgetWarning = FrameInterpolation.budgetWarning(
+            event.text,
+            cpu: _interpolationOptions.cpu,
+          );
+          if (budgetWarning != null) {
+            KazumiLogger().w(budgetWarning, error: event.text);
+            KazumiDialog.showToast(
+              message: budgetWarning,
+              duration: const Duration(seconds: 6),
+            );
           } else if (event.text.contains('KAZUMI_DRBA_INFERENCE_FAILED') || event.text.contains('KAZUMI_DRBA_INIT_FAILED')) {
+            KazumiLogger().w(
+              'PlayerController: native interpolation failure',
+              error: event.text,
+            );
             KazumiDialog.showToast(message: '插帧推理失败，已恢复原始帧率');
             unawaited(setInterpolation(InterpolationMode.off));
           }
@@ -655,13 +667,33 @@ abstract class _PlayerPlaybackController with Store {
     }
   }
 
+  Future<bool> _switchToInterpolationRenderer(Player player) async {
+    if (_videoRenderer != 'mediacodec_embed') return true;
+    final controller = videoController;
+    if (controller == null) return false;
+    try {
+      final platform = await controller.platform.future;
+      await platform.setVideoOutput('gpu');
+      if (!isCurrentPlayer(player)) return false;
+      _videoRenderer = 'gpu';
+      KazumiDialog.showToast(message: '插帧需要 GPU 渲染，已切换到 gpu');
+      return true;
+    } catch (error, stackTrace) {
+      KazumiLogger().w(
+        'PlayerController: failed to switch Android video output for interpolation',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      KazumiDialog.showToast(message: '无法切换到 GPU 渲染器，插帧未启用');
+      return false;
+    }
+  }
+
   Future<void> setInterpolation(InterpolationMode mode) async {
     final player = mediaPlayer;
     if (player == null || !FrameInterpolation.available) return;
-    if (_videoRenderer == 'mediacodec_embed') {
-      if (mode != InterpolationMode.off) {
-        KazumiDialog.showToast(message: '请使用 gpu 或 gpu-next 渲染器来开启插帧');
-      }
+    if (mode != InterpolationMode.off &&
+        !await _switchToInterpolationRenderer(player)) {
       return;
     }
     final generation = ++_interpolationGeneration;
@@ -723,7 +755,7 @@ abstract class _PlayerPlaybackController with Store {
         'PlayerController: failed to apply frame interpolation',
         error: error,
       );
-      KazumiDialog.showToast(message: '插帧未启用，请检查视频处理 GPU，或在专业参数中选择 CPU 推理');
+      KazumiDialog.showToast(message: '插帧未能启动，请查看播放器日志');
     } finally {
       if (current()) _interpolationBusy.value = false;
     }

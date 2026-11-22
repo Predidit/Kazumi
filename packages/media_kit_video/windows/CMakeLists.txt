@@ -15,6 +15,6 @@ target_compile_options(${PLUGIN_NAME} PRIVATE "/utf-8")
 target_include_directories(${PLUGIN_NAME}
   INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
   PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../common/mpv/include")
-target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin dxguid)
+target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin dxguid gdi32)
 # Native libraries are emitted by media_kit's Dart build hook.
 set(media_kit_video_bundled_libraries "" PARENT_SCOPE)

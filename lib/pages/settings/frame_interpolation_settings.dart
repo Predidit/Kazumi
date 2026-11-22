@@ -180,9 +180,10 @@ class _FrameInterpolationSettingsState
       mobile: Platform.isAndroid,
       highMemoryGpu: advice?.ampleDedicatedMemory ?? false,
     )!;
-    final recommendation = advice?.adapter == null
-        ? null
-        : advice!.recommendedInterpolation(selected);
+    final recommendation =
+        advice != null && (plan.cpu || advice.adapter != null)
+        ? advice.recommendedInterpolation(selected, cpu: plan.cpu)
+        : null;
     num? recommended(String key) => recommendation?[key] as num?;
     return Column(
       children: [
@@ -223,7 +224,7 @@ class _FrameInterpolationSettingsState
                 leading: Icons.auto_awesome_outlined,
                 title: Text(widget.expert ? '应用本机推荐插帧参数' : '本机推荐插帧配置'),
                 description: Text(
-                  '${advice.deviceLabel}\n'
+                  '${plan.cpu ? 'CPU · ${advice.cpuCount} 逻辑线程' : advice.deviceLabel}\n'
                   '${FrameInterpolation.modelLabel} · '
                   '${selected.label} · ${recommendation['maximumEdge']} 像素 · ${recommendation['factor']}× · '
                   '上限 ${recommendation['maximumFps']} FPS\n'
@@ -313,7 +314,7 @@ class _FrameInterpolationSettingsState
               _toggle(
                 'cpu',
                 '在 CPU 上推理',
-                '不用 Vulkan，改用 CPU。更易拖慢解码和发热，建议仅在没有可用 Vulkan GPU 时尝试。',
+                '下次打开视频生效。CPU 负责推理和画面合成，可能比 Vulkan 慢，也会触发实时负载保护。',
                 plan.cpu,
               ),
               if (plan.cpu)

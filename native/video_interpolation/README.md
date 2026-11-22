@@ -6,7 +6,7 @@ The Windows and Android enhanced packages add the `kazumi-drba` mpv filter. It e
 
 ## 1. Build the bridge
 
-Use the Vulkan-enabled ncnn SDK for the target architecture. The Android workflow pins its archive digest. On Windows x64 the SHA-256 of `ncnn-20261020-windows-vs2022.zip` is `ef9fe4463e5db0f41484ad25e91686e709b91e400858639aed631c280dfa91d4`.
+On Windows, use the Vulkan-enabled ncnn SDK for the target architecture. The SHA-256 of `ncnn-20261020-windows-vs2022.zip` is `ef9fe4463e5db0f41484ad25e91686e709b91e400858639aed631c280dfa91d4`.
 
 ```powershell
 cmake -S native/video_interpolation -B build/neural-win -A x64 `
@@ -14,12 +14,32 @@ cmake -S native/video_interpolation -B build/neural-win -A x64 `
 cmake --build build/neural-win --config Release
 ```
 
+For Android, use NDK r30 and build ncnn from the verified
+`ncnn-20261020-full-source.zip` release asset (SHA-256
+`699d9acc67489eee0993a551ca1ebc247bbf0f4e33babe1dec810e6a9a52b988`).
+The Android workflow applies [`android-adreno-740-workgroups.patch`](ncnn/android-adreno-740-workgroups.patch).
+On affected proprietary Adreno 740 drivers, `LocalSizeId` shaders advertised
+via Vulkan maintenance4 dispatch as 1×1×1 instead of ncnn's expected size.
+The patch uses ncnn's fixed-workgroup SPIR-V path for that GPU/driver only.
+Both motion estimation and plane warping still use Vulkan; the stock Android
+ncnn SDK does not include the compatibility patch.
+
 ```sh
+# From this checkout, with the verified full-source archive extracted separately.
+git -C /work/ncnn-src apply "$PWD/native/video_interpolation/ncnn/android-adreno-740-workgroups.patch"
+cmake -S /work/ncnn-src -B /work/ncnn-build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DNCNN_VERSION=20261020 -DNCNN_VULKAN=ON \
+  -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 -DANDROID_STL=c++_static \
+  -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_EXAMPLES=OFF -DNCNN_BUILD_BENCHMARK=OFF \
+  -DNCNN_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=/work/ncnn-install
+cmake --build /work/ncnn-build --target install --parallel 4
+
 cmake -S native/video_interpolation -B build/neural-android -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DKAZUMI_BUILD_NEURAL=ON \
   -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
   -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 -DANDROID_STL=c++_static \
-  -Dncnn_DIR=/work/ncnn-20261020-android-vulkan/arm64-v8a/lib/cmake/ncnn
+  -Dncnn_DIR=/work/ncnn-install/lib/cmake/ncnn
 cmake --build build/neural-android --target kazumi_rife --parallel 4
 ```
 
@@ -89,3 +109,20 @@ With the enhanced player, open a progressive SDR clip, select an interpolation t
 ```sh
 python tool/video_enhancement/verify_enhanced_apk.py app-arm64-v8a-release.apk arm64-v8a
 ```
+
+### Offline Android Vulkan regression test
+
+The smoke executable runs only the Vulkan backend on synthetic RGB inputs.
+It checks repeatable motion outputs at all three Android tier sizes and checks
+that the compositor writes the entire output plane, including on the first call.
+
+```sh
+cmake --build build/neural-android --target kazumi_drba_gpu_smoke
+adb shell mkdir -p /data/local/tmp/kazumi-drba-smoke/models
+adb push build/neural-android/kazumi_drba_gpu_smoke build/neural-android/libkazumi_rife.so /data/local/tmp/kazumi-drba-smoke/
+adb push assets/models/distildrba-v2-lite/flownet.param assets/models/distildrba-v2-lite/flownet.bin /data/local/tmp/kazumi-drba-smoke/models/
+adb shell 'cd /data/local/tmp/kazumi-drba-smoke && chmod 755 kazumi_drba_gpu_smoke && LD_LIBRARY_PATH=. ./kazumi_drba_gpu_smoke "$PWD/models"'
+```
+
+This checks compute correctness, not playback speed. The player can still
+preserve source cadence when GPU work exceeds its real-time budget.

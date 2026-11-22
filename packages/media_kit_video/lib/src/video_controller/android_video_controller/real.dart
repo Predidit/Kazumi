@@ -54,7 +54,7 @@ class AndroidVideoController extends PlatformVideoController {
     final width = dimensions?.width.toInt() ?? 1;
     final height = dimensions?.height.toInt() ?? 1;
     final widValue = wid.value?.toString() ?? '0';
-    final vo = widValue == '0' ? 'null' : configuration.vo!;
+    final vo = widValue == '0' ? 'null' : _activeVo;
     await setProperties({
       // The Vulkan Android context caches the surface size at VO creation.
       'vo': 'null',
@@ -65,7 +65,7 @@ class AndroidVideoController extends PlatformVideoController {
     // Recreating the VO discards its last frame. A paused stream supplies no
     // next frame to refill the newly sized surface. Use mpv's exact playhead
     // instead of seeking a running player to a stale Dart stream position.
-    if (widValue != '0' && configuration.vo != 'mediacodec_embed' &&
+    if (widValue != '0' && _activeVo != 'mediacodec_embed' &&
         !player.state.playing && player.state.playlist.medias.isNotEmpty) {
       final pos = await platform.getProperty('time-pos', waitForInitialization: false);
       final seekable = await platform.getProperty('seekable', waitForInitialization: false);
@@ -73,7 +73,7 @@ class AndroidVideoController extends PlatformVideoController {
         await platform.command(['seek', pos, 'absolute+exact'], waitForInitialization: false);
       }
     }
-    if (configuration.vo == 'mediacodec_embed') {
+    if (_activeVo == 'mediacodec_embed') {
       await setProperty('vid', widValue == '0' ? 'no' : 'auto');
     }
   }
@@ -81,6 +81,21 @@ class AndroidVideoController extends PlatformVideoController {
   int? _sourceWidth, _sourceHeight, _outputWidth, _outputHeight;
   bool _disposed = false;
   bool _canResizeInPlace = false;
+  late String _activeVo;
+
+  @override
+  Future<void> setVideoOutput(String renderer) => lock.synchronized(() async {
+    if (_disposed || renderer == _activeVo) return;
+    final widValue = wid.value?.toString() ?? '0';
+    await setProperty('vo', 'null');
+    if (renderer == 'gpu') {
+      await setProperty('gpu-api', 'auto');
+    } else if (renderer == 'gpu-next') {
+      await setProperty('gpu-api', 'vulkan,opengl');
+    }
+    await setProperty('vo', widValue == '0' ? 'null' : renderer);
+    _activeVo = renderer;
+  });
 
   Future<void> _applySize() async {
     if (_disposed) return;
@@ -100,7 +115,7 @@ class AndroidVideoController extends PlatformVideoController {
     // SurfaceTexture keeps the same global ref on resize. A new ref, when
     // available, is handled by widListener instead.
     if (previousWid != null && previousWid != 0 && previousWid == wid.value &&
-        configuration.vo != 'mediacodec_embed') {
+        _activeVo != 'mediacodec_embed') {
       if (_canResizeInPlace) {
         await setProperty('android-surface-size', '${width}x$height');
       } else {
@@ -117,9 +132,10 @@ class AndroidVideoController extends PlatformVideoController {
 
   /// {@macro android_video_controller}
   AndroidVideoController._(
-    super.player,
-    super.configuration,
-  ) {
+    Player player,
+    VideoControllerConfiguration configuration,
+  ) : _activeVo = configuration.vo!,
+      super(player, configuration) {
     wid.addListener(widListener);
     videoParamsSubscription = player.stream.videoParams.listen(
       (event) => lock.synchronized(() async {
@@ -239,7 +255,7 @@ class AndroidVideoController extends PlatformVideoController {
   /// * “With great power comes great responsibility”
   @override
   Future<void> setSize({int? width, int? height}) => lock.synchronized(() async {
-    if (configuration.vo == 'mediacodec_embed') return;
+    if (_activeVo == 'mediacodec_embed') return;
     _outputWidth = width;
     _outputHeight = height;
     await _applySize();

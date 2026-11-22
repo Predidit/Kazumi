@@ -24,6 +24,21 @@ abstract final class FrameInterpolation {
   static const modelLabel = 'DRBA_Distill lite';
   static const label = 'kazumi-motion';
 
+  // Both existing and newly built enhanced mpv packages use this log line.
+  static final _budgetDetails = RegExp(
+    r'\((\d+(?:\.\d+)?) ms work for (\d+(?:\.\d+)?) ms gap at (\d+) px\)',
+  );
+
+  static String? budgetWarning(String text, {required bool cpu}) {
+    if (!text.contains('KAZUMI_DRBA_OVER_BUDGET:')) return null;
+    final backend = cpu ? 'CPU' : 'Vulkan GPU';
+    final details = _budgetDetails.firstMatch(text);
+    final timing = details == null
+        ? ''
+        : '（补帧耗时 ${details[1]} ms，原帧间隔 ${details[2]} ms，推理尺寸 ${details[3]} px）';
+    return '$backend 插帧超过实时预算$timing，已保留原始帧率';
+  }
+
   static Future<bool> isAttached(NativePlayer player) async =>
       (await player.getProperty('options/vf')).contains('@$label:');
 }

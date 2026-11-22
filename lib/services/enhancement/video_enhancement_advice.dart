@@ -69,9 +69,12 @@ class VideoEnhancementAdvice {
         highMemoryGpu: ampleDedicatedMemory,
       )!;
 
-  /// Applies only interpolation parameters, never silently enabling the filter.
-  Map<String, Object?> recommendedInterpolation(InterpolationMode tier) {
-    final plan = interpolation(tier);
+  /// Keep the selected backend and never silently enable the filter.
+  Map<String, Object?> recommendedInterpolation(
+    InterpolationMode tier, {
+    required bool cpu,
+  }) {
+    final plan = interpolation(tier, cpu: cpu);
     return {
       'factor': plan.factor,
       'maximumEdge': plan.maximumEdge,
@@ -80,7 +83,7 @@ class VideoEnhancementAdvice {
       'sceneThreshold': plan.sceneThreshold,
       'staticThreshold': plan.staticThreshold,
       'realtimeGuard': true,
-      'cpu': false,
+      'cpu': cpu,
       'threads': cpuCount.clamp(1, 4),
     };
   }

@@ -54,15 +54,22 @@ jobs:
           BUILD_NDK: ${{ steps.ndk.outputs.ndk-path }}
         run: |
           cd "$RUNNER_TEMP"
-          curl --fail --location --retry 3 --output sdk.zip https://github.com/Tencent/ncnn/releases/download/20261020/ncnn-20261020-android-vulkan.zip
-          echo '6e0c5f9b397faf32b923de2ef6210af9bf375851869dceff06a8005331981086  sdk.zip' | sha256sum --check
-          unzip -q sdk.zip
           source="$GITHUB_WORKSPACE/native/video_interpolation"
+          curl --fail --location --retry 3 --output ncnn.zip https://github.com/Tencent/ncnn/releases/download/20261020/ncnn-20261020-full-source.zip
+          echo '699d9acc67489eee0993a551ca1ebc247bbf0f4e33babe1dec810e6a9a52b988  ncnn.zip' | sha256sum --check
+          unzip -q ncnn.zip -d ncnn-src
+          git -C ncnn-src apply "$source/ncnn/android-adreno-740-workgroups.patch"
+          cmake -S ncnn-src -B ncnn-build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$BUILD_NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI="$ABI" -DANDROID_PLATFORM=android-24 -DANDROID_STL=c++_static \
+            -DNCNN_VERSION=20261020 -DNCNN_VULKAN=ON -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_EXAMPLES=OFF \
+            -DNCNN_BUILD_BENCHMARK=OFF -DNCNN_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/ncnn-install"
+          cmake --build ncnn-build --target install --parallel "$KAZUMI_NATIVE_JOBS"
           cmake -S "$source" -B "$RUNNER_TEMP/rife-objects" -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$BUILD_NDK/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI="$ABI" -DANDROID_PLATFORM=android-24 -DANDROID_STL=c++_static \
             -DKAZUMI_BUILD_NEURAL=ON \
-            -Dncnn_DIR="$RUNNER_TEMP/ncnn-20261020-android-vulkan/$ABI/lib/cmake/ncnn"
+            -Dncnn_DIR="$RUNNER_TEMP/ncnn-install/lib/cmake/ncnn"
           cmake --build "$RUNNER_TEMP/rife-objects" --target kazumi_rife --parallel "$KAZUMI_NATIVE_JOBS"
       - name: Package app and verify JNI entries
         run: |

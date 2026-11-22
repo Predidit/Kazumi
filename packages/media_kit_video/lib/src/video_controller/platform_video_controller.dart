@@ -51,6 +51,12 @@ abstract class PlatformVideoController {
     int? height,
   });
 
+  /// Switches the native video output for a live player when the platform
+  /// implementation supports it.
+  Future<void> setVideoOutput(String renderer) async {
+    throw UnsupportedError('Changing the video output is not supported');
+  }
+
   /// A [Future] that completes when the first video frame has been rendered.
   Future<void> get waitUntilFirstFrameRendered =>
       waitUntilFirstFrameRenderedCompleter.future;

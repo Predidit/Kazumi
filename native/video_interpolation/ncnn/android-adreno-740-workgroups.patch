@@ -1,0 +1,31 @@
+--- a/src/gpu.cpp
++++ b/src/gpu.cpp
+@@ -6365,15 +6365,26 @@
+         s.setSourceEntryPoint("main");
+ 
+         s.setEnvInput(glslang::EShSourceGlsl, EShLangCompute, glslang::EShClientVulkan, 1);
+ 
+-        if (info.queryMaintenance4Features().maintenance4)
++        // The proprietary Android Adreno 740 driver may execute LocalSizeId
++        // shaders with a 1x1x1 workgroup even though maintenance4 is advertised.
++        // Keep ncnn's dispatch geometry and use its fixed LocalSize path instead.
++        const bool fixed_workgroups =
++#if defined(__ANDROID__)
++            info.vendor_id() == 0x5143 && info.device_id() == 0x43050a01 &&
++            info.driver_id() == VK_DRIVER_ID_QUALCOMM_PROPRIETARY;
++#else
++            false;
++#endif
++
++        if (info.queryMaintenance4Features().maintenance4 && !fixed_workgroups)
+         {
+             // enabled core maintenance4 permits spirv-1.6 and LocalSizeId for all shaders
+             s.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
+             s.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_6);
+         }
+-        else if (opt.use_subgroup_ops || opt.use_cooperative_matrix)
++        else if (fixed_workgroups || opt.use_subgroup_ops || opt.use_cooperative_matrix)
+         {
+             // subgroup / cooperative_matrix need vulkan-1.1 and spirv-1.3
+             s.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_1);
+             s.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_3);

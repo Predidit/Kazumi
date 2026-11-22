@@ -4,7 +4,7 @@ import 'package:kazumi/bean/card/user_comments_card.dart';
 import 'package:kazumi/bean/widget/connected_button_group.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/refresh_icon_button.dart';
 import 'package:kazumi/bean/widget/split_list_selector.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
@@ -201,7 +201,6 @@ class _CommentsControlBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final disableAnimations = MediaQuery.disableAnimationsOf(context);
     final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
     final compactSort = availableWidth < 324 || textScale > 1.25;
 
@@ -284,33 +283,11 @@ class _CommentsControlBar extends StatelessWidget {
               ),
             ),
           const SizedBox(width: 6),
-          IconButton.filledTonal(
-            tooltip: isLoading ? '正在加载评论' : '刷新评论',
-            onPressed: isLoading ? null : onRefresh,
-            style: IconButton.styleFrom(
-              minimumSize: const Size(40, 40),
-              backgroundColor: colors.surfaceContainer,
-              disabledBackgroundColor: colors.surfaceContainer,
-              foregroundColor: colors.onSurfaceVariant,
-              disabledForegroundColor: colors.primary,
-            ),
-            icon: AnimatedSwitcher(
-              duration: disableAnimations
-                  ? Duration.zero
-                  : const Duration(milliseconds: 180),
-              child: isLoading
-                  ? LoadingIndicator(
-                      key: const ValueKey('loading'),
-                      size: 18,
-                      color: colors.primary,
-                      semanticsLabel: '正在加载评论',
-                    )
-                  : const Icon(
-                      Icons.refresh_rounded,
-                      key: ValueKey('refresh'),
-                      size: 20,
-                    ),
-            ),
+          RefreshIconButton(
+            loading: isLoading,
+            onPressed: onRefresh,
+            tooltip: '刷新评论',
+            loadingLabel: '正在加载评论',
           ),
         ],
       ),

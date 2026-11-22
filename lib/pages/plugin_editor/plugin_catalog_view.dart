@@ -9,6 +9,7 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/refresh_icon_button.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
@@ -221,15 +222,12 @@ class _PluginCatalogViewState extends State<PluginCatalogView> {
           _sortButton(),
           const Spacer(),
         ],
-        IconButton.filledTonal(
+        RefreshIconButton(
+            loading: _loading,
+            onPressed: _refresh,
             tooltip: '刷新规则列表',
-            onPressed: _loading ? null : _refresh,
-            icon: const Icon(Icons.refresh_rounded)),
+            loadingLabel: '正在加载规则列表'),
       ]),
-      if (_loading && total > 0)
-        const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: LinearProgressIndicator()),
       if (_loadFailed && total > 0)
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),

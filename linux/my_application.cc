@@ -1,5 +1,6 @@
 #include "my_application.h"
 
+#include <clocale>
 #include <flutter_linux/flutter_linux.h>
 #include <sys/statvfs.h>
 #ifdef GDK_WINDOWING_X11
@@ -141,6 +142,9 @@ static void my_application_activate(GApplication* application) {
     gtk_window_present(window);
     return;
   }
+
+  // GTK has initialized the user locale. libmpv requires C numeric formatting.
+  std::setlocale(LC_NUMERIC, "C");
 
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));

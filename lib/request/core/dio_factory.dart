@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:kazumi/request/core/acceleration_interceptors.dart';
 import 'package:kazumi/request/core/dio_logger_interceptor.dart';
 import 'package:kazumi/request/core/ech_adapter.dart';
 import 'package:kazumi/request/core/network_config.dart';
@@ -22,14 +21,12 @@ class DioFactory {
   static Dio get bangumiDio => _bangumiDio ??= _create(
     NetworkConfig.fromSettings(),
     defaultHeaders: {'referer': ''},
-    interceptors: [BangumiAccelerationInterceptor()],
     ech: true,
   );
 
   static Dio get rulesRepoDio => _rulesRepoDio ??= _create(
     NetworkConfig.fromSettings(),
     defaultHeaders: {'user-agent': getRandomUA()},
-    interceptors: [RulesMirrorInterceptor()],
     ech: true,
   );
 
@@ -70,7 +67,6 @@ class DioFactory {
   static Dio _create(
     NetworkConfig config, {
     Map<String, dynamic> defaultHeaders = const {},
-    List<Interceptor> interceptors = const [],
     bool ech = false,
   }) {
     final dio = Dio(
@@ -86,7 +82,6 @@ class DioFactory {
     dio.httpClientAdapter = ech
         ? EchAdapter(fallback: config.createAdapter(), config: config)
         : config.createAdapter();
-    dio.interceptors.addAll(interceptors);
     if (config.enableLog) {
       dio.interceptors.add(DioLoggerInterceptor());
     }

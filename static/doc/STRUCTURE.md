@@ -83,9 +83,9 @@ lib/
 │
 ├── request/                    # 网络请求层
 │   ├── apis/                   # 业务接口封装（Bangumi、弹幕、规则目录、以图搜番）
-│   ├── clients/                # 按服务隔离的 HTTP 客户端
+│   ├── clients/                # 按服务隔离的 HTTP 客户端，各自决定镜像与 ECH 路由
 │   ├── config/                 # API 端点与常量配置
-│   └── core/                   # Dio 工厂、网络配置、拦截器、ECH 传输适配与异常映射
+│   └── core/                   # Dio 工厂、网络配置、日志拦截器、ECH 传输适配与异常映射
 │
 ├── services/                   # 业务服务与平台能力层
 │   ├── deep_links/             # kazumi:// 深度链接解析与路由分发

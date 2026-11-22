@@ -131,6 +131,7 @@ class EpisodeCommentsView extends StatelessWidget {
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(gutter, 4, gutter, 0),
                   sliver: SliverList(
+                    key: ValueKey(isAscending),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) => KeepAlive(
                         // Retain BBCode image geometry and expanded discussions.
@@ -142,12 +143,6 @@ class EpisodeCommentsView extends StatelessWidget {
                         ),
                       ),
                       childCount: comments.length,
-                      findChildIndexCallback: (key) {
-                        final index = comments.indexOf(
-                          (key as ObjectKey).value as EpisodeCommentItem,
-                        );
-                        return index < 0 ? null : index;
-                      },
                       addAutomaticKeepAlives: false,
                       addRepaintBoundaries: false,
                       addSemanticIndexes: false,

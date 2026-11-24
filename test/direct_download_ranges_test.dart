@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/services/download/download_manager.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:logger/logger.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 class _Paths extends PathProviderPlatform {
@@ -27,6 +29,7 @@ void main() {
   late HttpServer server;
   late PathProviderPlatform originalPaths;
   late HttpOverrides? originalOverrides;
+  late Level originalLogLevel;
   late DownloadEpisode episode;
   late void Function(HttpResponse response, String? range) serve;
   final ranges = <String?>[];
@@ -50,6 +53,9 @@ void main() {
   }
 
   setUpAll(() async {
+    originalLogLevel = Logger.level;
+    Logger.level = Level.off;
+    DioFactory.reset();
     originalOverrides = HttpOverrides.current;
     HttpOverrides.global = null;
     originalPaths = PathProviderPlatform.instance;
@@ -68,7 +74,11 @@ void main() {
       }
       ranges.add(request.headers.value(HttpHeaders.rangeHeader));
       validators.add(request.headers.value(HttpHeaders.ifRangeHeader));
-      await request.response.close();
+      try {
+        await request.response.close();
+      } on IOException {
+        // A rejected response may already have been closed by the downloader.
+      }
     });
   });
 
@@ -101,9 +111,14 @@ void main() {
     PathProviderPlatform.instance = originalPaths;
     HttpOverrides.global = originalOverrides;
     await root.delete(recursive: true);
+    Logger.level = originalLogLevel;
   });
 
-  Future<void> download({bool resume = false, int? pauseAt}) async {
+  Future<void> download({
+    bool resume = false,
+    int? pauseAt,
+    DownloadManager? downloader,
+  }) async {
     final request = DownloadRequest(
       recordKey: 'record',
       bangumiId: 1,
@@ -114,7 +129,7 @@ void main() {
       adBlockerEnabled: false,
       episode: episode,
     );
-    final manager = DownloadManager();
+    final manager = downloader ?? DownloadManager();
     final done = Completer<void>();
     manager.onProgress = (_, _, current, _) {
       if (current.status == DownloadStatus.downloading &&
@@ -250,6 +265,240 @@ void main() {
     expect(ranges, [null, 'bytes=1024-', null]);
   });
 
+  for (final declareLength in [true, false]) {
+    test(
+      'keeps the prefix on empty 200 (length declared: $declareLength)',
+      () async {
+        episode.totalBytes = block;
+        episode.progressPercent = block / payload.length;
+        serve = (response, _) {
+          if (declareLength) response.contentLength = 0;
+        };
+        await download(resume: true);
+        expect(episode.status, DownloadStatus.failed);
+        expect(ranges, [null, 'bytes=1024-']);
+        expect(
+          await getFile('video.mp4.tmp').readAsBytes(),
+          payload.sublist(0, block),
+        );
+        expect(episode.totalBytes, block);
+        expect(episode.progressPercent, block / payload.length);
+      },
+    );
+  }
+
+  test(
+    'drops an unsatisfiable prefix even when the replacement GET fails',
+    () async {
+      serve = (response, range) {
+        response.statusCode = range == null ? 503 : 416;
+        if (range != null) {
+          response.headers.set(HttpHeaders.contentRangeHeader, 'bytes */50');
+        }
+      };
+      await download(resume: true);
+      expect(ranges, [null, 'bytes=1024-', null]);
+      expect(episode.status, DownloadStatus.failed);
+      expect(await getFile('video.mp4.tmp').exists(), isFalse);
+      expect(episode.totalBytes, 0);
+    },
+  );
+
+  test('drops a prefix when the file shrinks between ranges', () async {
+    serve = (response, range) {
+      if (range == null) {
+        partial(response, 0, block - 1);
+      } else {
+        response.statusCode = 416;
+        response.headers.set(HttpHeaders.contentRangeHeader, 'bytes */50');
+      }
+    };
+    await download();
+    expect(ranges, [null, null, 'bytes=1024-']);
+    expect(episode.status, DownloadStatus.failed);
+    expect(await getFile('video.mp4.tmp').exists(), isFalse);
+    expect(episode.totalBytes, 0);
+  });
+
+  for (final sameVersion in [true, false]) {
+    test(
+      'resumes a full temp file after 416 (same ETag: $sameVersion)',
+      () async {
+        serve = (response, _) {
+          response.headers.set(HttpHeaders.etagHeader, '"v1"');
+          partial(response, 0, payload.length - 1);
+        };
+        await download(pauseAt: payload.length);
+        expect(episode.status, DownloadStatus.paused);
+        expect(await getFile('video.mp4.tmp').readAsBytes(), payload);
+        ranges.clear();
+        validators.clear();
+        final replacement = sameVersion ? payload : payload.reversed.toList();
+        serve = (response, range) {
+          response.headers.set(
+            HttpHeaders.etagHeader,
+            sameVersion ? '"v1"' : '"v2"',
+          );
+          if (range != null) {
+            response.statusCode = 416;
+            response.headers.set(
+              HttpHeaders.contentRangeHeader,
+              'bytes */${payload.length}',
+            );
+          } else {
+            response.add(replacement);
+          }
+        };
+        await download(resume: true);
+        expect(ranges, [
+          null,
+          'bytes=${payload.length}-',
+          if (!sameVersion) null,
+        ]);
+        expect(validators[1], '"v1"');
+        expect(
+          episode.status,
+          DownloadStatus.completed,
+          reason: episode.errorMessage,
+        );
+        expect(await getFile('video.mp4').readAsBytes(), replacement);
+        expect(await getFile('video.mp4.tmp.etag').exists(), isFalse);
+      },
+    );
+  }
+
+  test('does not publish an unverified same-length file after 416', () async {
+    await getFile('video.mp4.tmp').writeAsBytes(payload.reversed.toList());
+    serve = (response, range) {
+      response.headers.set(HttpHeaders.etagHeader, '"v1"');
+      if (range == null) {
+        response.add(payload);
+      } else {
+        response.statusCode = 416;
+        response.headers.set(
+          HttpHeaders.contentRangeHeader,
+          'bytes */${payload.length}',
+        );
+      }
+    };
+    await download(resume: true);
+    expect(ranges, [null, 'bytes=${payload.length}-', null]);
+    await expectComplete();
+  });
+
+  for (final encoding in ['', 'identity, IDENTITY']) {
+    test('accepts identity-only 206 coding "$encoding"', () async {
+      serve = (response, _) {
+        response.headers.set(HttpHeaders.contentEncodingHeader, encoding);
+        partial(response, 0, payload.length - 1);
+      };
+      await download();
+      await expectComplete();
+    });
+  }
+
+  test(
+    'accepts multiple identity encoding values from the HTTP adapter',
+    () async {
+      final dio = DioFactory.downloadDio;
+      final interceptor = InterceptorsWrapper(
+        onResponse: (response, handler) {
+          if (response.statusCode == HttpStatus.partialContent) {
+            response.headers.set(HttpHeaders.contentEncodingHeader, [
+              '',
+              'identity',
+            ]);
+          }
+          handler.next(response);
+        },
+      );
+      dio.interceptors.add(interceptor);
+      addTearDown(() => dio.interceptors.remove(interceptor));
+      serve = (response, _) => partial(response, 0, payload.length - 1);
+      await download();
+      await expectComplete();
+    },
+  );
+
+  test('keeps the prefix on an undecoded deflate 200', () async {
+    serve = (response, _) {
+      response.headers.set(HttpHeaders.contentEncodingHeader, 'deflate');
+      response.add(zlib.encode(payload));
+    };
+    await download(resume: true);
+    expect(episode.status, DownloadStatus.failed);
+    expect(await getFile('video.mp4').exists(), isFalse);
+    expect(
+      await getFile('video.mp4.tmp').readAsBytes(),
+      payload.sublist(0, block),
+    );
+  });
+
+  test('accepts an automatically decoded gzip 200', () async {
+    serve = (response, _) {
+      response.headers.set(HttpHeaders.contentEncodingHeader, 'gzip');
+      response.add(gzip.encode(payload));
+    };
+    await download(resume: true);
+    await expectComplete();
+  });
+
+  test('rejects a gzip range before appending any bytes', () async {
+    serve = (response, _) {
+      response.headers.set(HttpHeaders.contentEncodingHeader, 'gzip');
+      partial(
+        response,
+        block,
+        payload.length - 1,
+        body: gzip.encode(payload.sublist(block)),
+      );
+    };
+    await download(resume: true);
+    expect(episode.status, DownloadStatus.failed);
+    expect(
+      await getFile('video.mp4.tmp').readAsBytes(),
+      payload.sublist(0, block),
+    );
+  });
+
+  for (final pause in [true, false]) {
+    test('handles a mid-stream error (paused: $pause)', () async {
+      final manager = DownloadManager();
+      final interceptor = InterceptorsWrapper(
+        onResponse: (response, handler) {
+          if (response.data case final ResponseBody body) {
+            body.stream = body.stream.map((chunk) {
+              if (pause) {
+                manager.pause('record', 1);
+                throw const SocketException('connection closed');
+              }
+              throw DioException.receiveTimeout(
+                timeout: const Duration(seconds: 1),
+                requestOptions: response.requestOptions,
+              );
+            });
+          }
+          handler.next(response);
+        },
+      );
+      final dio = DioFactory.downloadDio;
+      dio.interceptors.add(interceptor);
+      addTearDown(() => dio.interceptors.remove(interceptor));
+      serve = (response, _) => response.add(payload);
+      await download(resume: true, downloader: manager);
+      expect(ranges, [null, 'bytes=1024-']);
+      expect(
+        episode.status,
+        pause ? DownloadStatus.paused : DownloadStatus.failed,
+      );
+      if (!pause) expect(episode.errorMessage, '响应超时，请稍后重试！');
+      expect(
+        await getFile('video.mp4.tmp').readAsBytes(),
+        payload.sublist(0, block),
+      );
+    });
+  }
+
   for (final header in [
     'bytes 0-1023/3500',
     'bytes 1024-3500/3500',
@@ -293,6 +542,8 @@ void main() {
         };
         await download();
         expect(episode.status, DownloadStatus.failed);
+        expect(ranges, [null, null, 'bytes=1024-']);
+        expect(episode.totalBytes, 0);
         expect(await getFile('video.mp4').exists(), isFalse);
         expect(await getFile('video.mp4.tmp').exists(), isFalse);
       },

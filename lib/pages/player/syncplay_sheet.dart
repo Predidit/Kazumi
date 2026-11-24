@@ -76,14 +76,14 @@ InputDecoration _sheetInputDecoration({
 class _SyncPlaySheetScaffold extends StatelessWidget {
   const _SyncPlaySheetScaffold({
     required this.title,
-    required this.description,
+    this.description,
     required this.bodyBuilder,
     this.showCancel = false,
     this.primaryAction,
   });
 
   final String title;
-  final String description;
+  final String? description;
   final Widget Function(BuildContext context, bool compact) bodyBuilder;
   final bool showCancel;
   final Widget? primaryAction;
@@ -95,7 +95,8 @@ class _SyncPlaySheetScaffold extends StatelessWidget {
 
     final bool compact =
         size.width > size.height && !isDesktop() && size.shortestSide < 600;
-    final bool showDescription = !(compact && keyboardInset > 0);
+    final bool showDescription =
+        description != null && !(compact && keyboardInset > 0);
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardInset),
@@ -173,7 +174,6 @@ class _SyncPlayHomeSheet extends StatelessWidget {
 
       return _SyncPlaySheetScaffold(
         title: '一起看',
-        description: '和朋友同步看番',
         primaryAction: hasSession
             ? FilledButton.tonalIcon(
                 onPressed: () async {
@@ -247,15 +247,12 @@ class _SyncPlayHomeSheet extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        IntrinsicHeight(
-            child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        Row(
           children: [
             Expanded(
                 child: _ChoiceCard(
               icon: Icons.add_circle_outline_rounded,
               title: '创建房间',
-              description: '邀请朋友加入',
               onTap: () =>
                   Navigator.of(context).pop(_SyncPlayDestination.create),
             )),
@@ -264,11 +261,10 @@ class _SyncPlayHomeSheet extends StatelessWidget {
                 child: _ChoiceCard(
               icon: Icons.login_rounded,
               title: '加入房间',
-              description: '输入房间号',
               onTap: () => Navigator.of(context).pop(_SyncPlayDestination.join),
             )),
           ],
-        )),
+        ),
         const SizedBox(height: 16),
         ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 8),
@@ -317,13 +313,6 @@ class _SyncPlayHomeSheet extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        Text(
-          '分享房间号，好友即可加入',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
       ],
     );
   }
@@ -369,13 +358,9 @@ class _SyncPlayHomeSheet extends StatelessWidget {
 
 class _ChoiceCard extends StatelessWidget {
   const _ChoiceCard(
-      {required this.icon,
-      required this.title,
-      required this.description,
-      required this.onTap});
+      {required this.icon, required this.title, required this.onTap});
   final IconData icon;
   final String title;
-  final String description;
   final VoidCallback onTap;
 
   @override
@@ -392,10 +377,6 @@ class _ChoiceCard extends StatelessWidget {
               Icon(icon, color: theme.colorScheme.primary, size: 28),
               const SizedBox(height: 20),
               Text(title, style: theme.textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text(description,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             ],
           ),
         ),
@@ -482,7 +463,6 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
 
     return _SyncPlaySheetScaffold(
       title: isCreate ? '创建房间' : '加入房间',
-      description: isCreate ? '将房间号分享给好友' : '输入好友的房间号',
       showCancel: true,
       primaryAction: FilledButton.icon(
         onPressed: _submit,
@@ -652,7 +632,9 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
           children: [
             SplitListGroup(children: [
               for (final endPoint in endPoints)
-                _buildEndPointTile(context, endPoint),
+                Builder(
+                  builder: (context) => _buildEndPointTile(context, endPoint),
+                ),
             ]),
             if (_selectedEndPoint == _customOption) ...[
               const SizedBox(height: 16),
@@ -686,6 +668,7 @@ class _SyncPlayServerSheetState extends State<_SyncPlayServerSheet> {
     final bool isCustom = endPoint == _customOption;
 
     return ListTile(
+      statesController: SplitListRow.statesOf(context),
       contentPadding: const EdgeInsets.symmetric(horizontal: 18),
       leading: Icon(
         isCustom ? Icons.edit_outlined : Icons.public_rounded,

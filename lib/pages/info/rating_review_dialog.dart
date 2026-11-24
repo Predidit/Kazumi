@@ -2,22 +2,53 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/bean/widget/connected_button_group.dart';
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_review.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
+Future<bool?> showRatingReviewDialog(
+  BuildContext context, {
+  required BangumiItem bangumiItem,
+  required Future<bool> Function(BangumiReview review) onSubmit,
+}) {
+  final size = MediaQuery.sizeOf(context);
+  final sheet = size.width < 600 || size.height < 600;
+  Widget builder(BuildContext _) => RatingReviewDialog(
+        bangumiItem: bangumiItem,
+        onSubmit: onSubmit,
+        sheet: sheet,
+      );
+  if (!sheet) {
+    return KazumiDialog.show<bool>(context: context, builder: builder);
+  }
+  return showAdaptiveBottomSheet<bool>(
+    context: context,
+    maxHeightFactor: 0.9,
+    // Drag dismissal bypasses PopScope.
+    enableDrag: false,
+    useRootNavigator: true,
+    routeSettings: KazumiDialog.routeSettings,
+    builder: builder,
+  );
+}
+
 class RatingReviewDialog extends StatefulWidget {
   const RatingReviewDialog({
     super.key,
     required this.bangumiItem,
     required this.onSubmit,
+    required this.sheet,
   });
 
   final BangumiItem bangumiItem;
   final Future<bool> Function(BangumiReview review) onSubmit;
+  final bool sheet;
 
   @override
   State<RatingReviewDialog> createState() => _RatingReviewDialogState();
@@ -242,15 +273,19 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final fullscreen = media.size.width < 600 || media.size.height < 600;
+    final keyboardInset = widget.sheet ? media.viewInsets.bottom : 0.0;
+    final shortWindow =
+        keyboardInset > 0 && media.size.height - keyboardInset < 320;
     final colors = Theme.of(context).colorScheme;
     final horizontalPadding = media.size.width < 360 ? 16.0 : 24.0;
-    final content = SafeArea(
+    final content = Padding(
+      padding: EdgeInsets.only(bottom: keyboardInset),
       child: SizedBox.expand(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildHeader(),
+            if (!shortWindow)
+              widget.sheet ? _buildSheetHeader() : _buildHeader(),
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
@@ -299,9 +334,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         },
         child: Focus(
           autofocus: true,
-          child: fullscreen
-              ? Dialog.fullscreen(
-                  backgroundColor: colors.surface, child: content)
+          child: widget.sheet
+              ? content
               : Dialog(
                   constraints:
                       const BoxConstraints(maxWidth: 640, maxHeight: 800),
@@ -332,6 +366,15 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 style: Theme.of(context).textTheme.titleLarge),
           ),
         ]),
+      );
+
+  Widget _buildSheetHeader() => MaterialBottomSheetHeader(
+        title: _editing ? '编辑吐槽' : '发表吐槽',
+        trailing: IconButton(
+          tooltip: '关闭',
+          onPressed: _submitting ? null : _requestClose,
+          icon: const Icon(Icons.close_rounded),
+        ),
       );
 
   Widget _buildComment() {
@@ -422,70 +465,34 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           final targetWidth =
               (MediaQuery.textScalerOf(context).scale(16) * 2 + 12)
                   .clamp(48.0, double.infinity);
-          final columns = constraints.maxWidth >= targetWidth * 10 + 36
+          final columns = constraints.maxWidth >= targetWidth * 10 + 18
               ? 10
-              : constraints.maxWidth >= targetWidth * 5 + 16
+              : constraints.maxWidth >= targetWidth * 5 + 8
                   ? 5
                   : 2;
           return Column(children: [
             for (var start = 1; start <= 10; start += columns) ...[
               if (start > 1) const SizedBox(height: 8),
-              Row(children: [
-                for (var index = 0; index < columns; index++) ...[
-                  if (index > 0) const SizedBox(width: 4),
-                  Expanded(
-                      child: _buildScoreButton(start + index, index, columns)),
+              ConnectedButtonGroup<int>(
+                segments: [
+                  for (var value = start; value < start + columns; value++)
+                    ButtonSegment(
+                      value: value,
+                      tooltip: _scoreLabels[value],
+                      label: Text(
+                        '$value',
+                        semanticsLabel: '$value 分',
+                      ),
+                    ),
                 ],
-              ]),
+                selected: _score,
+                color: colors.surfaceContainerLowest,
+                onSelected: _submitting ? null : _setScore,
+              ),
             ],
           ]);
         }),
       ]),
-    );
-  }
-
-  Widget _buildScoreButton(int value, int index, int columns) {
-    final colors = Theme.of(context).colorScheme;
-    final selected = _score == value;
-    return Semantics(
-      selected: selected,
-      label: '$value 分，${_scoreLabels[value]}',
-      child: Tooltip(
-        message: _scoreLabels[value],
-        excludeFromSemantics: true,
-        child: FilledButton(
-          key: ValueKey('review-score-$value'),
-          onPressed: _submitting ? null : () => _setScore(value),
-          style: ButtonStyle(
-            padding: const WidgetStatePropertyAll(
-                EdgeInsets.symmetric(vertical: 12)),
-            minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
-            tapTargetSize: MaterialTapTargetSize.padded,
-            visualDensity: VisualDensity.standard,
-            backgroundColor: WidgetStatePropertyAll(
-                selected ? colors.primary : colors.surfaceContainerLowest),
-            foregroundColor: WidgetStatePropertyAll(
-                selected ? colors.onPrimary : colors.onSurface),
-            animationDuration: _duration,
-            shape: WidgetStateProperty.resolveWith((states) {
-              final radius = selected
-                  ? 24.0
-                  : states.contains(WidgetState.pressed)
-                      ? 12.0
-                      : 4.0;
-              return RoundedRectangleBorder(
-                  borderRadius: BorderRadius.horizontal(
-                left: Radius.circular(index == 0 ? 24 : radius),
-                right: Radius.circular(index == columns - 1 ? 24 : radius),
-              ));
-            }),
-          ),
-          child: ExcludeSemantics(
-              child: Text('$value',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600))),
-        ),
-      ),
     );
   }
 

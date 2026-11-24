@@ -90,6 +90,9 @@ void main() async {
       windowButtonVisibility: showWindowButton,
       title: 'Kazumi',
     );
+    // Hidden title bar resizes twice here; a frame rasterized in between can
+    // pin the Windows swap chain to a stale size, stretching every later frame.
+    if (Platform.isWindows) WidgetsBinding.instance.deferFirstFrame();
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       bool restored = false;
       if (windowState != null) {
@@ -102,6 +105,7 @@ void main() async {
           await windowState.cacheDefaultLayout();
         }
       }
+      if (Platform.isWindows) WidgetsBinding.instance.allowFirstFrame();
       // window_manager controls desktop visibility to avoid startup flicker.
       await windowManager.show();
       if (restored && savedState!.wasMaximized) {

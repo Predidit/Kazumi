@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/widget/kazumi_menu.dart';
+import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/pages/player/controller/player_screenshot_controller.dart';
 import 'package:kazumi/pages/player/player_screenshot_image.dart';
 import 'package:kazumi/services/player/screenshot_candidate.dart';
@@ -802,31 +803,32 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
 
   ButtonStyle _toggleStyle({required bool selected}) {
     final colors = Theme.of(context).colorScheme;
-    return _actionStyle(selected: selected).copyWith(
-      backgroundColor: WidgetStatePropertyAll(
-        selected ? colors.secondaryContainer : colors.surfaceContainerHighest,
+    WidgetStateProperty<Color?> enabled(Color color) =>
+        WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.disabled) ? null : color,
+        );
+    return _actionStyle().copyWith(
+      backgroundColor: enabled(
+        selected ? colors.primary : colors.surfaceContainerHighest,
       ),
+      foregroundColor: enabled(
+        selected ? colors.onPrimary : colors.onSurfaceVariant,
+      ),
+      shape: !selected
+          ? null
+          : WidgetStateProperty.resolveWith(
+              (states) => RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  states.contains(WidgetState.pressed) ? 8 : 12,
+                ),
+              ),
+            ),
     );
   }
 
-  ButtonStyle _actionStyle({bool selected = false}) => ButtonStyle(
-    minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
-    padding: const WidgetStatePropertyAll(
-      EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-    ),
-    animationDuration: _motion,
-    shape: WidgetStateProperty.resolveWith(
-      (states) => RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          states.contains(WidgetState.pressed)
-              ? 12
-              : selected
-              ? 16
-              : 24,
-        ),
-      ),
-    ),
-  );
+  ButtonStyle _actionStyle() => StateActionButton.styleOf(
+    context,
+  ).copyWith(minimumSize: const WidgetStatePropertyAll(Size(48, 48)));
 
   Widget _empty(BuildContext context) => Center(
     child: SingleChildScrollView(
@@ -842,11 +844,6 @@ class _PlayerScreenshotSheetState extends State<_PlayerScreenshotSheet> {
           const SizedBox(height: 20),
           Text('暂无待处理截图', style: Theme.of(context).textTheme.titleLarge),
           if (_notice != null) ...[const SizedBox(height: 16), _noticeView()],
-          const SizedBox(height: 8),
-          const Text(
-            '返回视频，点击相机收集喜欢的画面。\n保存或移除截图后，可以继续截图。',
-            textAlign: TextAlign.center,
-          ),
           const SizedBox(height: 24),
           FilledButton.tonal(onPressed: _close, child: const Text('返回视频截图')),
         ],
@@ -953,6 +950,7 @@ class _ScreenshotFilmstripState extends State<_ScreenshotFilmstrip> {
                       selected: widget.controller.isSelected(item),
                       duration: widget.duration,
                       onTap: () => widget.onBrowse(index),
+                      onDoubleTap: () => widget.controller.toggle(item),
                     ),
                   );
                 },
@@ -973,6 +971,7 @@ class _FrameThumbnail extends StatelessWidget {
     required this.selected,
     required this.duration,
     required this.onTap,
+    required this.onDoubleTap,
   });
   final ScreenshotCandidate item;
   final int index;
@@ -980,6 +979,7 @@ class _FrameThumbnail extends StatelessWidget {
   final bool selected;
   final Duration duration;
   final VoidCallback onTap;
+  final VoidCallback onDoubleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -994,6 +994,7 @@ class _FrameThumbnail extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
+          onDoubleTap: onDoubleTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: AnimatedContainer(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/history/history_list_query.dart';
@@ -159,11 +160,9 @@ class _HistoryListViewState extends State<HistoryListView> {
                           Semantics(
                             liveRegion: true,
                             child: Text(
-                              widget.editing
-                                  ? '共 $count 条记录 · 点按删除按钮移除'
-                                  : filtered
-                                      ? '找到 $count 条记录 · 最近观看优先'
-                                      : '共 $count 条记录 · 最近观看优先',
+                              filtered && !widget.editing
+                                  ? '找到 $count 条记录'
+                                  : '共 $count 条记录',
                               style: theme.textTheme.bodyMedium
                                   ?.copyWith(color: colors.onSurfaceVariant),
                             ),
@@ -221,13 +220,13 @@ class _HistoryListViewState extends State<HistoryListView> {
         ),
       );
     }
-    final shape = BorderRadius.vertical(
-      top: Radius.circular(entryIndex == 0 ? 24 : 4),
-      bottom: Radius.circular(entryIndex == group.entries.length - 1 ? 24 : 4),
+    final shape = splitListRowRadius(
+      first: entryIndex == 0,
+      last: entryIndex == group.entries.length - 1,
     );
     return Padding(
       key: row.key,
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: splitListRowGap),
       child: widget.itemBuilder(group.entries[entryIndex], shape),
     );
   }

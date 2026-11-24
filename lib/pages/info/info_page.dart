@@ -187,13 +187,11 @@ class _InfoPageState extends State<InfoPage>
     }
     final editing =
         infoController.bangumiItem.interest?.hasReviewContent ?? false;
-    final submitted = await KazumiDialog.show<bool>(
-      context: context,
-      builder: (context) => RatingReviewDialog(
-        bangumiItem: infoController.bangumiItem,
-        onSubmit: (review) =>
-            infoController.rateBangumi(review, localType: localType),
-      ),
+    final submitted = await showRatingReviewDialog(
+      context,
+      bangumiItem: infoController.bangumiItem,
+      onSubmit: (review) =>
+          infoController.rateBangumi(review, localType: localType),
     );
     if (submitted == true && mounted) {
       setState(() {});

@@ -30,9 +30,6 @@ class _TimelineOptionsButton extends StatelessWidget {
         availableWidth < scaler.scale(16) * 22 || scaler.scale(14) > 28;
     final style = StateActionButton.styleOf(context).copyWith(
       minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
-      padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
     );
     final summary = '${sort.label}，'
         '${filterCount > 0 ? '已启用 $filterCount 项筛选' : '未启用筛选'}';
@@ -105,21 +102,31 @@ class _TimelineOptionsSheet extends StatelessWidget {
                 ContentSection.group(
                   title: '显示范围',
                   children: [
-                    SwitchListTile(
-                      title: const Text('隐藏看过的番剧'),
-                      value: controller.notShowWatchedBangumis,
-                      onChanged: controller.setNotShowWatchedBangumis,
-                    ),
-                    SwitchListTile(
-                      title: const Text('隐藏抛弃的番剧'),
-                      value: controller.notShowAbandonedBangumis,
-                      onChanged: controller.setNotShowAbandonedBangumis,
-                    ),
-                    SwitchListTile(
-                      title: const Text('只看正在追的番剧'),
-                      value: controller.onlyShowWatchingBangumis,
-                      onChanged: controller.setOnlyShowWatchingBangumis,
-                    ),
+                    for (final (title, value, onChanged) in [
+                      (
+                        '隐藏看过的番剧',
+                        controller.notShowWatchedBangumis,
+                        controller.setNotShowWatchedBangumis,
+                      ),
+                      (
+                        '隐藏抛弃的番剧',
+                        controller.notShowAbandonedBangumis,
+                        controller.setNotShowAbandonedBangumis,
+                      ),
+                      (
+                        '只看正在追的番剧',
+                        controller.onlyShowWatchingBangumis,
+                        controller.setOnlyShowWatchingBangumis,
+                      ),
+                    ])
+                      Builder(
+                        builder: (context) => SwitchListTile(
+                          statesController: SplitListRow.statesOf(context),
+                          title: Text(title),
+                          value: value,
+                          onChanged: onChanged,
+                        ),
+                      ),
                   ],
                 ),
               ],

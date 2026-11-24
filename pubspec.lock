@@ -101,11 +101,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
-      resolved-ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
+      ref: "5c8de436994fab2ab4326bc2bbefca7c660b95aa"
+      resolved-ref: "5c8de436994fab2ab4326bc2bbefca7c660b95aa"
       url: "https://github.com/Predidit/audio-service-mpris.git"
     source: git
-    version: "1.0.0-beta.1"
+    version: "1.0.0-beta.3"
   audio_service_platform_interface:
     dependency: transitive
     description:
@@ -263,10 +263,10 @@ packages:
     dependency: transitive
     description:
       name: clock
-      sha256: fddb70d9b5277016c77a80201021d40a2247104d9f4aa7bab7157b7e3f05b84b
+      sha256: e51d50bca3217c9a9fa2b41a30e4a38971133f5f9ec7a3d57bae095007f1d28e
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.2"
+    version: "1.1.3"
   code_assets:
     dependency: transitive
     description:
@@ -367,16 +367,16 @@ packages:
     dependency: transitive
     description:
       name: dbus
-      sha256: d0c98dcd4f5169878b6cf8f6e0a52403a9dff371a3e2f019697accbf6f44a270
+      sha256: a48d5da28e89bd02196e80d81ed8d7954923d00a0f4a68cc20b575038f023383
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.12"
+    version: "0.7.15"
   desktop_webview_window:
     dependency: "direct main"
     description:
       path: "."
-      ref: b429f8ba6b8a99cd0f7eb5fe8d1621f325635c3d
-      resolved-ref: b429f8ba6b8a99cd0f7eb5fe8d1621f325635c3d
+      ref: "8b0d1a625795f2ec679f844349e11f77249f41b0"
+      resolved-ref: "8b0d1a625795f2ec679f844349e11f77249f41b0"
       url: "https://github.com/Predidit/linux_webview_window.git"
     source: git
     version: "0.2.4"
@@ -416,10 +416,10 @@ packages:
     dependency: "direct main"
     description:
       name: ech_http
-      sha256: "7b179bbb0cba2f517d5f8fc526e6bb98d96530e6d7a75f7057fce74652967643"
+      sha256: "5f6cb0e9bbad24ed2b2a62ac5db40307b1f603464d6ee35d0a4a59a5f6494d63"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.3"
+    version: "0.2.4"
   equatable:
     dependency: transitive
     description:
@@ -533,10 +533,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_displaymode
-      sha256: "42c5e9abd13d28ed74f701b60529d7f8416947e58256e6659c5550db719c57ef"
+      sha256: ecd44b1e902b0073b42ff5b55bf283f38e088270724cdbb7f7065ccf54aa60a8
       url: "https://pub.dev"
     source: hosted
-    version: "0.6.0"
+    version: "0.7.0"
   flutter_foreground_task:
     dependency: "direct main"
     description:
@@ -663,10 +663,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_volume_controller
-      sha256: "78297fd48ce6330d39a11a4c1ae219a3256249f99dec34cfbe9323d2cbb5ebb9"
+      sha256: f9ba12aa17880c1ee3e1668f14eefbc6704e2fed90ed0b2ca97b7dee71133240
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.1"
+    version: "2.0.2"
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -936,6 +936,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
+  listen:
+    dependency: transitive
+    description:
+      name: listen
+      sha256: "47501a08016a43fcad79252439d723f50f14f88fa7bfd8a177e0a417e5c9e1f2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   logger:
     dependency: "direct main"
     description:
@@ -1004,8 +1012,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: "83b7ca63772856e1ea0158916177e136f7b7b0be"
-      resolved-ref: "83b7ca63772856e1ea0158916177e136f7b7b0be"
+      ref: "484639aca5ffc754a65876c22f01dbb070225732"
+      resolved-ref: "484639aca5ffc754a65876c22f01dbb070225732"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.11"
@@ -1013,8 +1021,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: "83b7ca63772856e1ea0158916177e136f7b7b0be"
-      resolved-ref: "83b7ca63772856e1ea0158916177e136f7b7b0be"
+      ref: "484639aca5ffc754a65876c22f01dbb070225732"
+      resolved-ref: "484639aca5ffc754a65876c22f01dbb070225732"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.2.5"
@@ -1579,10 +1587,10 @@ packages:
     dependency: transitive
     description:
       name: stack_trace
-      sha256: "8b27215b45d22309b5cddda1aa2b19bdfec9df0e765f2de506401c071d38d1b1"
+      sha256: "277654b3034d17ac6f9f1cb5595db011b1d5d41e8806866db28e0abaa101c490"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.1"
+    version: "1.12.2"
   stream_channel:
     dependency: transitive
     description:
@@ -1627,10 +1635,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: "2a122cbe059f8b610d3a5415f42e255b6c17b1f21eee1d960f31080237fb4f11"
+      sha256: "0a10344e901e5b2e63819567951cb6a06673ed6b84f40462188ff5a0c41f371f"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.12"
+    version: "0.7.14"
   tray_manager:
     dependency: "direct main"
     description:
@@ -1779,10 +1787,10 @@ packages:
     dependency: transitive
     description:
       name: vector_math
-      sha256: f36f9f3be64c6198714492bb455c11056e33e2f85d9a0b676a48301e44fdcf47
+      sha256: fa49e1674cb84acb900141714e6c6e1f9ae099827c24d141430ff6819db4e1bc
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.2"
+    version: "2.4.4"
   version:
     dependency: transitive
     description:
@@ -1937,5 +1945,5 @@ packages:
     source: hosted
     version: "2.1.0"
 sdks:
-  dart: ">=3.12.0 <4.0.0"
-  flutter: "3.47.9"
+  dart: ">=3.13.0-0 <4.0.0"
+  flutter: ">=3.50.1"

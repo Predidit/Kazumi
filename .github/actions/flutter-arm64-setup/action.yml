@@ -12,7 +12,7 @@ inputs:
     required: false
     default: 'stable'
   flutter-version:
-    description: 'Specific Flutter version (git ref). Overrides flutter-version-file and channel if set.'
+    description: 'Specific Flutter version (tag, branch or commit SHA). Overrides flutter-version-file and channel if set.'
     required: false
     default: ''
   flutter-version-file:
@@ -99,10 +99,16 @@ runs:
           echo "Using cached Flutter SDK"
         else
           REF="${{ steps.resolve.outputs.flutter-ref }}"
-          git clone https://github.com/flutter/flutter.git \
-            -b "$REF" \
-            --depth 1 \
-            "$FLUTTER_PATH"
+          if [[ "$REF" =~ ^[0-9a-f]{7,40}$ ]]; then
+            # Commits need history and tags so the framework version resolves
+            git clone --filter=blob:none https://github.com/flutter/flutter.git "$FLUTTER_PATH"
+            git -C "$FLUTTER_PATH" checkout "$REF"
+          else
+            git clone https://github.com/flutter/flutter.git \
+              -b "$REF" \
+              --depth 1 \
+              "$FLUTTER_PATH"
+          fi
         fi
 
         # Add to PATH

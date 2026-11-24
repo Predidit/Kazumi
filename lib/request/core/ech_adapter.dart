@@ -9,9 +9,9 @@ import 'package:kazumi/request/core/ech_transport.dart';
 
 const _echKey = 'ech';
 
-extension EchRequestOptions on RequestOptions {
-  void requireEch() => extra[_echKey] = true;
-}
+/// Routes a request through ECH; hosts not configured in [EchTransport] use
+/// plain TLS.
+const echExtra = <String, dynamic>{_echKey: true};
 
 class EchAdapter implements HttpClientAdapter {
   EchAdapter({

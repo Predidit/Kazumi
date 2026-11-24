@@ -49,3 +49,42 @@ class EpisodeInfo {
     }
   }
 }
+
+extension EpisodeInfoDisplay on EpisodeInfo {
+  static String typeLabelOf(int type) => switch (type) {
+        0 => '正片',
+        1 => 'SP',
+        2 => 'OP',
+        3 => 'ED',
+        _ => '其他',
+      };
+
+  String displayNumber(int fallbackEpisode) {
+    final value = episode != 0 ? episode : fallbackEpisode;
+    if (value is int) return '$value';
+    final rounded = value.toInt();
+    return value == rounded ? '$rounded' : '$value';
+  }
+
+  String badgeLabel(int fallbackEpisode) {
+    final code = readType().toUpperCase();
+    final number = displayNumber(fallbackEpisode);
+    return code.isEmpty ? number : '$code $number';
+  }
+
+  String displayTitle(int fallbackEpisode) {
+    final translated = nameCn.trim();
+    if (translated.isNotEmpty) return translated;
+    final original = name.trim();
+    if (original.isNotEmpty) return original;
+    return '第 ${displayNumber(fallbackEpisode)} 集';
+  }
+
+  String? displaySubtitle(int fallbackEpisode) {
+    final original = name.trim();
+    if (original.isEmpty || original == displayTitle(fallbackEpisode)) {
+      return null;
+    }
+    return original;
+  }
+}

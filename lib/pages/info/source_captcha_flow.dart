@@ -103,14 +103,14 @@ class _VerifyDialogFrame extends StatelessWidget {
   const _VerifyDialogFrame({
     required this.pluginName,
     required this.title,
-    required this.description,
+    this.description,
     required this.child,
     this.actions = const [],
   });
 
   final String pluginName;
   final String title;
-  final String description;
+  final String? description;
   final Widget child;
   final List<Widget> actions;
 
@@ -125,7 +125,8 @@ class _VerifyDialogFrame extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 420),
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      contentPadding:
+          EdgeInsets.fromLTRB(24, description == null ? 20 : 12, 24, 0),
       actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
       actionsOverflowButtonSpacing: 8,
       title: Column(
@@ -154,10 +155,12 @@ class _VerifyDialogFrame extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(description,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: colors.onSurfaceVariant)),
-            const SizedBox(height: 24),
+            if (description != null) ...[
+              Text(description!,
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: colors.onSurfaceVariant)),
+              const SizedBox(height: 24),
+            ],
             child,
             if (actions.isEmpty) const SizedBox(height: 24),
           ],
@@ -282,7 +285,6 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
     return _VerifyDialogFrame(
       pluginName: widget.pluginName,
       title: '输入验证码',
-      description: '输入下图中的字符，继续检索此来源。',
       actions: [
         TextButton(
           style: TextButton.styleFrom(minimumSize: const Size(72, 48)),

@@ -56,6 +56,7 @@
       DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
       KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
       KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
+      FLUTTER_MASTER_COMMIT: 27f65c6da2dd58531ea3a3abee5af13c72a6621f
     
     jobs:
       flutter-test:
@@ -70,7 +71,6 @@
             uses: subosito/flutter-action@v2.16.0
             with:
               channel: stable
-              flutter-version-file: pubspec.yaml
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
@@ -95,7 +95,6 @@
             uses: subosito/flutter-action@v2.16.0
             with:
               channel: stable
-              flutter-version-file: pubspec.yaml
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
@@ -118,17 +117,16 @@
               sudo apt-get update
               sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev libasound2-dev
             shell: bash
-          - name: Set up JDK 17
+          - name: Set up JDK 21
             uses: actions/setup-java@v4
             with:
-              java-version: '17'
+              java-version: '21'
               distribution: 'temurin'          
           - name: Set up Flutter
             uses: subosito/flutter-action@v2.16.0
             id: flutter-action
             with:
               channel: stable
-              flutter-version-file: pubspec.yaml
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
@@ -165,14 +163,12 @@
         steps:
           - name: Clone repository
             uses: actions/checkout@v4
-          - run: choco install yq
           - name: Enable Git longpaths
             run: git config --system core.longpaths true
           - name: Set up Flutter
             uses: subosito/flutter-action@v2.16.0
             with:
               channel: stable
-              flutter-version-file: pubspec.yaml
           - name: Set up Java
             uses: actions/setup-java@v4
             with:
@@ -240,7 +236,6 @@
             uses: subosito/flutter-action@v2.16.0
             with:
               channel: stable
-              flutter-version-file: pubspec.yaml
           - run: flutter pub get
           - name: Install native build tools
             run: brew install cmake ninja
@@ -277,7 +272,6 @@
             uses: subosito/flutter-action@v2.16.0
             with:
               channel: stable
-              flutter-version-file: pubspec.yaml
           - run: flutter pub get
           - name: Install native build tools
             run: brew install cmake ninja
@@ -330,8 +324,8 @@
           - name: Set up Flutter
             uses: subosito/flutter-action@v2.16.0
             with:
-              channel: stable
-              flutter-version-file: pubspec.yaml
+              channel: master
+              flutter-version: ${{ env.FLUTTER_MASTER_COMMIT }}
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
@@ -415,8 +409,8 @@
           - name: Set up Flutter for ARM64
             uses: ./.github/actions/flutter-arm64-setup
             with:
-              channel: stable
-              flutter-version-file: pubspec.yaml
+              channel: master
+              flutter-version: ${{ env.FLUTTER_MASTER_COMMIT }}
           - name: Install project dependencies
             run: |
               sudo apt-get update

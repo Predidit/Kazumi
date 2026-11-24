@@ -9,67 +9,22 @@ class _ImageSourceSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-        spacing: 4,
-        children: [false, true].map((url) {
-          final selected = url == useUrl;
-          return Expanded(
-              child: Semantics(
-            selected: selected,
-            inMutuallyExclusiveGroup: true,
-            child: FilledButton(
-              onPressed: enabled ? () => onChanged(url) : null,
-              style: ButtonStyle(
-                minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
-                padding: const WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
-                backgroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.disabled)
-                        ? colors.onSurface.withValues(alpha: .12)
-                        : selected
-                            ? colors.secondaryContainer
-                            : colors.surfaceContainerHighest),
-                foregroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.disabled)
-                        ? colors.onSurface.withValues(alpha: .38)
-                        : selected
-                            ? colors.onSecondaryContainer
-                            : colors.onSurfaceVariant),
-                shape: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.pressed)) {
-                    return RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12));
-                  }
-                  return RoundedRectangleBorder(
-                      borderRadius: selected
-                          ? BorderRadius.circular(24)
-                          : BorderRadius.horizontal(
-                              left: Radius.circular(url ? 8 : 24),
-                              right: Radius.circular(url ? 24 : 8)));
-                }),
-                animationDuration: MediaQuery.disableAnimationsOf(context)
-                    ? Duration.zero
-                    : const Duration(milliseconds: 200),
-              ),
-              child: Wrap(
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    Icon(
-                        selected
-                            ? Icons.check_rounded
-                            : url
-                                ? Icons.link_rounded
-                                : Icons.photo_library_outlined,
-                        size: 20),
-                    Text(url ? '图片链接' : '本地图片'),
-                  ]),
-            ),
-          ));
-        }).toList());
+    return ConnectedButtonGroup<bool>(
+      segments: [
+        for (final url in [false, true])
+          ButtonSegment(
+            value: url,
+            label: Text(url ? '图片链接' : '本地图片'),
+            icon: Icon(url == useUrl
+                ? Icons.check_rounded
+                : url
+                    ? Icons.link_rounded
+                    : Icons.photo_library_outlined),
+          ),
+      ],
+      selected: useUrl,
+      onSelected: enabled ? onChanged : null,
+    );
   }
 }
 
@@ -155,9 +110,6 @@ class _ImageSearchResults extends StatelessWidget {
           child: Text('找到 ${results.length} 个相似片段',
               style:
                   type.headlineSmall?.copyWith(fontWeight: FontWeight.w700))),
-      const SizedBox(height: 6),
-      Text('按画面相似度排序，先对照截图再确认。',
-          style: type.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
       if (error.isNotEmpty) ...[
         const SizedBox(height: 12),
         Text(error, style: type.bodyMedium?.copyWith(color: colors.error)),
@@ -171,7 +123,7 @@ class _ImageSearchResults extends StatelessWidget {
             style: type.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
         ...results.skip(1).indexed.map((entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: splitListRowGap),
               child: _OtherMatch(
                   result: entry.$2,
                   first: entry.$1 == 0,
@@ -199,11 +151,6 @@ class _ImageSearchLoadingState extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style:
                     type.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            Text('正在比对动画画面，匹配番名、集数与时间。\n请稍等片刻。',
-                textAlign: TextAlign.center,
-                style: type.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ]),
         ));
   }
@@ -335,54 +282,50 @@ class _OtherMatch extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final type = Theme.of(context).textTheme;
-    return Material(
+    return SplitListRow(
+      first: first,
+      last: last,
       color: colors.surface,
-      borderRadius: BorderRadius.vertical(
-          top: Radius.circular(first ? 20 : 8),
-          bottom: Radius.circular(last ? 20 : 8)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => onSelect(_title(result)),
-        child: Semantics(
-          button: true,
-          label: '搜索 ${_title(result)}',
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: LayoutBuilder(
-                builder: (context, constraints) => Row(children: [
-                      if (constraints.maxWidth >= 300 &&
-                          MediaQuery.textScalerOf(context).scale(16) < 24) ...[
-                        SizedBox(
-                            width: constraints.maxWidth >= 400 ? 112 : 80,
-                            child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: _TraceFrame(result: result))),
-                        const SizedBox(width: 16),
-                      ],
-                      Expanded(
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                            Text(_title(result),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: type.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 6),
-                            Text(
-                                '${_episode(result.episode)} · ${_similarity(result)} 相似',
-                                style: type.bodyMedium
-                                    ?.copyWith(color: colors.onSurfaceVariant)),
-                            const SizedBox(height: 4),
-                            Text(_timeRange(result),
-                                style: type.bodySmall
-                                    ?.copyWith(color: colors.onSurfaceVariant)),
-                          ])),
-                      const SizedBox(width: 8),
-                      Icon(Icons.arrow_outward_rounded,
-                          size: 20, color: colors.onSurfaceVariant),
-                    ])),
-          ),
+      onTap: () => onSelect(_title(result)),
+      child: Semantics(
+        button: true,
+        label: '搜索 ${_title(result)}',
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: LayoutBuilder(
+              builder: (context, constraints) => Row(children: [
+                    if (constraints.maxWidth >= 300 &&
+                        MediaQuery.textScalerOf(context).scale(16) < 24) ...[
+                      SizedBox(
+                          width: constraints.maxWidth >= 400 ? 112 : 80,
+                          child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: _TraceFrame(result: result))),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Text(_title(result),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: type.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 6),
+                          Text(
+                              '${_episode(result.episode)} · ${_similarity(result)} 相似',
+                              style: type.bodyMedium
+                                  ?.copyWith(color: colors.onSurfaceVariant)),
+                          const SizedBox(height: 4),
+                          Text(_timeRange(result),
+                              style: type.bodySmall
+                                  ?.copyWith(color: colors.onSurfaceVariant)),
+                        ])),
+                    const SizedBox(width: 8),
+                    Icon(Icons.arrow_outward_rounded,
+                        size: 20, color: colors.onSurfaceVariant),
+                  ])),
         ),
       ),
     );

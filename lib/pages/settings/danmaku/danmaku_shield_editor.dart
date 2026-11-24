@@ -62,7 +62,7 @@ class _DanmakuShieldEditorState extends State<DanmakuShieldEditor> {
               onSubmitted: (_) => _addRule(),
             ),
             const SizedBox(height: 8),
-            Text('包含关键词的弹幕会被隐藏。用 / / 包裹正则表达式。',
+            Text('用 / / 包裹正则表达式',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     )),

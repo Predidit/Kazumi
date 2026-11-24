@@ -14,7 +14,7 @@ class HistoryRecordTile extends StatelessWidget {
     required this.onDelete,
     required this.collectType,
     required this.onChangeCollect,
-    this.borderRadius = const BorderRadius.all(Radius.circular(24)),
+    required this.borderRadius,
     this.editing = false,
     this.busy = false,
   });
@@ -98,12 +98,12 @@ class HistoryRecordTile extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               child: LayoutBuilder(builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 600;
                 final largeText =
                     MediaQuery.textScalerOf(context).scale(14) > 21;
-                final coverWidth = wide ? 72.0 : 60.0;
+                final coverWidth = wide ? 72.0 : 68.0;
                 final content = Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -151,7 +151,7 @@ class HistoryRecordTile extends StatelessWidget {
                         ExcludeSemantics(
                           child: IgnorePointer(
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                               child: image.isEmpty
                                   ? Container(
                                       width: coverWidth,
@@ -168,7 +168,7 @@ class HistoryRecordTile extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: ExcludeSemantics(
                             child: IgnorePointer(child: content),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
@@ -149,7 +150,7 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
   }
 
   String? get _description {
-    if (!widget.plan.canSync) return '选择同步服务';
+    if (!widget.plan.canSync) return null;
     if (_running) {
       final current = _steps.indexWhere((s) => s.status == _StepStatus.running);
       return '第 ${current + 1} / ${_steps.length} 步 · 请保持应用开启';
@@ -216,7 +217,8 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
           color: colors.onSurface,
           fontWeight: FontWeight.w600,
         ),
-        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        contentPadding:
+            EdgeInsets.fromLTRB(24, description == null ? 20 : 12, 24, 24),
         content: SizedBox(
           width: 392,
           child: Column(
@@ -232,11 +234,11 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
               ],
               if (!widget.plan.canSync) ...[
                 _setupRow(CollectSyncDestination.webDavSettings),
-                const SizedBox(height: 4),
+                const SizedBox(height: splitListRowGap),
                 _setupRow(CollectSyncDestination.bangumiSettings),
               ] else ...[
                 for (var i = 0; i < _steps.length; i++) ...[
-                  if (i > 0) const SizedBox(height: 4),
+                  if (i > 0) const SizedBox(height: splitListRowGap),
                   _stepRow(_steps[i], i),
                 ],
                 if (_phase == _SyncPhase.ready &&
@@ -281,11 +283,6 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
     );
   }
 
-  BorderRadius _rowRadius(int index, int length) => BorderRadius.vertical(
-        top: Radius.circular(index == 0 ? 20 : 4),
-        bottom: Radius.circular(index == length - 1 ? 20 : 4),
-      );
-
   Widget _setupRow(CollectSyncDestination destination) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
@@ -301,18 +298,16 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
           Icons.bookmarks_rounded
         ),
     };
-    return Material(
-      color: colors.surfaceContainerLow,
-      borderRadius:
-          _rowRadius(destination.index, CollectSyncDestination.values.length),
-      clipBehavior: Clip.antiAlias,
+    return SplitListRow(
+      first: destination.index == 0,
+      last: destination.index == CollectSyncDestination.values.length - 1,
+      onTap: () => Navigator.of(context).pop(destination),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Icon(icon, color: colors.primary),
         title: Text(title, style: theme.textTheme.titleSmall),
         subtitle: Text(description),
         trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => Navigator.of(context).pop(destination),
       ),
     );
   }
@@ -351,7 +346,10 @@ class _CollectSyncDialogState extends State<CollectSyncDialog> {
             : active
                 ? colors.secondaryContainer
                 : colors.surfaceContainerLow,
-        borderRadius: _rowRadius(index, _steps.length),
+        borderRadius: splitListRowRadius(
+          first: index == 0,
+          last: index == _steps.length - 1,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

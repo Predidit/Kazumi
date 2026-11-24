@@ -5,6 +5,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
+import 'package:kazumi/bean/widget/expressive_motion.dart';
+
 BoxConstraints _adaptiveBottomSheetConstraints(
   BuildContext context, {
   required double maxHeightFactor,
@@ -39,16 +41,30 @@ const AnimationStyle _materialSheetAnimationStyle = AnimationStyle(
   reverseCurve: Easing.legacyDecelerate,
 );
 
-Future<T?> showAdaptiveBottomSheet<T>({
+ModalBottomSheetRoute<T> adaptiveBottomSheetRoute<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   double maxHeightFactor = 0.75,
   double compactLandscapeMaxHeightFactor = 0.9,
+  bool enableDrag = true,
   bool useRootNavigator = false,
   RouteSettings? routeSettings,
 }) {
-  return showModalBottomSheet<T>(
-    context: context,
+  final navigator = Navigator.of(context, rootNavigator: useRootNavigator);
+  final localizations = MaterialLocalizations.of(context);
+  return ModalBottomSheetRoute<T>(
+    builder: (context) => _MaterialSheetSurface(
+      showDragHandle: enableDrag,
+      child: Builder(builder: builder),
+    ),
+    capturedThemes: InheritedTheme.capture(
+      from: context,
+      to: navigator.context,
+    ),
+    isScrollControlled: true,
+    barrierLabel: localizations.scrimLabel,
+    barrierOnTapHint:
+        localizations.scrimOnTapHint(localizations.bottomSheetLabel),
     // A single surface owns the handle and background to avoid a second cap.
     backgroundColor: Colors.transparent,
     elevation: 0,
@@ -59,23 +75,46 @@ Future<T?> showAdaptiveBottomSheet<T>({
       maxHeightFactor: maxHeightFactor,
       compactLandscapeMaxHeightFactor: compactLandscapeMaxHeightFactor,
     ),
-    isScrollControlled: true,
-    useRootNavigator: useRootNavigator,
-    routeSettings: routeSettings,
+    modalBarrierColor: Theme.of(context).bottomSheetTheme.modalBarrierColor,
+    enableDrag: enableDrag,
     showDragHandle: false,
     useSafeArea: true,
+    settings: routeSettings,
     sheetAnimationStyle: MediaQuery.disableAnimationsOf(context)
         ? AnimationStyle.noAnimation
         : _materialSheetAnimationStyle,
-    builder: (context) => _MaterialSheetSurface(
-      child: Builder(builder: builder),
+  );
+}
+
+Future<T?> showAdaptiveBottomSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  double maxHeightFactor = 0.75,
+  double compactLandscapeMaxHeightFactor = 0.9,
+  bool enableDrag = true,
+  bool useRootNavigator = false,
+  RouteSettings? routeSettings,
+}) {
+  return Navigator.of(context, rootNavigator: useRootNavigator).push<T>(
+    adaptiveBottomSheetRoute<T>(
+      context: context,
+      builder: builder,
+      maxHeightFactor: maxHeightFactor,
+      compactLandscapeMaxHeightFactor: compactLandscapeMaxHeightFactor,
+      enableDrag: enableDrag,
+      useRootNavigator: useRootNavigator,
+      routeSettings: routeSettings,
     ),
   );
 }
 
 class _MaterialSheetSurface extends StatefulWidget {
-  const _MaterialSheetSurface({required this.child});
+  const _MaterialSheetSurface({
+    required this.showDragHandle,
+    required this.child,
+  });
 
+  final bool showDragHandle;
   final Widget child;
 
   @override
@@ -98,11 +137,7 @@ class _MaterialSheetSurfaceState extends State<_MaterialSheetSurface>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || MediaQuery.disableAnimationsOf(context)) return;
         _entrance.animateWith(SpringSimulation(
-          SpringDescription.withDampingRatio(
-            mass: 1,
-            stiffness: 380,
-            ratio: 0.8,
-          ),
+          ExpressiveMotion.defaultSpatial,
           0,
           1,
           0,
@@ -139,24 +174,27 @@ class _MaterialSheetSurfaceState extends State<_MaterialSheetSurface>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Semantics(
-                label:
-                    MaterialLocalizations.of(context).modalBarrierDismissLabel,
-                onDismiss: () => Navigator.of(context).maybePop(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Center(
-                    child: Container(
-                      width: 32,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: colors.onSurfaceVariant.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(2),
+              if (widget.showDragHandle)
+                Semantics(
+                  label: MaterialLocalizations.of(context)
+                      .modalBarrierDismissLabel,
+                  onDismiss: () => Navigator.of(context).maybePop(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 22),
+                    child: Center(
+                      child: Container(
+                        width: 32,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: colors.onSurfaceVariant,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                )
+              else
+                const SizedBox(height: 16),
               Flexible(child: widget.child),
             ],
           ),

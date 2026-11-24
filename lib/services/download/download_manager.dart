@@ -807,22 +807,20 @@ class DownloadManager implements IDownloadManager {
         if (response.statusCode == HttpStatus.partialContent) {
           final range = _readPartialRange(response.headers, received);
           if ((totalSize != null && range.total != totalSize) ||
-              (strongETag != null && etag != null && strongETag != etag)) {
+              (strongETag != null && responseTag != strongETag)) {
             // A retry must not combine the old prefix with a different file.
             await discardPrefix();
-            throw const HttpException('下载中的视频已更改，请重新下载');
+            throw const HttpException('无法确认续传内容与已有视频一致，请重新下载');
           }
           expectedEnd = range.end + 1;
           totalSize = range.total;
           if (contentLength != null && contentLength != expectedEnd - received) {
             throw const HttpException('视频分段响应与声明的字节范围不符');
           }
-          strongETag ??= responseTag;
         } else if (response.statusCode == HttpStatus.ok) {
           // A server that ignores Range sends the entire representation.
           if (contentLength == 0) throw const HttpException('视频响应为空');
           received = 0;
-          strongETag = encoded ? null : responseTag;
           totalSize = encoded ? null : contentLength;
           expectedEnd = totalSize;
         } else {
@@ -845,6 +843,8 @@ class DownloadManager implements IDownloadManager {
                 episode.totalBytes = 0;
                 episode.progressPercent = 0;
                 await validator.clear();
+                // A later range cannot certify bytes already on disk.
+                strongETag = encoded ? null : responseTag;
                 if (strongETag case final tag?) await validator.save(tag);
               }
             }

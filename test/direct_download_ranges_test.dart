@@ -209,6 +209,52 @@ void main() {
     expect(ranges, [null, null]);
   });
 
+  for (final tags in [
+    <String>[],
+    ['"v1"', '"v2"'],
+  ]) {
+    test('rejects a tagged resume with continuation ETags $tags', () async {
+      serve = (response, _) {
+        response.headers.set(HttpHeaders.etagHeader, '"v1"');
+        partial(response, 0, block - 1);
+      };
+      await download(pauseAt: block);
+      expect(episode.status, DownloadStatus.paused);
+      ranges.clear();
+      validators.clear();
+
+      serve = (response, _) {
+        response.headers.noFolding(HttpHeaders.etagHeader);
+        for (final tag in tags) {
+          response.headers.add(HttpHeaders.etagHeader, tag);
+        }
+        partial(response, block, payload.length - 1);
+      };
+      await download(resume: true);
+      expect(ranges, [null, 'bytes=1024-']);
+      expect(validators, [null, '"v1"']);
+      expect(episode.status, DownloadStatus.failed);
+      expect(episode.totalBytes, 0);
+      expect(await getFile('video.mp4').exists(), isFalse);
+      expect(await getFile('video.mp4.tmp').exists(), isFalse);
+      expect(await getFile('video.mp4.tmp.etag').exists(), isFalse);
+    });
+  }
+
+  test('does not adopt a validator first seen after byte zero', () async {
+    serve = (response, range) {
+      final start = range == null
+          ? 0
+          : int.parse(range.substring(6, range.length - 1));
+      if (start == block) response.headers.set(HttpHeaders.etagHeader, '"v2"');
+      partial(response, start, min(start + block, payload.length) - 1);
+    };
+    await download();
+    await expectComplete();
+    expect(ranges, [null, null, 'bytes=1024-', 'bytes=2048-', 'bytes=3072-']);
+    expect(validators, everyElement(isNull));
+  });
+
   test('resumes from an existing prefix', () async {
     serve = (response, _) => partial(response, block, payload.length - 1);
     await download(resume: true);

@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/image_extension.dart';
 
-class NetworkImgLayer extends StatelessWidget {
+typedef _DecodeSize = (int?, int?);
+
+class NetworkImgLayer extends StatefulWidget {
   const NetworkImgLayer({
     super.key,
     this.src,
@@ -59,28 +63,72 @@ class NetworkImgLayer extends StatelessWidget {
   }
 
   @override
+  State<NetworkImgLayer> createState() => _NetworkImgLayerState();
+}
+
+class _NetworkImgLayerState extends State<NetworkImgLayer> {
+  Timer? _resizeTimer;
+  _DecodeSize? _decodeSize;
+  _DecodeSize? _targetDecodeSize;
+
+  @override
+  void didUpdateWidget(NetworkImgLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.src != oldWidget.src ||
+        widget.fit != oldWidget.fit ||
+        widget.origAspectRatio != oldWidget.origAspectRatio) {
+      _resizeTimer?.cancel();
+      _decodeSize = null;
+      _targetDecodeSize = null;
+    }
+  }
+
+  _DecodeSize _resolveDecodeSize(_DecodeSize targetSize) {
+    final currentSize = _decodeSize ??= targetSize;
+    if (_targetDecodeSize == targetSize) return currentSize;
+
+    _resizeTimer?.cancel();
+    _targetDecodeSize = targetSize;
+    if (currentSize != targetSize) {
+      _resizeTimer = Timer(const Duration(milliseconds: 200), () {
+        setState(() => _decodeSize = targetSize);
+      });
+    }
+    return currentSize;
+  }
+
+  @override
+  void dispose() {
+    _resizeTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final imageUrl = src ?? '';
+    final imageUrl = widget.src ?? '';
     if (imageUrl.isEmpty) {
       return _placeholder(context);
     }
 
-    final (memCacheWidth, memCacheHeight) = _cacheSize(context);
+    final (memCacheWidth, memCacheHeight) =
+        _resolveDecodeSize(_cacheSize(context));
     return ClipRRect(
       clipBehavior: Clip.antiAlias,
       borderRadius: _borderRadius,
       child: CachedNetworkImage(
         imageUrl: imageUrl,
-        width: width,
-        height: height,
+        width: widget.width,
+        height: widget.height,
         memCacheWidth: memCacheWidth,
         memCacheHeight: memCacheHeight,
-        fit: fit,
-        fadeOutDuration: fadeOutDuration ?? const Duration(milliseconds: 120),
-        fadeInDuration: fadeInDuration ?? const Duration(milliseconds: 120),
-        filterQuality: filterQuality,
-        color: color,
-        colorBlendMode: colorBlendMode,
+        fit: widget.fit,
+        fadeOutDuration:
+            widget.fadeOutDuration ?? const Duration(milliseconds: 120),
+        fadeInDuration:
+            widget.fadeInDuration ?? const Duration(milliseconds: 120),
+        filterQuality: widget.filterQuality,
+        color: widget.color,
+        colorBlendMode: widget.colorBlendMode,
         errorListener: (e) {
           KazumiLogger().w("NetworkImage: network image load error", error: e);
         },
@@ -90,13 +138,15 @@ class NetworkImgLayer extends StatelessWidget {
     );
   }
 
-  (int?, int?) _cacheSize(BuildContext context) {
+  _DecodeSize _cacheSize(BuildContext context) {
+    final width = widget.width;
+    final height = widget.height;
     final cacheWidth = width.cacheSize(context);
     final cacheHeight = height.cacheSize(context);
     final aspectRatio = width / height;
-    final sourceAspectRatio = origAspectRatio;
+    final sourceAspectRatio = widget.origAspectRatio;
 
-    switch (fit) {
+    switch (widget.fit) {
       case BoxFit.none:
       case BoxFit.scaleDown:
         // These modes depend on the original image dimensions.
@@ -126,14 +176,17 @@ class NetworkImgLayer extends StatelessWidget {
   }
 
   BorderRadius get _borderRadius =>
-      borderRadius ??
-      BorderRadius.circular(switch (type) {
+      widget.borderRadius ??
+      BorderRadius.circular(switch (widget.type) {
         'avatar' => 50,
         'emote' => 0,
         _ => StyleString.imgRadius.x,
       });
 
   Widget _placeholder(BuildContext context) {
+    final width = widget.width;
+    final height = widget.height;
+    final type = widget.type;
     return Container(
       width: width,
       height: height,

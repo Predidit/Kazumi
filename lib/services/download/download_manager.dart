@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
+import 'package:kazumi/request/core/network_error_mapper.dart';
 import 'package:kazumi/request/core/network_exception.dart';
 import 'package:kazumi/utils/m3u8_parser.dart';
 import 'package:kazumi/utils/m3u8_ad_filter.dart';
@@ -47,6 +50,54 @@ typedef ProgressCallback = void Function(
     String recordKey, int episodeNumber, DownloadEpisode episode, double speed);
 
 final _m3u8SegmentFileNamePattern = RegExp(r'^seg_\d+\.ts$');
+final _byteRangePattern =
+    RegExp(r'^bytes (\d+)-(\d+)/(\d+)$', caseSensitive: false);
+final _strongETagPattern = RegExp(r'^"[\x21\x23-\x7e\x80-\xff]*"$');
+
+/// Records the strong validator for the bytes written from offset zero.
+/// Hash the URL so expiring signed URLs are not stored alongside the video.
+class _DirectFileValidator {
+  final File file;
+  final String resource;
+
+  _DirectFileValidator(String tmpPath, String url)
+      : file = File('$tmpPath.etag'),
+        resource = sha256.convert(utf8.encode(url)).toString();
+
+  Future<String?> read() async {
+    final lines = await file.readAsLines(encoding: latin1);
+    if (lines.length == 2 &&
+        lines.first == resource &&
+        _strongETagPattern.hasMatch(lines.last)) {
+      return lines.last;
+    }
+    return null;
+  }
+
+  Future<void> save(String tag) async {
+    await file.writeAsString('$resource\n$tag', encoding: latin1, flush: true);
+  }
+
+  Future<void> clear() async {
+    if (await file.exists()) await file.delete();
+  }
+}
+
+({int end, int total}) _readPartialRange(Headers headers, int offset) {
+  final match = _byteRangePattern
+      .firstMatch(headers.value(HttpHeaders.contentRangeHeader) ?? '');
+  final start = int.tryParse(match?.group(1) ?? '');
+  final end = int.tryParse(match?.group(2) ?? '');
+  final total = int.tryParse(match?.group(3) ?? '');
+  if (start != offset ||
+      end == null ||
+      end < offset ||
+      total == null ||
+      end >= total) {
+    throw const HttpException('服务器返回的视频字节范围不一致，无法继续下载');
+  }
+  return (end: end, total: total);
+}
 
 Future<int> calculateM3u8VideoBytes(String episodeDir) async {
   final dir = Directory(episodeDir);
@@ -668,80 +719,158 @@ class DownloadManager implements IDownloadManager {
       final filePath = path.join(episodeDir, 'video.mp4');
       final tmpPath = '$filePath.tmp';
 
-      int existingBytes = 0;
       final tmpFile = File(tmpPath);
-      if (await tmpFile.exists()) {
-        existingBytes = await tmpFile.length();
+      var received = await tmpFile.exists() ? await tmpFile.length() : 0;
+      final validator = _DirectFileValidator(tmpPath, videoUrl);
+      String? strongETag;
+
+      Future<void> discardPrefix() async {
+        await tmpFile.delete();
+        received = 0;
+        episode.totalBytes = 0;
+        episode.progressPercent = 0;
+        strongETag = null;
+        await validator.clear();
+      }
+
+      if (received > 0 && await validator.file.exists()) {
+        strongETag = await validator.read();
+        if (strongETag == null) await discardPrefix();
       }
 
       episode.totalSegments = 1;
       episode.downloadedSegments = 0;
       _notifyProgress(task, episode);
 
-      final requestHeaders = Map<String, String>.from(httpHeaders);
-      bool useRange = existingBytes > 0;
-      if (useRange) {
-        requestHeaders['Range'] = 'bytes=$existingBytes-';
-      }
-
-      Response<ResponseBody> response;
-      try {
-        response = await _http.getStream(
-          videoUrl,
-          headers: requestHeaders,
-          receiveTimeout: const Duration(minutes: 30),
-          cancelToken: task.cancelToken,
-        );
-      } on NetworkException catch (e) {
-        if (e.statusCode == 416 && useRange) {
-          KazumiLogger().w(
-            'DownloadManager: 416 Range Not Satisfiable, deleting tmp file and retrying',
-          );
-          await tmpFile.delete();
-          existingBytes = 0;
-          requestHeaders.remove('Range');
+      final requestHeaders = Map<String, String>.from(httpHeaders)
+        ..removeWhere((key, _) =>
+            key.toLowerCase() == HttpHeaders.rangeHeader ||
+            key.toLowerCase() == HttpHeaders.acceptEncodingHeader ||
+            key.toLowerCase() == HttpHeaders.ifRangeHeader)
+        ..[HttpHeaders.acceptEncodingHeader] = 'identity';
+      int? totalSize;
+      var sessionBytes = 0;
+      _speedTrackers[key] = _SpeedTracker();
+      while (!task.cancelToken.isCancelled) {
+        Response<ResponseBody> response;
+        try {
           response = await _http.getStream(
             videoUrl,
-            headers: requestHeaders,
+            headers: {
+              ...requestHeaders,
+              if (received > 0) HttpHeaders.rangeHeader: 'bytes=$received-',
+              if (received > 0) HttpHeaders.ifRangeHeader: ?strongETag,
+            },
             receiveTimeout: const Duration(minutes: 30),
             cancelToken: task.cancelToken,
           );
+        } on NetworkException catch (e) {
+          if (task.cancelToken.isCancelled) break;
+          if (e.statusCode != HttpStatus.requestedRangeNotSatisfiable ||
+              received == 0) {
+            rethrow;
+          }
+          final cause = e.rawError;
+          final headers = cause is DioException ? cause.response?.headers : null;
+          final range = headers?[HttpHeaders.contentRangeHeader]?.singleOrNull;
+          // Length alone cannot identify a previously downloaded resource.
+          if (totalSize == null &&
+              strongETag != null &&
+              headers?[HttpHeaders.etagHeader]?.singleOrNull == strongETag &&
+              range?.trim().toLowerCase() == 'bytes */$received') {
+            break;
+          }
+          await discardPrefix();
+          if (totalSize != null) rethrow;
+          continue;
+        }
+
+        if (task.cancelToken.isCancelled) break;
+        final encodings =
+            response.headers[HttpHeaders.contentEncodingHeader] ?? const <String>[];
+        final encoded = encodings
+            .expand((value) => value.split(','))
+            .map((value) => value.trim().toLowerCase())
+            .any((value) => value.isNotEmpty && value != 'identity');
+        // dart:io only decodes a single, literal gzip content coding.
+        if (encoded &&
+            (response.statusCode != HttpStatus.ok || encodings.singleOrNull != 'gzip')) {
+          throw const HttpException('服务器返回了不支持的视频内容编码');
+        }
+        final contentLength = int.tryParse(
+            response.headers.value(HttpHeaders.contentLengthHeader) ?? '');
+        final etag = response.headers[HttpHeaders.etagHeader]?.singleOrNull;
+        final responseTag = etag != null && _strongETagPattern.hasMatch(etag)
+            ? etag
+            : null;
+        final int? expectedEnd;
+        if (response.statusCode == HttpStatus.partialContent) {
+          final range = _readPartialRange(response.headers, received);
+          if ((totalSize != null && range.total != totalSize) ||
+              (strongETag != null && responseTag != strongETag)) {
+            // A retry must not combine the old prefix with a different file.
+            await discardPrefix();
+            throw const HttpException('无法确认续传内容与已有视频一致，请重新下载');
+          }
+          expectedEnd = range.end + 1;
+          totalSize = range.total;
+          if (contentLength != null && contentLength != expectedEnd - received) {
+            throw const HttpException('视频分段响应与声明的字节范围不符');
+          }
+        } else if (response.statusCode == HttpStatus.ok) {
+          // A server that ignores Range sends the entire representation.
+          if (contentLength == 0) throw const HttpException('视频响应为空');
+          received = 0;
+          totalSize = encoded ? null : contentLength;
+          expectedEnd = totalSize;
         } else {
-          rethrow;
+          throw HttpException('服务器返回了意外的下载状态码 ${response.statusCode}');
         }
-      }
 
-      final contentRange = response.headers.value('content-range');
-      final contentLength = int.tryParse(
-              response.headers.value(Headers.contentLengthHeader) ?? '') ??
-          0;
-      int totalSize;
-      if (contentRange != null) {
-        final totalMatch = RegExp(r'/(\d+)').firstMatch(contentRange);
-        totalSize = totalMatch != null ? int.parse(totalMatch.group(1)!) : 0;
-      } else {
-        totalSize = existingBytes + contentLength;
-      }
-
-      final raf = await tmpFile.open(
-          mode: existingBytes > 0 ? FileMode.append : FileMode.write);
-      int received = existingBytes;
-
-      _speedTrackers[key] = _SpeedTracker();
-
-      try {
-        await for (final chunk in response.data!.stream) {
-          if (task.isPaused || task.cancelToken.isCancelled) break;
-          await raf.writeFrom(chunk);
-          received += chunk.length;
-          episode.totalBytes = received;
-          episode.progressPercent = totalSize > 0 ? received / totalSize : 0;
-          // Update speed tracker
-          _speedTrackers[key]?.update(received);
-          _notifyProgress(task, episode);
+        RandomAccessFile? raf;
+        try {
+          await for (final chunk in response.data!.stream) {
+            if (task.cancelToken.isCancelled) break;
+            if (chunk.isEmpty) continue;
+            if (expectedEnd != null && chunk.length > expectedEnd - received) {
+              throw const HttpException('视频响应超过声明的字节范围');
+            }
+            if (raf == null) {
+              // Keep the old prefix until a replacement actually delivers data.
+              raf = await tmpFile.open(
+                  mode: received == 0 ? FileMode.write : FileMode.append);
+              if (received == 0) {
+                episode.totalBytes = 0;
+                episode.progressPercent = 0;
+                await validator.clear();
+                // A later range cannot certify bytes already on disk.
+                strongETag = encoded ? null : responseTag;
+                if (strongETag case final tag?) await validator.save(tag);
+              }
+            }
+            await raf.writeFrom(chunk);
+            received += chunk.length;
+            sessionBytes += chunk.length;
+            episode.totalBytes = received;
+            episode.progressPercent =
+                totalSize != null && totalSize > 0 ? received / totalSize : 0;
+            _speedTrackers[key]?.update(sessionBytes);
+            _notifyProgress(task, episode);
+          }
+        } on DioException catch (e) {
+          if (!task.cancelToken.isCancelled) {
+            throw await NetworkErrorMapper.mapException(e);
+          }
+        } on IOException {
+          if (!task.cancelToken.isCancelled) rethrow;
+        } finally {
+          await raf?.close();
         }
-      } finally {
-        await raf.close();
+        if (task.cancelToken.isCancelled) break;
+        if (received == 0 || (expectedEnd != null && received != expectedEnd)) {
+          throw const HttpException('视频响应结束时未收到声明的全部字节');
+        }
+        if (totalSize == null || received == totalSize) break;
       }
 
       if (task.isPaused || task.cancelToken.isCancelled) {
@@ -752,7 +881,14 @@ class DownloadManager implements IDownloadManager {
         return;
       }
 
-      await File(tmpPath).rename(filePath);
+      await tmpFile.rename(filePath);
+      // An orphaned validator is ignored when there is no temporary file.
+      try {
+        await validator.clear();
+      } on FileSystemException catch (e) {
+        KazumiLogger().w('DownloadManager: cannot remove direct file validator',
+            error: e);
+      }
 
       episode.status = DownloadStatus.completed;
       episode.localM3u8Path = filePath;
@@ -778,7 +914,7 @@ class DownloadManager implements IDownloadManager {
       _notifyProgress(task, episode);
       KazumiLogger().e('DownloadManager: file system error', error: e);
     } on NetworkException catch (e) {
-      if (e.type == NetworkExceptionType.cancel) {
+      if (task.cancelToken.isCancelled || e.type == NetworkExceptionType.cancel) {
         if (task.isPaused) {
           episode.status = DownloadStatus.paused;
         }
@@ -793,6 +929,11 @@ class DownloadManager implements IDownloadManager {
       _notifyProgress(task, episode);
       KazumiLogger()
           .e('DownloadManager: direct file download failed', error: e);
+    } finally {
+      // Stop an unread response body when its headers or bytes were rejected.
+      if (episode.status == DownloadStatus.failed) {
+        task.cancelToken.cancel('direct download failed');
+      }
     }
   }
 

@@ -49,6 +49,11 @@ class Win32Window {
   // window properties. Returns nullptr if the window has been destroyed.
   HWND GetHandle();
 
+  // Applies a normal outer rect in physical screen pixels. During this
+  // synchronous call, DPI changes preserve the explicit rect instead of scaling
+  // it again. Does not change DPI awareness, activation, visibility or Z order.
+  bool SetBoundsInPhysicalPixels(const RECT& bounds);
+
   // If true, closing this window will quit the application.
   void SetQuitOnClose(bool quit_on_close);
 
@@ -97,6 +102,10 @@ class Win32Window {
 
   // window handle for hosted content.
   HWND child_content_ = nullptr;
+
+  // Borrowed only during SetBoundsInPhysicalPixels on the platform thread.
+  // Outside that call, normal cross-monitor moves use the OS DPI suggestion.
+  const RECT* physical_bounds_override_ = nullptr;
 };
 
 #endif  // RUNNER_WIN32_WINDOW_H_

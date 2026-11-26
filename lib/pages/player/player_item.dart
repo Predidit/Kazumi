@@ -346,7 +346,7 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
     if (isDesktop() && videoPageController.isPip) {
-      await PipUtils.enterDesktopPIPWindow(
+      await PipUtils.updateDesktopPIPAspect(
         width: playerController.debug.playerWidth,
         height: playerController.debug.playerHeight,
       );

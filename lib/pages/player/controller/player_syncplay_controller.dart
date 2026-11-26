@@ -8,6 +8,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/syncplay_client.dart';
 import 'package:kazumi/services/player/syncplay_endpoint.dart';
+import 'package:kazumi/services/player/syncplay_playback_coordinator.dart';
 import 'package:kazumi/utils/async_session.dart';
 import 'package:mobx/mobx.dart';
 
@@ -22,6 +23,7 @@ abstract class _PlayerSyncPlayController with Store {
     required this.currentEpisode,
     required this.currentRoad,
     required this.playing,
+    required this.playerPlaying,
     required this.currentPosition,
     required this.playerPosition,
     required this.duration,
@@ -34,6 +36,7 @@ abstract class _PlayerSyncPlayController with Store {
   final int Function() currentEpisode;
   final int Function() currentRoad;
   final bool Function() playing;
+  final bool Function() playerPlaying;
   final Duration Function() currentPosition;
   final Duration Function() playerPosition;
   final Duration Function() duration;
@@ -51,6 +54,8 @@ abstract class _PlayerSyncPlayController with Store {
   String syncplayRoom = '';
   @observable
   int syncplayClientRtt = 0;
+
+  SyncplayPlaybackCoordinator? _playbackCoordinator;
 
   bool get hasSession => syncplayController != null;
 
@@ -83,6 +88,8 @@ abstract class _PlayerSyncPlayController with Store {
       return;
     }
     final session = _connectionSessions.begin();
+    _playbackCoordinator?.dispose();
+    _playbackCoordinator = null;
     final previousClient = syncplayController;
     syncplayController = null;
     syncplayRoom = '';
@@ -103,8 +110,27 @@ abstract class _PlayerSyncPlayController with Store {
       return;
     }
     final enableTLS = isOfficialSyncPlayEndPoint(parsed);
-    final client = SyncplayClient(host: parsed.host, port: parsed.port);
+    final client = SyncplayClient(
+      host: parsed.host,
+      port: parsed.port,
+      getPosition: () => playerPosition().inMilliseconds / 1000,
+    );
     syncplayController = client;
+    final coordinator = SyncplayPlaybackCoordinator(
+      playing: playerPlaying,
+      position: () => playerPosition().inMilliseconds / 1000,
+      duration: () => duration().inMilliseconds / 1000,
+      pause: () => pause(enableSync: false),
+      play: () => play(enableSync: false),
+      seek: (position) => seek(
+        Duration(milliseconds: (position * 1000).toInt()),
+        enableSync: false,
+      ),
+      onPositionSample: client.setPosition,
+      onError: (error, stackTrace) =>
+          KazumiLogger().e('SyncPlay: playback sync failed', error: error),
+    );
+    _playbackCoordinator = coordinator;
     try {
       await client.connect(enableTLS: enableTLS);
       if (!_isCurrentConnection(session, client)) {
@@ -216,37 +242,17 @@ abstract class _PlayerSyncPlayController with Store {
           syncplayClientRtt = (message['clientRtt'].toDouble() * 1000).toInt();
           KazumiLogger().i(
               'SyncPlay: position changed by ${message['setBy']}: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] calculatedPosition ${message['calculatedPositon']} position: ${message['position']} doSeek: ${message['doSeek']} paused: ${message['paused']} clientRtt: ${message['clientRtt']} serverRtt: ${message['serverRtt']} fd: ${message['fd']}');
-          if (message['paused'] != !playing()) {
-            if (message['paused']) {
-              if (message['position'] != 0) {
-                KazumiDialog.showToast(
-                    message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} 暂停了播放',
-                    duration: const Duration(seconds: 3));
-                pause(enableSync: false);
-              }
-            } else {
-              if (message['position'] != 0) {
-                KazumiDialog.showToast(
-                    message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} 开始了播放',
-                    duration: const Duration(seconds: 3));
-                play(enableSync: false);
-              }
-            }
+          if (message['paused'] != !playing() && message['position'] != 0) {
+            KazumiDialog.showToast(
+                message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} ${message['paused'] ? '暂停了播放' : '开始了播放'}',
+                duration: const Duration(seconds: 3));
           }
-          if ((((playerPosition().inMilliseconds -
-                              (message['calculatedPositon'].toDouble() * 1000)
-                                  .toInt())
-                          .abs() >
-                      1000) ||
-                  message['doSeek']) &&
-              duration().inMilliseconds > 0) {
-            seek(
-                Duration(
-                    milliseconds:
-                        (message['calculatedPositon'].toDouble() * 1000)
-                            .toInt()),
-                enableSync: false);
-          }
+          coordinator.update(
+            position: message['calculatedPositon'].toDouble(),
+            paused: message['paused'],
+            doSeek: message['doSeek'],
+            allowPlaybackChange: message['position'] != 0,
+          );
         },
       );
       await client.joinRoom(room, username);
@@ -256,6 +262,7 @@ abstract class _PlayerSyncPlayController with Store {
       }
       syncplayRoom = room;
     } catch (e) {
+      coordinator.dispose();
       KazumiLogger().e('SyncPlay: error', error: e);
       if (!_isCurrentConnection(session, client)) {
         await client.disconnect();
@@ -283,12 +290,16 @@ abstract class _PlayerSyncPlayController with Store {
     }
     forceSyncPlaying ??= playing();
     syncplayController!.setPaused(!forceSyncPlaying);
-    syncplayController!.setPosition((forceSyncPosition ??
-        (((currentPosition().inMilliseconds - playerPosition().inMilliseconds)
-                    .abs() >
-                2000)
-            ? currentPosition().inMilliseconds.toDouble() / 1000
-            : playerPosition().inMilliseconds.toDouble() / 1000)));
+    syncplayController!.setPosition(forceSyncPosition ?? _getCurrentPosition());
+  }
+
+  double _getCurrentPosition() {
+    final current = currentPosition();
+    final actual = playerPosition();
+    final position = (current - actual).inMilliseconds.abs() > 2000
+        ? current
+        : actual;
+    return position.inMilliseconds / 1000;
   }
 
   Future<void> setPlayingBangumi(
@@ -338,6 +349,8 @@ abstract class _PlayerSyncPlayController with Store {
   @action
   Future<void> exitRoom() async {
     _connectionSessions.cancel();
+    _playbackCoordinator?.dispose();
+    _playbackCoordinator = null;
     final controller = syncplayController;
     syncplayController = null;
     syncplayRoom = '';

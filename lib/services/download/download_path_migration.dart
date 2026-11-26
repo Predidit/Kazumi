@@ -41,14 +41,23 @@ Future<void> _rebaseDownloadPaths(
         continue;
       }
 
-      final directory = path.join(
+      final oldDirectory = episode.downloadDirectory;
+      final parent = path.join(
         downloadBase,
         '${record.bangumiId}_${record.pluginName}',
-        '${entry.key}',
       );
+      final directory = path.join(
+        parent,
+        oldDirectory.isEmpty ? '${entry.key}' : path.basename(oldDirectory),
+      );
+      final oldParent = path.dirname(oldDirectory);
       final videoPath = episode.localM3u8Path.isEmpty
           ? ''
-          : path.join(directory, path.basename(episode.localM3u8Path));
+          : oldDirectory.isNotEmpty &&
+                  path.isWithin(oldParent, episode.localM3u8Path)
+              ? path.join(
+                  parent, path.relative(episode.localM3u8Path, from: oldParent))
+              : path.join(directory, path.basename(episode.localM3u8Path));
       if (episode.downloadDirectory == directory &&
           episode.localM3u8Path == videoPath) {
         continue;

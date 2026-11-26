@@ -232,8 +232,8 @@ class M3u8Parser {
 
       if (seg.discontinuityGroup != lastDiscontinuityGroup && i > 0) {
         sb.writeln('#EXT-X-DISCONTINUITY');
-        lastDiscontinuityGroup = seg.discontinuityGroup;
       }
+      lastDiscontinuityGroup = seg.discontinuityGroup;
 
       if (seg.key != lastKey) {
         if (seg.key == null) {
